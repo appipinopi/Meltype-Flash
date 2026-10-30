@@ -23,7 +23,11 @@ pub unsafe extern "C" fn meltype_tsf_service_input_scope(
     let Some(_pin) = IUnknown::from_raw_borrowed(&lifetime).cloned() else {
         return 1;
     };
-    let value = fields::meltype_tsf_input_scope(context, cookie);
+    let value = fields::meltype_tsf_browser_input_scope(
+        context,
+        cookie,
+        i32::from(crate::tsf::process::chromium_browser()),
+    );
     (*state).private_field = value & 2 != 0;
     let source = (value >> 8) & 3;
     let label = match source {

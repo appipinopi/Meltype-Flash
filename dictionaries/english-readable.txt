@@ -36,3 +36,6 @@ mobisode
 change
 # Issue #485
 open
+
+# Meltype v1.4.0 の追加語
+claudecode image doomscroll printenv garage nohup vocaloid midi ost dive dice die dies died

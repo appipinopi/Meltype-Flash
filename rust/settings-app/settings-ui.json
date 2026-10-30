@@ -1,5 +1,5 @@
 {
-  "upstream": "6310c44b728d5ad88284853f9ef37ea224993b18",
+  "upstream": "46db6ca2f941eb9580f4d5ed103ee0bee71111c7",
   "fields": [
     {
       "key": "Enabled",
@@ -30,11 +30,11 @@
       "description": "Tsf = Windows の IME として入力欄に直接入力 (Win + Space で Meltype を選ぶ) / Keyboard = Meltype の変換ボックスで入力 (英単語は自動で英字、Space で変換、Enter で確定)"
     },
     {
-      "key": "HankakuTogglesKeyboard",
-      "type": "Boolean",
+      "key": "ToggleShortcuts",
+      "type": "List`1",
       "category": "1. 全般",
-      "label": "半角/全角 で Meltype を ON/OFF",
-      "description": "Keyboard モードで、変換ボックスが出ていないときの 半角/全角 キーを Meltype キーボードの ON/OFF (直接入力) に使います。"
+      "label": "入力モード切り替えキー",
+      "description": "日本語／英数の入力モードを切り替えるキーを複数登録できます。Windows や他のアプリで使うキー操作を登録すると、元の操作が使えなくなったり、入力モードの切り替えと同時に動いたりする場合があります。"
     },
     {
       "key": "ConvertKeysSwitchKeyboard",
@@ -69,7 +69,7 @@
       "type": "Boolean",
       "category": "1. 全般",
       "label": "/ $ @ で始まる語はそのまま入力",
-      "description": "Keyboard モードで、入力欄・行の先頭か空白の直後に打った / $ @ と、続く名前 (空白まで) は変換せず、打つたびにそのままアプリに渡します (AI エージェントの /command・$skill・@ファイル名 の補完を選びやすく)。名前の後に空白を打つと、普通の自動判定に戻ります。"
+      "description": "Keyboard モードで、入力欄・行の先頭か空白の直後に打った / $ @ と、続く名前 (空白まで) は変換せず、打つたびにそのままアプリに渡します (AI エージェントの /command・$skill・@ファイル名 の補完を選びやすく)。名前の後に空白を打つと、普通の自動判定に戻ります。文章の入力欄 (コードエディターのコード以外) の / は「・」として入り、Space で / にしてから名前を打つと、名前はそのまま渡します。"
     },
     {
       "key": "SnippetMark",
@@ -84,6 +84,20 @@
       "category": "1. 全般",
       "label": "英単語の前後に半角スペース",
       "description": "確定するときに、日本語と英単語の間に半角スペースを入れます (今日はGitHubにpushした → 今日は GitHub に push した)。数字だけの語 (3時) には入れません。"
+    },
+    {
+      "key": "SpaceAroundNumbers",
+      "type": "Boolean",
+      "category": "1. 全般",
+      "label": "半角数字の前後に半角スペース",
+      "description": "確定するときに、日本語と半角数字の間に半角スペースを入れます (この処理を3回実行します → この処理を 3 回実行します)。技術文書などの表記に合わせるとき用です。全角数字 (３回) には入れません。"
+    },
+    {
+      "key": "NumberKeysSelectCandidates",
+      "type": "Boolean",
+      "category": "1. 全般",
+      "label": "変換中の数字キーで候補を選ぶ",
+      "description": "Space・Tab で変換している間に、キーボードの上の段の 1〜9 を押すと、候補の一覧の番号で選びます。OFF にすると、今の候補で確定してから数字を入力します (zu Space 1 → 図1、hyou Space 10 → 表10)。テンキーの 1〜9 は、この設定に関係なく候補を選びます。"
     },
     {
       "key": "ShiftSpaceHalfWidth",
@@ -146,7 +160,7 @@
       "type": "Boolean",
       "category": "1. 全般",
       "label": "変換中の F6〜F10 は選んだ文節だけに効かせる",
-      "description": "文節に分けて変換しているとき、F6〜F10 (ひらがな・カタカナ・半角カタカナ・全角英数・半角英数) を全体ではなく、選んでいる文節だけに効かせます (今日は|Google の「今日は」だけをカタカナにするなど)。"
+      "description": "文節に分けて変換しているとき、F6〜F10 (ひらがな・カタカナ・半角カタカナ・全角英数・半角英数) を全体ではなく、選んでいる文節だけに効かせます (今日は|Google の「今日は」だけをカタカナにするなど)。打った英字が分からない文節 (かな入力など) では何もしません。"
     },
     {
       "key": "CompatibleShortcuts",
@@ -226,13 +240,6 @@
       "description": "ひらがなを打っている間も、Space を押す前から変換候補を (5 件まで) 変換ボックスに出します。候補をクリックすると、その候補で変換を始めます。"
     },
     {
-      "key": "ToggleKeyboardShortcuts",
-      "type": "String",
-      "category": "1. 全般",
-      "label": "日本語 / 英数を切り替えるキーを追加",
-      "description": "Meltype キーボードの 日本語 / 英数 (直接入力) の切り替えに使うキーの組み合わせを、半角/全角 のほかに追加します。「Ctrl+Space; Alt+Backquote」のように ; で区切って書きます。修飾キーは Ctrl・Alt・Shift・Win、キー名は A〜Z・0〜9・F1〜F12・Space・Tab・Enter・Esc・Backquote・Muhenkan・Henkan・Kanji。"
-    },
-    {
       "key": "GitHubIssueCandidates",
       "type": "Boolean",
       "category": "1. 全般",
@@ -287,6 +294,27 @@
       "category": "1. 全般",
       "label": "変換エンジン",
       "description": "かな漢字変換に使うエンジン。「両方」は Mozc (Google 日本語入力のオープンソース版) で変換し、Mozc が使えないときは Microsoft IME で変換します。候補には両方の候補が出ます。"
+    },
+    {
+      "key": "UseZenzai",
+      "type": "Boolean",
+      "category": "1. 全般",
+      "label": "Zenzai を使う (Windows・実験)",
+      "description": "ニューラルかな漢字変換モデル Zenzai (azooKey の zenz) で変換します。llama.cpp の llama-server と zenz の GGUF ファイルを自分で用意し、下の 2 つの場所を指定してください (どちらも Meltype には同梱しません)。使えないとき・応答が遅いときは、今までの変換エンジンで変換します。変換結果は、Mozc の文節ごとの候補で作れるときは Mozc の文節に分け、作れないときは読み全体で 1 つの文節になります。既定は OFF です。"
+    },
+    {
+      "key": "ZenzaiServerPath",
+      "type": "String",
+      "category": "1. 全般",
+      "label": "Zenzai: llama-server の場所",
+      "description": "llama.cpp の llama-server (Windows では llama-server.exe) の場所。「Zenzai を使う」が ON のときに使います。"
+    },
+    {
+      "key": "ZenzaiModelPath",
+      "type": "String",
+      "category": "1. 全般",
+      "label": "Zenzai: モデル (GGUF) の場所",
+      "description": "zenz のモデルファイル (例: zenz-v3.1-small の ggml-model-Q5_K_M.gguf) の場所。「Zenzai を使う」が ON のときに使います。"
     },
     {
       "key": "TranslationCandidates",
@@ -370,7 +398,14 @@
       "type": "Boolean",
       "category": "1. 全般",
       "label": "/ キーで中黒「・」",
-      "description": "かなのすぐ後ろで打った / を中黒「・」にします (いーろん/ますく → イーロン・マスク)。英字・数字の後ろ (and/or、3/4、URL) と、打ち始めの / (/help) は / のままです。OFF のときも、z/ または / を打って Space で「・」にできます。"
+      "description": "かなのすぐ後ろで打った / を中黒「・」にします (いーろん/ますく → イーロン・マスク)。英字・数字の後ろ (and/or、3/4、URL) は / のままです。文章の入力欄の打ち始めの / は、この設定に関係なく「・」になり、Space で / にできます。OFF のときも、z/ (設定「z + 記号・hjkl で記号・矢印を入れる」が ON のとき) または / を打って Space で「・」にできます。"
+    },
+    {
+      "key": "ZSymbols",
+      "type": "Boolean",
+      "category": "1. 全般",
+      "label": "z + 記号・hjkl で記号・矢印を入れる",
+      "description": "日本語入力のとき、z の後ろに記号や h j k l を打つと記号・矢印にします (Microsoft IME・Google 日本語入力と同じ。z/ → ・、z. → …、z, → ‥、z- → ～、z[ → 『、z] → 』、zh zj zk zl → ← ↓ ↑ →)。OFF にすると、z はほかの英字と同じに扱います (1000Hz. や quiz. の z. を … にしません)。"
     },
     {
       "key": "ShowModeIndicator",

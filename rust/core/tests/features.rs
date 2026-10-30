@@ -15,6 +15,205 @@ fn type_text(s: &mut Session, text: &str) {
         s.key(0, c as i32, 0);
     }
 }
+
+#[test]
+fn v140_candidate_pages_wrap_at_the_first_candidate_of_each_page() {
+    let mut s = Session::default();
+    type_text(&mut s, "hashi");
+    let candidates: Vec<_> = (0..20).map(|i| format!("候補{i}")).collect();
+    s.begin_clauses(vec![meltype_core::session::Clause::new(
+        "はし".into(),
+        candidates,
+    )]);
+    let pages = s.result(false).view.unwrap().candidates.len().div_ceil(9);
+    for (key, expected) in (1..=pages)
+        .map(|page| (0x22, page % pages * 9))
+        .chain([(0x21, (pages - 1) * 9)])
+    {
+        let result = s.key(key, 0, 0);
+        assert!(result.consumed);
+        assert!(result.commits.is_empty());
+        assert_eq!(result.view.unwrap().selected_index, expected);
+    }
+}
+
+#[test]
+fn v140_number_selection_can_be_disabled_without_changing_numpad_selection() {
+    for (enabled, key) in [(true, 0x31), (false, 0x31), (false, 0x61)] {
+        let mut s = Session::default();
+        s.settings
+            .set("NumberKeysSelectCandidates", json!(enabled))
+            .unwrap();
+        type_text(&mut s, "hashi");
+        s.begin_clauses(vec![meltype_core::session::Clause::new(
+            "はし".into(),
+            vec!["橋".into(), "箸".into()],
+        )]);
+        let result = s.key(key, '1' as i32, 0);
+        assert_eq!(result.commits[0].text, "橋");
+        if !enabled && key == 0x31 {
+            assert_eq!(result.view.unwrap().text, "1");
+        } else {
+            assert!(result.view.is_none());
+        }
+    }
+}
+
+#[test]
+fn v140_numbers_and_english_have_independent_spacing_and_context() {
+    for (english, numbers, expected) in [
+        (false, false, "日本語3回iPhone15台"),
+        (true, false, "日本語3回 iPhone15 台"),
+        (false, true, "日本語 3 回iPhone15台"),
+        (true, true, "日本語 3 回 iPhone15 台"),
+    ] {
+        let mut s = Session::default();
+        s.settings
+            .set("SpaceAroundEnglish", json!(english))
+            .unwrap();
+        s.settings
+            .set("SpaceAroundNumbers", json!(numbers))
+            .unwrap();
+        type_text(&mut s, "日本語3回iPhone15台");
+        assert_eq!(s.commit().commits[0].text, expected);
+    }
+    for (before, after, expected) in [
+        ("3", "4", " 回 "),
+        ("iPhone15", "iPhone16", "回"),
+        ("3 ", " 4", "回"),
+    ] {
+        let mut s = Session::default();
+        s.settings.set("SpaceAroundNumbers", json!(true)).unwrap();
+        s.set_context(Some(before), Some(after));
+        type_text(&mut s, "回");
+        assert_eq!(s.commit().commits[0].text, expected);
+    }
+}
+
+#[test]
+fn v140_z_symbols_can_be_disabled_in_regular_and_edited_input() {
+    for enabled in [false, true] {
+        for edited in [false, true] {
+            let mut s = Session::default();
+            s.settings.set("ZSymbols", json!(enabled)).unwrap();
+            if edited {
+                type_text(&mut s, "ka");
+                s.key(8, 0, 0);
+            }
+            type_text(&mut s, "zj");
+            assert_eq!(s.display(false).contains('↓'), enabled);
+        }
+    }
+}
+
+#[test]
+fn v140_bundled_phrase_parts_preserve_boundaries_and_ignore_unrelated_history() {
+    let mut s = Session::default();
+    s.preferences.selected.insert("いち".into(), "市".into());
+    type_text(&mut s, "ichigakki");
+    let result = s.key(32, 32, 0);
+    assert_eq!(result.view.unwrap().clauses, ["一", "学期"]);
+    assert_eq!(s.clause_readings(), ["いち", "がっき"]);
+    let mut s = Session::default();
+    type_text(&mut s, "ichigakki");
+    let plan = s.registered_conversion_plan("いちがっき", &[]).unwrap();
+    assert_eq!(
+        plan,
+        [
+            ("いち".into(), Some("一".into())),
+            ("がっき".into(), Some("学期".into()))
+        ]
+    );
+    let mut s = Session::default();
+    type_text(&mut s, "hakkenritsu");
+    assert!(s
+        .registered_conversion_plan(
+            "はっけんりつ",
+            &[meltype_core::session::Clause::new(
+                "はっけんりつ".into(),
+                vec!["発見率".into()]
+            )]
+        )
+        .is_none());
+}
+
+#[test]
+fn v140_head_only_phrases_do_not_match_inside_an_unknown_reading() {
+    let dictionary = meltype_core::dictionary::Dictionary::bundled();
+    assert_eq!(dictionary.convert("けんりつ"), "県立");
+    assert!(!dictionary.convert("はっけんりつ").contains("県立"));
+    let session = Session::default();
+    assert!(session
+        .registered_conversion_plan("はっけんりつ", &[])
+        .is_none());
+    let engine = vec![
+        meltype_core::session::Clause::new("とうきょう".into(), vec!["東京".into()]),
+        meltype_core::session::Clause::new("けんりつ".into(), vec!["県率".into()]),
+    ];
+    assert_eq!(
+        session.registered_conversion_plan("とうきょうけんりつ", &engine),
+        Some(vec![
+            ("とうきょう".into(), None),
+            ("けんりつ".into(), Some("県立".into()))
+        ])
+    );
+}
+
+#[test]
+fn v140_phrase_boundaries_respect_user_words_with_the_same_reading() {
+    for (word, expected) in [("一学期", vec!["一", "学期"]), ("一楽器", vec!["一楽器"])]
+    {
+        let mut session = Session::default();
+        session
+            .preferences
+            .user_dictionary
+            .insert("いちがっき".into(), vec![word.into()]);
+        type_text(&mut session, "ichigakki");
+        let reply = session.key(32, 32, 0);
+        assert_eq!(reply.view.unwrap().clauses, expected);
+    }
+    let mut session = Session::default();
+    session
+        .preferences
+        .selected
+        .insert("いち".into(), "市".into());
+    type_text(&mut session, "ichigakki");
+    assert!(session.update_live_conversion(vec![
+        meltype_core::session::Clause::new("いち".into(), vec!["一".into(), "市".into()]),
+        meltype_core::session::Clause::new("がっき".into(), vec!["学期".into()]),
+    ]));
+    assert_eq!(session.display(false), "一学期");
+    let mut session = Session::default();
+    session.preferences.selected.insert("に".into(), "荷".into());
+    session.preferences.selected.insert("がっき".into(), "楽器".into());
+    type_text(&mut session, "nigakki");
+    assert!(session.begin_clauses(vec![
+        meltype_core::session::Clause::new("に".into(), vec!["二".into()]),
+        meltype_core::session::Clause::new("がっき".into(), vec!["学期".into()]),
+    ]));
+    assert_eq!(session.result(false).view.unwrap().clauses, ["二", "学期"]);
+}
+
+#[test]
+fn v140_clause_function_keys_preserve_other_clauses_when_raw_is_unavailable() {
+    let mut s = Session::default();
+    s.settings
+        .set("FunctionKeysAffectSelectedClause", json!(true))
+        .unwrap();
+    type_text(&mut s, "nihongonohon");
+    let mut clause = meltype_core::session::Clause::new("にほんご".into(), vec!["日本語".into()]);
+    clause.raw = None;
+    s.begin_clauses(vec![
+        clause,
+        meltype_core::session::Clause::new("のほん".into(), vec!["の本".into()]),
+    ]);
+    // The boundary edit removes the retained original spelling.
+    s.key(0x27, 0, 1);
+    let before = s.result(false).view.unwrap().clauses;
+    let result = s.key(0x79, 0, 0);
+    assert_eq!(result.view.unwrap().clauses, before);
+    assert!(s.is_converting());
+}
 #[test]
 fn settings_profiles_preserve_shared_and_future_values() {
     let mut s = Settings::parse(
@@ -314,4 +513,113 @@ fn protected_spans_preserve_automatic_text_and_honor_explicit_width() {
     assert_eq!(uppercase.display(false), "@NAME");
     uppercase.key(0x79, 0, 0);
     assert_eq!(uppercase.commit().commits[0].text, "@name");
+}
+
+#[test]
+#[ignore = "manual prediction benchmark; run with --release --ignored --nocapture"]
+fn prediction_growth_timing() {
+    use std::{hint::black_box, time::Instant};
+    let dictionary = meltype_core::dictionary::Dictionary::bundled();
+    for round in 0..3 {
+        let start = Instant::now();
+        for _ in 0..200 {
+            black_box(dictionary.predict_english("hel"));
+        }
+        println!(
+            "ENGLISH_BENCH round={round} us={:.2}",
+            start.elapsed().as_secs_f64() * 1e6 / 200.0
+        );
+    }
+    for size in [0, 5000] {
+        let mut session = Session::default();
+        session
+            .settings
+            .set("LiveConversion", json!(false))
+            .unwrap();
+        session
+            .settings
+            .set("PredictiveCandidates", json!(true))
+            .unwrap();
+        session
+            .preferences
+            .user_dictionary
+            .insert("めるたいぷ".into(), vec!["Meltype".into()]);
+        type_text(&mut session, "meru");
+        for i in 0..size {
+            session
+                .state
+                .snippets
+                .insert(format!("snippet{i}"), "x".repeat(128));
+            session
+                .preferences
+                .selected
+                .insert(format!("よみ{i:05}"), format!("単語{i}"));
+        }
+        session.state.preferences = session.preferences.clone();
+        assert!(!session.predictions().is_empty());
+        for round in 0..3 {
+            let start = Instant::now();
+            for _ in 0..200 {
+                black_box(session.predictions());
+            }
+            println!(
+                "PREDICTION_BENCH size={size} round={round} us={:.2}",
+                start.elapsed().as_secs_f64() * 1e6 / 200.0
+            );
+        }
+    }
+}
+
+#[test]
+fn predictions_use_current_preferences_and_preserve_learning_order() {
+    use meltype_core::storage::{Phrase, State};
+    let mut state = State::default();
+    for (reading, text, count, used) in [
+        ("める", "完全一致は除外", 100, 100),
+        ("めるたいぷ", "学習", 3, 10),
+        ("めるたいぷ", "同順位の先", 2, 10),
+        ("めるたいぷ", "同順位の後", 2, 10),
+        ("めるたいぷ", "学習", 1, 20),
+    ] {
+        state.phrases.push(Phrase {
+            reading: reading.into(),
+            text: text.into(),
+            count,
+            used,
+        });
+    }
+    state.preferences.user_dictionary.insert(
+        "めるたいぷ".into(),
+        vec!["新しい登録".into(), "古い登録".into(), "学習".into()],
+    );
+    state
+        .preferences
+        .selected
+        .insert("めるたいぷ".into(), "選択履歴".into());
+    assert_eq!(
+        Linguistics::bundled().predict("める", &state),
+        ["学習", "同順位の先", "同順位の後", "古い登録", "新しい登録"]
+    );
+    state.phrases.clear();
+    assert_eq!(
+        Linguistics::bundled().predict("める", &state),
+        ["学習", "古い登録", "新しい登録", "選択履歴"]
+    );
+    assert!(Linguistics::bundled().predict("め", &state).is_empty());
+    let mut session = Session::default();
+    session.state = state;
+    session
+        .preferences
+        .user_dictionary
+        .insert("めるたいぷ".into(), vec!["Meltype".into()]);
+    session
+        .preferences
+        .selected
+        .insert("めるたいぷ".into(), "最新の選択".into());
+    type_text(&mut session, "meru");
+    let predictions = session.predictions();
+    assert!(predictions.contains(&"Meltype".into()));
+    assert!(predictions.contains(&"最新の選択".into()));
+    assert!(!predictions.contains(&"古い登録".into()));
+    assert!(!predictions.contains(&"選択履歴".into()));
 }

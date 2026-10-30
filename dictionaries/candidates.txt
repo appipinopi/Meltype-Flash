@@ -369,3 +369,9 @@
 
 # --- 子音の略入力 (Issue #62: 英字の読みで候補を出せる。自分の略語は %LOCALAPPDATA%\Meltype\dictionaries\candidates.txt に同じ形式で書く) ---
 ast 明日
+
+# Meltype v1.4.0 の追加候補
+かんそうりつ 乾燥率
+ぶるあか ブルーアーカイブ
+ー＞ →
+みかんせい 蜜柑星

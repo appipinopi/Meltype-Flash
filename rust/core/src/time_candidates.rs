@@ -85,7 +85,9 @@ pub fn candidates(reading: &str, now: NaiveDateTime) -> Vec<String> {
             format!("{date}({week})"),
             month_day.clone(),
             format!("{month_day}({week})"),
-            slash_date,
+            slash_date.clone(),
+            format!("{slash_date}({week})"),
+            format!("{month}/{day}({week})"),
             format!("{year:04}-{month:02}-{day:02}"),
             format!("{week}曜日"),
         ];

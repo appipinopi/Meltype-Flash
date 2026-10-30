@@ -69,12 +69,12 @@ impl Units {
             display_cursor = display_start + english.len();
             if let Some(offset) = offset {
                 let end = cursor + offset + english.len();
-                value.push(&raw[cursor..end]);
+                value.push_plain(&raw[cursor..end]);
                 value.finish_pending();
                 cursor = end;
             }
         }
-        value.push(&raw[cursor..]);
+        value.push_plain(&raw[cursor..]);
         value.japanese_edit = !display.chars().any(|c| c.is_ascii_alphabetic())
             && display
                 .chars()
@@ -87,10 +87,52 @@ impl Units {
     pub fn parts(&self) -> (&[Token], &str) {
         (&self.units, &self.pending)
     }
+    pub fn has_z_symbols(&self) -> bool {
+        self.units.iter().any(|u| {
+            u.spelling.len() == 2
+                && u.spelling.starts_with(['z', 'Z'])
+                && u.spelling
+                    .chars()
+                    .nth(1)
+                    .and_then(romaji::z_symbol)
+                    .is_some_and(|c| u.kana == c.to_string())
+        })
+    }
     pub fn kana(&self, final_input: bool) -> String {
         self.kana_range(0, self.raw.len(), final_input)
     }
-    pub fn push(&mut self, text: &str) {
+    pub fn push_with_z_symbols(&mut self, text: &str, z_symbols: bool) {
+        self.japanese_edit = false;
+        if z_symbols
+            && !self.raw.contains(['/', '\\', ':', '@'])
+            && self.pending.is_empty()
+            && text.chars().count() == 1
+            && text.chars().next().and_then(romaji::z_symbol).is_some()
+            && self
+                .units
+                .last()
+                .is_some_and(|u| u.spelling.eq_ignore_ascii_case("z") && u.kana == u.spelling)
+        {
+            self.pending = self.units.pop().unwrap().spelling;
+        }
+        if z_symbols
+            && !self.raw.contains(['/', '\\', ':', '@'])
+            && self.pending.eq_ignore_ascii_case("z")
+            && text.chars().count() == 1
+        {
+            if let Some(symbol) = text.chars().next().and_then(romaji::z_symbol) {
+                self.raw.push_str(text);
+                let spelling = std::mem::take(&mut self.pending) + text;
+                self.units.push(Token {
+                    spelling,
+                    kana: symbol.to_string(),
+                });
+                return;
+            }
+        }
+        self.push_plain(text);
+    }
+    fn push_plain(&mut self, text: &str) {
         self.japanese_edit = false;
         // CompositionText.Append returns unreadable letters to Pending so a
         // following vowel/y can form a syllable after an edit (goog + ya).
@@ -248,18 +290,27 @@ impl Units {
             result.push_str(&self.kana_range(cursor, start, true));
             // A retained sokuon is Japanese even after its next unit was erased.
             let mut position = 0;
+            let mut symbol = false;
             let retained = self.units.iter().any(|u| {
                 let at = position;
                 position += u.spelling.len();
-                at >= start
-                    && position <= end
-                    && (u.kana == "っ" || u.kana == "ん" && english == "n")
+                let inside = at >= start && position <= end;
+                symbol |= inside
+                    && u.spelling.len() == 2
+                    && u.spelling.starts_with(['z', 'Z'])
+                    && u.spelling
+                        .chars()
+                        .nth(1)
+                        .and_then(romaji::z_symbol)
+                        .is_some_and(|c| u.kana == c.to_string());
+                inside && (u.kana == "っ" || u.kana == "ん" && english == "n")
             });
-            if retained
-                && (english.len() == 1
-                    || !crate::dictionary::Dictionary::bundled().is_english(english)
-                        && !crate::dictionary::Dictionary::bundled()
-                            .unknown_english_word(&english.to_ascii_lowercase()))
+            if symbol
+                || retained
+                    && (english.len() == 1
+                        || !crate::dictionary::Dictionary::bundled().is_english(english)
+                            && !crate::dictionary::Dictionary::bundled()
+                                .unknown_english_word(&english.to_ascii_lowercase()))
             {
                 result.push_str(&self.kana_range(start, end, final_input));
             } else {

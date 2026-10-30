@@ -77,3 +77,6 @@ Suica DCafe ProBot Carlbot Disboard TaCZ NSFW
 Khalifa Ariana Grande Sheeran Marshmello Beabadoobee Chainsmokers Iann Dior Dobby
 # Issue #268
 DeVito
+
+# 上流PR #1048の Reddit + は の日英境界を保つ
+Reddit

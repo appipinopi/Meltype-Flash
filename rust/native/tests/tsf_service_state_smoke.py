@@ -92,6 +92,7 @@ class State(c.Structure):
         ('langbar',P),
         ('candidates',P),
         ('edit_epoch',c.c_uint64),
+        ('full_width_space',c.c_bool),
     ]
 class StateTests(unittest.TestCase):
     @classmethod
@@ -180,7 +181,7 @@ class StateTests(unittest.TestCase):
 
         size=cls.api.meltype_tsf_service_state_layout(None,0)
         metadata=(U32*size)();cls.api.meltype_tsf_service_state_layout(metadata,size)
-        expected=[5,c.sizeof(State),c.alignment(State)]+[getattr(State,name).offset for name,_ in State._fields_]
+        expected=[6,c.sizeof(State),c.alignment(State)]+[getattr(State,name).offset for name,_ in State._fields_]
         if list(metadata)!=expected:raise AssertionError('State ABI mismatch; do not borrow this allocation')
     @classmethod
     def tearDownClass(cls):cls.ole.CoUninitialize()
@@ -218,7 +219,7 @@ class StateTests(unittest.TestCase):
     def test_layout_matches_all_fields_before_borrowing(self):
         size=self.api.meltype_tsf_service_state_layout(None,0)
         result=(U32*size)();self.assertEqual(self.api.meltype_tsf_service_state_layout(result,size),size)
-        expected=[5,c.sizeof(State),c.alignment(State)]+[getattr(State,name).offset for name,_ in State._fields_]
+        expected=[6,c.sizeof(State),c.alignment(State)]+[getattr(State,name).offset for name,_ in State._fields_]
         self.assertEqual(list(result),expected)
     def test_short_metadata_buffer_is_untouched(self):
         size=self.api.meltype_tsf_service_state_layout(None,0);result=(U32*(size+2))(*([0xaabbccdd]*(size+2)))
@@ -471,7 +472,7 @@ class StateTests(unittest.TestCase):
         state.focus_epoch=777;state.shutdown_phase=0;state.pass_reason=1234;state.scope_source=5678
         before={name:getattr(state,name) for name,_ in State._fields_}
         self.assertEqual(self.api.meltype_tsf_service_initialize(address,17,0,-1,b'new-session'),1)
-        changed={'mode_epoch':0,'client':17,'deactivated':False,'server_active':False,'direct_detection':False,
+        changed={'mode_epoch':0,'client':17,'deactivated':False,'server_active':False,'direct_detection':False,'full_width_space':False,
                  'direct_word':False,'last_hello':0,'caret_moved':False,'own_edit':False,'secret_checked':False,
                  'last_converting':False,'pass_reason':None,'key_failed':False,'consumed':True,'own_process':True,'disabled':False}
         for name,_ in State._fields_:
@@ -721,11 +722,12 @@ class StateTests(unittest.TestCase):
     def test_core_hello_native_process_thread_metadata_and_state_publication(self):
         state=self.create();host=SubscriptionHost();state.own_process=True;state.direct_word=True;events=[]
         notice=CORE_NOTICE(lambda owner,op,value:events.append((op,value,state.server_active,state.direct_detection,state.code_app,state.direct_word)))
-        result,request=self.fixture_core(state,host,'{"active":true,"directDetection":true,"code":true}',notice)
+        result,request=self.fixture_core(state,host,'{"active":true,"directDetection":true,"code":true,"fullWidthSpace":true}',notice)
         self.assertEqual(result,1);self.assertEqual(request['op'],'hello')
         kernel=c.WinDLL('kernel32');self.assertEqual(request['tid'],kernel.GetCurrentThreadId())
         self.assertEqual(request['process'].lower(),'python');self.assertEqual(state.last_hello,3000)
         self.assertEqual(events,[(0,1,True,True,True,False)]);host.verify(self)
+        self.assertTrue(state.full_width_space)
     def test_core_inactive_and_non_boolean_fields_are_normalized(self):
         state=self.create();host=SubscriptionHost()
         for reply in ['{"active":false,"code":true,"directDetection":true}','{"active":1,"code":true}',
@@ -743,6 +745,13 @@ class StateTests(unittest.TestCase):
         result,_=self.fixture_core(state,host,'not-json',notice)
         self.assertEqual(result,0);self.assertEqual(events,[(1,0),(0,0)])
         self.assertFalse(state.server_active);host.verify(self)
+
+    def test_issue_881_setting_reaches_service_snapshot_and_is_cleared_when_inactive(self):
+        state=self.create();host=SubscriptionHost()
+        for active,enabled in [(True,True),(True,False),(False,True)]:
+            self.fixture_core(state,host,json.dumps({'active':active,'fullWidthSpace':enabled}))
+            self.assertEqual(state.full_width_space,active and enabled)
+        host.verify(self)
     def test_core_reentrant_notice_supersedes_return_and_keeps_new_state(self):
         state=self.create();host=SubscriptionHost()
         def changed(owner,op,value):
@@ -2023,19 +2032,22 @@ class StateTests(unittest.TestCase):
         def apply(owner,cookie,context,bytes,count):
             events.append((owner,cookie,context,state.own_edit,state.server_active,state.direct_detection,state.direct_word,state.consumed));return 1
         try:
-            result,request=self.fixture_recovery(state,'{"active":true,"directDetection":true,"directEnglishWord":true,"consumed":true}',
+            result,request=self.fixture_recovery(state,'{"active":true,"directDetection":true,"directEnglishWord":true,"consumed":true,"fullWidthSpace":true}',
                 lambda worker:self.handle_service_key(state,host,worker=worker,apply=apply))
             self.assertEqual(result,0);self.assertEqual(request['sid'],'key"😀');self.assertEqual(request['process'].lower(),Path(sys.executable).stem.lower())
             self.assertEqual({k:request[k] for k in ['op','vk','ch','mods','code','direct','canDelete','moved','private','before','after']},
                 {'op':'key','vk':65,'ch':97,'mods':0,'code':True,'direct':False,'canDelete':True,'moved':True,'private':True,'before':'old','after':''})
             self.assertEqual(events,[(123,7,c.addressof(host.context),True,True,True,True,True)])
+            self.assertTrue(state.full_width_space)
             self.assertFalse(state.own_edit);self.assertFalse(state.caret_moved);self.assertFalse(state.key_failed)
         finally:self.cleanup_recovered(state,host)
     def test_key_work_native_normalizes_dependent_server_flags(self):
         state,host=self.key_work_state()
         try:
-            self.fixture_recovery(state,'{"active":false,"directDetection":true,"directEnglishWord":true,"consumed":true}',lambda worker:self.handle_service_key(state,host,worker=worker))
+            state.full_width_space=True
+            self.fixture_recovery(state,'{"active":false,"directDetection":true,"directEnglishWord":true,"consumed":true,"fullWidthSpace":true}',lambda worker:self.handle_service_key(state,host,worker=worker))
             self.assertFalse(state.server_active);self.assertFalse(state.direct_detection);self.assertFalse(state.direct_word)
+            self.assertFalse(state.full_width_space)
         finally:self.cleanup_recovered(state,host)
     def test_key_work_native_composing_request_omits_surrounding_text(self):
         state,host=self.key_work_state();self.shutdown_composition(state,host)

@@ -74,7 +74,7 @@ pub unsafe extern "C" fn meltype_tsf_core_ready(callbacks: *const StateCallbacks
 }
 /// # Safety
 /// Same lifetime contract as core_ready; process is readable UTF16 (null only
-/// for length zero). request returns success plus active=1,detection=2,code=4.
+/// for length zero). request returns active=1,detection=2,code=4,full-width Space=8.
 /// update 0 stores last hello time,1 publishes normalized flags/clears direct word,
 /// 2 logs active(value). Clock null uses Windows uptime. Reply applies only to
 /// the same service epoch; ended/disabled services are inert.
@@ -119,7 +119,7 @@ pub unsafe extern "C" fn meltype_tsf_core_hello(
         if snapshot(&c, epoch).is_none_or(|(flags, _)| flags & 1 != 0) {
             return 0;
         }
-        let flags = if ok && flags & 1 != 0 { flags & 7 } else { 0 };
+        let flags = if ok && flags & 1 != 0 { flags & 15 } else { 0 };
         (c.update)(c.owner, 1, flags as u64);
         if snapshot(&c, epoch).is_none() {
             return 0;

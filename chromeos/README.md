@@ -24,8 +24,13 @@ ChromeOSの `chrome.input.ime` と共通Rust CoreのWASMを接続する、日本
 <a id="内容"></a>
 <h2><img src="../assets/branding/readme/chromeos/headings/df8764ebcf5d.svg" alt="内容" width="1000"></h2>
 
-ローマ字・かな、英語・日本語の判定、同梱FSTの漢字候補、予測候補、候補選択、設定と学習の保存を接続しています。
-設定画面では、通常入力とコード入力、サイトごとの切替、詳細JSON、スナップショットの保存を扱います。
+ローマ字・かな、英語・日本語の判定、漢字変換、予測候補、候補選択、設定と学習の保存を接続しています。
+AI変換は搭載しません。デスクトップの設定を読み込んでも、Zenzaiの有効化・サーバー・モデルの設定は取り込みません。通常の辞書変換・予測候補・学習は端末内で使えます。
+漢字変換には、固定版Mozcの語彙と接続コストを同梱しています。「にほんご → 日本語」「きょうはいいてんきです → 今日はいい天気です」のように、端末内で変換します。Mozc本体とは異なる上限付きの探索処理であり、候補や順位はデスクトップ版と一致するとは限りません。
+設定画面では、通常入力とコード入力、サイトごとの切替、入力のカスタマイズ、詳細JSON、スナップショットの保存を扱います。
+
+「入力のカスタマイズ」で日英判定、句読点、タイプミス補正、Tab変換、英語前後の空白、学習を変更し、「入力設定を保存」で反映します。詳細JSONとも同期します。「保存済み設定へ戻す」で未保存の編集を取り消せます。学習をオフにしても既存の履歴は削除しません。
+候補はChromeOS標準の表示を使い、色・フォント・位置の変更は未対応です。[カスタマイズの進め方](../docs/customization.md) に対応範囲と次の案をまとめています。
 [導入画面の記録](docs/INSTALLATION.md) はありますが、Pre3の修正を含む実機での変換・各アプリ入力の確認は未完了です。
 
 [動く環境](#動く環境) · [インストール](#インストール) · [使い方](#使い方) · [困ったとき](#困ったとき) · [アンインストール](#アンインストール) · [開発者向け](#開発者向け)
@@ -56,12 +61,16 @@ ChromeOSの `chrome.input.ime` と共通Rust CoreのWASMを接続する、日本
 | 操作 | 動作 |
 | --- | --- |
 | 文字キー | 共通Coreでローマ字・かなと英語を判定 |
+| 半角/全角 / Alt+Backquote | 日本語と半角英数を切替。未確定入力は確定してから切替。通常のBackquoteは記号として入力。 |
 | Space | 変換・候補切替 |
 | 候補クリック / Enter | 候補を選択して確定 |
 | Esc | 取消 |
 | F6 / F7など | 対応する字種へ切替。OSに取られるキーは届かない場合があります。 |
 
 例: `hashi` → Space → 「橋」「箸」の候補を選択 → Enterで確定。
+
+ChatGPTなどのチャット欄では、`chatgptwotsukau` → Space → `chatgptを使う` → Enterで確定します。英字の文節はそのまま残し、日本語の文節を変換します。複数文節の候補は選択中の文節に対するものです。左右キーで文節を選び、Enterで文全体を確定できます。未確定入力がある間のCtrl+Enterは確定だけを行い、次のCtrl+Enterをアプリへ渡します。この手順は実WASMと模擬IME APIで検証しており、ChromeOS実機のChatGPT画面での確認は未実施です。
+
 ChromeOSの入力方式切替はOS側の設定を使います。
 
 <a id="サイトごとの通常入力コード入力"></a>
@@ -94,6 +103,7 @@ ChromeOSであること、OS側の入力方法へ追加したこと、管理ポ�
 <summary>英字のまま・候補が出ない・設定が切り替わらない</summary>
 
 まずSpaceで候補を確認します。サイトの周辺文字が取れない場合は通常入力へ変更し、更新後は拡張機能を再読み込みしてください。
+旧版は補助辞書しか接続しておらず、「橋」など一部の語以外は漢字候補が出ませんでした。修正版では `pkg/kanji.bin` も必要です。JSやWASMだけを個別にコピーせず、同じ拡張機能フォルダーをZIPの全内容で更新してから、拡張機能を再読み込みしてください。
 OS・拡張機能の版・サイト・入力手順を [Issues](https://github.com/appipinopi/Meltype/issues/new/choose) に記載してください。タブURLや文章に個人情報がないか確認してください。
 
 </details>
@@ -108,6 +118,7 @@ OS・拡張機能の版・サイト・入力手順を [Issues](https://github.co
 <h2><img src="../assets/branding/readme/chromeos/headings/9f8c2f09ae3c.svg" alt="開発者向け" width="1000"></h2>
 
 Rustと `wasm-bindgen-cli`、Pythonが必要です。リポジトリのルートから実行します。
+初回ビルドでは `native/mozc/MOZC_COMMIT` に固定したMozcの辞書と接続コストを取得します。取得したデータは `tools/data/chromeos-mozc/<commit>/` に保存し、次回から再利用します。実行時の外部通信は不要です。
 
 ```sh
 python chromeos/build.py
@@ -116,6 +127,7 @@ python chromeos/build.py
 `dist/chromeos-preview` と同名ZIPを作ります。別のwasm-bindgen実行ファイルは `--wasm-bindgen`、出力先は `--out` で指定します。`CARGO_TARGET_DIR` も尊重します。
 実WASMでの変換・候補・学習復元、模擬IME APIでの順序・UTF-16位置・競合・エラーを検査します。
 模擬APIでの成功とChromeOS実機での成功は別です。[移行記録](../rust/MIGRATION.md) と [ビルドスクリプト](build.py) も参照してください。
+パッケージ内の `pkg/MOZC-DICTIONARY-NOTICES.txt` に、辞書の出典・固定commit・取得ファイルのSHA256・ライセンス本文を含めています。
 
 <a id="ライセンス"></a>
 <h2><img src="../assets/branding/readme/chromeos/headings/cfc7325a7d0e.svg" alt="ライセンス" width="1000"></h2>

@@ -2,17 +2,84 @@
 # SPDX-License-Identifier: GPL-3.0-or-later
 """Build the shared Rust engine and a load-unpacked ChromeOS extension ZIP."""
 import argparse
+import array
 import hashlib
 import json
 import re
 import shutil
 import subprocess
+import struct
+import sys
+from urllib.request import urlopen
 import zipfile
 from pathlib import Path
 
 ROOT = Path(__file__).resolve().parents[1]
 VERSION = "0.2.129"
 FILES = ("manifest.json", "background.mjs", "controller.mjs", "keys.mjs", "site-profiles.mjs", "options.html", "options.mjs", "options.css")
+
+
+def build_kanji_dictionary():
+    """固定版Mozcの語彙・接続コストを、WASMが直接参照できる形式にする。"""
+    commit = (ROOT / "native/mozc/MOZC_COMMIT").read_text().strip()
+    cache = ROOT / "tools/data/chromeos-mozc" / commit
+    cache.mkdir(parents=True, exist_ok=True)
+    hashes = {}
+
+    def source(name, path="src/data/dictionary_oss/"):
+        target = cache / name
+        if not target.exists():
+            with urlopen(f"https://raw.githubusercontent.com/google/mozc/{commit}/{path}{name}", timeout=120) as response:
+                data = response.read()
+            temporary = target.with_suffix(".download")
+            temporary.write_bytes(data)
+            temporary.replace(target)
+        data = target.read_bytes()
+        hashes[name] = hashlib.sha256(data).hexdigest()
+        return data.decode("utf-8")
+
+    connection = iter(source("connection_single_column.txt").splitlines())
+    dimension = int(next(connection))
+    matrix = array.array("H", (int(value) for value in connection))
+    if len(matrix) != dimension * dimension or dimension > 8192:
+        raise ValueError("Mozc接続コストの形式が不正です")
+    if sys.byteorder != "little":
+        matrix.byteswap()
+    entries = []
+    for index in range(10):
+        for line in source(f"dictionary{index:02}.txt").splitlines():
+            fields = line.split("\t")
+            if len(fields) < 5:
+                raise ValueError("Mozc語彙の形式が不正です")
+            reading, left, right, cost, word = fields[:5]
+            left, right, cost = int(left), int(right), int(cost)
+            if not reading or not word or not (0 <= left < dimension and 0 <= right < dimension):
+                raise ValueError("Mozc語彙の値が不正です")
+            entries.append((reading.encode("utf-8"), word.encode("utf-8"), left, right, cost))
+    entries.sort()
+    pool = bytearray()
+    offsets = {}
+
+    def intern(value):
+        if value not in offsets:
+            offsets[value] = len(pool)
+            pool.extend(value)
+        return offsets[value]
+
+    records = bytearray()
+    for reading, word, left, right, cost in entries:
+        records.extend(struct.pack("<IIIIHHi", intern(reading), len(reading), intern(word), len(word), left, right, cost))
+    pkg = ROOT / "chromeos/pkg"
+    pkg.mkdir(exist_ok=True)
+    (pkg / "kanji.bin").write_bytes(
+        b"MTKKC001" + struct.pack("<III", dimension, len(entries), max(len(entry[0]) for entry in entries))
+        + matrix.tobytes() + records + pool)
+    license_text = source("LICENSE", "")
+    (pkg / "MOZC-DICTIONARY-NOTICES.txt").write_text(
+        f"Mozc dictionary data: https://github.com/google/mozc/tree/{commit}/src/data/dictionary_oss\n"
+        "Meltypeで語彙と接続コストを別形式へ変換。Mozc本体の変換エンジンとは異なります。\n\n"
+        + license_text + "\n\nSource SHA256:\n" + json.dumps(hashes, indent=2) + "\n", encoding="utf-8")
+    print(json.dumps({"kanji_entries": len(entries), "dictionary_bytes": (pkg / "kanji.bin").stat().st_size}))
 
 
 def run(*args):
@@ -38,6 +105,7 @@ def main():
     metadata = json.loads(subprocess.check_output(["cargo", "metadata", "--no-deps", "--format-version", "1"], cwd=ROOT, encoding="utf-8"))
     wasm = Path(metadata["target_directory"]) / "wasm32-unknown-unknown/release/meltype_browser.wasm"
     run(tool, wasm, "--target", "web", "--out-dir", ROOT / "chromeos/pkg")
+    build_kanji_dictionary()
     run("node", "--test", *sorted((ROOT / "chromeos/tests").glob("*.test.mjs")))
     out.mkdir(parents=True, exist_ok=True)
     for name in FILES + ("README.md",):
@@ -45,7 +113,7 @@ def main():
     for name in ("LICENSE", "THIRD-PARTY-NOTICES.md"):
         shutil.copyfile(ROOT / name, out / name)
     (out / "pkg").mkdir(exist_ok=True)
-    for name in ("meltype_browser.js", "meltype_browser_bg.wasm"):
+    for name in ("meltype_browser.js", "meltype_browser_bg.wasm", "kanji.bin", "MOZC-DICTIONARY-NOTICES.txt"):
         shutil.copyfile(ROOT / "chromeos/pkg" / name, out / "pkg" / name)
     # Include the license texts from the actual resolved engine/build dependency
     # graph, rather than assuming desktop package notices cover new WASM crates.
@@ -69,7 +137,8 @@ def main():
             notices.append(f'\n--- {path.name} ---\n{path.read_text(encoding="utf-8", errors="replace")}\n')
     (out / "RUST-DEPENDENCY-NOTICES.txt").write_text("".join(notices), encoding="utf-8")
     packaged = [*(out / p for p in FILES), out / "README.md", out / "LICENSE", out / "THIRD-PARTY-NOTICES.md",
-                out / "pkg/meltype_browser.js", out / "pkg/meltype_browser_bg.wasm", out / "RUST-DEPENDENCY-NOTICES.txt"]
+                out / "pkg/meltype_browser.js", out / "pkg/meltype_browser_bg.wasm", out / "pkg/kanji.bin",
+                out / "pkg/MOZC-DICTIONARY-NOTICES.txt", out / "RUST-DEPENDENCY-NOTICES.txt"]
     checksums = {p.relative_to(out).as_posix(): hashlib.sha256(p.read_bytes()).hexdigest() for p in packaged}
     (out / "SHA256SUMS.json").write_text(json.dumps(checksums, indent=2) + "\n", encoding="utf-8")
     with zipfile.ZipFile(out.with_suffix(".zip"), "w", compression=zipfile.ZIP_DEFLATED) as archive:

@@ -127,8 +127,10 @@ export class ImeController {
     // the third listener argument. Missing it used to pass every key through.
     if (typeof requestId !== "string" || !requestId) requestId = event.requestId;
     const mapped = translateKey(event);
+    const keyID = event.code || event.key;
     const id = this.context?.contextID, generation = this.generation;
-    if (!mapped || !this.valid(engine, id, generation) || id === undefined || event.extensionId || event.metaKey) return false;
+    if ((!mapped && !(event.type === "keyup" && this.ownedKeys.has(keyID)))
+        || !this.valid(engine, id, generation) || id === undefined || event.extensionId || event.metaKey) return false;
     if (event.type !== "keydown" && event.type !== "keyup") return false;
     if (typeof requestId !== "string" || !requestId) return false;
     this.enqueue(async () => {
@@ -137,25 +139,33 @@ export class ImeController {
         const core = await this.ready();
         if (!this.valid(engine, id, generation)) return;
         if (event.type === "keyup") {
-          handled = this.ownedKeys.delete(event.code);
+          handled = this.ownedKeys.delete(keyID);
           return;
         }
         core.focusIfNeeded?.(generation, this.learning());
         if (this.pending) {
           // A failed retry must not let Enter submit the form underneath it.
-          if (mapped.vk === 13) { handled = true; this.ownedKeys.add(event.code); }
+          if (mapped.vk === 13 || mapped.mode) { handled = true; this.ownedKeys.add(keyID); }
           await this.resume(engine, id, generation);
           if (!this.valid(engine, id, generation)) return;
           if (this.learning()) await this.persist(core.snapshot());
-          // Enter retries the failed confirmation; do not also send a newline.
-          if (mapped.vk === 13) {
+          // 確定・モード切替の再試行で、改行や二度目の切替を起こさない。
+          if (mapped.vk === 13 || mapped.mode) {
             return;
           }
         }
         if (!await this.prepareMode(core, engine, id, generation)) return;
-        const result = JSON.parse(core.key(mapped.vk, mapped.character, mapped.modifiers, this.now()));
+        let result;
+        if (mapped.mode) {
+          handled = true;
+          // 押し続けても一度だけ切り替える。keyupは通常の打鍵と同様に引き取る。
+          if (this.ownedKeys.has(keyID)) return;
+          this.ownedKeys.add(keyID);
+          const direct = mapped.mode === "toggle" ? !core.is_direct() : mapped.mode === "direct";
+          result = JSON.parse(core.set_direct(direct));
+        } else result = JSON.parse(core.key(mapped.vk, mapped.character, mapped.modifiers, this.now()));
         handled = result.consumed;
-        if (handled) this.ownedKeys.add(event.code);
+        if (handled) this.ownedKeys.add(keyID);
         await this.render(result, engine, id, generation);
         if (this.valid(engine, id, generation) && this.learning() && result.commits.length) {
           await this.persist(core.snapshot());

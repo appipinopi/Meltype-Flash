@@ -7,7 +7,7 @@ from instrument import verify_report
 
 class ReportTests(unittest.TestCase):
     def test_required_completed_tests(self):
-        for count in (4,5,6,7,8,9,10,11,12,13):
+        for count in (4,5,6,7,8,9,10,11,12,13,14):
             verify_report("INSTRUMENTATION_STATUS_CODE: 1\nINSTRUMENTATION_STATUS_CODE: 0\n" * count
                           + f"OK ({count} tests)\nINSTRUMENTATION_CODE: -1\n", count)
 

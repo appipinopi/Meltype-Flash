@@ -2,6 +2,7 @@
 # SPDX-License-Identifier: GPL-3.0-or-later
 """Regenerate v1.3.0 golden responses from its unmodified, pinned Core."""
 import hashlib
+import argparse
 import io
 import json
 from pathlib import Path
@@ -23,11 +24,21 @@ def write(path, value):
     path.write_text(json.dumps(value, ensure_ascii=False, indent=2)+"\n", encoding="utf-8")
 
 def main():
-    output = ROOT / "dist/v130-regenerate"
+    parser = argparse.ArgumentParser(description=__doc__)
+    parser.add_argument("--baseline", default=COMMIT)
+    parser.add_argument("--settings-only", action="store_true")
+    parser.add_argument("--settings-output", type=Path)
+    args = parser.parse_args()
+    if args.settings_output and not args.settings_only:
+        parser.error("--settings-output requires --settings-only")
+    commit = run(["git", "rev-parse", "--verify", args.baseline + "^{commit}"]).decode().strip()
+    if not args.settings_only and commit != COMMIT:
+        parser.error("Other baselines require --settings-only; v1.3.0 input/scalar fixtures keep their original reference")
+    output = ROOT / "dist" / ("v140-settings-regenerate" if args.settings_only else "v130-regenerate")
     output.mkdir(parents=True, exist_ok=True)
     with tempfile.TemporaryDirectory(prefix="reference-", dir=output) as temporary:
         workspace = Path(temporary).resolve()
-        archive = run(["git", "archive", "--format=zip", COMMIT, "src/Meltype.Core", "dictionaries"])
+        archive = run(["git", "archive", "--format=zip", commit, "src/Meltype.Core", "dictionaries"])
         with zipfile.ZipFile(io.BytesIO(archive)) as package:
             for member in package.infolist():
                 target = (workspace / member.filename).resolve()
@@ -39,6 +50,38 @@ def main():
         run(["dotnet", "build", str(ROOT / "tools/parity/v130/Reference.csproj"),
              f"-p:CoreProject={project}", "-o", str(binary), "--nologo"])
         reference = ["dotnet", str(binary / "Meltype.Core.Tests.dll")]
+        if args.settings_only:
+            settings = read(DATA / "upstream-v130-settings.json")
+            requests = workspace / "settings.json"
+            write(requests, [{key:value for key,value in case.items() if key!="expected"}
+                             for case in settings["settings"]])
+            raw = run(reference + ["--settings", str(requests), str(workspace / "settings-files")])
+            replies = [json.loads(line) for line in raw.decode("utf-8-sig").splitlines()]
+            if len(replies) != len(settings["settings"]):
+                raise ValueError("missing settings reference responses")
+            base = replies[0]["expected"][0]["settings"]
+            for case, reply in zip(settings["settings"], replies, strict=True):
+                if case["name"] != reply["name"]:
+                    raise ValueError("misordered settings reference response")
+                case["expected"] = []
+                for step in reply["expected"]:
+                    snapshot = step["settings"]
+                    delta = {key:value for key,value in snapshot.items()
+                             if key not in base or value != base[key]}
+                    if {**base, **delta} != snapshot:
+                        raise ValueError("lossy settings fixture")
+                    case["expected"].append(dict(accepted=step["accepted"], settingsDelta=delta))
+            settings.update(upstreamCommit=commit, baseSettings=base,
+                reference_capture_sha256=hashlib.sha256(raw).hexdigest(),
+                reference_assembly_sha256=hashlib.sha256((binary / "Meltype.Core.dll").read_bytes()).hexdigest(),
+                reference_host_sha256=hashlib.sha256((ROOT / "tools/parity/v130/Program.cs").read_bytes()).hexdigest(),
+                reference_source_sha256={p.relative_to(workspace).as_posix():hashlib.sha256(p.read_bytes()).hexdigest()
+                    for folder in (workspace / "src/Meltype.Core", workspace / "dictionaries")
+                    for p in folder.rglob("*") if p.is_file() and not {"bin", "obj"}.intersection(p.relative_to(workspace).parts)})
+            destination = args.settings_output or DATA / "upstream-v140-settings.json"
+            write(destination, settings)
+            print(f"Regenerated {len(replies)} settings cases from {commit}: {destination}")
+            return
         values = read(DATA / "upstream-v130-values.json")
         requests = workspace / "values.json"
         write(requests, [case["request"] for case in values["cases"]])

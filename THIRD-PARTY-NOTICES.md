@@ -4,6 +4,8 @@
 
 ChromeOS配布には同梱辞書とRust依存ライブラリを組み込む。`chromeos/build.py`がCargoの解決グラフから対象ライブラリのライセンス本文を収集し、`RUST-DEPENDENCY-NOTICES.txt`として同梱する。wasm-bindgen / js-sys / web-timeはMIT OR Apache-2.0。同梱辞書の由来・表示条件は本書の各辞書の節を参照する。
 
+ChromeOSの漢字変換辞書は、`native/mozc/MOZC_COMMIT` に固定した [Mozc](https://github.com/google/mozc) の `src/data/dictionary_oss/dictionary00.txt` ～ `dictionary09.txt` と `connection_single_column.txt` を別形式へ変換したもの。Mozc本体の変換エンジンは含まない。出典・固定commit・SHA256と、GoogleのBSD-3-Clause、NAIST・ICOT・沖縄辞書を含む元のライセンス全文を `pkg/MOZC-DICTIONARY-NOTICES.txt` としてChromeOS配布へ同梱する。
+
 Meltype のソースコード (このリポジトリ) には、他者の著作物は含まれていません。
 
 ## 配布用パッケージに同梱しているもの

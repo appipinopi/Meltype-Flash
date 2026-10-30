@@ -6,8 +6,15 @@ const named = {Backspace: 8, Tab: 9, Enter: 13, NumpadEnter: 13, ShiftLeft: 16, 
   Semicolon: 186, Equal: 187, Comma: 188, Minus: 189, Period: 190, Slash: 191,
   Backquote: 192, BracketLeft: 219, Backslash: 220, BracketRight: 221,
   Quote: 222, IntlBackslash: 226, IntlYen: 220, IntlRo: 226};
+const modeKeys = {ZenkakuHankaku: "toggle", KanjiMode: "toggle", Hankaku: "direct", Zenkaku: "japanese"};
 export function translateKey(event) {
   const code = event.code ?? "";
+  const modifiers = (event.shiftKey ? 1 : 0) | (event.ctrlKey ? 2 : 0) |
+    (event.altKey || event.altgrKey ? 4 : 0) | (event.metaKey ? 8 : 0);
+  // JISの半角/全角はBackquoteと同じ位置だが、文字の ` とは別のキー。
+  const mode = modeKeys[event.key] ?? (code === "Lang5" ? "toggle" : undefined) ??
+    (code === "Backquote" && event.altKey && !event.altgrKey && modifiers === 4 ? "toggle" : undefined);
+  if (mode) return {vk: 243, character: 0, modifiers, mode};
   let vk = named[code];
   if (/^Key[A-Z]$/.test(code)) vk = code.charCodeAt(3);
   else if (/^Digit[0-9]$/.test(code)) vk = code.charCodeAt(5);
@@ -16,6 +23,5 @@ export function translateKey(event) {
   if (vk === undefined) return null;
   const scalars = [...(event.key ?? "")];
   return {vk, character: scalars.length === 1 ? scalars[0].codePointAt(0) : 0,
-    modifiers: (event.shiftKey ? 1 : 0) | (event.ctrlKey ? 2 : 0) |
-      (event.altKey || event.altgrKey ? 4 : 0) | (event.metaKey ? 8 : 0)};
+    modifiers};
 }

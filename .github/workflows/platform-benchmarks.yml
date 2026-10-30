@@ -1,0 +1,58 @@
+name: Platform benchmarks
+on:
+  workflow_dispatch:
+  push:
+    branches: ['bench/all-os-*']
+permissions:
+  contents: read
+jobs:
+  desktop:
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [windows-latest, macos-latest, ubuntu-latest]
+    runs-on: ${{ matrix.os }}
+    timeout-minutes: 45
+    env:
+      PYTHONUTF8: '1'
+      CARGO_TARGET_DIR: ${{ github.workspace }}/target-benchmark
+    steps:
+      - uses: actions/checkout@v5
+        with:
+          fetch-depth: 0
+      - uses: dtolnay/rust-toolchain@stable
+      - uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: '10.0.x'
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - name: Install plotting dependencies
+        run: python -m pip install matplotlib==3.10.8 numpy==2.4.2
+      - name: Verify benchmark tooling
+        run: |
+          python -m unittest discover -s tools -p test_compare_rust_benchmarks.py
+          python -m unittest discover -s tools -p test_plot_windows_benchmark.py
+          python -m unittest discover -s tools -p test_platform_benchmarks.py
+      - name: Core (C#, previous Rust, current Rust)
+        shell: bash
+        run: python tools/compare-rust-benchmarks.py --build --current-ref HEAD --with-csharp --samples 3 --warmups 1 --rounds 3 --plot --output output/platform-benchmark/core --github-summary "${GITHUB_STEP_SUMMARY}"
+      - name: Native C ABI (previous Rust, current Rust)
+        shell: bash
+        if: ${{ !cancelled() && hashFiles('output/platform-benchmark/core/report.json') != '' }}
+        run: python tools/compare-rust-benchmarks.py --build --current-ref HEAD --backend native --samples 3 --warmups 1 --rounds 2 --plot --output output/platform-benchmark/native --github-summary "${GITHUB_STEP_SUMMARY}"
+      - name: Record platform coverage
+        if: always()
+        run: python tools/benchmark-platforms.py --input output/platform-benchmark --output output/platform-benchmark/coverage
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: platform-benchmark-${{ runner.os }}-${{ runner.arch }}
+          retention-days: 3
+          path: |
+            output/platform-benchmark/**/report.json
+            output/platform-benchmark/**/resources.json
+            output/platform-benchmark/**/charts/**
+            output/platform-benchmark/**/coverage/**
+            output/platform-benchmark/*/*.log
+            output/platform-benchmark/*/*.jsonl

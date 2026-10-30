@@ -224,6 +224,8 @@ class FieldTests(unittest.TestCase):
         cls.api = c.CDLL(str(Path(sys.argv[1]).resolve()))
         cls.api.meltype_tsf_input_scope.argtypes = [P, U32]
         cls.api.meltype_tsf_input_scope.restype = U32
+        cls.api.meltype_tsf_browser_input_scope.argtypes = [P, U32, HR]
+        cls.api.meltype_tsf_browser_input_scope.restype = U32
         cls.api.meltype_tsf_context_disabled.argtypes = [P]
         cls.api.meltype_tsf_read_open.argtypes = [P]
         cls.api.meltype_tsf_write_open.argtypes = [P, U32, HR]
@@ -268,6 +270,21 @@ class FieldTests(unittest.TestCase):
         host.values[0].values = []
         host.values[1].values = []
         self.assertEqual(self.inspect(host), 0x300)  # No previous result is cached.
+
+    def test_issue_878_chromium_app_password_scope_preserves_real_password_guards(self):
+        host = self.host(True)
+        inspect = lambda: self.api.meltype_tsf_browser_input_scope(c.byref(host.context), 7, 1)
+        host.values[1].values = [31, 61]
+        self.assertEqual(inspect(), 0x300 | 2)
+        self.assertEqual(self.inspect(host), 0x300 | 3)  # Other applications still block.
+        host.values[0].values = [31]
+        self.assertEqual(inspect(), 0x300 | 3)  # Windows password metadata wins.
+        host.values[0].values = []
+        host.integers[bytes(DISABLED)] = 1
+        self.assertEqual(inspect(), 0x300 | 3)
+        host.integers[bytes(DISABLED)] = 0
+        host.values[1].fail_query = True
+        self.assertTrue(inspect() & 5 == 5)  # Unreadable scopes remain blocked.
 
     def test_absent_property_selection_and_values_are_unspecified(self):
         host = self.host()

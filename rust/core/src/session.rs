@@ -454,8 +454,6 @@ impl Session {
         {
             return vec![];
         }
-        let mut state = self.state.clone();
-        state.preferences = self.preferences.clone();
         let displayed = self.display(false);
         let english = displayed == self.raw && self.raw.bytes().all(|c| c.is_ascii_alphabetic());
         let reading = if self.uses_kana() {
@@ -470,7 +468,11 @@ impl Session {
                 .chars()
                 .all(|c| ('ぁ'..='ゖ').contains(&c) || c == 'ー')
         {
-            Linguistics::bundled().predict(&reading, &state)
+            Linguistics::bundled().predict_with_preferences(
+                &reading,
+                &self.state.phrases,
+                &self.preferences,
+            )
         } else {
             vec![]
         };
@@ -593,6 +595,9 @@ impl Session {
     }
     pub fn reading(&self) -> String {
         let _romaji = romaji::Scope::new(self.custom_romaji.clone());
+        if self.v130.slash_at_start && self.raw.starts_with('/') {
+            return format!("・{}", romaji::hiragana(&self.raw[1..], true));
+        }
         if self.reconversion_origin.is_some() {
             self.raw.clone()
         } else if self.uses_kana() {
@@ -625,6 +630,9 @@ impl Session {
     /// This is separate from the reading used by edit and repair operations.
     pub fn conversion_reading(&self) -> String {
         let _romaji = romaji::Scope::new(self.custom_romaji.clone());
+        if self.v130.slash_at_start && self.raw.starts_with('/') {
+            return self.display(true);
+        }
         if self.reconversion_origin.is_some() {
             self.reading()
         } else if self.uses_kana() {
@@ -803,6 +811,10 @@ impl Session {
         if let Some(text) = self.candidates.get(self.selected) {
             return text.clone();
         }
+        if self.v130.slash_at_start && self.raw.starts_with('/') && self.function_key == 0 {
+            return self
+                .punctuate(self.detect_composition(&format!("・{}", &self.raw[1..]), final_input));
+        }
         if self.english_first() {
             return self.raw.clone();
         }
@@ -848,7 +860,10 @@ impl Session {
             .edited_units
             .as_ref()
             .filter(|u| u.raw() == self.raw)
-            .filter(|_| !Dictionary::uses_scored(self.settings.boolean("ScoredSegmentation")))
+            .filter(|u| {
+                !Dictionary::uses_scored(self.settings.boolean("ScoredSegmentation"))
+                    || u.has_z_symbols()
+            })
             .filter(|_| {
                 !crate::protection::scan(&self.raw)
                     .iter()
@@ -1327,8 +1342,14 @@ impl Session {
         if format_phrases && self.automatic_english_spacing && self.function_key == 0 {
             text = crate::phrase_spacing::format(&text);
         }
-        if space_around {
-            text = space_english(&text, &self.before, &self.after);
+        if space_around || format_phrases && self.settings.boolean("SpaceAroundNumbers") {
+            text = space_words(
+                &text,
+                &self.before,
+                &self.after,
+                space_around,
+                format_phrases && self.settings.boolean("SpaceAroundNumbers"),
+            );
         }
         let english =
             !text.trim().is_empty() && text.trim().bytes().all(|b| b.is_ascii_alphabetic());
@@ -1639,7 +1660,16 @@ impl Session {
             self.begin_clauses(clauses);
             return;
         }
-        let reading = self.reading();
+        let mixed = self.conversion_reading();
+        // Mixed prose must keep English islands when matching converter clauses.
+        // Explicit conversion of an English-only word still uses its kana reading.
+        let reading = if mixed.chars().any(crate::linguistics::kana)
+            && mixed.chars().any(|c| c.is_ascii_alphabetic())
+        {
+            mixed
+        } else {
+            self.reading()
+        };
         // A residual alphabetic reading with no engine response still has a
         // Japanese clause and width alternatives. This also applies when the
         // platform adapter declines converter calls because Enabled is false
@@ -1810,6 +1840,10 @@ impl Session {
                 .iter()
                 .filter(|(key, (_, user))| {
                     reading[cursor..].starts_with(key.as_str())
+                        && (!self.candidate_sources.head_only(key)
+                            || *user
+                            || engine.is_empty() && cursor == 0
+                            || boundaries.contains_key(&cursor))
                         && (!*user
                             || (engine.is_empty() || boundaries.contains_key(&cursor))
                                 && !self
@@ -1825,7 +1859,11 @@ impl Session {
                 if !plain.is_empty() {
                     pieces.push((std::mem::take(&mut plain), None));
                 }
-                pieces.push((key.clone(), Some(word.clone())));
+                if let Some(parts) = self.candidate_sources.phrase_parts(key, word) {
+                    pieces.extend(parts.iter().map(|(r, w)| (r.clone(), Some(w.clone()))));
+                } else {
+                    pieces.push((key.clone(), Some(word.clone())));
+                }
                 cursor += key.len();
                 found = true;
             } else {
@@ -1869,7 +1907,33 @@ impl Session {
         {
             return false;
         }
-        clauses = crate::time_candidates::join(clauses);
+        let mut divided = Vec::new();
+        let mut phrase_parts = Vec::new();
+        let joined = crate::time_candidates::join(clauses);
+        let prescribed = self.fixed_phrase_choices(&joined);
+        for (clause, prescribed) in joined.into_iter().zip(prescribed) {
+            let registered = self.candidate_sources.registered(&clause.reading);
+            let parts = (!clause.english)
+                .then(|| {
+                    self.preferences
+                        .user_dictionary
+                        .get(&clause.reading)
+                        .and_then(|words| words.first())
+                        .or_else(|| registered.first())
+                        .and_then(|word| self.candidate_sources.phrase_parts(&clause.reading, word))
+                })
+                .flatten();
+            if let Some(parts) = parts {
+                for (reading, text) in parts {
+                    phrase_parts.push(Some(text.clone()));
+                    divided.push(Clause::new(reading.clone(), vec![text.clone()]));
+                }
+            } else {
+                phrase_parts.push(prescribed);
+                divided.push(clause);
+            }
+        }
+        clauses = divided;
         for clause in &mut clauses {
             if clause.english {
                 continue;
@@ -1921,8 +1985,11 @@ impl Session {
         self.translation_candidates.clear();
         let mut preceding = self.before.clone();
         let mut previous_english = false;
-        for ((clause, original_input), surrounding) in
-            clauses.iter_mut().zip(original_inputs).zip(surroundings)
+        for (((clause, original_input), surrounding), phrase_part) in clauses
+            .iter_mut()
+            .zip(original_inputs)
+            .zip(surroundings)
+            .zip(phrase_parts)
         {
             clause.raw = original_input;
             if clause.english {
@@ -1980,6 +2047,9 @@ impl Session {
                     .context(&clause.reading, &surrounding)
                 {
                     values.insert(0, context);
+                }
+                if let Some(preferred) = &phrase_part {
+                    values.insert(0, preferred.clone());
                 }
                 if !self.preferences.selected.contains_key(&clause.reading)
                     && self
@@ -2086,7 +2156,7 @@ impl Session {
                     .first()
                     .and_then(|text| text.chars().next())
                     .is_some_and(|ch| !crate::linguistics::kana(ch));
-            if !has_preference && particle || suru {
+            if phrase_part.is_none() && (!has_preference && particle || suru) {
                 values.insert(0, clause.reading.clone());
             }
             // MoreCandidates is expanded after the base list is complete;
@@ -2110,8 +2180,29 @@ impl Session {
         self.sync_clause();
         true
     }
+    fn fixed_phrase_choices(&self, clauses: &[Clause]) -> Vec<Option<String>> {
+        let mut choices = vec![None; clauses.len()];
+        for parts in self.candidate_sources.phrase_groups() {
+            for (start, group) in clauses.windows(parts.len()).enumerate() {
+                if group.iter().zip(parts).all(|(clause, (reading, word))| {
+                    &clause.reading == reading && clause.candidates.first() == Some(word)
+                }) {
+                    for (slot, (_, word)) in choices[start..start + parts.len()].iter_mut().zip(parts) {
+                        *slot = Some(word.clone());
+                    }
+                }
+            }
+        }
+        choices
+    }
     fn rank_clauses(&self, clauses: &mut [Clause]) {
-        for clause in clauses {
+        // A bundled split phrase keeps its own word choices. Learning 市 for
+        // いち must not change 一|学期 into 市|学期, including live previews.
+        let choices = self.fixed_phrase_choices(clauses);
+        for (clause, phrase_part) in clauses.iter_mut().zip(choices) {
+            if phrase_part.is_some() {
+                continue;
+            }
             if clause.english {
                 continue;
             }
@@ -2236,6 +2327,13 @@ impl Session {
     /// Monotonic milliseconds, for hosts with an event clock and deterministic
     /// replay tests. Use one clock consistently for a session.
     pub fn key_at(&mut self, vk: i32, ch: i32, modifiers: i32, now_ms: u64) -> SessionResult {
+        // Upstream #630: normalize only full-width Latin letters, preserving
+        // punctuation, kana and non-Latin Unicode input.
+        let ch = if (0xff21..=0xff3a).contains(&ch) || (0xff41..=0xff5a).contains(&ch) {
+            ch - 0xfee0
+        } else {
+            ch
+        };
         let _probes = romaji::probes::Scope::new(self.probe_cache.clone());
         let _romaji = romaji::Scope::new(self.custom_romaji.clone());
         if ch < 0 || char::from_u32(ch as u32).is_none() {
@@ -2261,11 +2359,21 @@ impl Session {
             && modifiers & 14 == 0
             && self.sigil.passes(c)
         {
-            self.correctable.clear();
-            self.last_commit = None;
-            self.forget_direct_input();
-            self.sigil.passed(vk, c, modifiers);
-            return self.result(false);
+            let passes_slash = self.code_input
+                && !self.code_japanese
+                && matches!(
+                    crate::context::classify(&self.before),
+                    crate::context::LineKind::Code | crate::context::LineKind::Prompt
+                );
+            if c == '/' && !self.direct && !passes_slash && !self.sigil.is_active() {
+                self.v130.slash_at_start = true;
+            } else {
+                self.correctable.clear();
+                self.last_commit = None;
+                self.forget_direct_input();
+                self.sigil.passed(vk, c, modifiers);
+                return self.result(false);
+            }
         }
         let mut result = self.key_inner(vk, ch, modifiers);
         if let Some(edit) = timeout_edit {
@@ -2304,6 +2412,18 @@ impl Session {
                 return self.key(mapped, 0, modifiers & 1);
             }
         }
+        // Upstream PR #802: a send shortcut confirms preedit first. Passing
+        // Ctrl+Enter through can submit before the committed text reaches a chat.
+        if modifiers & 14 == 2
+            && vk == 0x0d
+            && !self.raw.is_empty()
+            && (!self.direct || reconverting)
+            && !self.private
+            && !code_direct
+            && self.settings.boolean("Enabled")
+        {
+            return self.commit();
+        }
         if modifiers & 14 != 0
             || self.direct && !reconverting
             || self.private
@@ -2321,7 +2441,10 @@ impl Session {
         }
         if self.is_converting()
             && modifiers & 1 == 0
-            && (matches!(vk, 0x31..=0x39) && !self.uses_kana() || matches!(vk, 0x61..=0x69))
+            && (matches!(vk, 0x31..=0x39)
+                && !self.uses_kana()
+                && self.settings.boolean("NumberKeysSelectCandidates")
+                || matches!(vk, 0x61..=0x69))
         {
             let row = if vk >= 0x61 { vk - 0x61 } else { vk - 0x31 };
             if let Some(result) = self.select_number(row as usize) {
@@ -2462,6 +2585,7 @@ impl Session {
                 let removed_keys = previous_keys - self.raw.chars().count();
                 if self.raw.is_empty() {
                     self.balanced_override = false;
+                    self.v130.slash_at_start = false;
                 }
                 self.typed_keys
                     .truncate(self.typed_keys.len().saturating_sub(removed_keys));
@@ -2638,6 +2762,20 @@ impl Session {
                 }
                 self.result(true)
             }
+            0x21 | 0x22 if self.is_converting() => {
+                let pages = self.candidates.len().div_ceil(9);
+                if pages > 1 {
+                    let step = if vk == 0x21 { -1 } else { 1 };
+                    let page = (self.selected as i32 / 9 + step).rem_euclid(pages as i32);
+                    self.selected = page as usize * 9;
+                    self.chosen_conversion = true;
+                    if let Some(clause) = self.clauses.get_mut(self.selected_clause) {
+                        clause.selected = self.selected;
+                        clause.changed = true;
+                    }
+                }
+                self.result(true)
+            }
             0x26 | 0x28 | 0x09 if self.is_converting() => {
                 self.cycle(if vk == 0x26 || vk == 0x09 && modifiers & 1 != 0 {
                     -1
@@ -2723,6 +2861,7 @@ impl Session {
                         // units by CompositionText, even in a kana mode.
                         self.raw.clone()
                     } else if (self.uses_kana()
+                        || self.v130.slash_at_start && self.raw.starts_with('/')
                         || self
                             .edited_units
                             .as_ref()
@@ -2755,31 +2894,35 @@ impl Session {
             _ if ch >= 0x20 && ch != 0x7f => {
                 self.tab_started_conversion = false;
                 // Retain the old commit when a new character starts after conversion.
-                let commits =
-                    if self.is_converting() && !self.settings.boolean("ContinueAfterConversion") {
-                        // A non-deleting host cannot later recover the typed
-                        // separator when an uppercase English word follows
-                        // a Japanese conversion (site Space PR).
-                        if !self.can_delete
-                            && self.space_started_conversion
-                            && char::from_u32(ch as u32).is_some_and(|c| c.is_ascii_uppercase())
-                            && ![
-                                "は", "が", "を", "に", "で", "と", "も", "へ", "の", "や", "か",
-                                "から", "まで", "より",
-                            ]
-                            .contains(&self.reading().as_str())
-                            && self.display(true).chars().any(crate::linguistics::kana)
-                        {
-                            self.explicit = Some(self.display(true) + " ");
-                        }
-                        self.commit().commits
-                    } else {
-                        self.candidates.clear();
-                        self.clauses.clear();
-                        self.live_clauses.clear();
-                        self.selected_clause = 0;
-                        vec![]
-                    };
+                let commits = if self.function_key != 0 && !self.is_converting() {
+                    // #490/#585: an explicit F6-F10 choice applies to the
+                    // current text; the next character starts fresh input.
+                    self.commit().commits
+                } else if self.is_converting() && !self.settings.boolean("ContinueAfterConversion")
+                {
+                    // A non-deleting host cannot later recover the typed
+                    // separator when an uppercase English word follows
+                    // a Japanese conversion (site Space PR).
+                    if !self.can_delete
+                        && self.space_started_conversion
+                        && char::from_u32(ch as u32).is_some_and(|c| c.is_ascii_uppercase())
+                        && ![
+                            "は", "が", "を", "に", "で", "と", "も", "へ", "の", "や", "か",
+                            "から", "まで", "より",
+                        ]
+                        .contains(&self.reading().as_str())
+                        && self.display(true).chars().any(crate::linguistics::kana)
+                    {
+                        self.explicit = Some(self.display(true) + " ");
+                    }
+                    self.commit().commits
+                } else {
+                    self.candidates.clear();
+                    self.clauses.clear();
+                    self.live_clauses.clear();
+                    self.selected_clause = 0;
+                    vec![]
+                };
                 self.explicit = None;
                 self.selected_prediction = -1;
                 self.function_key = 0;
@@ -2789,12 +2932,28 @@ impl Session {
                     return result;
                 }
                 let character = char::from_u32(ch as u32).unwrap();
+                if self.edited_units.is_none()
+                    && !self.uses_kana()
+                    && self.settings.boolean("ZSymbols")
+                    && crate::protection::scan(&self.raw).is_empty()
+                    && romaji::z_symbol(character).is_some()
+                    && !self.raw.to_ascii_lowercase().ends_with("zz")
+                    && romaji::analyze(&self.raw.to_ascii_lowercase(), true).partial == "z"
+                {
+                    self.edited_units = Some(crate::composition_units::Units::capture(
+                        &self.raw,
+                        &self.display(false),
+                    ));
+                }
                 if self.raw.is_empty() && self.custom_romaji.is_some() && !self.uses_kana() {
                     self.edited_units = Some(Default::default());
                 }
                 if let Some(units) = self.edited_units.as_mut() {
                     if units.raw() == self.raw {
-                        units.push(&character.to_string());
+                        units.push_with_z_symbols(
+                            &character.to_string(),
+                            self.settings.boolean("ZSymbols"),
+                        );
                     } else {
                         self.edited_units = None;
                     }
@@ -2827,7 +2986,7 @@ impl Session {
     }
 }
 
-fn space_english(text: &str, before: &str, after: &str) -> String {
+fn space_words(text: &str, before: &str, after: &str, english: bool, numbers: bool) -> String {
     let japanese = |c: char| matches!(c,'\u{3040}'..='\u{30ff}'|'\u{3400}'..='\u{4dbf}'|'\u{4e00}'..='\u{9fff}'|'\u{f900}'..='\u{faff}');
     let word_char = |c: char| c.is_ascii_alphanumeric() || "_-+#.'@".contains(c);
     let chars: Vec<_> = text.chars().collect();
@@ -2836,8 +2995,24 @@ fn space_english(text: &str, before: &str, after: &str) -> String {
     }
     let previous = before.chars().next_back().unwrap_or('\0');
     let next = after.chars().next().unwrap_or('\0');
+    let spaced_word = |word: &str| {
+        if word.chars().any(|c| c.is_ascii_alphabetic()) {
+            english
+        } else {
+            numbers && word.chars().any(|c| c.is_ascii_digit())
+        }
+    };
+    let previous_word: String = before
+        .chars()
+        .rev()
+        .take_while(|c| word_char(*c))
+        .collect::<String>()
+        .chars()
+        .rev()
+        .collect();
+    let next_word: String = after.chars().take_while(|c| word_char(*c)).collect();
     let mut output = String::new();
-    if japanese(chars[0]) && previous.is_ascii_alphabetic() {
+    if japanese(chars[0]) && previous.is_ascii_alphanumeric() && spaced_word(&previous_word) {
         output.push(' ');
     }
     let mut index = 0;
@@ -2862,18 +3037,18 @@ fn space_english(text: &str, before: &str, after: &str) -> String {
             previous
         };
         let right = chars.get(stop).copied().unwrap_or(next);
-        let english = word.iter().any(char::is_ascii_alphabetic);
-        if english && japanese(left) && !output.ends_with(' ') {
+        let spaced = spaced_word(&word.iter().collect::<String>());
+        if spaced && japanese(left) && !output.ends_with(' ') {
             output.push(' ');
         }
         output.extend(word);
-        if english && japanese(right) {
+        if spaced && japanese(right) {
             output.push(' ');
         }
         output.extend(&chars[stop..end]);
         index = end;
     }
-    if japanese(*chars.last().unwrap()) && next.is_ascii_alphabetic() {
+    if japanese(*chars.last().unwrap()) && next.is_ascii_alphanumeric() && spaced_word(&next_word) {
         output.push(' ');
     }
     output

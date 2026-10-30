@@ -47,8 +47,9 @@ test("real service-worker listeners register before hydration and route keys int
   chrome.storage.local.set = async value => {Object.assign(stored, value);};
   const originalFetch = globalThis.fetch;
   globalThis.fetch = async url => {
-    assert.equal(url, chrome.runtime.getURL("pkg/meltype_browser_bg.wasm"));
-    return new Response(readFileSync(new URL("../pkg/meltype_browser_bg.wasm", import.meta.url)), {headers: {"Content-Type": "application/wasm"}});
+    const file = url === chrome.runtime.getURL("pkg/kanji.bin") ? "kanji.bin" : "meltype_browser_bg.wasm";
+    assert.equal(url, chrome.runtime.getURL(`pkg/${file}`));
+    return new Response(readFileSync(new URL(`../pkg/${file}`, import.meta.url)), {headers: {"Content-Type": file.endsWith("wasm") ? "application/wasm" : "application/octet-stream"}});
   };
   try {
     await import("../background.mjs?available");
@@ -82,6 +83,16 @@ test("real service-worker listeners register before hydration and route keys int
     const committed = new Promise(resolve => {ime.commitText = async args => {resolve(args); return true;};});
     ime.onCandidateClicked.listeners[0]("meltype-rust", chopsticks.id, "left");
     assert.deepEqual(await committed, {contextID: 5, text: "箸"});
+    // 基本語は補助辞書にない。実際の同梱辞書を通して確定まで検査する。
+    ime.onReset.listeners[0]("meltype-rust");
+    for (const [index, character] of [..."nihongo"].entries()) {
+      await legacyKey(character, `Key${character.toUpperCase()}`, `kanji-${index}`);
+    }
+    await legacyKey(" ", "Space", "kanji-space");
+    assert.equal(calls.filter(([name]) => name === "setComposition").at(-1)[1].text, "日本語");
+    const kanjiCommit = new Promise(resolve => {ime.commitText = async args => {resolve(args); return true;};});
+    await legacyKey("Enter", "Enter", "kanji-enter");
+    assert.deepEqual(await kanjiCommit, {contextID: 5, text: "日本語"});
     const message = chrome.runtime.onMessage.listeners[0];
     const send = data => new Promise(resolve => message(data, {id: chrome.runtime.id, url: chrome.runtime.getURL("options.html")}, resolve));
     const {preferences} = await send({op: "site_preferences"});

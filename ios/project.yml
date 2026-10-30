@@ -8,29 +8,45 @@ settings:
     SWIFT_VERSION: '5.0'
     ARCHS: arm64
     MARKETING_VERSION: '0.1.0'
-    CURRENT_PROJECT_VERSION: '3'
+    CURRENT_PROJECT_VERSION: '10'
     CODE_SIGNING_ALLOWED: NO
+    MELTYPE_APP_GROUP: group.com.appipinopi.meltypeflash
 targets:
   MeltypeFlash:
     type: application
     platform: iOS
-    sources: [App.swift]
+    sources: [App.swift, AppStyle.swift, MeltypeTextView.swift, KeyboardAppearance.swift, AppearanceViewController.swift, KeyboardDemoViewController.swift, KeyboardViewController.swift, KeyboardEditing.swift, FlickKey.swift, Assets.xcassets]
+    entitlements:
+      path: generated/App.entitlements
+      properties:
+        com.apple.security.application-groups: ['$(MELTYPE_APP_GROUP)']
     settings:
       base:
         PRODUCT_BUNDLE_IDENTIFIER: com.appipinopi.meltypeflash
+        ASSETCATALOG_COMPILER_APPICON_NAME: AppIcon
+        SWIFT_OBJC_BRIDGING_HEADER: Bridge.h
+        LIBRARY_SEARCH_PATHS: ['$(inherited)', '$(PROJECT_DIR)/lib/$(PLATFORM_NAME)']
+        OTHER_LDFLAGS: ['$(inherited)', '-lmeltype_ios', '-liconv']
         TARGETED_DEVICE_FAMILY: '1,2'
     info:
       path: generated/App-Info.plist
       properties:
         CFBundleDisplayName: Meltype-flash
+        CFBundleShortVersionString: $(MARKETING_VERSION)
+        CFBundleVersion: $(CURRENT_PROJECT_VERSION)
         UILaunchScreen: {}
+        MeltypeAppearanceAppGroup: $(MELTYPE_APP_GROUP)
     dependencies:
       - target: MeltypeFlashKeyboard
         embed: true
   MeltypeFlashKeyboard:
     type: app-extension
     platform: iOS
-    sources: [KeyboardViewController.swift]
+    sources: [KeyboardViewController.swift, KeyboardEditing.swift, FlickKey.swift, KeyboardAppearance.swift]
+    entitlements:
+      path: generated/Keyboard.entitlements
+      properties:
+        com.apple.security.application-groups: ['$(MELTYPE_APP_GROUP)']
     settings:
       base:
         PRODUCT_BUNDLE_IDENTIFIER: com.appipinopi.meltypeflash.keyboard
@@ -43,17 +59,31 @@ targets:
       path: generated/Keyboard-Info.plist
       properties:
         CFBundleDisplayName: Meltype-flash
+        CFBundleShortVersionString: $(MARKETING_VERSION)
+        CFBundleVersion: $(CURRENT_PROJECT_VERSION)
+        MeltypeAppearanceAppGroup: $(MELTYPE_APP_GROUP)
         NSExtension:
           NSExtensionPointIdentifier: com.apple.keyboard-service
           NSExtensionPrincipalClass: $(PRODUCT_MODULE_NAME).KeyboardViewController
           NSExtensionAttributes:
             IsASCIICapable: true
+            PrefersRightToLeft: false
             PrimaryLanguage: ja-JP
             RequestsOpenAccess: false
+  AppUITests:
+    type: bundle.ui-testing
+    platform: iOS
+    sources: [AppUITests.swift]
+    settings:
+      base:
+        GENERATE_INFOPLIST_FILE: YES
+        TEST_TARGET_NAME: MeltypeFlash
+    dependencies:
+      - target: MeltypeFlash
   KeyboardTests:
     type: bundle.unit-test
     platform: iOS
-    sources: [KeyboardViewController.swift, KeyboardTests.swift]
+    sources: [KeyboardViewController.swift, KeyboardEditing.swift, FlickKey.swift, KeyboardAppearance.swift, KeyboardTests.swift]
     settings:
       base:
         GENERATE_INFOPLIST_FILE: YES
@@ -66,4 +96,4 @@ schemes:
       targets:
         MeltypeFlash: all
     test:
-      targets: [KeyboardTests]
+      targets: [KeyboardTests, AppUITests]

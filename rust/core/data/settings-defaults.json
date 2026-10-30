@@ -3,7 +3,6 @@
   "JapaneseKeyboardOnly": false,
   "AllowInjectedInput": false,
   "Mode": "Tsf",
-  "HankakuTogglesKeyboard": true,
   "ConvertKeysSwitchKeyboard": false,
   "AltKeysSwitchKeyboard": false,
   "AutoCorrectAfterCommit": true,
@@ -44,7 +43,7 @@
   "MaxPendingKeys": 6,
   "IdleFlushMs": 700,
   "MaxHoldMs": 2500,
-  "SettingsVersion": 5,
+  "SettingsVersion": 7,
   "WelcomeShown": false,
   "TsfIntroduced": false,
   "TsfOffered": false,
@@ -286,12 +285,27 @@
   "ContextualLearning": false,
   "FullWidthSpaceByDefault": false,
   "ShowCandidatesWhileTyping": false,
-  "ToggleKeyboardShortcuts": "",
   "GitHubIssueCandidates": false,
   "GitHubRepository": "",
   "ClipboardCandidates": false,
   "PauseHotkey": "",
   "EnglishNamePredictions": false,
   "EnglishFirstInput": false,
-  "ConsonantAbbreviations": false
+  "ConsonantAbbreviations": false,
+  "SpaceAroundNumbers": false,
+  "NumberKeysSelectCandidates": true,
+  "UseZenzai": false,
+  "ZenzaiServerPath": "",
+  "ZenzaiModelPath": "",
+  "ZSymbols": true,
+  "ToggleShortcuts": [
+    {
+      "Key": 25,
+      "Modifiers": 0
+    },
+    {
+      "Key": 192,
+      "Modifiers": 4
+    }
+  ]
 }

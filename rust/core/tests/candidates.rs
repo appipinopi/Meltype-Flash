@@ -22,6 +22,8 @@ fn upstream_date_and_clock_formats_validate_calendar_and_fullwidth_digits() {
             "10月9日",
             "10月9日(金)",
             "2026/10/09",
+            "2026/10/09(金)",
+            "10/9(金)",
             "2026-10-09",
             "金曜日"
         ]

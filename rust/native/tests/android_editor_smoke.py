@@ -9,10 +9,14 @@ import tempfile
 root = Path(__file__).resolve().parents[3]
 library = Path(sys.argv[1]).resolve()
 with tempfile.TemporaryDirectory(prefix="meltype-jni-host-") as output:
+    generator = Path(output) / ("bridge.exe" if sys.platform == "win32" else "bridge")
+    subprocess.run(["rustc", "--edition=2021", str(root / "android/bridge.rs"), "-o", str(generator)], check=True)
+    generated = Path(output) / "generated"
+    subprocess.run([str(generator), str(generated)], check=True)
+    adapters = generated / "moe/meltype/rust"
     subprocess.run([
         "javac", "-encoding", "UTF-8", "--release", "17", "-d", output,
-        str(root / "android/app/src/main/java/moe/meltype/rust/Native.java"),
-        str(root / "android/app/src/main/java/moe/meltype/rust/FlickKeyboard.java"),
+        *(str(adapters / name) for name in ("Native.java", "Events.java", "FlickKeyboard.java", "FlickGesture.java")),
         str(root / "rust/native/tests/android/FlickHost.java"),
         str(root / "rust/native/tests/android/EditorHost.java"),
         str(root / "rust/native/tests/android/InputHost.java"),

@@ -32,6 +32,10 @@ def publish(tag, directory):
                 'Meltype-flash-iOS-source.zip', 'Meltype-flash-iOS-unsigned.ipa', 'README-iOS.md'}
     if {p.name for p in assets} != expected or any(not p.is_file() or not p.stat().st_size for p in assets):
         raise ValueError('Missing, extra, or empty distribution assets')
+    # 生成物の検証には残すが、同一Windows ZIPと単独の説明書は添付しない。
+    excluded = {'Meltype-flash-Windows.zip', 'README-iOS.md'}
+    assets = [path for path in assets if path.name not in excluded]
+    expected -= excluded
     release = json.loads(subprocess.check_output(['gh', 'api', f'repos/{REPO}/releases/tags/{tag}']))
     if not release['prerelease']:
         raise ValueError('Expected an existing prerelease')
@@ -58,9 +62,10 @@ def publish(tag, directory):
         notes += 'WindowsセットアップEXE・ポータブルZIP、Linux x64/ARM64 ZIP・debを追加しました。\n'
         notes += 'デスクトップのエンジンは同じリリースタグから作成しています。debはUbuntu 24.04以降向けです。\n'
         notes += 'iOSは初期プレビューです。unsigned.ipaはWindowsのAltStore Classicなどで自分のApple IDを使って署名して入れるための実機用IPAです。直接インストールはできず、キーボード拡張を残して署名する必要があります。Simulator ZIPはApple Silicon Mac用、source ZIPはXcode向けです。\n'
-        notes += f'追加パッケージとiOSのソース: {REPO}@{sha}。手順は添付のREADME-iOS.mdを参照してください。\n'
+        notes += f'追加パッケージとiOSのソース: {REPO}@{sha}。[iOSの導入手順](https://github.com/{REPO}/blob/{sha}/ios/README.md)を参照してください。\n'
         note_file = Path(temporary) / 'notes.md'
-        note_file.write_text(notes, encoding='utf-8')
+        # Windowsで既存のCRLFを再変換するとCRが重複し、Markdown表が崩れる。
+        note_file.write_text(notes.replace('\r', ''), encoding='utf-8', newline='\n')
         subprocess.run(['gh', 'release', 'edit', tag, '--repo', REPO, '--notes-file', str(note_file)], check=True)
 
 

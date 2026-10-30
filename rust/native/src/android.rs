@@ -8,9 +8,14 @@ use jni::{
 };
 mod actions;
 mod activity_view;
+mod appearance;
+mod appearance_ui;
+mod bridge;
+mod bridge_api;
 mod dialogs;
 mod documents;
 mod editor_jni;
+mod flick;
 mod input_view;
 mod service_events;
 mod service_state;

@@ -11,6 +11,7 @@ struct RustKeySnapshot {
     int disabled,open,detection,english;
     unsigned int staleTries,staleVk;
     unsigned long long staleTime;
+    int fullWidthSpace;
 };
 struct RustKeyCallbacks {
     void* owner; IUnknown* lifetime;

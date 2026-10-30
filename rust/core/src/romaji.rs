@@ -273,6 +273,16 @@ pub(crate) fn unit_boundaries(
             let split_stem = length >= 2
                 && (matches!(rest.as_bytes()[0], b'l' | b'x')
                     || rest.starts_with("ts")
+                    // English final d/t must stay before Japanese ha/wa,
+                    // rather than joining the following dha/dwa syllable.
+                    || prefix.len() >= 4
+                        && matches!(rest.as_bytes()[0], b'd' | b't')
+                        && matches!(next, Some(b'h' | b'w'))
+                        && whole_english(prefix)
+                        && {
+                            let stem = analyze(prefix, true);
+                            !stem.valid || !stem.partial.is_empty()
+                        }
                     || next == Some(b'y') && whole_english(prefix) && {
                         let stem = analyze(prefix, true);
                         !stem.valid || !stem.partial.is_empty()
@@ -379,6 +389,24 @@ pub fn hiragana(raw: &str, final_input: bool) -> String {
         rest = &rest[first.len_utf8()..];
     }
     out
+}
+
+/// Composition shortcuts from upstream #338/#532. The caller verifies that
+/// exactly one pending z precedes the key (the zz in puzzle is not a shortcut).
+pub(crate) fn z_symbol(key: char) -> Option<char> {
+    Some(match key.to_ascii_lowercase() {
+        'h' => '←',
+        'j' => '↓',
+        'k' => '↑',
+        'l' => '→',
+        '/' => '・',
+        '.' => '…',
+        ',' => '‥',
+        '-' => '～',
+        '[' => '『',
+        ']' => '』',
+        _ => return None,
+    })
 }
 
 pub fn katakana(text: &str) -> String {

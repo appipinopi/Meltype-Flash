@@ -13,6 +13,9 @@ input, select { padding: 10px; font: inherit; max-width: 100%; box-sizing: borde
 .site-rule button { margin: 0; }
 details { margin-top: 32px; padding: 16px; border: 1px solid #d1d9e6; border-radius: 8px; }
 summary { cursor: pointer; font-weight: 600; }
+fieldset { margin-top: 32px; padding: 20px; border: 1px solid #d1d9e6; border-radius: 8px; min-width: 0; }
+legend { font-size: 24px; font-weight: 600; }
+fieldset > select { margin-bottom: 16px; }
 #site-status { overflow-wrap: anywhere; }
 @media (max-width: 500px) { .site-rule { grid-template-columns: 1fr auto; } .site-rule input { grid-column: 1 / -1; } }
 @media (max-width: 640px) { main { margin: 8px; padding: 16px; } }

@@ -7,6 +7,159 @@ fn type_text(s: &mut Session, text: &str) {
     }
 }
 #[test]
+fn closed_issue_338_z_shortcuts_keep_raw_keys_and_do_not_rewrite_puzzle() {
+    for scored in [false, true] {
+        for (raw, expected) in [
+            ("zh", "←"),
+            ("zj", "↓"),
+            ("zk", "↑"),
+            ("zl", "→"),
+            ("ZH", "←"),
+            ("ｚｈ", "←"),
+            ("ｚｊ", "↓"),
+            ("ｚｋ", "↑"),
+            ("ｚｌ", "→"),
+            ("z/", "・"),
+            ("z.", "…"),
+            ("z,", "‥"),
+            ("z-", "～"),
+            ("z[", "『"),
+            ("z]", "』"),
+            ("kazh", "か←"),
+        ] {
+            let mut s = Session::default();
+            s.settings
+                .set("LiveConversion", serde_json::json!(false))
+                .unwrap();
+            s.settings
+                .set("ScoredSegmentation", serde_json::json!(scored))
+                .unwrap();
+            type_text(&mut s, raw);
+            assert_eq!(s.display(false), expected, "{raw}: preedit");
+            assert_eq!(s.commit().commits[0].text, expected, "{raw}: commit");
+        }
+    }
+    let mut s = Session::default();
+    type_text(&mut s, "zh");
+    s.key(0x79, 0, 0);
+    assert_eq!(
+        s.commit().commits[0].text,
+        "zh",
+        "F10 retains the original keys"
+    );
+    type_text(&mut s, "puzzle");
+    assert!(
+        !s.display(false).contains('→'),
+        "zz is not a pending single z"
+    );
+    for raw in ["./zh", "./z]", "https://example.com/zl"] {
+        let mut s = Session::default();
+        s.settings
+            .set("SigilWordsDirect", serde_json::json!(false))
+            .unwrap();
+        s.settings
+            .set("LiveConversion", serde_json::json!(false))
+            .unwrap();
+        type_text(&mut s, raw);
+        assert!(
+            !s.display(false).chars().any(|c| "←↓↑→『』".contains(c)),
+            "{raw}"
+        );
+    }
+}
+
+#[test]
+fn closed_issue_mixed_word_regressions_remain_fixed() {
+    assert_eq!(Dictionary::bundled().mixed("gameover", true), "gameover");
+    let mut failures = Vec::new();
+    for (issue, raw, expected) in [
+        (12, "feature", "feature"),
+        (378, "memoirs", "memoirs"),
+        (377, "gameover", "gameover"),
+        (379, "faceni", "faceに"),
+        (376, "passwordnishite", "passwordにして"),
+        (129, "AInituite", "AIについて"),
+        (835, "docs/", "docs/"),
+        (77, "reflectsareta", "reflectされた"),
+        (69, "inviteshimashita", "inviteしました"),
+    ] {
+        let mut s = Session::default();
+        s.settings
+            .set("LiveConversion", serde_json::json!(false))
+            .unwrap();
+        type_text(&mut s, raw);
+        let actual = s.commit().commits[0].text.clone();
+        if actual != expected {
+            failures.push(format!("#{issue}: {raw}: {actual:?} != {expected:?}"));
+        }
+    }
+    assert!(failures.is_empty(), "{}", failures.join("\n"));
+}
+
+#[test]
+fn closed_issue_833_uppercase_ten_reconverts_as_japanese_with_final_n() {
+    let mut s = Session::default();
+    s.settings
+        .set("LiveConversion", serde_json::json!(false))
+        .unwrap();
+    type_text(&mut s, "TEN");
+    let reply = s.key(0x1c, 0, 0);
+    let view = reply.view.unwrap();
+    assert!(
+        view.candidates.contains(&"てん".to_owned()),
+        "{:?}",
+        view.candidates
+    );
+}
+
+#[test]
+fn closed_issue_599_compatible_shortcuts_resize_only_when_enabled() {
+    use meltype_core::session::Clause;
+    for enabled in [false, true] {
+        let mut s = Session::default();
+        s.settings
+            .set("CompatibleShortcuts", serde_json::json!(enabled))
+            .unwrap();
+        type_text(&mut s, "hashiwotoru");
+        assert!(s.begin_clauses(vec![
+            Clause::new("はしを".into(), vec!["橋を".into()]),
+            Clause::new("とる".into(), vec!["取る".into()]),
+        ]));
+        let reply = s.key(0x4b, 0, 2);
+        assert_eq!(reply.consumed, enabled);
+        if enabled {
+            assert!(reply.commits.is_empty());
+            assert_eq!(s.clause_readings(), ["はし", "をとる"]);
+            assert!(s.key(0x4c, 0, 2).consumed);
+            assert_eq!(s.clause_readings(), ["はしを", "とる"]);
+        } else {
+            assert_eq!(reply.commits[0].text, "橋を取る");
+            assert!(s.raw().is_empty());
+        }
+    }
+}
+
+#[test]
+fn closed_issue_490_typing_after_function_keys_commits_only_the_explicit_word() {
+    for (function, count, expected) in [(0x76, 1, "テスト"), (0x79, 2, "TESUTO")] {
+        let mut s = Session::default();
+        s.settings
+            .set("LiveConversion", serde_json::json!(false))
+            .unwrap();
+        type_text(&mut s, "tesuto");
+        for _ in 0..count {
+            s.key(function, 0, 0);
+        }
+        assert_eq!(s.display(false), expected);
+        let first = s.key(0x44, 'd' as i32, 0);
+        assert_eq!(first.commits[0].text, expected);
+        type_text(&mut s, "esu");
+        assert_eq!(s.display(false), "です");
+        assert_eq!(s.commit().commits[0].text, "です");
+    }
+}
+
+#[test]
 fn mixed_language_and_protected_spans() {
     let d = Dictionary::bundled();
     for (raw, expected) in [
@@ -284,5 +437,112 @@ fn issue_301_tool_names_remain_english_as_whole_words() {
             session.key(0, ch as i32, 0);
         }
         assert_eq!(session.commit().commits[0].text, raw, "{raw}");
+    }
+}
+
+#[test]
+fn chatgpt_mixed_conversion_keeps_english_and_japanese_clauses() {
+    for raw in [
+        "chatgptwotsukau",
+        "chatgptwotsukatteimasu",
+        "googledekensaku",
+        "githubwotsukau",
+    ] {
+        let mut s = Session::default();
+        s.settings
+            .set("LiveConversion", serde_json::json!(false))
+            .unwrap();
+        type_text(&mut s, raw);
+        let reading = s.conversion_reading();
+        let reply = s.key(32, 32, 0);
+        assert!(reply.consumed);
+        assert!(s.is_converting());
+        assert_eq!(s.clause_readings().concat(), reading, "{raw}");
+        assert!(!reply.view.unwrap().clauses.is_empty(), "{raw}");
+    }
+}
+
+#[test]
+fn ctrl_enter_confirms_chat_preedit_before_allowing_a_send_shortcut() {
+    for converting in [false, true] {
+        let mut s = Session::default();
+        s.can_delete = false;
+        type_text(&mut s, "nihongo");
+        if converting {
+            s.key(32, 32, 0);
+        }
+        let shown = s.display(true);
+        let reply = s.key(13, 0, 2);
+        assert!(
+            reply.consumed,
+            "the first Ctrl+Enter must not submit the chat"
+        );
+        assert_eq!(reply.commits.len(), 1);
+        assert_eq!(reply.commits[0].text, shown);
+        assert!(reply.view.is_none());
+        let send = s.key(13, 0, 2);
+        assert!(!send.consumed);
+        assert!(send.commits.is_empty());
+    }
+}
+
+#[test]
+fn upstream_1048_english_final_d_or_t_stays_before_japanese_ha() {
+    for (raw, expected) in [
+        ("Androidha", "Androidは"),
+        ("androidha", "androidは"),
+        ("Redditha", "Redditは"),
+        ("redditha", "redditは"),
+        ("dha", "でゃ"),
+        ("tha", "てゃ"),
+    ] {
+        let mut s = Session::default();
+        type_text(&mut s, raw);
+        assert_eq!(s.display(false), expected, "{raw}");
+    }
+}
+
+#[test]
+fn v140_detection_regressions_keep_japanese_boundaries_and_product_names() {
+    let mut mismatches = Vec::new();
+    for scored in [false, true] {
+        for (raw, expected) in [
+            ("Androidwa", "Androidわ"),
+            ("Androidha", "Androidは"),
+            ("kamiwoA4", "かみをA4"),
+            ("huusoku6me-toru", "ふうそく6めーとる"),
+            ("nottotte", "のっとって"),
+            ("imagennzai", "いまげんざい"),
+            ("imagenzai", "いまげんざい"),
+            ("galaxyS24", "galaxyS24"),
+            ("e2e", "e2e"),
+            ("exceltoppt", "excelとppt"),
+            ("prozac", "prozac"),
+            ("usbtunaide", "usbつないで"),
+            ("kyouhaGitHubni", "きょうはGitHubに"),
+        ] {
+            let mut s = Session::default();
+            s.settings
+                .set("ScoredSegmentation", serde_json::json!(scored))
+                .unwrap();
+            type_text(&mut s, raw);
+            let actual = s.display(true);
+            if actual != expected {
+                mismatches.push(format!(
+                    "{raw}, scored={scored}: {actual:?} != {expected:?}"
+                ));
+            }
+        }
+    }
+    assert!(mismatches.is_empty(), "{}", mismatches.join("\n"));
+}
+
+#[test]
+fn v140_scored_capitalized_prefix_uses_scores_without_splitting_acronyms() {
+    for (raw, expected) in [("Goo", "Goお"), ("Googlede", "Googleで"), ("IME", "IME")] {
+        let mut session = Session::default();
+        session.settings.set("ScoredSegmentation", serde_json::json!(true)).unwrap();
+        type_text(&mut session, raw);
+        assert_eq!(session.display(false), expected, "{raw}");
     }
 }

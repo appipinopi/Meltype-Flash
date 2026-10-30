@@ -1,37 +1,144 @@
 // SPDX-License-Identifier: GPL-3.0-or-later
 // Copyright (C) 2026 appipinopi
 import UIKit
+
 @main
 final class AppDelegate: UIResponder, UIApplicationDelegate {
     var window: UIWindow?
     func application(_ application: UIApplication, didFinishLaunchingWithOptions launchOptions: [UIApplication.LaunchOptionsKey: Any]?) -> Bool {
         let window = UIWindow(frame: UIScreen.main.bounds)
-        let controller = UIViewController()
-        controller.view.backgroundColor = .systemBackground
-        let stack = UIStackView()
-        stack.axis = .vertical
-        stack.spacing = 24
-        stack.translatesAutoresizingMaskIntoConstraints = false
-        controller.view.addSubview(stack)
-        NSLayoutConstraint.activate([
-            stack.leadingAnchor.constraint(equalTo: controller.view.safeAreaLayoutGuide.leadingAnchor, constant: 24),
-            stack.trailingAnchor.constraint(equalTo: controller.view.safeAreaLayoutGuide.trailingAnchor, constant: -24),
-            stack.centerYAnchor.constraint(equalTo: controller.view.centerYAnchor)
-        ])
-        let label = UILabel()
-        label.numberOfLines = 0
-        label.text = "Meltype-flash iOS プレビュー\n\n設定 → 一般 → キーボード → キーボード → 新しいキーボードを追加 → Meltype-flash\n\n入力欄の🌐で切り替えます。未確定文字はキーボード上部に表示され、確定時に入力欄へ送ります。\n\nフルアクセスは不要です。通信・入力履歴の保存は行いません。"
-        stack.addArrangedSubview(label)
-        let field = UITextView()
-        field.font = .systemFont(ofSize: 20)
-        field.layer.borderWidth = 1
-        field.layer.borderColor = UIColor.separator.cgColor
-        field.heightAnchor.constraint(equalToConstant: 140).isActive = true
-        field.accessibilityIdentifier = "input-test"
-        stack.addArrangedSubview(field)
-        window.rootViewController = controller
-        window.makeKeyAndVisible()
-        self.window = window
+        let navigation = UINavigationController(rootViewController: SetupViewController())
+        let appearance = UINavigationBarAppearance()
+        appearance.configureWithOpaqueBackground(); appearance.backgroundColor = AppStyle.canvas
+        appearance.shadowColor = .clear
+        navigation.navigationBar.standardAppearance = appearance
+        navigation.navigationBar.scrollEdgeAppearance = appearance
+        navigation.navigationBar.tintColor = .label
+        window.rootViewController = navigation
+        window.makeKeyAndVisible(); self.window = window
         return true
     }
+}
+
+final class SetupViewController: UIViewController, UITextViewDelegate {
+    private let field = MeltypeTextView()
+    private let placeholder = AppStyle.label("ここに、今日のひとこと。", .body, color: .tertiaryLabel)
+    private let extensionStatus = AppStyle.label("", .footnote, color: .secondaryLabel)
+    private let preview = KeyboardPreviewView()
+    private let appearanceStore = KeyboardAppearanceStore()
+    private var settings: UIButton!
+
+    static func hasKeyboardExtension(in app: Bundle = .main) -> Bool {
+        guard let plugins = app.builtInPlugInsURL,
+              let urls = try? FileManager.default.contentsOfDirectory(at: plugins, includingPropertiesForKeys: nil) else { return false }
+        return urls.filter { $0.pathExtension == "appex" }.contains { url in
+            guard let bundle = Bundle(url: url),
+                  let info = bundle.object(forInfoDictionaryKey: "NSExtension") as? [String: Any] else { return false }
+            return info["NSExtensionPointIdentifier"] as? String == "com.apple.keyboard-service"
+                && FileManager.default.isExecutableFile(atPath: bundle.executableURL?.path ?? "")
+        }
+    }
+
+    override func viewDidLoad() {
+        super.viewDidLoad()
+        let brand = AppStyle.label("Meltype", .headline)
+        navigationItem.leftBarButtonItem = UIBarButtonItem(customView: brand)
+        navigationItem.backButtonDisplayMode = .minimal
+        navigationItem.rightBarButtonItem = UIBarButtonItem(image: UIImage(systemName: "slider.horizontal.3"), style: .plain, target: self, action: #selector(openAppearance))
+        navigationItem.rightBarButtonItem?.accessibilityLabel = "背景・テーマ"
+        let stack = AppStyle.scrollColumn(in: self)
+        let hero = AppStyle.column(spacing: 10)
+        let kicker = AppStyle.label("FLASH  /  FOR iPHONE", .caption1, color: .secondaryLabel)
+        let mark = UIImageView(image: UIImage(named: "BrandMark")); mark.contentMode = .scaleAspectFit
+        mark.backgroundColor = .white; mark.layer.cornerRadius = 14; mark.clipsToBounds = true
+        mark.widthAnchor.constraint(equalToConstant: 48).isActive = true
+        mark.heightAnchor.constraint(equalToConstant: 48).isActive = true
+        hero.addArrangedSubview(AppStyle.row([kicker, UIView(), mark]))
+        let headline = AppStyle.label("ひらめきを、\nそのまま。", .largeTitle)
+        headline.font = UIFontMetrics(forTextStyle: .largeTitle).scaledFont(for: .systemFont(ofSize: 38, weight: .bold))
+        hero.addArrangedSubview(headline)
+        hero.addArrangedSubview(AppStyle.label("日本語と英語を、ひとつのキーボードで。", .subheadline, color: .secondaryLabel))
+        stack.addArrangedSubview(hero)
+        stack.addArrangedSubview(preview)
+        let setup = AppStyle.column(spacing: 14)
+        let heading = AppStyle.column(spacing: 4)
+        heading.addArrangedSubview(AppStyle.label("キーボードを追加", .headline))
+        heading.addArrangedSubview(AppStyle.label("設定から、かんたん2ステップ。", .subheadline, color: .secondaryLabel))
+        setup.addArrangedSubview(AppStyle.row([AppStyle.symbol("keyboard"), heading]))
+        settings = AppStyle.button("iPhoneの設定を開く", symbol: "arrow.up.right", primary: true) { [weak self] in self?.openSettings() }
+        settings.accessibilityIdentifier = "open-settings"; setup.addArrangedSubview(settings)
+        let help = UIButton(type: .system)
+        help.setTitle("追加の手順を見る", for: .normal); help.tintColor = .secondaryLabel
+        help.titleLabel?.font = .preferredFont(forTextStyle: .footnote)
+        help.heightAnchor.constraint(greaterThanOrEqualToConstant: 44).isActive = true
+        help.addAction(UIAction { [weak self] _ in self?.showSetupHelp() }, for: .touchUpInside)
+        setup.addArrangedSubview(help)
+        extensionStatus.accessibilityIdentifier = "keyboard-extension-status"
+        setup.addArrangedSubview(extensionStatus)
+        stack.addArrangedSubview(AppStyle.card(setup))
+        let customize = AppStyle.button("自分らしいキーボードに", symbol: "paintpalette") { [weak self] in self?.openAppearance() }
+        customize.accessibilityIdentifier = "open-appearance"
+        stack.addArrangedSubview(customize)
+        let flickDemo = AppStyle.button("フリック入力を試す", symbol: "hand.draw") { [weak self] in
+            self?.navigationController?.pushViewController(KeyboardDemoViewController(), animated: true)
+        }
+        flickDemo.accessibilityIdentifier = "open-flick-demo"
+        stack.addArrangedSubview(flickDemo)
+        let test = AppStyle.column(spacing: 12)
+        test.addArrangedSubview(AppStyle.row([AppStyle.symbol("square.and.pencil"), AppStyle.label("さっそく、書いてみよう", .headline)]))
+        test.addArrangedSubview(AppStyle.label("入力欄で🌐を長押しして、Meltype-flashへ。", .footnote, color: .secondaryLabel))
+        field.font = .preferredFont(forTextStyle: .body); field.adjustsFontForContentSizeCategory = true
+        field.backgroundColor = AppStyle.canvas; field.layer.cornerRadius = 14
+        field.textContainerInset = UIEdgeInsets(top: 14, left: 10, bottom: 14, right: 10)
+        field.heightAnchor.constraint(equalToConstant: 126).isActive = true
+        field.accessibilityIdentifier = "input-test"; field.accessibilityLabel = "キーボードの入力テスト"
+        field.delegate = self
+        let toolbar = UIToolbar(); toolbar.sizeToFit()
+        toolbar.items = [UIBarButtonItem(barButtonSystemItem: .flexibleSpace, target: nil, action: nil), UIBarButtonItem(title: "完了", style: .done, target: self, action: #selector(endEditing))]
+        field.inputAccessoryView = toolbar
+        placeholder.translatesAutoresizingMaskIntoConstraints = false; placeholder.isUserInteractionEnabled = false
+        field.addSubview(placeholder)
+        NSLayoutConstraint.activate([
+            placeholder.leadingAnchor.constraint(equalTo: field.frameLayoutGuide.leadingAnchor, constant: 15),
+            placeholder.trailingAnchor.constraint(lessThanOrEqualTo: field.frameLayoutGuide.trailingAnchor, constant: -15),
+            placeholder.topAnchor.constraint(equalTo: field.frameLayoutGuide.topAnchor, constant: 14)
+        ])
+        test.addArrangedSubview(field); stack.addArrangedSubview(AppStyle.card(test))
+        let privacy = AppStyle.label("フルアクセス不要\n入力内容の通信・履歴保存は行いません。", .caption1, color: .secondaryLabel)
+        let privacyRow = AppStyle.row([AppStyle.symbol("lock.shield", color: .secondaryLabel), privacy])
+        stack.addArrangedSubview(privacyRow)
+        refresh()
+    }
+    override func viewWillAppear(_ animated: Bool) {
+        super.viewWillAppear(animated); refresh()
+    }
+    private func refresh() {
+        guard isViewLoaded else { return }
+        let available = Self.hasKeyboardExtension()
+        extensionStatus.text = available ? "キーボードの準備ができています。" : "キーボード拡張が見つかりません。導入ツールで拡張が削除された可能性があります。手順を確認して再導入してください。"
+        extensionStatus.textColor = available ? .secondaryLabel : .systemRed
+        settings?.isEnabled = available
+        let appearance = appearanceStore.load()
+        preview.apply(appearance, image: appearanceStore.image(for: appearance))
+    }
+    private func openSettings() {
+        guard let url = URL(string: UIApplication.openSettingsURLString) else { return }
+        UIApplication.shared.open(url, options: [:]) { [weak self] opened in
+            if !opened { DispatchQueue.main.async { self?.showSetupHelp() } }
+        }
+    }
+    private func showSetupHelp() {
+        let message = Self.hasKeyboardExtension()
+            ? "1. 設定 → 一般 → キーボード → キーボード → 新しいキーボードを追加 → Meltype-flash\n\n2. 入力欄で🌐を長押ししてMeltype-flashを選択。\n\n「設定を開く」はアプリの設定を開きます。「キーボード」があれば、そこからも追加できます。フルアクセスは不要です。"
+            : "キーボード拡張が削除されているため、設定から追加できません。iPASideなどの導入ツールで拡張を削除せず、本体と拡張（.appex）の両方を署名できる方法で再導入してください。"
+        let alert = UIAlertController(title: "キーボードの追加方法", message: message, preferredStyle: .alert)
+        alert.addAction(UIAlertAction(title: "閉じる", style: .default)); present(alert, animated: true)
+    }
+    @available(iOS 16.0, *)
+    func textView(_ textView: UITextView, editMenuForTextIn range: NSRange, suggestedActions: [UIMenuElement]) -> UIMenu? {
+        (textView as? MeltypeTextView)?.selectionMenu(suggestedActions: suggestedActions)
+    }
+    func textViewDidChange(_ textView: UITextView) { placeholder.isHidden = !textView.text.isEmpty }
+    @objc private func openAppearance() { navigationController?.pushViewController(AppearanceViewController(), animated: true) }
+    @objc private func endEditing() { view.endEditing(true) }
 }

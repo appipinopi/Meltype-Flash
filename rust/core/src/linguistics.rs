@@ -400,11 +400,19 @@ impl Linguistics {
         crate::candidate_sources::Sources::english_names(reading)
     }
     pub fn predict(&self, reading: &str, state: &State) -> Vec<String> {
-        if reading.chars().count() < 2 {
+        self.predict_with_preferences(reading, &state.phrases, &state.preferences)
+    }
+    pub(crate) fn predict_with_preferences(
+        &self,
+        reading: &str,
+        phrases: &[crate::storage::Phrase],
+        preferences: &crate::session::Preferences,
+    ) -> Vec<String> {
+        use std::ops::Bound::{Excluded, Unbounded};
+        if reading.chars().take(2).count() < 2 {
             return vec![];
         }
-        let mut phrases: Vec<_> = state
-            .phrases
+        let mut phrases: Vec<_> = phrases
             .iter()
             .filter(|p| p.reading.starts_with(reading) && p.reading != reading)
             .collect();
@@ -414,21 +422,19 @@ impl Linguistics {
             .into_iter()
             .map(|p| p.text.clone())
             .chain(
-                state
-                    .preferences
+                preferences
                     .user_dictionary
-                    .iter()
-                    .filter(|(r, _)| r.starts_with(reading) && r.as_str() != reading)
+                    .range::<str, _>((Excluded(reading), Unbounded))
+                    .take_while(|(r, _)| r.starts_with(reading))
                     // Conversion stores newest registrations first; upstream
                     // prediction enumerates the original registration order.
                     .flat_map(|(_, v)| v.iter().rev().cloned()),
             )
             .chain(
-                state
-                    .preferences
+                preferences
                     .selected
-                    .iter()
-                    .filter(|(r, _)| r.starts_with(reading) && r.as_str() != reading)
+                    .range::<str, _>((Excluded(reading), Unbounded))
+                    .take_while(|(r, _)| r.starts_with(reading))
                     .map(|(_, v)| v.clone()),
             )
         {

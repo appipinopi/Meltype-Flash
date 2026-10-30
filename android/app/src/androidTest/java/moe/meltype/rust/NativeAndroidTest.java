@@ -267,6 +267,47 @@ public final class NativeAndroidTest {
         });
         if(failure.get()!=null)throw failure.get();
     }
+    @Test public void backgroundImageIsBoundedCachedAndRemovableWithoutLosingTheme()throws Throwable {
+        File directory=new File(context().getCacheDir(),"appearance-"+UUID.randomUUID());assertTrue(directory.mkdirs());
+        String preferences="appearance-test-"+UUID.randomUUID();
+        Context isolated=new ContextWrapper(context()){
+            @Override public File getFilesDir(){return directory;}
+            @Override public android.content.SharedPreferences getSharedPreferences(String name,int mode){return context().getSharedPreferences(preferences,mode);}
+        };
+        File source=new File(directory,"source.jpg");
+        try {
+            Bitmap large=Bitmap.createBitmap(4096,2048,Bitmap.Config.RGB_565);large.eraseColor(android.graphics.Color.BLUE);
+            try(FileOutputStream output=new FileOutputStream(source)){assertTrue(large.compress(Bitmap.CompressFormat.JPEG,90,output));}finally{large.recycle();}
+            KeyboardAppearance.theme(isolated,"dark");
+            KeyboardAppearance.importImage(isolated,Uri.fromFile(source));
+            try(java.io.InputStream input=KeyboardAppearance.imageFile(isolated).openRead()){
+                Bitmap prepared=android.graphics.BitmapFactory.decodeStream(input);assertNotNull(prepared);
+                assertTrue(prepared.getWidth()<=1280&&prepared.getHeight()<=1280);prepared.recycle();
+            }
+            ui(()->{
+                LinearLayout root=new LinearLayout(isolated);KeyboardAppearance appearance=new KeyboardAppearance(isolated);appearance.apply(root);
+                // 入力中に候補を追加しても画像を再読込せず、テーマだけを適用する。
+                KeyboardAppearance.imageFile(isolated).delete();
+                Button candidate=new Button(isolated);candidate.setText("候補");root.addView(candidate);
+                assertEquals(android.graphics.Color.WHITE,candidate.getCurrentTextColor());
+                appearance.apply(root);
+                root.getBackground().setBounds(0,0,320,160);
+                Bitmap rendered=Bitmap.createBitmap(320,160,Bitmap.Config.ARGB_8888);
+                root.getBackground().draw(new Canvas(rendered));
+                assertTrue(android.graphics.Color.blue(rendered.getPixel(160,80))>150);rendered.recycle();
+                KeyboardAppearance.clearImage(isolated);appearance.apply(root);
+                assertEquals("dark",KeyboardAppearance.preferences(isolated).getString("theme",""));
+                assertFalse(KeyboardAppearance.preferences(isolated).contains("imageRevision"));
+            });
+            File corrupt=new File(directory,"corrupt.png");
+            try(FileOutputStream output=new FileOutputStream(corrupt)){output.write(new byte[]{1,2,3});}
+            try{KeyboardAppearance.importImage(isolated,Uri.fromFile(corrupt));fail("corrupt image accepted");}catch(java.io.IOException expected){}
+            assertFalse(KeyboardAppearance.preferences(isolated).contains("imageRevision"));
+        } finally {
+            isolated.getSharedPreferences("appearance",0).edit().clear().commit();
+            for(File file:directory.listFiles())assertTrue(file.delete());assertTrue(directory.delete());
+        }
+    }
     private static Context context(){return InstrumentationRegistry.getInstrumentation().getTargetContext();}
     public static final class Widgets extends ContextThemeWrapper {
         private TextView preview;

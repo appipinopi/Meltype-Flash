@@ -313,7 +313,7 @@ bool RustJsonVisit(const std::string& text,void* owner,RustJsonEmit emit) {
 bool RustCoreReady(const RustCoreStateCallbacks& callbacks) {return api().coreReady && api().coreReady(&callbacks)!=0;}
 RustServiceState* RustCreateServiceState() {
     if (!api().serviceRoute || !api().serviceCreate || !api().serviceDestroy || !api().serviceLayout || !api().serviceCore || !api().serviceApplyReply ||  !api().serviceCommit || !api().serviceSelectCandidate || !api().serviceDispatchKey || !api().serviceInputScope || !api().serviceModeAction || !api().serviceAbandon || !api().serviceTerminated || !api().serviceResume || !api().serviceApplyComposition || !api().serviceWriteCommit || !api().serviceEndComposition || !api().serviceActivateNative || !api().serviceShutdown || !api().serviceOpenedNative || !api().serviceEditedNative || !api().serviceFocusNative || !api().serviceExchange || !api().serviceMode || !api().serviceWriteOpen || !api().serviceApplyMode || !api().serviceEditSink || !api().serviceInitialize || !api().serviceClearResume || !api().serviceSetSid || !api().serviceSid || !api().serviceClose || !api().serviceCreateBar || !api().serviceUpdateBar || !api().serviceRemoveBar || !api().serviceCreateCandidates || !api().serviceShowCandidates || !api().serviceHideCandidates || !api().serviceDropCandidates) return nullptr;
-    const unsigned int expected[]={5,static_cast<unsigned int>(sizeof(RustServiceState)),static_cast<unsigned int>(alignof(RustServiceState)),
+    const unsigned int expected[]={6,static_cast<unsigned int>(sizeof(RustServiceState)),static_cast<unsigned int>(alignof(RustServiceState)),
         static_cast<unsigned int>(offsetof(RustServiceState,refs)),
         static_cast<unsigned int>(offsetof(RustServiceState,manager)),
         static_cast<unsigned int>(offsetof(RustServiceState,client)),
@@ -359,6 +359,7 @@ RustServiceState* RustCreateServiceState() {
         static_cast<unsigned int>(offsetof(RustServiceState,langbar)),
         static_cast<unsigned int>(offsetof(RustServiceState,candidates)),
         static_cast<unsigned int>(offsetof(RustServiceState,edit_epoch)),
+        static_cast<unsigned int>(offsetof(RustServiceState,full_width_space)),
     };
     unsigned int actual[ARRAYSIZE(expected)]={};
     if (api().serviceLayout(actual,ARRAYSIZE(actual))!=ARRAYSIZE(expected) || std::memcmp(actual,expected,sizeof(expected))!=0) return nullptr;

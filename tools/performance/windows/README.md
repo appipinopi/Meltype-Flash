@@ -15,7 +15,15 @@ $env:PYTHONUTF8 = '1'
 python tools/benchmark-windows.py --output dist/windows-common-benchmark --samples 15 --warmups 3 --rounds 2
 ```
 
-比較対象の C# は、Git のv1.3.0コミット `6310c44b728d5ad88284853f9ef37ea224993b18` から取り出します。通常は C# NativeAOT と Rust Release を比較します。`--jit` を付けた場合は結果に JIT と明記されます。`--baseline-ref` で基準を変更できますが、両版に埋め込む辞書の SHA-256 が違う場合は計測を中止します。
+比較対象の C# は、本家v1.4.0コミット `46db6ca2f941eb9580f4d5ed103ee0bee71111c7` から取り出します。通常は C# NativeAOT と Rust Release を比較します。`--jit` を付けた場合は結果に JIT と明記されます。`--baseline-ref` で基準を変更できますが、両版に埋め込む辞書の SHA-256 が違う場合は計測を中止します。
+
+同梱辞書が異なる製品版どうしを比べる場合は、次の3者比較を使います。各版の辞書を維持し、途中状態が一致する入力だけを速度改善の集計に含めます。
+
+```powershell
+python tools/compare-rust-benchmarks.py --build --with-csharp --csharp-ref 46db6ca2f941eb9580f4d5ed103ee0bee71111c7 --samples 5 --warmups 2 --rounds 3 --plot --output output/v140-comparison
+```
+
+`check-core-parity.py` にビルド済みC#を渡す場合は、`--baseline-ref` にその基準を指定してください。未指定時は基準を推測せず、レポートの `baseline` はnullになります。実行ファイルのSHA-256は常に記録します。
 
 対象はメモリ内のキー処理と、各キーでの JSON 生成です。日本語・英日混在・英語・URL の 32 / 64 / 128 / 256 キー、短文 4 件、Backspace と F7 を含む編集 1 件の計 21 ケースを実行します。各ケースの最後に Enter で確定します。入力メソッドのインストール・OS 登録・ユーザー辞書の読み取りは行いません。
 
@@ -75,14 +83,45 @@ python tools/check-core-parity.py --csharp dist/windows-common-benchmark/csharp/
 
 ## CIでの測定と画像
 
-CIでは、前のRust公開版と現在版を比較します。`Cargo.toml`の版より古い公開タグを数値順に選びます。現在のPre3ではPre2を使います。手動実行の`benchmark_baseline`で基準を変更できます。
+CIでは、C#の最新安定版・前のRust公開版・現在のRust版を同じ端末で比較します。`Cargo.toml`の版より古い公開タグを数値順に選びます。現在のPre4ではPre3を使います。手動実行の`benchmark_baseline`で基準を変更できます。
 
 ```powershell
 python -m pip install matplotlib==3.10.8 numpy==2.4.2
-python tools/compare-rust-benchmarks.py --build --output dist/windows-common-benchmark --samples 5 --warmups 1 --rounds 2
-python tools/plot-windows-benchmark.py dist/windows-common-benchmark/report.json --output dist/windows-common-benchmark/charts
+python tools/compare-rust-benchmarks.py --build --with-csharp --fetch-tags --plot --output dist/windows-common-benchmark --samples 5 --warmups 1 --rounds 3
 ```
 
-両版を同じコンパイラでビルドし、旧→新、新→旧で測定します。各版の同梱辞書をそのまま使用し、版の違いに含めます。`--baseline-ref flash-v0.1.0-preview.2`のように基準を固定できます。事前ビルド済みの`--old/--new/--old-ref/--new-ref`形式も利用できますが、その場合の同一コンパイラは呼び出し側で保証してください。
+Rust両版を同じコンパイラでビルドし、C#は.NET 10のNativeAOTでビルドします。C#→旧Rust→現在Rust、旧Rust→現在Rust→C#、現在Rust→C#→旧Rustの循環順で測定します。各版の同梱辞書をそのまま使用し、版の違いに含めます。`--baseline-ref flash-v0.1.0-preview.2`のように基準を固定できます。事前ビルド済みの`--old/--new/--old-ref/--new-ref`形式も利用できますが、その場合の同一コンパイラは呼び出し側で保証してください。
 
-CIは既存WindowsジョブとRelease依存関係を利用します。追加ビルドは前の版のCoreと測定ホストだけです。PNG5枚とJSON・CSV・ログを`windows-common-benchmark`成果物に14日保存し、`--github-summary "$env:GITHUB_STEP_SUMMARY"`でSummaryに表を表示します。日付・比較する版・試行数・再実行コマンドは測定データから生成します。固定倍率の合否基準は設けません。詳細は[CIの構成](../../../docs/CI.md)を参照してください。
+CIは既存WindowsジョブとRelease依存関係を利用します。前のRust版とC#版のCore・測定ホストを追加ビルドします。PNG10枚とJSON・CSV・ログを`windows-common-benchmark`成果物に14日保存し、`--github-summary "$env:GITHUB_STEP_SUMMARY"`でSummaryに表を表示します。日付・比較する版・試行数・再実行コマンドは測定データから生成します。固定倍率の合否基準は設けません。詳細は[CIの構成](../../../docs/CI.md)を参照してください。
+
+
+### グラフの表示範囲
+
+新しく生成する画像は、パネルごとに通常値へ表示範囲を自動調整します。比較する全対象には同じ軸を使い、正の通常値の幅が10倍を超える場合は対数目盛、それ以外は線形目盛を選びます。図の高さもパネル数に合わせ、文字・点を大きめに表示します。
+
+大きく離れた外れ値は画像に「off-scale」の件数を表示し、生成するREADME・Actions Summary・リリース本文の「表示範囲外の測定値」表へ、項目・版・単位・表示範囲・値・件数を載せます。統計計算・JSON・CSVには全観測値を残します。通常の外れ値は引き続き図に表示します。判定は各版のQ1−3×幅〜Q3＋3×幅（幅はIQRと中央値の5%の大きい方、最低1e-9）で行い、別版の通常値も含む共通軸内に収まる値は図に残します。
+
+描画処理の検証: `python -m unittest discover -s tools -p test_plot_windows_benchmark.py`（matplotlib/numpyが必要）。
+
+
+### Python 1回で3者を自動比較
+
+Windows、Python 3.12以降、Rust、.NET 10 SDK、NativeAOT用のVisual Studio C++ビルド環境を使います。Python環境にmatplotlib 3.10.8とNumPy 2.4.2を導入し、上記の`--build --with-csharp --fetch-tags --plot`付きコマンドを実行すると、タグ取得・対象選択・3者のビルド・同じ21ケースの測定・画像10枚・比較表・外れ値表まで自動で作ります。既存の出力先は上書きしないため、新しいフォルダー名を指定してください。
+
+- C#は`v*`の最新安定タグを自動選択します。固定する場合は`--csharp-ref v1.3.0`を指定します。C#の参照ソースとその版の辞書をビルドし、Rustの辞書への差し替えは行いません。
+- Rustの現在版は作業ツリーです。公開済みプレビューや正式版を測る場合は`--current-ref <タグまたはコミット>`を指定します。
+- Rustの前版は、現在版のCargoバージョンより古い`flash-v*`・`rust-v*`タグの最大値です。正式版とプレビューを含めた数値順で選び、現在版自身・未来の版・C#タグは選びません。例えば正式版0.1.0の直前は、存在する0.1.0の最新プレビューになります。固定する場合は`--baseline-ref <タグまたはコミット>`を指定します。
+- `--with-csharp`時の既定は3巡です。CIプレビューは5試行×3巡、リリースは3試行×9巡です。全対象を同じ巡数・試行数で測り、C#との状態一致とRust前版との状態一致を別々に検査します。不一致の比率も表に残しますが、速度改善の集計からは外します。
+- `--jit`はNativeAOTの代わりにC# JITを明示的に選ぶオプションです。実行環境はレポートに記録し、自動でJITへ切り替えることはありません。
+- `--plot`で画像と本文まで生成します。画像だけ再生成する場合は従来の描画コマンドも使えます。2者の既存レポートも引き続き描画できます。
+
+正式版・プレビューをタグで指定する例（`<現在版タグ>`を実際のタグに置き換える）:
+
+```powershell
+python tools/compare-rust-benchmarks.py --build --with-csharp --fetch-tags --plot --current-ref <現在版タグ> --output dist/tag-comparison
+```
+
+タグは`origin`から取得します。C#の参照タグがoriginにない場合は、そのタグを取得してから`--csharp-ref`で指定してください。`--fetch-tags`なしなら既に手元にあるタグを使います。GitHub Actionsの実行やリリース公開は、このコマンド自体では行いません。
+
+
+新しい3者レポートからは、Rust前版・現在版の2者比較5枚（`rust-*.png`）と、C#・Rust前版・現在版の3者比較5枚（従来の画像名）の計10枚を生成します。両セットは同じ測定データを使い、それぞれに適した表示範囲を選びます。本文には両セットの外れ値表と画像10枚を掲載します。凡例と表には`Rust v0.1.0 pre3`、`Rust v0.1.0 pre4`、`Rust v0.1.0`のように実際の版を表示します。`v0.1.1 pre1`の前版は、公開タグに`v0.1.0`があればその正式版です。過去の2者レポートは引き続き5枚で再描画できます。

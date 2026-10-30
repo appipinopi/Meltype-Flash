@@ -125,6 +125,7 @@ unsafe extern "C" fn snapshot(data: *mut c_void, out: *mut keys::Snapshot) {
         stale_tries: stale.tries,
         stale_vk: stale.key,
         stale_time: stale.time,
+        full_width_space: i32::from((*s).full_width_space),
     });
 }
 unsafe extern "C" fn update(data: *mut c_void, op: u32, a: u64, b: u64) {
@@ -190,6 +191,7 @@ unsafe extern "C" fn pass(data: *mut c_void, reason: u32) {
         4 => w!("英語の単語の続き").as_ptr(),
         5 => w!("meltype-flash.exe が使えない").as_ptr(),
         6 => w!("パスワードの入力欄").as_ptr(),
+        7 => w!("メニューを開いている").as_ptr(),
         _ => ptr::null(),
     };
     let changed = (*s).pass_reason != label;

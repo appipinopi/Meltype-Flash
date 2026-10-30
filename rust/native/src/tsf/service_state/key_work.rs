@@ -61,6 +61,7 @@ unsafe extern "C" fn update(data: *mut c_void, op: u32, value: u32) {
             (*s).server_active = value & 1 != 0;
             (*s).direct_detection = value & 2 != 0;
             (*s).direct_word = value & 4 != 0;
+            (*s).full_width_space = value & 1 != 0 && value & 8 != 0;
         }
         4 => (*s).server_active = false,
         5 => (*s).last_hello = 0,

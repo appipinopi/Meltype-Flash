@@ -1,6 +1,10 @@
 # Android版の開発・検証記録
 
 利用者向けの導入・操作は [README](README.md) を参照してください。
+2026年10月23日の移行で、アプリの処理をRustへ統一しました。フリック・背景画像・設定画面・OS通知の処理も `rust/native/src/android/` にあります。`android/app/src/main/java` の手書きソースを削除し、OS接続用のクラスは `android/bridge.rs` からGradleで生成します。Javaのアルゴリズムを文字列へ移した構成ではなく、生成するクラスはデータの保持、OSのスーパークラス呼出し、Rustへの通知だけを担当します。Androidフレームワークを使うinstrumentationテストとJVMの検証用フィクスチャーにはJavaが残ります。
+
+`cargo build -p meltype-native --features android-jni-test --locked` 後に `python rust/native/tests/android_editor_smoke.py <Cargoのtarget_directory>/debug` を実行すると、Rustから生成した接続クラスを使って既存の15系統を検証します。`CARGO_TARGET_DIR` を指定している場合は `cargo metadata --no-deps --format-version 1` の `target_directory` を使ってください。Rustテスト59件、Clippy、15系統の実JNIホスト、Android API 35に対する生成クラスとinstrumentationテストのコンパイルを確認しました。APKビルド・Android端末上での動作確認は未実施です。
+
 以下は実装時点ごとの検証記録です。JVM試験・エミュレーター試験・実機での入力確認は、それぞれ区別して読んでください。
 
 入力欄への応答反映はRustからJNIでInputConnectionを直接呼び出します。選択文字と削除前の文字をUTF-16単位で照合し、未確定文字の置換、確定、バッチ編集の開始・終了をRustで処理します。削除対象と選択範囲が競合する場合や、応答の表示データが不正な場合は書き込みません。編集が途中まで成功した後の失敗や、書込み中の例外ではキーを重ねて送らないようにし、コア状態をリセットします。Androidのバッチは通知をまとめるためのもので、書込みを巻き戻す仕組みではありません。

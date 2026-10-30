@@ -4,6 +4,7 @@
 use super::{
     candidates::Candidates,
     system::{Apartment, System},
+    zenzai::Zenzai,
 };
 use crate::{Callbacks, CALLBACKS};
 use meltype_core::mozc::{Mozc, Segment};
@@ -43,6 +44,7 @@ struct Backend {
     failures: u32,
     conversions: HashMap<(String, String), Option<Vec<Segment>>>,
     candidates: HashMap<String, Vec<String>>,
+    zenzai: Zenzai,
 }
 impl Backend {
     fn available(&self) -> bool {
@@ -183,40 +185,57 @@ impl Backend {
             .map(|text| String::from_utf16_lossy(&text))
     }
     fn clauses(&mut self, reading: &str, context: &str) -> Option<Vec<(String, String)>> {
-        if let Some(segments) = self.mozc_request(reading, context) {
-            return Some(
+        let from_mozc = self.mozc_request(reading, context);
+        let ordinary = if let Some(segments) = &from_mozc {
+            Some(
                 segments
-                    .into_iter()
+                    .iter()
                     .map(|s| {
                         let text = s
                             .candidates
                             .first()
                             .cloned()
                             .unwrap_or_else(|| s.reading.clone());
-                        (s.reading, text)
+                        (s.reading.clone(), text)
                     })
                     .collect(),
-            );
-        }
-        if !self.use_system() {
-            return None;
-        }
-        self.system
-            .clauses(
-                &reading.encode_utf16().collect::<Vec<_>>(),
-                &context.encode_utf16().collect::<Vec<_>>(),
             )
-            .map(|segments| {
-                segments
-                    .into_iter()
-                    .map(|s| {
-                        (
-                            String::from_utf16_lossy(&s.reading),
-                            String::from_utf16_lossy(&s.text),
-                        )
-                    })
-                    .collect()
-            })
+        } else if self.use_system() {
+            self.system
+                .clauses(
+                    &reading.encode_utf16().collect::<Vec<_>>(),
+                    &context.encode_utf16().collect::<Vec<_>>(),
+                )
+                .map(|segments| {
+                    segments
+                        .into_iter()
+                        .map(|s| {
+                            (
+                                String::from_utf16_lossy(&s.reading),
+                                String::from_utf16_lossy(&s.text),
+                            )
+                        })
+                        .collect()
+                })
+        } else {
+            None
+        };
+        let Some(text) = self.zenzai.convert(reading, context) else {
+            return ordinary;
+        };
+        if ordinary.as_ref().is_some_and(|clauses| {
+            clauses
+                .iter()
+                .map(|(_, text)| text.as_str())
+                .collect::<String>()
+                == text
+        }) {
+            return ordinary;
+        }
+        from_mozc
+            .as_ref()
+            .and_then(|segments| super::zenzai::align(segments, &text))
+            .or_else(|| Some(vec![(reading.to_owned(), text)]))
     }
     fn candidates(&mut self, reading: &str) -> Vec<String> {
         let mut result = Vec::new();
@@ -349,6 +368,7 @@ pub fn install() -> Option<WorkerConverters> {
             failures: 0,
             conversions: HashMap::new(),
             candidates: HashMap::new(),
+            zenzai: Zenzai::default(),
         })
     });
     *callbacks = Callbacks {
@@ -369,17 +389,22 @@ impl Drop for Scope {
         }
     }
 }
-pub(crate) fn scope(mode: &str, enabled: bool) -> Scope {
-    Scope(if enabled {
+pub(crate) fn scope(settings: &meltype_core::settings::Settings) -> Scope {
+    Scope(
         with_backend(|backend| {
-            let previous = backend.mode;
-            backend.mode = Mode::parse(mode);
-            backend.warm_up();
-            previous
+            backend.zenzai.configure(settings);
+            backend.zenzai.begin_request();
+            if settings.boolean("Enabled") {
+                let previous = backend.mode;
+                backend.mode = Mode::parse(settings.text("ConversionEngine"));
+                backend.warm_up();
+                Some(previous)
+            } else {
+                None
+            }
         })
-    } else {
-        None
-    })
+        .flatten(),
+    )
 }
 
 #[cfg(test)]

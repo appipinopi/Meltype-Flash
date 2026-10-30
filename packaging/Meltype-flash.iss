@@ -1,7 +1,7 @@
 ; SPDX-License-Identifier: GPL-3.0-or-later
 ; Copyright (C) 2026 appipinopi
 #ifndef AppVersion
-  #define AppVersion "0.1.0-pre.3"
+  #define AppVersion "0.1.0-pre.4"
 #endif
 #ifndef SourceDir
   #error SourceDir is required (audited Rust package)

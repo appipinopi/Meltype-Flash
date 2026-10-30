@@ -1,4 +1,15 @@
 plugins { id("com.android.application") }
+abstract class GenerateRustBridge : Exec() {
+    @get:org.gradle.api.tasks.OutputDirectory
+    abstract val generatedSources: org.gradle.api.file.DirectoryProperty
+}
+val bridgeExecutable = layout.buildDirectory.file("rustBridge/generate-bridge" + if (System.getProperty("os.name").startsWith("Windows")) ".exe" else "")
+val compileRustBridge by tasks.registering(Exec::class) {
+    inputs.files(rootProject.file("bridge.rs"), rootProject.file("bridge_events.rs"))
+    outputs.file(bridgeExecutable)
+    doFirst { bridgeExecutable.get().asFile.parentFile.mkdirs() }
+    commandLine("rustc", "--edition=2021", rootProject.file("bridge.rs"), "-o", bridgeExecutable.get().asFile)
+}
 android {
     namespace = "moe.meltype.rust"
     compileSdk = 35
@@ -6,8 +17,8 @@ android {
         applicationId = "moe.meltype.rust"
         minSdk = 26
         targetSdk = 35
-        versionCode = 3
-        versionName = "0.1.0-pre.3"
+        versionCode = 4
+        versionName = "0.1.0-pre.4"
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
         ndk { abiFilters += listOf("arm64-v8a", "x86_64") }
     }
@@ -15,6 +26,14 @@ android {
         sourceCompatibility = JavaVersion.VERSION_17
         targetCompatibility = JavaVersion.VERSION_17
     }
+}
+androidComponents.onVariants(androidComponents.selector().all()) { variant ->
+    val generateRustBridge = tasks.register<GenerateRustBridge>("generate${variant.name.replaceFirstChar { it.uppercaseChar() }}RustBridge") {
+        dependsOn(compileRustBridge)
+        inputs.file(bridgeExecutable)
+        doFirst { commandLine(bridgeExecutable.get().asFile, generatedSources.get().asFile) }
+    }
+    variant.sources.java?.addGeneratedSourceDirectory(generateRustBridge) { it.generatedSources }
 }
 dependencies {
     androidTestImplementation("androidx.test:runner:1.7.0")

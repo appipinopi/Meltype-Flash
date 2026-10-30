@@ -15,6 +15,7 @@ pub struct Dictionary {
     english: HashSet<String>,
     japanese: HashSet<String>,
     candidates: HashMap<String, Vec<String>>,
+    head_only_phrases: HashSet<String>,
     emoji: HashMap<String, Vec<String>>,
     kana_words: HashSet<String>,
     max_kana_word_bytes: usize,
@@ -69,6 +70,20 @@ fn words(text: &str) -> impl Iterator<Item = &str> {
 }
 
 impl Dictionary {
+    pub(super) fn nasal_continues(lower: &str, next: &str) -> bool {
+        lower
+            .as_bytes()
+            .last()
+            .is_some_and(|c| b"aiueo".contains(c))
+            && next
+                .as_bytes()
+                .first()
+                .is_some_and(|c| c.eq_ignore_ascii_case(&b'n'))
+            && next
+                .as_bytes()
+                .get(1)
+                .is_none_or(|c| !b"aiueoy".contains(&c.to_ascii_lowercase()))
+    }
     #[cfg(feature = "filesystem")]
     pub(crate) fn profile(
         directory: &std::path::Path,
@@ -208,6 +223,7 @@ impl Dictionary {
                     .map(str::to_owned)
                     .collect(),
                 candidates: HashMap::new(),
+                head_only_phrases: HashSet::new(),
                 emoji: HashMap::new(),
                 max_kana_word_bytes: 0,
                 kana_words: crate::system_data::text("readings.txt")
@@ -258,14 +274,25 @@ impl Dictionary {
                     let fields: Vec<_> = line.split('\t').collect();
                     if fields.len() > 1 {
                         if emoji {
-                            let entries = dict.emoji.entry(fields[0].to_owned()).or_default();
+                            let entries = dict
+                                .emoji
+                                .entry(fields[0].to_owned())
+                                .or_insert_with(|| Vec::with_capacity(fields.len() - 1));
                             for word in &fields[1..] {
                                 if !word.is_empty() && !entries.iter().any(|s| s == word) {
                                     entries.push((*word).to_owned());
                                 }
                             }
                         } else {
-                            dict.add(fields[0], fields[1..].iter().copied());
+                            let reading = fields[0].trim_start_matches('^').replace('|', "");
+                            if fields[0].starts_with('^') {
+                                dict.head_only_phrases.insert(reading.clone());
+                            }
+                            let values: Vec<_> = fields[1..]
+                                .iter()
+                                .map(|word| word.replace('|', ""))
+                                .collect();
+                            dict.add(&reading, values.iter().map(String::as_str));
                         }
                     }
                 }
@@ -284,7 +311,12 @@ impl Dictionary {
     }
 
     fn add<'a>(&mut self, reading: &str, values: impl Iterator<Item = &'a str>) {
-        let entry = self.candidates.entry(reading.to_owned()).or_default();
+        // System rows already tell us their initial candidate count. Avoid Vec's
+        // four-element minimum allocation for the common one-candidate row.
+        let entry = self
+            .candidates
+            .entry(reading.to_owned())
+            .or_insert_with(|| Vec::with_capacity(values.size_hint().0));
         for value in values.filter(|s| !s.is_empty()) {
             if !entry.iter().any(|v| v == value) {
                 entry.push(value.to_owned());
@@ -360,6 +392,7 @@ impl Dictionary {
     pub fn convert(&self, reading: &str) -> String {
         let mut rest = reading;
         let mut out = String::new();
+        let mut boundary = true;
         while !rest.is_empty() {
             let longest = rest
                 .char_indices()
@@ -368,6 +401,7 @@ impl Dictionary {
                 .find_map(|end| {
                     self.candidates
                         .get(&rest[..end])
+                        .filter(|_| boundary || !self.head_only_phrases.contains(&rest[..end]))
                         .filter(|_| rest[..end].chars().count() >= 2)
                         .and_then(|values| {
                             values
@@ -383,10 +417,12 @@ impl Dictionary {
             if let Some((end, text)) = longest {
                 out.push_str(text);
                 rest = &rest[end..];
+                boundary = true;
             } else {
                 let c = rest.chars().next().unwrap();
                 out.push(c);
                 rest = &rest[c.len_utf8()..];
+                boundary = false;
             }
         }
         out
@@ -594,6 +630,17 @@ impl Dictionary {
             return false;
         };
         let suffix = word[start..].trim_start_matches(|c: char| c.is_ascii_digit());
+        if start >= 2 && word.as_bytes()[start - 1].is_ascii_uppercase() {
+            let stem = &word[..start - 1];
+            let reading = romaji::analyze(stem, true);
+            if stem.bytes().all(|c| c.is_ascii_lowercase())
+                && reading.valid
+                && reading.partial.is_empty()
+                && !self.known_english(stem)
+            {
+                return true;
+            }
+        }
         let units = [
             "ji", "fun", "pun", "gatsu", "nichi", "nen", "jikan", "en", "nin", "sai", "mai", "hon",
             "bon", "ko", "kai", "kakeru", "waru", "tasu", "hiku", "purasu", "mainasu", "iko-ru",
@@ -607,7 +654,22 @@ impl Dictionary {
         units.iter().any(|unit| suffix.starts_with(unit))
     }
     fn mixed_word(&self, raw: &str, final_input: bool) -> String {
+        if let Some(end) = self.english_compound_end(raw) {
+            return format!(
+                "{}{}",
+                &raw[..end],
+                self.mixed_word(&raw[end..], final_input)
+            );
+        }
         let lower = raw.to_ascii_lowercase();
+        if self.starts_with_japanese_reading(raw) {
+            let upper = raw.bytes().position(|c| c.is_ascii_uppercase()).unwrap();
+            return format!(
+                "{}{}",
+                romaji::hiragana(&raw[..upper], true),
+                self.mixed_word(&raw[upper..], final_input)
+            );
+        }
         let canonical_case = Self::allows_mixed_case(raw);
         if let Some(end) = self.capitalized_split(raw, final_input) {
             return format!(
@@ -861,6 +923,8 @@ impl Dictionary {
                         && romaji::analyze(&piece[1..], true).valid);
                 let english_piece = boundaries[i]
                     && boundaries[end]
+                    && !(self.readable_english.contains(piece)
+                        && Self::nasal_continues(piece, &raw[end..]))
                     && !(end < n && raw.as_bytes()[end-1] == raw.as_bytes()[end]
                         && raw.as_bytes()[end].is_ascii_alphabetic()
                         && !b"aeioun".contains(&raw.as_bytes()[end]))
@@ -1045,6 +1109,9 @@ impl Dictionary {
                 && (self.common_english.contains(&lower[..head_end])
                     || self.proper.contains(&lower[..head_end]))
                 && pieces.iter().skip(1).all(|(_, _, en)| !en)
+                && romaji::hiragana(&raw[head_end..], final_input)
+                    .chars()
+                    .any(|c| c.is_ascii_alphabetic())
                 && ![
                     "kara", "made", "yori", "ga", "wo", "ni", "de", "no", "to", "mo", "ha", "wa",
                     "ya",
@@ -1290,25 +1357,36 @@ impl Dictionary {
             return vec![];
         }
         let lower = raw.to_ascii_lowercase();
-        let mut words: Vec<_> = self
-            .english
-            .iter()
-            .filter(|s| s.starts_with(&lower) && s.len() > lower.len())
-            .collect();
-        words.sort_by_key(|s| (!self.common_english.contains(*s), s.len(), *s));
+        use fst::{IntoStreamer, Streamer};
+        // Enumerate only the prefix range and retain the five best words.
+        // Rank exactly as before: common words, length, then lexical order.
+        let mut stream = self.english_index.0.range().gt(&lower).into_stream();
+        let mut words: Vec<(bool, usize, String)> = Vec::with_capacity(5);
+        while let Some(key) = stream.next() {
+            if !key.starts_with(lower.as_bytes()) {
+                break;
+            }
+            let word = std::str::from_utf8(key).expect("dictionary key is UTF-8");
+            let rank = (!self.common_english.contains(word), word.len(), word);
+            let at = words
+                .partition_point(|(uncommon, len, text)| (*uncommon, *len, text.as_str()) < rank);
+            if at < 5 {
+                if words.len() == 5 {
+                    words.pop();
+                }
+                words.insert(at, (rank.0, rank.1, word.to_owned()));
+            }
+        }
+        let uppercase = raw.bytes().all(|c| c.is_ascii_uppercase());
         words
             .into_iter()
-            .take(5)
-            .map(|s| {
-                if raw.bytes().all(|c| c.is_ascii_uppercase()) {
-                    s.to_ascii_uppercase()
+            .map(|(_, _, mut word)| {
+                if uppercase {
+                    word.make_ascii_uppercase();
                 } else if raw.as_bytes()[0].is_ascii_uppercase() {
-                    let mut s = s.clone();
-                    s[..1].make_ascii_uppercase();
-                    s
-                } else {
-                    s.clone()
+                    word[..1].make_ascii_uppercase();
                 }
+                word
             })
             .collect()
     }
@@ -1317,6 +1395,28 @@ impl Dictionary {
 #[cfg(test)]
 mod prefix_tests {
     use super::*;
+    #[test]
+    fn v140_scored_pending_capitalized_word() {
+        let d = Dictionary::bundled();
+        assert_eq!(
+            d.composition_scored("Goog", false, "", "", "Balanced"),
+            "Goおg"
+        );
+        assert_eq!(
+            d.composition_scored("Goog", true, "", "", "Balanced"),
+            "Goog"
+        );
+    }
+    #[test]
+    fn candidate_storage_preserves_order_without_four_slot_minimum() {
+        let mut dictionary = Dictionary::bundled().clone();
+        let reading = "__compact_candidate_test__";
+        dictionary.add(reading, std::iter::once("候補一"));
+        assert_eq!(dictionary.candidates[reading], ["候補一"]);
+        assert_eq!(dictionary.candidates[reading].capacity(), 1);
+        dictionary.add(reading, ["候補一", "候補二", "候補二"].into_iter());
+        assert_eq!(dictionary.candidates[reading], ["候補一", "候補二"]);
+    }
     #[test]
     #[ignore = "manual performance comparison; run with --release --ignored --nocapture"]
     fn prefix_lookup_timing() {
@@ -1365,6 +1465,68 @@ mod prefix_tests {
         }
         assert!(rows.windows(2).all(|r| r[0]["hits"] == r[1]["hits"]));
         println!("PREFIX_BENCH={}", serde_json::json!(rows));
+    }
+    #[test]
+    fn predictions_match_full_dictionary_ranking() {
+        let reference = |dictionary: &Dictionary, raw: &str| {
+            if raw.len() < 3 || !raw.bytes().all(|c| c.is_ascii_alphabetic()) {
+                return Vec::new();
+            }
+            let lower = raw.to_ascii_lowercase();
+            let mut words: Vec<_> = dictionary
+                .english
+                .iter()
+                .filter(|s| s.starts_with(&lower) && s.len() > lower.len())
+                .collect();
+            words.sort_by_key(|s| (!dictionary.common_english.contains(*s), s.len(), *s));
+            words
+                .into_iter()
+                .take(5)
+                .map(|s| {
+                    let mut value = s.clone();
+                    if raw.bytes().all(|c| c.is_ascii_uppercase()) {
+                        value.make_ascii_uppercase();
+                    } else if raw.as_bytes()[0].is_ascii_uppercase() {
+                        value[..1].make_ascii_uppercase();
+                    }
+                    value
+                })
+                .collect::<Vec<_>>()
+        };
+        let bundled = Dictionary::bundled();
+        let mut custom = bundled.clone();
+        for word in ["hel", "helzz", "helcustom", "helcommon", "zzzxcustom"] {
+            custom.english.insert(word.into());
+        }
+        custom.common_english.insert("helcommon".into());
+        custom.english_index = PrefixIndex::new(&custom.english);
+        for dictionary in [bundled, &custom] {
+            for raw in [
+                "",
+                "he",
+                "hel",
+                "Hel",
+                "HEL",
+                "hEl",
+                "hello",
+                "com",
+                "con",
+                "pro",
+                "rea",
+                "mel",
+                "google",
+                "zzzx",
+                "qqqzzz",
+                "日本語",
+                "hel1",
+            ] {
+                assert_eq!(
+                    dictionary.predict_english(raw),
+                    reference(dictionary, raw),
+                    "{raw}"
+                );
+            }
+        }
     }
     #[test]
     fn node_prefix_matches_range_lookup() {

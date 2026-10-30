@@ -83,15 +83,39 @@ class DistributionTests(unittest.TestCase):
             extension = app / 'PlugIns/MeltypeFlashKeyboard.appex'
             extension.mkdir(parents=True)
             for bundle in (app, extension):
-                info = {'DTPlatformName': 'iphoneos', 'CFBundleExecutable': 'binary'}
+                info = {'DTPlatformName': 'iphoneos', 'CFBundleExecutable': 'binary',
+                        'CFBundleIdentifier': 'com.example.keyboard' if bundle == extension else 'com.example',
+                        'CFBundleVersion': '6', 'CFBundleShortVersionString': '0.1.0'}
                 if bundle == extension:
-                    info['NSExtension'] = {'NSExtensionPointIdentifier': 'com.apple.keyboard-service', 'NSExtensionAttributes': {'RequestsOpenAccess': False}}
+                    info['NSExtension'] = {'NSExtensionPointIdentifier': 'com.apple.keyboard-service',
+                                          'NSExtensionPrincipalClass': 'Keyboard.KeyboardViewController',
+                                          'NSExtensionAttributes': {'RequestsOpenAccess': False}}
+                else:
+                    info['CFBundleIcons'] = {'CFBundlePrimaryIcon': {'CFBundleIconName': 'AppIcon'}}
+                    (bundle / 'Assets.car').write_bytes(b'fixture')
                 (bundle / 'Info.plist').write_bytes(plistlib.dumps(info))
                 (bundle / 'binary').write_bytes(bytes.fromhex('cffaedfe0c000001'))
             archive = Path(directory) / 'device.ipa'
             ios.package(app, archive)
             with zipfile.ZipFile(archive) as zipped:
                 self.assertIn('Payload/MeltypeFlash.app/PlugIns/MeltypeFlashKeyboard.appex/binary', zipped.namelist())
+            valid_extension = plistlib.loads((extension / 'Info.plist').read_bytes())
+            for key, value, message in (
+                ('CFBundleVersion', '7', 'versions must match'),
+                ('CFBundleIdentifier', 'com.unrelated', 'bundle identifier'),
+            ):
+                broken = dict(valid_extension, **{key: value})
+                (extension / 'Info.plist').write_bytes(plistlib.dumps(broken))
+                with self.assertRaisesRegex(ValueError, message):
+                    ios.package(app, Path(directory) / (key + '.ipa'))
+            (extension / 'Info.plist').write_bytes(plistlib.dumps(valid_extension))
+            (app / 'Assets.car').unlink()
+            with self.assertRaisesRegex(ValueError, 'icon asset catalog'):
+                ios.package(app, Path(directory) / 'no-icon.ipa')
+            (app / 'Assets.car').write_bytes(b'fixture')
+            (extension / 'Info.plist').unlink()
+            with self.assertRaises(FileNotFoundError):
+                ios.package(app, Path(directory) / 'no-extension.ipa')
             (extension / 'Info.plist').write_bytes(plistlib.dumps({'DTPlatformName': 'iphonesimulator'}))
             with self.assertRaisesRegex(ValueError, 'device build'):
                 ios.package(app, Path(directory) / 'simulator.ipa')

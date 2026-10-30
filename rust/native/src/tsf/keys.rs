@@ -10,8 +10,8 @@ use std::{
 use windows::{
     core::{IUnknown, Interface},
     Win32::{
-        System::SystemInformation::GetTickCount64,
-        UI::{Input::KeyboardAndMouse::*, TextServices::ITfContext},
+        System::{SystemInformation::GetTickCount64, Threading::GetCurrentThreadId},
+        UI::{Input::KeyboardAndMouse::*, TextServices::ITfContext, WindowsAndMessaging::*},
     },
 };
 const SHIFT: u32 = 1;
@@ -30,7 +30,7 @@ pub extern "C" fn meltype_tsf_key_flags(vk: u32, message: u64, mods: u32) -> u32
         && mods & (SHIFT | CONTROL | WIN) == 0;
     let shortcut = mods & CONTROL != 0
         && mods & (ALT | WIN) == 0
-        && matches!(vk, 0x48 | 0x55 | 0x49 | 0x4f | 0x50);
+        && matches!(vk, 0x48 | 0x55 | 0x49 | 0x4b | 0x4c | 0x4f | 0x50);
     u32::from(modifier)
         | u32::from(japanese) << 1
         | u32::from(toggle) << 2
@@ -98,6 +98,7 @@ pub struct Snapshot {
     pub(super) stale_tries: u32,
     pub(super) stale_vk: u32,
     pub(super) stale_time: u64,
+    pub(super) full_width_space: i32,
 }
 #[repr(C)]
 #[derive(Clone, Copy)]
@@ -119,7 +120,7 @@ pub struct Callbacks {
 /// composing; 2 clear direct-English word; 3 store stale tries/vk packed in
 /// high/low 32 bits of a and timestamp b; 4 secretChecked=a. pass reasons:
 /// 0 clear, 1 English mode, 2 modifiers, 3 disabled field, 4 continuing English,
-/// 5 unavailable core, 6 password. secret callback owns the short-lived cache.
+/// 5 unavailable core, 6 password, 7 menu. secret callback owns the short-lived cache.
 /// # Safety
 /// On the TSF input thread, borrowed context and callback/lifetime interfaces.
 /// Output points to a writable u16. Callbacks/state/code survive until return
@@ -244,6 +245,15 @@ pub unsafe extern "C" fn meltype_tsf_would_eat(
             if mods & (CONTROL | ALT | WIN) != 0 {
                 return reject(2);
             }
+            // #819/#827: menu access keys belong to the application's menu.
+            let mut info = GUITHREADINFO {
+                cbSize: std::mem::size_of::<GUITHREADINFO>() as u32,
+                ..Default::default()
+            };
+            if GetGUIThreadInfo(GetCurrentThreadId(), &mut info).is_ok() && menu_mode(info.flags.0)
+            {
+                return reject(7);
+            }
             if fields::meltype_tsf_context_disabled(context) != 0 {
                 return reject(3);
             }
@@ -258,7 +268,8 @@ pub unsafe extern "C" fn meltype_tsf_would_eat(
             }
             if !(vk == 0x1c
                 || (0x21..=0x7e).contains(&ch)
-                || vk == 0x20 && modifiers() & SHIFT != 0)
+                || vk == 0x20
+                    && (modifiers() & SHIFT != 0 || s.open != 0 && s.full_width_space != 0))
             {
                 return false;
             }
@@ -275,4 +286,22 @@ pub unsafe extern "C" fn meltype_tsf_would_eat(
         }))
         .unwrap_or(false),
     )
+}
+
+fn menu_mode(flags: u32) -> bool {
+    flags & (GUI_INMENUMODE.0 | GUI_POPUPMENUMODE.0 | GUI_SYSTEMMENUMODE.0) != 0
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn issue_819_menu_flags_leave_caret_flags_alone() {
+        assert!(!menu_mode(0));
+        assert!(!menu_mode(GUI_CARETBLINKING.0));
+        for flags in [GUI_INMENUMODE, GUI_POPUPMENUMODE, GUI_SYSTEMMENUMODE] {
+            assert!(menu_mode(flags.0 | GUI_CARETBLINKING.0));
+        }
+    }
 }

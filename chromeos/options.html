@@ -8,6 +8,7 @@
   <p>chrome.input.ime を使う試験版です。ChromeOSの設定 → 言語と入力 → 入力方法で「Meltype Rust」を追加して選択してください。</p>
   <p id="status" role="status" aria-live="polite">起動状態を確認中…</p>
   <p>共通Coreの変換・判定・辞書を使います。OS辞書、確定後の削除・Undo、カーソル移動、全画面の互換性は未対応です。物理JIS配列は実機未確認です。</p>
+  <p>この版にはAI変換を含めません。通常の辞書変換・予測候補・学習は端末内で使えます。</p>
   <form id="site-form">
     <h2>入力モード</h2>
     <label for="default-mode">通常使うモード</label>
@@ -21,15 +22,35 @@
     <button type="submit">入力モードを保存</button>
     <p id="site-status" role="status" aria-live="polite"></p>
   </form>
+  <form id="settings-form">
+  <fieldset id="core-controls" disabled>
+    <legend>入力のカスタマイズ</legend>
+    <label for="detection-level">日英の自動判定</label>
+    <select id="detection-level" data-setting="DetectionLevel">
+      <option value="Aggressive">積極的</option><option value="Balanced">標準</option>
+      <option value="Conservative">慎重</option><option value="Manual">手動（提案のみ）</option>
+    </select>
+    <label for="punctuation">日本語の句読点</label>
+    <select id="punctuation" data-setting="Punctuation">
+      <option value="Japanese">、。</option><option value="FullWidthCommaPeriod">，．</option>
+      <option value="FullWidthCommaKuten">，。</option><option value="ToutenFullWidthPeriod">、．</option>
+    </select>
+    <label class="check"><input type="checkbox" data-setting="CorrectTypos"> タイプミスを補正する</label>
+    <label class="check"><input type="checkbox" data-setting="TabConversion"> Tabキーで変換する</label>
+    <p class="help">オフにするとTabで漢字変換を開始しません。予測候補の選択や、手動判定の提案への切替には引き続きTabを使います。</p>
+    <label class="check"><input type="checkbox" data-setting="SpaceAroundEnglish"> 英語の前後に空白を入れて確定する</label>
+    <label class="check"><input type="checkbox" data-setting="LearningEnabled"> 変換結果を学習する</label>
+    <p class="help">学習をオフにしても保存済みの履歴は残ります。履歴の削除は下の「学習を削除」で行えます。</p>
+    <p class="help">この版の候補はChromeOS標準の表示です。色・フォント・表示位置のカスタマイズは未対応です。</p>
   <details>
     <summary>詳細設定（Core JSON）</summary>
-    <form id="settings-form">
     <label for="settings">変換・判定の共通設定（デスクトップのアプリ別項目は表示しません）</label>
     <textarea id="settings" rows="24" spellcheck="false"></textarea>
-    <button type="submit">設定を保存</button>
-    <button type="button" id="reload">保存済み設定へ戻す</button>
-  </form>
   </details>
+    <button type="submit">入力設定を保存</button>
+    <button type="button" id="reload">保存済み設定へ戻す</button>
+  </fieldset>
+  </form>
   <h2>学習とデータ</h2>
   <p>設定・学習・ユーザー辞書はこの端末の拡張機能ストレージに保存します。未確定文字列は保存しません。Chrome Syncやサーバーへ送信しません。</p>
   <button id="export" type="button">設定・学習・辞書をJSONで書き出す</button>

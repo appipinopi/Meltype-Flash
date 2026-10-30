@@ -12,13 +12,16 @@ const controller = available ? new ImeController({
   load: async () => {
     const saved = await chrome.storage.local.get("snapshot");
     await init({module_or_path: chrome.runtime.getURL("pkg/meltype_browser_bg.wasm")});
+    const dictionary = await fetch(chrome.runtime.getURL("pkg/kanji.bin"));
+    if (!dictionary.ok) throw new Error("漢字辞書を読み込めません。拡張機能のフォルダーを全体更新してください。");
+    BrowserSession.load_dictionary(new Uint8Array(await dictionary.arrayBuffer()));
     // Invalid data is preserved. Never silently replace it with defaults.
     const core = new BrowserSession(saved.snapshot ?? "");
     let focusedGeneration = -1;
     core.focusIfNeeded = (generation, learning) => {
       if (focusedGeneration !== generation) { core.focus(learning); focusedGeneration = generation; }
     };
-    diagnostic = "Rust Core起動済み。ChromeOSの入力方法にMeltype Rustを追加してください。";
+    diagnostic = "Rust Core・漢字辞書起動済み。ChromeOSの入力方法にMeltype Rustを追加してください。";
     return core;
   },
   persist: snapshot => chrome.storage.local.set({snapshot}),
@@ -37,7 +40,11 @@ chrome.storage.onChanged?.addListener((changes, area) => {
 });
 if (controller) {
   const ime = chrome.input.ime;
-  ime.onActivate.addListener(engine => controller.activate(engine));
+  ime.onActivate.addListener(engine => {
+    controller.activate(engine);
+    // 入力方法を選んだ時点で準備し、最初の文字に辞書の読み込みを集中させない。
+    controller.ready().catch(error => report(String(error)));
+  });
   ime.onDeactivated.addListener(engine => controller.deactivate(engine));
   ime.onFocus.addListener(context => controller.focus(context));
   ime.onInputContextUpdate.addListener(context => controller.updateContext(context));

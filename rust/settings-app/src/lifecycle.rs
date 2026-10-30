@@ -118,15 +118,32 @@ impl Lifecycle {
         if self.welcome {
             ctx.send_viewport_cmd(egui::ViewportCommand::Visible(true));
             egui::Window::new("Meltype-flash へようこそ").collapsible(false).resizable(false).show(ctx, |ui| {
-                ui.label("Windows・共通Coreの移植プレビューです。");
+                ui.label("共通Rust Coreを使う移植プレビューです。");
                 ui.label("1. 設定と入力テストで、入力方式や候補を確認してください。");
-                ui.label("2. IMEの導入は配布フォルダーの Manage-Windows.ps1 で行います。");
-                ui.label("3. Windowsの言語設定からMeltype-flash IMEを選択してください。");
-                ui.label("ZIPを展開・起動しただけではIMEは登録されません。");
-                ui.label("登録なしで使う場合は Start-Portable.ps1 を実行します。入力の切替キーは既定で Ctrl+Alt+J です。設定画面で変更できます。");
+                #[cfg(windows)]
+                {
+                    ui.label("2. IMEの導入は配布フォルダーの Manage-Windows.ps1 で行います。");
+                    ui.label("3. Windowsの言語設定からMeltype-flash IMEを選択してください。");
+                    ui.label("ZIPを展開・起動しただけではIMEは登録されません。");
+                    ui.label("登録なしで使う場合は Start-Portable.ps1 を実行します。入力の切替キーは既定で 半角/全角 または Alt+Backquote です。設定画面で複数登録できます。");
+                }
+                #[cfg(target_os = "linux")]
+                {
+                    ui.label("2. Linux配布フォルダーの install.sh で、利用するIBusまたはfcitx5の入力エンジンを導入してください。");
+                    ui.label("3. デスクトップの入力ソース設定でMeltype-flashを追加して選択してください。導入直後に見つからなければ、入力メソッドまたはセッションを再起動します。");
+                    ui.label("この設定画面を起動しただけでは、入力エンジンの導入・選択は行われません。");
+                }
+                #[cfg(target_os = "macos")]
+                {
+                    ui.label("2. macOS配布フォルダーの Install Meltype.command で入力メソッドを導入してください。");
+                    ui.label("3. macOSの入力ソース設定にMeltypeを追加し、入力メニューから選択してください。");
+                }
                 ui.label(format!("データ保存先: {}", store.directory.display()));
                 ui.label("元版のデータは自動で置き換えません。移行前にバックアップを保存してください。");
+                #[cfg(windows)]
                 ui.hyperlink_to("導入と配布の説明", "https://github.com/appipinopi/Meltype/blob/codex/rust-cross-platform/rust/WINDOWS-PACKAGE.md");
+                #[cfg(not(windows))]
+                ui.hyperlink_to("導入と配布の説明", "https://github.com/appipinopi/Meltype/blob/rust/rust/README.md");
                 if ui.button("設定を始める").clicked() { acknowledge = true; }
             });
         }

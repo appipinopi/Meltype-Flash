@@ -19,13 +19,17 @@
 <!-- meltype-flash-platform:end -->
 
 Androidの画面キーボードとして動く、Rust Core + JNIの日本語入力プレビューです。
+変換・入力状態・フリック判定・設定画面・背景画像の処理はRustで実装しています。Android本体の手書きJava/Kotlinソースはありません。OSが要求する `InputMethodService` / Activity・リスナーなどの接続クラスは、Rustの [bridge.rs](bridge.rs) からビルド時に生成します。APKにはこの生成された接続クラスが含まれます。
 **公開中のdebug APKは開発検証用です。Play Store配布・正式な配布署名・物理端末での入力確認は未対応です。**
 
 <a id="内容"></a>
 <h2><img src="../assets/branding/readme/android/headings/df8764ebcf5d.svg" alt="内容" width="1000"></h2>
 
 QWERTYローマ字入力、かな・補助辞書による変換、候補タップ、確定・削除・英数切替、外付けキーボードの入力に対応する実装です。
+AI変換は搭載しません。デスクトップの設定やバックアップを読み込んでも、Zenzaiの有効化・サーバー・モデルの設定は取り込みません。通常の辞書変換・予測候補・学習は端末内で使えます。
 設定画面から、入力設定・ユーザー辞書・定型文・学習削除・プロファイル・バックアップを扱います。
+「キーボードの背景・テーマ」から、システム・ライト・ダーク・ブルー・ピンク・ミントの配色と、好きな背景画像を選べます。プレビューで確認し、キーボードを開き直すと反映されます。フリックとQWERTYで共通です。
+画像はドキュメント選択画面で選び、長辺1280ピクセル以下へ縮小してアプリ専用領域に保存します。表示は中央基準で切り抜きます。「背景画像を外す」は画像だけを削除し、テーマ・辞書・学習は保持します。背景設定と画像は現在のCoreバックアップには含みません。
 公開APKと開発ブランチの機能が同じとは限らないため、試す版のリリース説明も確認してください。
 
 [動く環境](#動く環境) · [インストール](#インストール) · [使い方](#使い方) · [困ったとき](#困ったとき) · [アンインストール](#アンインストール) · [開発者向け](#開発者向け)
@@ -115,6 +119,7 @@ gradle -p android assembleDebug lintDebug --no-daemon
 ```
 
 Windowsでは環境変数をPowerShellの `$env:ANDROID_NDK_HOME` / `$env:CARGO_NDK_PLATFORM` で指定します。
+GradleはRustコンパイラーでアダプター生成ツールを作り、`android/app/build/generated` 以下へビルド種別ごとにOS接続クラスを出力します。生成されたファイルは編集せず、接続の定義は `android/bridge.rs`・`android/bridge_events.rs`、実際の処理は `rust/native/src/android/` を変更します。RustをPATHから実行できる必要があります。
 `ANDROID_NDK_ROOT` / `ANDROID_NDK` を使っている場合も同じNDKに揃えてください。
 
 共通Coreの試験、デスクトップJVMでのJNI試験、Androidフレームワーク上のinstrumentation試験、実機での他アプリ入力は別の検証です。

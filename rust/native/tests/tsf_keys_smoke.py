@@ -21,7 +21,8 @@ user.SetKeyboardState.argtypes = [c.POINTER(c.c_ubyte)]
 
 class Snapshot(c.Structure):
     _fields_ = [("composition", P), ("context", P), ("disabled", HR), ("open", HR),
-                ("detection", HR), ("english", HR), ("tries", U32), ("vk", U32), ("time", U64)]
+                ("detection", HR), ("english", HR), ("tries", U32), ("vk", U32), ("time", U64),
+                ("full_width_space", HR)]
 READ = c.CFUNCTYPE(None, P, c.POINTER(Snapshot))
 UPDATE = c.CFUNCTYPE(None, P, U32, U64, U64)
 RESUME = c.CFUNCTYPE(None, P, P)
@@ -77,8 +78,12 @@ class KeyboardTests(unittest.TestCase):
             self.assertEqual(self.api.meltype_tsf_key_modifiers(), mods)
             for key in range(256):
                 for message in messages:
-                    self.assertEqual(self.api.meltype_tsf_key_flags(key, message, mods),
-                        self.reference.meltype_reference_key_flags(key, message), (key, message, mods))
+                    expected = self.reference.meltype_reference_key_flags(key, message)
+                    # #599: the frozen reference predates CompatibleShortcuts.
+                    # K/L must reach the core, which decides from the setting.
+                    if key in [0x4b, 0x4c] and mods & 2 and not mods & 12:
+                        expected |= 8
+                    self.assertEqual(self.api.meltype_tsf_key_flags(key, message, mods), expected, (key, message, mods))
 
     def test_utf16_translation_matches_original_for_all_keys_and_modifier_states(self):
         for caps in [False, True]:
@@ -197,6 +202,17 @@ class AcceptanceTests(KeyboardTests):
             self.assertEqual(self.dispatch(key), (False, 0))
             self.assertEqual(self.events, [("update", 0)])
 
+    def test_issue_881_plain_space_depends_on_setting_and_japanese_mode(self):
+        for enabled in [False, True]:
+            for opened in [False, True]:
+                self.s.open = int(opened)
+                self.s.detection = 1
+                self.s.full_width_space = int(enabled)
+                self.mods(0)
+                self.assertEqual(self.dispatch(0x20)[0], enabled and opened)
+                self.mods(1)
+                self.assertTrue(self.dispatch(0x20)[0])
+
     def test_unicode_packet_commits_before_passing_but_process_key_does_not(self):
         self.composing()
         self.sync = False
@@ -234,7 +250,7 @@ class AcceptanceTests(KeyboardTests):
 
     def test_composition_ctrl_shortcuts_remain_internal_and_other_shortcuts_commit(self):
         self.mods(2)
-        for key in [0x48, 0x55, 0x49, 0x4f, 0x50]:
+        for key in [0x48, 0x55, 0x49, 0x4b, 0x4c, 0x4f, 0x50]:
             self.composing()
             self.assertTrue(self.dispatch(key)[0])
             self.assertFalse(any(event[0] == "now" for event in self.events))

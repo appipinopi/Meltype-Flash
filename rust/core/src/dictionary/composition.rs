@@ -15,6 +15,73 @@ const PARTICLES: &[&str] = &[
 ];
 
 impl Dictionary {
+    pub(super) fn english_particle_pair(&self, raw: &str) -> Option<String> {
+        let lower = raw.to_ascii_lowercase();
+        for index in 2..raw.len() {
+            for particle in PARTICLES {
+                if let Some(right) = lower[index..].strip_prefix(particle) {
+                    if right.len() >= 2
+                        && self.english_atom(&lower[..index])
+                        && self.english_atom(right)
+                        && (!self.is_japanese(&lower[..index])
+                            || self.proper.contains(&lower[..index]))
+                        && (!self.is_japanese(right) || self.proper.contains(right))
+                    {
+                        return Some(format!(
+                            "{}{}{}",
+                            &raw[..index],
+                            romaji::hiragana(particle, true),
+                            &raw[index + particle.len()..]
+                        ));
+                    }
+                }
+            }
+        }
+        None
+    }
+    // Upstream #377/#394: keep game+over together, while excluding common
+    // Japanese heads, already-known whole words and arbitrary syllable splits.
+    pub(crate) fn english_compound_end(&self, raw: &str) -> Option<usize> {
+        if raw.len() < 7 || !raw.bytes().all(|c| c.is_ascii_alphabetic()) {
+            return None;
+        }
+        let lower = raw.to_ascii_lowercase();
+        let common = |word: &str| crate::typo::Corrector::bundled().is_common_japanese(word);
+        if self.known_english(&lower)
+            || common(&lower)
+            || crate::language_memory::get(&lower) == Some(false)
+        {
+            return None;
+        }
+        for split in 4..=lower.len() - 3 {
+            let head = &lower[..split];
+            if !self.english_index.contains(head) {
+                break;
+            }
+            let reading = romaji::analyze(head, false);
+            if !self.is_english(head)
+                || common(head)
+                || self.is_japanese(head)
+                || !reading.valid
+                || !reading.partial.is_empty()
+            {
+                continue;
+            }
+            for end in (split + 3..=lower.len()).rev() {
+                if end < lower.len() && !PARTICLES.iter().any(|p| lower[end..].starts_with(p)) {
+                    continue;
+                }
+                let word = &lower[split..end];
+                let reading = romaji::analyze(word, false);
+                if self.is_english(word)
+                    && !(reading.valid && ["", "n"].contains(&reading.partial.as_str()))
+                {
+                    return Some(end);
+                }
+            }
+        }
+        None
+    }
     pub(crate) fn composition_kana(
         &self,
         raw: &str,
@@ -236,6 +303,15 @@ impl Dictionary {
         after: &str,
         level: &str,
     ) -> String {
+        if level != "Manual" {
+            if let Some(end) = self.english_compound_end(raw) {
+                return format!(
+                    "{}{}",
+                    &raw[..end],
+                    self.composition(&raw[end..], final_input, &raw[..end], after, level)
+                );
+            }
+        }
         if !["Aggressive", "Conservative", "Manual"].contains(&level)
             && !crate::language_memory::relevant(raw)
             && self.custom_kana.is_none()

@@ -36,6 +36,91 @@ test("numpad Enter confirms real WASM composition and owns its keyup", async () 
   } finally { f.core.free(); }
 });
 
+test("半角/全角で未確定入力を確定し、英数入力を通して日本語へ戻せる", async () => {
+  const f = fixture();
+  try {
+    await f.type("nihongo");
+    await f.key("ZenkakuHankaku", "Backquote");
+    assert.equal(f.core.is_direct(), true);
+    assert.equal(f.calls.find(([name]) => name === "commitText")[1].text, "にほんご");
+    assert.equal(JSON.parse(f.core.view()).view, null);
+    await f.key("ZenkakuHankaku", "Backquote", "keyup");
+    assert.deepEqual(f.calls.at(-1), ["ack", "request", true]);
+    await f.key("a");
+    assert.deepEqual(f.calls.at(-1), ["ack", "request", false]);
+    assert.equal(JSON.parse(f.core.view()).view, null);
+    await f.key("ZenkakuHankaku", "Backquote");
+    await f.key("ZenkakuHankaku", "Backquote", "keyup");
+    assert.equal(f.core.is_direct(), false);
+    await f.key("a");
+    assert.equal(JSON.parse(f.core.view()).view.text, "あ");
+    assert.deepEqual(f.errors, []);
+  } finally { f.core.free(); }
+});
+
+test("半角/全角は押し続けても一度だけ切り替え、変換した漢字を確定する", async () => {
+  BrowserSession.load_dictionary(readFileSync(new URL("../pkg/kanji.bin", import.meta.url)));
+  const f = fixture();
+  try {
+    await f.type("nihongo"); await f.key(" ", "Space");
+    const converted = JSON.parse(f.core.view()).view.text;
+    assert.equal(converted, "日本語");
+    await f.key("ZenkakuHankaku", "Backquote");
+    await f.key("ZenkakuHankaku", "Backquote");
+    assert.equal(f.core.is_direct(), true);
+    assert.deepEqual(f.calls.filter(([name]) => name === "commitText").map(([, args]) => args.text), [converted]);
+    // keyupでkey名が変わっても、同じ物理キーなら一対として引き取る。
+    await f.key("Unidentified", "Backquote", "keyup");
+    assert.deepEqual(f.calls.at(-1), ["ack", "request", true]);
+    await f.key("ZenkakuHankaku", "Backquote");
+    assert.equal(f.core.is_direct(), false);
+  } finally { f.core.free(); }
+});
+
+test("半角・全角専用キーとAlt+Backquoteでもモードを切り替え、通常の記号を入力できる", async () => {
+  const f = fixture();
+  try {
+    await f.key("Hankaku", "Lang5"); await f.key("Hankaku", "Lang5", "keyup");
+    assert.equal(f.core.is_direct(), true);
+    await f.key("Zenkaku", "Lang5"); await f.key("Zenkaku", "Lang5", "keyup");
+    assert.equal(f.core.is_direct(), false);
+    f.controller.key("test", {key: "`", code: "Backquote", type: "keydown", altKey: true}, "alt-backquote");
+    await f.controller.queue;
+    assert.equal(f.core.is_direct(), true);
+    await f.key("`", "Backquote", "keyup");
+    f.controller.key("test", {key: "`", code: "Backquote", type: "keydown", altKey: true}, "alt-backquote-again");
+    await f.controller.queue;
+    await f.key("`", "Backquote", "keyup");
+    assert.equal(f.core.is_direct(), false);
+    await f.key("`", "Backquote");
+    assert.equal(f.core.is_direct(), false);
+    assert.equal(JSON.parse(f.core.view()).view.text, "`");
+    assert.deepEqual(f.errors, []);
+  } finally { f.core.free(); }
+});
+
+test("半角/全角の確定失敗は次の切替キーで一度だけ再試行し、モードを戻さない", async () => {
+  const f = fixture();
+  try {
+    await f.type("nihongo");
+    const commit = f.ime.commitText;
+    f.ime.commitText = async () => false;
+    await f.key("ZenkakuHankaku", "Backquote");
+    assert.equal(f.controller.pending.remaining[0].text, "にほんご");
+    assert.equal(f.core.is_direct(), true);
+    assert.deepEqual(f.calls.at(-1), ["ack", "request", true]);
+    assert.equal(f.saved.length, 0);
+    await f.key("ZenkakuHankaku", "Backquote", "keyup");
+    f.ime.commitText = commit;
+    await f.key("ZenkakuHankaku", "Backquote");
+    assert.equal(f.controller.pending, null);
+    assert.equal(f.core.is_direct(), true);
+    assert.deepEqual(f.calls.filter(([name]) => name === "commitText").map(([, args]) => args.text), ["にほんご"]);
+    assert.equal(f.saved.length, 1);
+    assert.deepEqual(f.calls.at(-1), ["ack", "request", true]);
+  } finally { f.core.free(); }
+});
+
 for (const failure of ["false", "rejection"]) {
   test(`failed commit (${failure}) stays visible and Enter retries it exactly once`, async () => {
     const f = fixture();
@@ -109,5 +194,38 @@ test("focus change discards a failed commit instead of inserting it into another
     await f.key("a");
     assert.equal(f.calls.some(([name]) => name === "commitText"), false);
     assert.equal(JSON.parse(f.core.view()).view.text, "あ");
+  } finally { f.core.free(); }
+});
+
+
+test("ChatGPTの混在文をCtrl+Enterで確定し、受理後だけ送信キーを許す", async () => {
+  BrowserSession.load_dictionary(readFileSync(new URL("../pkg/kanji.bin", import.meta.url)));
+  const f = fixture();
+  try {
+    await f.type("chatgptwotsukau");
+    await f.key(" ", "Space");
+    assert.equal(JSON.parse(f.core.view()).view.text, "chatgptを使う");
+    let accept;
+    const committed = [];
+    const entered = new Promise(resolve => {
+      f.ime.commitText = async ({text}) => {
+        committed.push(text); resolve();
+        return new Promise(done => {accept = done;});
+      };
+    });
+    f.controller.key("test", {key: "Enter", code: "Enter", type: "keydown", ctrlKey: true}, "confirm");
+    await entered;
+    assert(!f.calls.some(([name, id]) => name === "ack" && id === "confirm"));
+    accept(true);
+    await f.controller.queue;
+    assert.deepEqual(committed, ["chatgptを使う"]);
+    assert.deepEqual(f.calls.at(-1), ["ack", "confirm", true]);
+    await f.key("Enter", "Enter", "keyup");
+    assert.deepEqual(f.calls.at(-1), ["ack", "request", true]);
+    f.controller.key("test", {key: "Enter", code: "Enter", type: "keydown", ctrlKey: true}, "send");
+    await f.controller.queue;
+    assert.deepEqual(f.calls.at(-1), ["ack", "send", false]);
+    assert.deepEqual(committed, ["chatgptを使う"]);
+    assert.deepEqual(f.errors, []);
   } finally { f.core.free(); }
 });
