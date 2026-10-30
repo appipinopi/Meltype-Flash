@@ -8,11 +8,12 @@ p.add_argument('--pages',nargs='+',choices=['settings','dictionary','snippets','
 p.add_argument('--lifecycle',choices=['welcome','about','updates','report','corrections','log'],help='Capture a lifecycle window over the selected page.')
 p.add_argument('--help-key',help='Show this settings explanation in a visual-test build.')
 a=p.parse_args();a.output.mkdir(parents=True,exist_ok=False)
+settings_version=json.loads((Path(__file__).resolve().parents[3]/'rust/core/data/settings-defaults.json').read_text(encoding='utf-8'))['SettingsVersion']
 results=[]
 for page,name in enumerate(['settings','dictionary','snippets','learning','backup','input-test']):
     if a.pages and name not in a.pages: continue
     profile=(a.output/(name+'-profile')).resolve();profile.mkdir()
-    config=json.dumps(dict(SettingsVersion=5,LearningEnabled=False,LiveConversion=False,WelcomeShown=True,TsfIntroduced=True,AutoUpdate=False))
+    config=json.dumps(dict(SettingsVersion=settings_version,LearningEnabled=False,LiveConversion=False,WelcomeShown=True,TsfIntroduced=True,AutoUpdate=False))
     (profile/'config.json').write_text(config,encoding='utf-8')
     (profile/'userdict.txt').write_text('はし\t橋\nはし\t箸\n',encoding='utf-8')
     output=(a.output/name).resolve()
