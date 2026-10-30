@@ -9,6 +9,7 @@ p=argparse.ArgumentParser(description=__doc__)
 p.add_argument('binary', type=Path)
 p.add_argument('report', type=Path)
 a=p.parse_args()
+settings_version=json.loads((Path(__file__).resolve().parents[3]/'rust/core/data/settings-defaults.json').read_text(encoding='utf-8'))['SettingsVersion']
 user=c.WinDLL('user32', use_last_error=True)
 P=c.c_void_p
 callback=c.WINFUNCTYPE(c.c_int,P,c.c_ssize_t)
@@ -35,7 +36,7 @@ results=[]
 for name,title in [('log','ログ / 判定理由'),('report','不具合の報告・提案'),('corrections','直した誤判定を報告'),('about','について'),('updates','更新')]:
     with tempfile.TemporaryDirectory(prefix='flash-native-dialog-') as temporary:
         root=Path(temporary)
-        config=json.dumps(dict(SettingsVersion=5,LearningEnabled=False,WelcomeShown=True,TsfIntroduced=True,AutoUpdate=False))
+        config=json.dumps(dict(SettingsVersion=settings_version,LearningEnabled=False,WelcomeShown=True,TsfIntroduced=True,AutoUpdate=False))
         (root/'config.json').write_text(config,encoding='utf-8')
         (root/'userdict.txt').write_text('はし\t橋\n',encoding='utf-8')
         env=dict(os.environ,MELTYPE_FLASH_DATA_DIR=str(root),MELTYPE_RUST_DATA_DIR=str(root),MELTYPE_UI_CAPTURE=str(root/'capture'),MELTYPE_UI_LIFECYCLE=name,MELTYPE_UI_PAGE='0',MELTYPE_UI_CAPTURE_NATIVE_DIALOG='1')
