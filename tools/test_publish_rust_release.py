@@ -73,17 +73,20 @@ class PresentationTests(unittest.TestCase):
         title, body = publisher.compose_body("flash-v0.1.0-preview.4", "a" * 40, benchmark, "b" * 40, "fix: table\nfix: `quoted` <tag>")
         self.assertEqual(title, "Meltype-flash v0.1.0 Pre4")
         for os_name in ("Windows", "Linux", "macOS", "Android", "ChromeOS", "iOS"):
-            self.assertIn(os_name, body)
-        self.assertEqual(body.count("https://raw.githubusercontent.com/"), 5)
+            self.assertIn(f"|{os_name}|成功|未実施|", body)
+        for scope in ("CI専用試験", "隔離IBus", "エミュレーター", "実WASM・模擬IME API", "iOS Simulator"):
+            self.assertIn(scope, body)
+        self.assertIn("通常アプリ・物理端末でのIME入力確認とは別です", body)
+        self.assertEqual(body.count("https://raw.githubusercontent.com/"), 10)
         self.assertIn("/" + "b" * 40 + "/flash-v0.1.0-preview.4/", body)
         self.assertNotIn("releases/download/flash-v0.1.0-preview.4/cpu.png", body)
         self.assertNotIn("[全測定", body)
         self.assertIn("&lt;tag&gt;", body)
 
-    def test_github_rendering_requires_tables_and_five_images(self):
-        with patch.object(publisher, "gh", return_value='<table role="table"></table>' * 3 + '<img src="a">' * 5):
+    def test_github_rendering_requires_tables_and_ten_images(self):
+        with patch.object(publisher, "gh", return_value='<table role="table"></table>' * 3 + '<img src="a">' * 10):
             publisher.validate_rendered("body")
-        for html in ("<p>broken table</p>", "<table>" * 3):
+        for html in ("<p>broken table</p>", "<table>" * 3, '<table role="table"></table>' * 3 + '<img src="a">' * 5):
             with patch.object(publisher, "gh", return_value=html), self.assertRaises(ValueError):
                 publisher.validate_rendered("body")
 
@@ -93,16 +96,19 @@ class PresentationTests(unittest.TestCase):
             (directory / "charts").mkdir()
             report = {"comparison_kind": "rust-versions", "new_commit": "a" * 40, "old_commit": "b" * 40,
                       "binaries_unchanged": True, "sources_unchanged": True, "accepted_performance_baseline": True,
-                      "results": [{"case": "sample"}], "process_resources": [{}]}
+                      "results": [{"case": "sample"}], "process_resources": [{}],
+                      "versions": ["csharp", "old", "new"]}
             report_file = directory / "report.json"
             report_file.write_text(json.dumps(report), encoding="utf-8")
             summary_file = directory / "charts/summary.json"
             summary_file.write_text(json.dumps({"full_report_sha256": hashlib.sha256(report_file.read_bytes()).hexdigest()}), encoding="utf-8")
-            (directory / "charts/README.md").write_text("## 全入力の中央値\n\n## CPU・RAMのプロセス中央値\n\n## 全画像\n\n[raw](data.csv)", encoding="utf-8")
+            (directory / "charts/README.md").write_text("## 全入力の中央値\n\n## CPU・RAMのプロセス中央値\n\n## 表示範囲外の測定値\n\n|項目|値|\n|---|---|\n|sample|999|\n\n## 全画像\n\n[raw](data.csv)", encoding="utf-8")
             for name in publisher.IMAGES:
                 (directory / "charts" / name).write_bytes(b"\x89PNG\r\n\x1a\nfixture")
             _, body = publisher.validate_benchmark(directory, "a" * 40)
             self.assertNotIn("data.csv", body)
+            self.assertIn("表示範囲外の測定値", body)
+            self.assertIn("|sample|999|", body)
             with self.assertRaises(ValueError):
                 publisher.validate_benchmark(directory, "c" * 40)
             summary_file.write_text('{"full_report_sha256":"stale"}', encoding="utf-8")
@@ -127,7 +133,7 @@ class PresentationTests(unittest.TestCase):
             self.assertEqual(publisher.publish_images("flash-v0.1.0-preview.4", charts), "media-commit")
         tree = next(payload for path, payload, _ in calls if path == "git/trees")
         self.assertEqual(tree["base_tree"], "old-tree")
-        self.assertEqual(len(tree["tree"]), 5)
+        self.assertEqual(len(tree["tree"]), 10)
         ref, payload, method = calls[-1]
         self.assertEqual((ref, method, payload["force"]), ("git/refs/heads/release-media", "PATCH", False))
 

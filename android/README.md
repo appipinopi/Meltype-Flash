@@ -3,7 +3,7 @@
 <a id="meltype-for-android"></a>
 <p align="center"><img src="../assets/branding/readme/android/hero.svg" alt="Meltype-flash for Android" width="1000"></p>
 <p align="center"><b>稲妻のように、言葉の壁を駆け抜ける日本語入力。</b></p>
-<p align="center"><a href="https://github.com/appipinopi/Meltype-Flash/releases/tag/flash-v0.1.0-preview.6"><img src="https://img.shields.io/badge/Flash-v0.1.0_Pre6-ffe34a" alt="Flash v0.1.0 Pre6"></a> <img src="https://img.shields.io/badge/status-開発プレビュー-666973" alt="開発プレビュー"></p>
+<p align="center"><a href="https://github.com/appipinopi/Meltype-Flash/releases/tag/flash-v0.1.0-preview.7"><img src="https://img.shields.io/badge/Flash-v0.1.0_Pre7-ffe34a" alt="Flash v0.1.0 Pre7"></a> <img src="https://img.shields.io/badge/status-開発プレビュー-666973" alt="開発プレビュー"></p>
 <p align="center"><a href="#インストール">ダウンロード・導入</a> · <a href="#使い方">使い方</a> · <a href="#困ったとき">困ったとき</a> · <a href="https://github.com/appipinopi/Meltype-Flash/issues/new/choose">不具合の報告・提案</a></p>
 <p align="center">
   <a href="../rust/WINDOWS-PACKAGE.md"><img src="../assets/branding/readme/cards/os-windows.svg" alt="Windows" width="32%"></a>
@@ -26,6 +26,7 @@ Androidの画面キーボードとして動く、Rust Core + JNIの日本語入�
 <h2><img src="../assets/branding/readme/android/headings/df8764ebcf5d.svg" alt="内容" width="1000"></h2>
 
 QWERTYローマ字入力、かな・補助辞書による変換、候補タップ、確定・削除・英数切替、外付けキーボードの入力に対応する実装です。
+AI変換は搭載しません。デスクトップの設定やバックアップを読み込んでも、Zenzaiの有効化・サーバー・モデルの設定は取り込みません。通常の辞書変換・予測候補・学習は端末内で使えます。
 設定画面から、入力設定・ユーザー辞書・定型文・学習削除・プロファイル・バックアップを扱います。
 「キーボードの背景・テーマ」から、システム・ライト・ダーク・ブルー・ピンク・ミントの配色と、好きな背景画像を選べます。プレビューで確認し、キーボードを開き直すと反映されます。フリックとQWERTYで共通です。
 画像はドキュメント選択画面で選び、長辺1280ピクセル以下へ縮小してアプリ専用領域に保存します。表示は中央基準で切り抜きます。「背景画像を外す」は画像だけを削除し、テーマ・辞書・学習は保持します。背景設定と画像は現在のCoreバックアップには含みません。
@@ -45,7 +46,7 @@ QWERTYローマ字入力、かな・補助辞書による変換、候補タッ�
 <a id="インストール"></a>
 <h2><img src="../assets/branding/readme/android/headings/4f36b3b314d8.svg" alt="インストール" width="1000"></h2>
 
-1. [FlashのPre6](https://github.com/appipinopi/Meltype-Flash/releases/tag/flash-v0.1.0-preview.6) から `Meltype-flash-Android-debug.apk` を取得します。
+1. [FlashのPre7](https://github.com/appipinopi/Meltype-Flash/releases/tag/flash-v0.1.0-preview.7) から `Meltype-flash-Android-debug.apk` を取得します。
 2. 取得したAPKを開き、Androidの案内に従って導入します。必要な場合は、取得に使ったアプリについてインストールを許可します。
 3. Androidの「設定 → システム → キーボード → 画面キーボード」などからMeltypeを有効にします。
 4. 文字入力欄を開き、キーボードの切替からMeltypeを選びます。
@@ -94,7 +95,7 @@ APKを入れるだけでは有効になりません。システムのキーボ�
 <summary>候補が少ない・別のアプリで削除や再変換が動かない</summary>
 
 Android版はMozcを同梱せず、補助辞書を使います。アプリごとの入力欄実装にも違いがあります。
-OS・メーカー・APKの版・アプリ名・入力したキーと期待する結果を [Issues](https://github.com/appipinopi/Meltype/issues/new/choose) に記載してください。
+OS・メーカー・APKの版・アプリ名・入力したキーと期待する結果を [Issues](https://github.com/appipinopi/Meltype-Flash/issues/new/choose) に記載してください。
 
 </details>
 

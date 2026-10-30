@@ -15,6 +15,30 @@ const PARTICLES: &[&str] = &[
 ];
 
 impl Dictionary {
+    pub(super) fn english_particle_pair(&self, raw: &str) -> Option<String> {
+        let lower = raw.to_ascii_lowercase();
+        for index in 2..raw.len() {
+            for particle in PARTICLES {
+                if let Some(right) = lower[index..].strip_prefix(particle) {
+                    if right.len() >= 2
+                        && self.english_atom(&lower[..index])
+                        && self.english_atom(right)
+                        && (!self.is_japanese(&lower[..index])
+                            || self.proper.contains(&lower[..index]))
+                        && (!self.is_japanese(right) || self.proper.contains(right))
+                    {
+                        return Some(format!(
+                            "{}{}{}",
+                            &raw[..index],
+                            romaji::hiragana(particle, true),
+                            &raw[index + particle.len()..]
+                        ));
+                    }
+                }
+            }
+        }
+        None
+    }
     // Upstream #377/#394: keep game+over together, while excluding common
     // Japanese heads, already-known whole words and arbitrary syllable splits.
     pub(crate) fn english_compound_end(&self, raw: &str) -> Option<usize> {

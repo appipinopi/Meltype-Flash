@@ -101,13 +101,10 @@ impl Units {
     pub fn kana(&self, final_input: bool) -> String {
         self.kana_range(0, self.raw.len(), final_input)
     }
-    pub fn push(&mut self, text: &str, z_symbols: bool) {
-        if !z_symbols {
-            self.push_plain(text);
-            return;
-        }
+    pub fn push_with_z_symbols(&mut self, text: &str, z_symbols: bool) {
         self.japanese_edit = false;
-        if !self.raw.contains(['/', '\\', ':', '@'])
+        if z_symbols
+            && !self.raw.contains(['/', '\\', ':', '@'])
             && self.pending.is_empty()
             && text.chars().count() == 1
             && text.chars().next().and_then(romaji::z_symbol).is_some()
@@ -118,7 +115,8 @@ impl Units {
         {
             self.pending = self.units.pop().unwrap().spelling;
         }
-        if !self.raw.contains(['/', '\\', ':', '@'])
+        if z_symbols
+            && !self.raw.contains(['/', '\\', ':', '@'])
             && self.pending.eq_ignore_ascii_case("z")
             && text.chars().count() == 1
         {

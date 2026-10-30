@@ -4,6 +4,7 @@
 use super::*;
 #[derive(Default)]
 pub(super) struct State {
+    pub slash_at_start: bool,
     pub english_conversion: bool,
     pub esc_reverted: bool,
     pub enter_as_shown: bool,
@@ -148,6 +149,17 @@ impl Session {
         if self.private || self.direct || self.code_english() || !self.settings.boolean("Enabled") {
             return None;
         }
+        if self.v130.slash_at_start
+            && self.raw == "/"
+            && self.is_converting()
+            && self.display(true) == "/"
+            && modifiers & 14 == 0
+            && char::from_u32(ch as u32).is_some_and(|c| c.is_ascii_graphic())
+        {
+            let mut result = self.commit();
+            result.consumed = false;
+            return Some(result);
+        }
         if vk == 0x2e && self.selected_prediction >= 0 && !self.is_converting() {
             if let Some(word) = self
                 .predictions()
@@ -291,16 +303,21 @@ impl Session {
             } else if (0x75..=0x79).contains(&vk)
                 && self.settings.boolean("FunctionKeysAffectSelectedClause")
             {
-                let reading = clause.kana.as_deref().unwrap_or(&clause.reading);
-                let raw = clause.raw.as_deref().or_else(|| {
-                    (clause.english && clause.kana.is_some()).then_some(clause.reading.as_str())
-                });
+                let reading = if clause.english {
+                    clause.kana.as_deref()
+                } else {
+                    Some(clause.reading.as_str())
+                };
+                let raw = if clause.english {
+                    Some(clause.reading.as_str())
+                } else {
+                    clause.raw.as_deref()
+                };
                 match vk {
-                    0x75 => Some(reading.to_owned()),
-                    0x76 => Some(romaji::katakana(reading)),
-                    0x77 => Some(crate::kana::halfwidth(&romaji::katakana(reading))),
-                    // Missing original keys must not fall through to the
-                    // whole-composition handler (#1095).
+                    0x75 => reading.map(str::to_owned),
+                    0x76 => reading.map(romaji::katakana),
+                    0x77 => reading.map(|s| crate::kana::halfwidth(&romaji::katakana(s))),
+                    // 元の入力がない文節では、選択中の文字と文節の区切りを保つ (#1095)。
                     0x78 => {
                         Some(raw.map_or_else(|| clause.text().to_owned(), crate::kana::fullwidth))
                     }
@@ -321,6 +338,13 @@ impl Session {
                     });
                 clause.selected = i;
                 self.sync_clause();
+                return Some(self.result(true));
+            }
+            if (0x75..=0x79).contains(&vk)
+                && self.settings.boolean("FunctionKeysAffectSelectedClause")
+            {
+                // A clause without retained spelling cannot use F9/F10. Keep
+                // the conversion intact instead of changing the whole text.
                 return Some(self.result(true));
             }
             if vk == 13
@@ -375,6 +399,13 @@ impl Session {
         None
     }
     pub(super) fn v130_conversion(&mut self) -> bool {
+        if self.v130.slash_at_start && self.raw == "/" && self.function_key == 0 {
+            self.candidates = ["/", "・", "･", "／"].map(str::to_owned).to_vec();
+            self.clauses = vec![Clause::new("・".into(), self.candidates.clone())];
+            self.selected = 0;
+            self.selected_clause = 0;
+            return true;
+        }
         if self.uses_kana() || self.function_key != 0 {
             return false;
         }

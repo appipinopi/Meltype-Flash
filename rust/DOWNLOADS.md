@@ -1,6 +1,6 @@
 # 配布ファイルの選び方
 
-[Meltype-flash v0.1.0 Pre6](https://github.com/appipinopi/Meltype-Flash/releases/tag/flash-v0.1.0-preview.6)の開発プレビューです。
+[Meltype-flash v0.1.0 Pre7](https://github.com/appipinopi/Meltype-Flash/releases/tag/flash-v0.1.0-preview.7)の開発プレビューです。
 
 |ファイル|用途|
 |---|---|
@@ -14,6 +14,6 @@
 |`Meltype-flash-iOS-unsigned.ipa`|自分のApple IDで署名するための未署名IPA。[署名と制限](../ios/README.md)|
 |`Meltype-flash-iOS-source.zip`|Xcodeで自分の署名を設定して実機ビルドするためのソース。|
 
-Pre6では単独のWindowsセットアップEXE・portable ZIP、Linuxのdeb・ARM64版は添付していません。OSとCPUに合う配布物を選び、拡張子を変更して他のOSへ流用しないでください。
+Pre7では単独のWindowsセットアップEXE・portable ZIP、Linuxのdeb・ARM64版は添付していません。OSとCPUに合う配布物を選び、拡張子を変更して他のOSへ流用しないでください。
 
 ライセンスと`SHA256SUMS.txt`も添付しています。画像・ベンチマークのレポートや生データはダウンロード用アセットに含めません。全OSのビルド状況と実機確認の範囲、Windowsの比較テストの残る不一致はリリース本文を確認してください。

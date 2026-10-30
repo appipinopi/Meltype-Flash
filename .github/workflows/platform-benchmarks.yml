@@ -41,9 +41,11 @@ jobs:
           python -m unittest discover -s tools -p test_compare_rust_benchmarks.py
           python -m unittest discover -s tools -p test_plot_windows_benchmark.py
           python -m unittest discover -s tools -p test_platform_benchmarks.py
+      - name: Fetch pinned C# 1.4.0
+        run: git fetch --no-tags https://github.com/yksr-melt/Meltype.git 46db6ca2f941eb9580f4d5ed103ee0bee71111c7
       - name: Core (C#, previous Rust, current Rust)
         shell: bash
-        run: python tools/compare-rust-benchmarks.py --build --current-ref HEAD --baseline-ref "$BENCHMARK_BASELINE" --with-csharp --samples 5 --warmups 2 --rounds 4 --plot --output output/platform-benchmark/core --github-summary "${GITHUB_STEP_SUMMARY}"
+        run: python tools/compare-rust-benchmarks.py --build --current-ref HEAD --baseline-ref "$BENCHMARK_BASELINE" --with-csharp --csharp-ref 46db6ca2f941eb9580f4d5ed103ee0bee71111c7 --samples 5 --warmups 2 --rounds 4 --plot --output output/platform-benchmark/core --github-summary "${GITHUB_STEP_SUMMARY}"
       - name: Native C ABI (previous Rust, current Rust)
         shell: bash
         if: ${{ !cancelled() && hashFiles('output/platform-benchmark/core/report.json') != '' }}

@@ -4,7 +4,58 @@ const status = document.querySelector("#status"), settings = document.querySelec
 const siteStatus = document.querySelector("#site-status"), siteEnabled = document.querySelector("#site-enabled");
 const rules = document.querySelector("#site-rules"), defaultMode = document.querySelector("#default-mode");
 const desktopOnly = new Set(["AppRules", "AppKinds", "AppProfile", "StopInGames"]);
+const neuralSettings = ["UseZenzai", "ZenzaiServerPath", "ZenzaiModelPath"];
+function withoutNeuralSettings(value) {
+  for (const key of neuralSettings) delete value[key];
+  if (Array.isArray(value.Profiles)) for (const profile of value.Profiles) {
+    if (profile?.Values && typeof profile.Values === "object") {
+      for (const key of neuralSettings) delete profile.Values[key];
+    }
+  }
+  return value;
+}
 let savedSettings = {};
+const coreControls = document.querySelector("#core-controls");
+const fields = [...document.querySelectorAll("[data-setting]")];
+function parseSettings() {
+  const value = JSON.parse(settings.value);
+  if (!value || typeof value !== "object" || Array.isArray(value)) throw new Error("設定はJSONオブジェクトで入力してください。");
+  return withoutNeuralSettings(value);
+}
+function displayFields(value) {
+  for (const field of fields) {
+    const current = value[field.dataset.setting];
+    if (field.type === "checkbox") field.checked = current === true;
+    else {
+      // 未知の選択肢も保持し、他の項目を変更しただけで既存設定を失わない。
+      if (typeof current === "string" && ![...field.options].some(option => option.value === current)) {
+        const option = document.createElement("option"); option.value = current; option.textContent = current; field.append(option);
+      }
+      field.value = current ?? "";
+    }
+  }
+}
+for (const field of fields) field.addEventListener("change", () => {
+  try {
+    const value = parseSettings();
+    value[field.dataset.setting] = field.type === "checkbox" ? field.checked : field.value;
+    settings.value = JSON.stringify(value, null, 2);
+    status.textContent = "入力設定を変更しました。「入力設定を保存」で反映します。";
+  } catch (error) {
+    displayFields(savedSettings);
+    status.textContent = `詳細設定のJSONを修正するか、保存済み設定へ戻してください。${error}`;
+  }
+});
+settings.addEventListener("input", () => {
+  try { displayFields(parseSettings()); } catch { /* 編集途中のJSONは保存時に検証する。 */ }
+});
+async function loadSettings() {
+  const {snapshot} = await request({op: "snapshot"});
+  savedSettings = withoutNeuralSettings(JSON.parse(snapshot).settings);
+  settings.value = JSON.stringify(Object.fromEntries(Object.entries(savedSettings).filter(([key]) => !desktopOnly.has(key))), null, 2);
+  displayFields(savedSettings);
+  coreControls.disabled = false;
+}
 function addRule(rule = {host: "", mode: "code"}) {
   const row = document.createElement("div"); row.className = "site-rule";
   const host = document.createElement("input");
@@ -60,21 +111,27 @@ async function reload() {
   const state = await request({op: "status"});
   status.textContent = state.diagnostic;
   if (!state.available) {
-    document.querySelectorAll("#settings-form button, #settings-form textarea, #export, #clear").forEach(element => { element.disabled = true; });
+    coreControls.disabled = true;
+    document.querySelectorAll("#export, #clear").forEach(element => { element.disabled = true; });
     return;
   }
-  const {snapshot} = await request({op: "snapshot"});
-  savedSettings = JSON.parse(snapshot).settings;
-  settings.value = JSON.stringify(Object.fromEntries(Object.entries(savedSettings).filter(([key]) => !desktopOnly.has(key))), null, 2);
+  await loadSettings();
 }
-document.querySelector("#reload").addEventListener("click", () => show(reload));
+document.querySelector("#reload").addEventListener("click", () => show(async () => {
+  await loadSettings(); status.textContent = "保存済みの入力設定へ戻しました。";
+}));
 document.querySelector("#settings-form").addEventListener("submit", event => {
   event.preventDefault();
-  show(async () => {
-    const value = JSON.parse(settings.value);
-    if (!value || typeof value !== "object" || Array.isArray(value)) throw new Error("設定はJSONオブジェクトで入力してください。");
-    const hidden = Object.fromEntries(Object.entries(savedSettings).filter(([key]) => desktopOnly.has(key)));
-    await request({op: "configure", settings: JSON.stringify({...value, ...hidden})});
+  return show(async () => {
+    const value = parseSettings();
+    coreControls.disabled = true;
+    try {
+      const {snapshot} = await request({op: "snapshot"});
+      const latest = JSON.parse(snapshot).settings;
+      const hidden = Object.fromEntries(Object.entries(latest).filter(([key]) => desktopOnly.has(key)));
+      await request({op: "configure", settings: JSON.stringify({...value, ...hidden})});
+      await loadSettings();
+    } finally { coreControls.disabled = false; }
     status.textContent = "設定を保存しました。";
   });
 });

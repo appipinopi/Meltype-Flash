@@ -39,3 +39,6 @@ open
 
 # 公開Issueの英語・コマンド・音楽用語 (#1125, #1123, #1122, #1121, #1117, #918, #915)
 dive into ost midi vocaloid nohup printenv image claudecode
+
+# Meltype v1.4.0 の追加語
+doomscroll garage dice die dies died

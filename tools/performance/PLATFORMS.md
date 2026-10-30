@@ -1,6 +1,6 @@
 # Core・各OSのベンチマーク
 
-`platform-benchmarks.yml` は Windows・macOS・Linux のCIで、C#最新安定版・Rust前版・Rust現在版のCoreを比較し、続けてRustのネイティブC ABIを比較します。21種類の同じ入力を使い、版ごとの状態の一致、ソース・バイナリのSHA-256、CPU時間、最大常駐メモリを記録します。CIは現在版をHEADへ固定します。
+`platform-benchmarks.yml` は Windows・macOS・Linux のCIで、本家C# 1.4.0（`46db6ca2f941eb9580f4d5ed103ee0bee71111c7`）・Rust前版・Rust現在版のCoreを比較し、続けてRustのネイティブC ABIを比較します。21種類の同じ入力を使い、版ごとの状態の一致、ソース・バイナリのSHA-256、CPU時間、最大常駐メモリを記録します。CIは本家をこのコミット、現在版をHEADへ固定します。
 
 ```sh
 python -m pip install matplotlib==3.10.8 numpy==2.4.2

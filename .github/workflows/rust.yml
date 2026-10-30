@@ -232,7 +232,7 @@ jobs:
         run: python rust/native/tests/hook_smoke.py
       - name: Settings UI labels match upstream
         run: |
-          git fetch --no-tags --depth=1 origin 6310c44b728d5ad88284853f9ef37ea224993b18
+          git fetch --no-tags --depth=1 https://github.com/yksr-melt/Meltype.git 46db6ca2f941eb9580f4d5ed103ee0bee71111c7
           python tools/extract-rust-settings-ui.py --check
       - name: Package standalone Rust IBus engine
         if: runner.os == 'Linux'

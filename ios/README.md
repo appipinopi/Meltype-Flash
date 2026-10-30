@@ -3,8 +3,8 @@
 <a id="meltype-for-ios"></a>
 <p align="center"><img src="../assets/branding/readme/ios/hero.svg" alt="Meltype-flash for iOS" width="1000"></p>
 <p align="center"><b>稲妻のように、言葉の壁を駆け抜ける日本語入力。</b></p>
-<p align="center"><a href="https://github.com/appipinopi/Meltype/releases/tag/flash-v0.1.0-preview.3"><img src="https://img.shields.io/badge/Flash-v0.1.0_Pre3-ffe34a" alt="Flash v0.1.0 Pre3"></a> <img src="https://img.shields.io/badge/status-開発プレビュー-666973" alt="開発プレビュー"></p>
-<p align="center"><a href="#インストール">ダウンロード・導入</a> · <a href="#使い方">使い方</a> · <a href="#困ったとき">困ったとき</a> · <a href="https://github.com/appipinopi/Meltype/issues/new/choose">不具合の報告・提案</a></p>
+<p align="center"><a href="https://github.com/appipinopi/Meltype-Flash/releases/tag/flash-v0.1.0-preview.7"><img src="https://img.shields.io/badge/Flash-v0.1.0_Pre7-ffe34a" alt="Flash v0.1.0 Pre7"></a> <img src="https://img.shields.io/badge/status-開発プレビュー-666973" alt="開発プレビュー"></p>
+<p align="center"><a href="#インストール">ダウンロード・導入</a> · <a href="#使い方">使い方</a> · <a href="#困ったとき">困ったとき</a> · <a href="https://github.com/appipinopi/Meltype-Flash/issues/new/choose">不具合の報告・提案</a></p>
 <p align="center">
   <a href="../rust/WINDOWS-PACKAGE.md"><img src="../assets/branding/readme/cards/os-windows.svg" alt="Windows" width="32%"></a>
   <a href="../linux/README.md"><img src="../assets/branding/readme/cards/os-linux.svg" alt="Linux" width="32%"></a>
@@ -25,6 +25,7 @@ iPhone・iPadのカスタムキーボードとして動く、Rust版Meltype-flas
 <h2><img src="../assets/branding/readme/ios/headings/df8764ebcf5d.svg" alt="内容" width="1000"></h2>
 
 QWERTY入力、12キーのかなフリック、英語・日本語の判定、補助辞書による候補、空白・削除・確定を実装しています。
+AI変換は搭載しません。通常の辞書変換と予測候補は端末内で処理します。
 デスクトップの外部変換エンジン、翻訳、アプリ別設定、学習・入力設定の永続保存は未対応です。背景・テーマは本体アプリで設定し、端末内に保存できます。
 実機の各アプリでの入力やApp Store審査を完了した製品ではありません。
 
@@ -42,7 +43,7 @@ iOS側が標準キーボードへ切り替えるパスワード欄や、外部�
 <a id="インストール"></a>
 <h2><img src="../assets/branding/readme/ios/headings/4f36b3b314d8.svg" alt="インストール" width="1000"></h2>
 
-[FlashのPre3](https://github.com/appipinopi/Meltype/releases/tag/flash-v0.1.0-preview.3) の配布から、目的に合うものを選びます。
+[FlashのPre7](https://github.com/appipinopi/Meltype-Flash/releases/tag/flash-v0.1.0-preview.7) の配布から、目的に合うものを選びます。
 
 | ファイル | 用途 |
 | --- | --- |
@@ -64,9 +65,10 @@ IPAをファイルアプリで開いたり、ZIPの拡張子を変更したり�
 AltStore PALとは別の導入方法です。[更新と制限](https://faq.altstore.io/altstore-classic/your-altstore)、[App IDの説明](https://faq.altstore.io/altstore-classic/app-ids) も参照してください。
 この経路による実機入力は未検証です。署名・導入サービス側の画面や条件は公式の案内を優先してください。
 
-### AltStore PALでの配布準備
+<a id="altstore-palでの配布準備"></a>
+<h3><img src="../assets/branding/readme/ios/headings/041e7e9b3d23.svg" alt="AltStore PALでの配布準備" width="1000"></h3>
 
-Pre6以降に向けた[署名・公証・PALソースJSONの生成手順](ALTSTORE-PAL.md)を用意しています。PALへの公開はまだ完了していません。有料のApple Developer登録とAppleの公証が必要で、上記の未署名IPAはPALへ直接登録できません。この準備では版番号や公開タグを変更しません。
+Pre6で追加した[署名・公証・PALソースJSONの生成手順](ALTSTORE-PAL.md)を用意しています。PALへの公開はまだ完了していません。有料のApple Developer登録とAppleの公証が必要で、上記の未署名IPAはPALへ直接登録できません。この準備では版番号や公開タグを変更しません。
 
 <a id="キーボードを有効にする"></a>
 <h3><img src="../assets/branding/readme/ios/headings/819be477da10.svg" alt="キーボードを有効にする" width="1000"></h3>
@@ -79,7 +81,8 @@ Pre6以降に向けた[署名・公証・PALソースJSONの生成手順](ALTSTO
 起動時にキーボード拡張の同梱状態を確認し、削除されている場合は再導入の案内を表示します。
 拡張の同梱表示は、署名の有効性やiOS側の有効化を保証するものではありません。
 
-### 背景とテーマ
+<a id="背景とテーマ"></a>
+<h3><img src="../assets/branding/readme/ios/headings/b187ca0a8267.svg" alt="背景とテーマ" width="1000"></h3>
 
 本体アプリの「キーボードの背景・テーマ」を開き、システム・ライト・ダーク・ブルー・ピンク・ミントから配色を選びます。「好きな画像を選ぶ」で写真の選択画面を開き、1枚を背景にできます。画像は長辺1280ピクセル以下へ縮小して端末内に保存し、中央基準で切り抜いて表示します。キーボードを開き直すと反映されます。
 
@@ -130,7 +133,7 @@ Simulator用ZIPを実機に使っていないかも確認してください。
 <summary>アプリによって標準キーボードに戻る・入力できない</summary>
 
 iOSはパスワード欄などで標準キーボードへ切り替えます。ホストアプリが外部キーボードを拒否する場合もあります。
-通常のテキスト欄でも再現する場合は、iOS・アプリ名・導入した版・入力手順を [Issues](https://github.com/appipinopi/Meltype/issues/new/choose) に記載してください。
+通常のテキスト欄でも再現する場合は、iOS・アプリ名・導入した版・入力手順を [Issues](https://github.com/appipinopi/Meltype-Flash/issues/new/choose) に記載してください。
 
 </details>
 
@@ -158,6 +161,6 @@ Rust ABIの入力・確定・長文・セッション分離と、Xcodeのビル�
 Appleの [カスタムキーボード資料](https://developer.apple.com/documentation/uikit/creating-a-custom-keyboard) も参照してください。
 
 <a id="ライセンス"></a>
-<h2><img src="../assets/branding/readme/ios/headings/7b96bc7bad42.svg" alt="ライセンス" width="1000"></h2>
+<h2><img src="../assets/branding/readme/ios/headings/8680360a91fa.svg" alt="ライセンス" width="1000"></h2>
 
 [GPL-3.0-or-later](../LICENSE)。辞書などの表示は [THIRD-PARTY-NOTICES.md](../THIRD-PARTY-NOTICES.md) を参照してください。

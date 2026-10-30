@@ -6,8 +6,9 @@
 // 読み込めない行 (エラー) があれば終了コード 1。直した方がよい行 (警告) は表示だけ。
 import fs from 'node:fs';
 import path from 'node:path';
+import {fileURLToPath} from 'node:url';
 
-const root = path.join(path.dirname(new URL(import.meta.url).pathname.replace(/^\/([A-Za-z]:)/, '$1')), '..', 'dictionaries');
+const root = path.join(path.dirname(fileURLToPath(import.meta.url)), '..', 'dictionaries');
 const hiragana = /^[ぁ-ゖー゛゜ゔ]+$/;
 const kana = /^[ぁ-ゖァ-ヺー・ゔヴ]+$/;
 const ascii = /^[\x21-\x7e]+$/;
@@ -16,7 +17,7 @@ const ascii = /^[\x21-\x7e]+$/;
 const formats = {
   // 読み 候補 候補 … (空白区切り)。記号の行 (/ @ . ,) は読みが記号
   'candidates.txt': spaced((reading, rest) => [
-    hiragana.test(reading) || /^[\x21-\x7e]+$/.test(reading) ? null : `読み「${reading}」がひらがなでも記号でもない`,
+    hiragana.test(reading) || /^[\x21-\x7e]+$/.test(reading) || /^[ー！-／：-＠［-｀｛-～]+$/.test(reading) ? null : `読み「${reading}」がひらがなでも記号でもない`,
     rest.length === 0 ? '候補が無い' : null,
   ]),
   'brands.txt': spaced((reading, rest) => [
@@ -36,7 +37,10 @@ const formats = {
     const [reading, word, extra] = left.trim().split(/\s+/);
     return [hiragana.test(reading) ? null : `読み「${reading}」がひらがなでない`, word ? null : '候補が無い', extra ? '候補は 1 つだけ' : null, right.trim() ? null : '手がかりが無い'];
   },
-  'phrases.txt': tabbed(2, 2, ([reading]) => [hiragana.test(reading) ? null : `読み「${reading}」がひらがなでない`]),
+  'phrases.txt': tabbed(2, 2, ([reading, word]) => [
+    reading.replace(/^\^/, '').split('|').every(r => hiragana.test(r)) ? null : `読み「${reading}」がひらがなでない`,
+    reading.split('|').length === word.split('|').length && !word.split('|').includes('') ? null : `読み「${reading}」と語句「${word}」の | の数が違う`,
+  ]),
   'misspellings.txt': tabbed(1, 2, fields => fields.map(f => kana.test(f) ? null : `「${f}」がかなでない`)),
   'translations.txt': tabbed(3, 3, ([, kind]) => [['n', 'na', 'i', 'v', 'adv'].includes(kind) ? null : `品詞「${kind}」が n / na / i / v / adv でない`]),
   'meanings.txt': tabbed(3, 3, ([, reading]) => [reading === '' || hiragana.test(reading) ? null : `読み「${reading}」がひらがなでない`]),

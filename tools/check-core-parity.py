@@ -43,6 +43,7 @@ def main():
     parser.add_argument("--rust", required=True, type=Path)
     parser.add_argument("--output", required=True, type=Path)
     parser.add_argument("--cases", type=Path)
+    parser.add_argument("--baseline-ref", help="Reference used to build the supplied C# executable")
     parser.add_argument("--scored", action="store_true", help="enable scored segmentation in both hosts for every case")
     parser.add_argument("--profile", type=Path, help="isolated data directory with dictionaries/romaji.txt (never a user profile)")
     parser.add_argument("--check", action="store_true", help="exit unsuccessfully if any core trace differs")
@@ -77,7 +78,7 @@ def main():
         results.append(dict(case=name, output_matches=reference[0] == current[0],
                             expected=reference[0], actual=current[0], differences=differences))
     report = dict(measured_at=datetime.datetime.now(datetime.timezone.utc).isoformat(),
-                  scope=__doc__, baseline=benchmark.BASELINE, total=len(cases),
+                  scope=__doc__, baseline=args.baseline_ref, total=len(cases),
                   output_pass=sum(r["output_matches"] for r in results),
                   trace_pass=sum(not r["differences"] for r in results), cases=results,
                   executable_sha256={label: hashlib.sha256(p.read_bytes()).hexdigest()

@@ -234,7 +234,7 @@ fn issue_1016_page_keys_move_candidates_without_confirming_or_passing_through() 
 }
 
 #[test]
-fn issue_1076_slash_has_middle_dot_as_an_explicit_candidate() {
+fn issue_1076_slash_defaults_to_middle_dot_and_explicit_slash_is_retained() {
     assert!(Dictionary::bundled().candidates("/").contains(&"・".into()));
     let mut s = Session::default();
     let result = s.key(0xbf, '/' as i32, 0);
@@ -243,7 +243,18 @@ fn issue_1076_slash_has_middle_dot_as_an_explicit_candidate() {
         committed.push('/');
     }
     committed.extend(s.commit().commits.iter().map(|e| e.text.as_str()));
-    assert_eq!(committed, "/");
+    // 本家1.4.0: 通常入力 / → ・。明示候補では / と ・ を両方残す。
+    assert_eq!(committed, "・");
+    let mut s = Session::default();
+    s.key(0xbf, '/' as i32, 0);
+    let result = s.key(32, 32, 0);
+    assert_eq!(result.view.unwrap().candidates, ["/", "・", "･", "／"]);
+    assert_eq!(s.commit().commits[0].text, "/");
+    // 直接入力 / → / は維持する。
+    let mut s = Session::default();
+    s.set_direct(true);
+    assert!(!s.key(0xbf, '/' as i32, 0).consumed);
+    assert!(s.commit().commits.is_empty());
 }
 
 #[test]

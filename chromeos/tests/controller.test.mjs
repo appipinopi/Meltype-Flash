@@ -63,6 +63,21 @@ test("named/OEM/JIS keys and modifiers map to Core ABI", () => {
   assert.equal(translateKey({key: "F10", code: "F10"}).vk, 121);
   assert.equal(translateKey({key: "AudioVolumeUp", code: "AudioVolumeUp"}), null);
 });
+test("半角/全角とAlt+Backquoteをモード切替として認識し、文字のバッククォートを保つ", () => {
+  for (const [key, mode] of [["ZenkakuHankaku", "toggle"], ["KanjiMode", "toggle"],
+    ["Hankaku", "direct"], ["Zenkaku", "japanese"]]) {
+    for (const code of ["Backquote", "Unidentified", ""]) {
+      assert.deepEqual(translateKey({key, code}), {vk: 243, character: 0, modifiers: 0, mode});
+    }
+  }
+  assert.equal(translateKey({key: "Unidentified", code: "Lang5"}).mode, "toggle");
+  assert.deepEqual(translateKey({key: "`", code: "Backquote"}), {vk: 192, character: 96, modifiers: 0});
+  assert.equal(translateKey({key: "`", code: "Backquote", altKey: true}).mode, "toggle");
+  for (const modifiers of [{altgrKey: true}, {altKey: true, altgrKey: true},
+    {altKey: true, shiftKey: true}, {altKey: true, ctrlKey: true}, {altKey: true, metaKey: true}]) {
+    assert.equal(translateKey({key: "`", code: "Backquote", ...modifiers}).mode, undefined);
+  }
+});
 test("async ack happens once, candidate IDs/UTF16 cursor are correct, keyup is paired", async () => {
   const f = fixture();
   assert.equal(f.controller.key("meltype-rust", event, "one"), undefined);

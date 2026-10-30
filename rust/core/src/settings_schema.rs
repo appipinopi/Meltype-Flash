@@ -26,10 +26,14 @@ pub fn metadata() -> &'static Value {
             ("NumpadDirect", "テンキーを直接確定する", "テンキーの数字と演算記号を直接確定します。入力中の文は先に確定します。Windows用。既定はオフです。"),
             ("MuhenkanKatakanaCycle", "無変換でカタカナを切り替える", "入力中の無変換キーで全角カタカナ→半角カタカナ→ひらがなを切り替えます。キーの役割を分ける設定より優先します。既定はオフです。"),
         ] {
-            data["fields"].as_array_mut().unwrap().push(json!({
-                "key":key, "type":"Boolean", "category":"1. 全般",
-                "label":label, "description":description,
-            }));
+            let fields = data["fields"].as_array_mut().unwrap();
+            // 本家の設定へ追加された項目は、生成済みの表示定義を使う。
+            if !fields.iter().any(|field| field["key"] == key) {
+                fields.push(json!({
+                    "key":key, "type":"Boolean", "category":"1. 全般",
+                    "label":label, "description":description,
+                }));
+            }
         }
         data
     })

@@ -280,11 +280,11 @@ pub(crate) fn unit_boundaries(
             let split_stem = length >= 2
                 && (matches!(rest.as_bytes()[0], b'l' | b'x')
                     || rest.starts_with("ts")
-                    // Upstream #1048: Android|ha and Reddit|ha must not merge
-                    // the English final d/t into the Japanese dha/tha syllable.
+                    // English final d/t must stay before Japanese ha/wa,
+                    // rather than joining the following dha/dwa syllable.
                     || prefix.len() >= 4
                         && matches!(rest.as_bytes()[0], b'd' | b't')
-                        && next == Some(b'h')
+                        && matches!(next, Some(b'h' | b'w'))
                         && whole_english(prefix)
                         && {
                             let stem = analyze(prefix, true);

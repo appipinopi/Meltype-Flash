@@ -501,3 +501,51 @@ fn upstream_1048_english_final_d_or_t_stays_before_japanese_ha() {
         assert_eq!(s.display(false), expected, "{raw}");
     }
 }
+
+#[test]
+fn v140_detection_regressions_keep_japanese_boundaries_and_product_names() {
+    let mut mismatches = Vec::new();
+    for scored in [false, true] {
+        for (raw, expected) in [
+            ("Androidwa", "Androidわ"),
+            ("Androidha", "Androidは"),
+            ("kamiwoA4", "かみをA4"),
+            ("huusoku6me-toru", "ふうそく6めーとる"),
+            ("nottotte", "のっとって"),
+            ("imagennzai", "いまげんざい"),
+            ("imagenzai", "いまげんざい"),
+            ("galaxyS24", "galaxyS24"),
+            ("e2e", "e2e"),
+            ("exceltoppt", "excelとppt"),
+            ("prozac", "prozac"),
+            ("usbtunaide", "usbつないで"),
+            ("kyouhaGitHubni", "きょうはGitHubに"),
+        ] {
+            let mut s = Session::default();
+            s.settings
+                .set("ScoredSegmentation", serde_json::json!(scored))
+                .unwrap();
+            type_text(&mut s, raw);
+            let actual = s.display(true);
+            if actual != expected {
+                mismatches.push(format!(
+                    "{raw}, scored={scored}: {actual:?} != {expected:?}"
+                ));
+            }
+        }
+    }
+    assert!(mismatches.is_empty(), "{}", mismatches.join("\n"));
+}
+
+#[test]
+fn v140_scored_capitalized_prefix_uses_scores_without_splitting_acronyms() {
+    for (raw, expected) in [("Goo", "Goお"), ("Googlede", "Googleで"), ("IME", "IME")] {
+        let mut session = Session::default();
+        session
+            .settings
+            .set("ScoredSegmentation", serde_json::json!(true))
+            .unwrap();
+        type_text(&mut session, raw);
+        assert_eq!(session.display(false), expected, "{raw}");
+    }
+}

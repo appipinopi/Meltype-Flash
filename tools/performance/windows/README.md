@@ -15,7 +15,15 @@ $env:PYTHONUTF8 = '1'
 python tools/benchmark-windows.py --output dist/windows-common-benchmark --samples 15 --warmups 3 --rounds 2
 ```
 
-比較対象の C# は、Git のv1.3.0コミット `6310c44b728d5ad88284853f9ef37ea224993b18` から取り出します。通常は C# NativeAOT と Rust Release を比較します。`--jit` を付けた場合は結果に JIT と明記されます。`--baseline-ref` で基準を変更できますが、両版に埋め込む辞書の SHA-256 が違う場合は計測を中止します。
+比較対象の C# は、本家v1.4.0コミット `46db6ca2f941eb9580f4d5ed103ee0bee71111c7` から取り出します。通常は C# NativeAOT と Rust Release を比較します。`--jit` を付けた場合は結果に JIT と明記されます。`--baseline-ref` で基準を変更できますが、両版に埋め込む辞書の SHA-256 が違う場合は計測を中止します。
+
+同梱辞書が異なる製品版どうしを比べる場合は、次の3者比較を使います。各版の辞書を維持し、途中状態が一致する入力だけを速度改善の集計に含めます。
+
+```powershell
+python tools/compare-rust-benchmarks.py --build --with-csharp --csharp-ref 46db6ca2f941eb9580f4d5ed103ee0bee71111c7 --samples 5 --warmups 2 --rounds 3 --plot --output output/v140-comparison
+```
+
+`check-core-parity.py` にビルド済みC#を渡す場合は、`--baseline-ref` にその基準を指定してください。未指定時は基準を推測せず、レポートの `baseline` はnullになります。実行ファイルのSHA-256は常に記録します。
 
 対象はメモリ内のキー処理と、各キーでの JSON 生成です。日本語・英日混在・英語・URL の 32 / 64 / 128 / 256 キー、短文 4 件、Backspace と F7 を含む編集 1 件の計 21 ケースを実行します。各ケースの最後に Enter で確定します。入力メソッドのインストール・OS 登録・ユーザー辞書の読み取りは行いません。
 

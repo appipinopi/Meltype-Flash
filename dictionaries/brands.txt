@@ -229,3 +229,6 @@
 ひょんだい Hyundai
 ひゅんだい Hyundai
 れくさす Lexus
+
+# Meltype v1.4.0 の追加候補
+めるたいぷ Meltype

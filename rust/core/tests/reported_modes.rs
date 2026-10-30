@@ -52,6 +52,11 @@ fn issue_1033_configured_shift_space_switches_without_adding_a_space() {
         .settings
         .set("ToggleKeyboardShortcuts", json!("Shift+Space; Ctrl+Space"))
         .unwrap();
+    assert!(!session.settings.0.contains_key("ToggleKeyboardShortcuts"));
+    // 旧形式から1.4形式へ移行し、保存・再読込後もShift+Spaceを保持する。
+    session.settings =
+        meltype_core::settings::Settings::parse(&serde_json::to_string(&session.settings).unwrap())
+            .unwrap();
     type_text(&mut session, "kyou");
     let displayed = session.display(false);
     let result = session.mode_key(32, 1).unwrap();
@@ -100,4 +105,20 @@ fn issue_925_fixed_mode_keys_are_idempotent_and_commit_once() {
     assert!(!session.input_is_direct());
     type_text(&mut session, "a");
     assert_eq!(session.display(false), "あ");
+}
+
+#[test]
+fn v140_typed_mode_shortcuts_obey_custom_bindings_and_disabled_defaults() {
+    let mut session = Session::default();
+    session.settings.set("ToggleShortcuts", json!([])).unwrap();
+    assert!(session.mode_key(0x19, 0).is_none());
+    session
+        .settings
+        .set("ToggleShortcuts", json!([{"Key":75,"Modifiers":6}]))
+        .unwrap();
+    assert!(session.mode_key(0x19, 0).is_none());
+    assert!(session.mode_key(0x4b, 6).is_some());
+    assert!(session.input_is_direct());
+    assert!(session.mode_key(0x4b, 6).is_some());
+    assert!(!session.input_is_direct());
 }

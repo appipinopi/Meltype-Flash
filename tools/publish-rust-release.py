@@ -13,7 +13,9 @@ import tomllib
 
 REPO = "appipinopi/Meltype-Flash"
 MEDIA_BRANCH = "release-media"
-IMAGES = ("speed-32-64.png", "speed-128-256.png", "speed-short-edit.png", "cpu.png", "ram.png")
+COMBINED_IMAGES = ("speed-32-64.png", "speed-128-256.png", "speed-short-edit.png", "cpu.png", "ram.png")
+RUST_IMAGES = tuple("rust-" + name for name in COMBINED_IMAGES)
+IMAGES = RUST_IMAGES + COMBINED_IMAGES
 PACKAGES = (
     "Meltype-flash-Windows-x64.zip", "Meltype-flash-Linux-x64.tar.gz",
     "Meltype-flash-macOS-arm64.zip", "Meltype-flash-macOS-x64.zip",
@@ -98,7 +100,13 @@ def compose_body(tag, sha, benchmark, media_sha, changes):
             "## 変更内容", ""]
     # コミット件名は命令として実行せず、コード表記のテキストとして載せる。
     rows += ["- `" + line.replace("`", "'").replace("<", "&lt;").replace(">", "&gt;") + "`" for line in changes.splitlines() if line]
-    rows += ["", "## 配布と導入", "", "|OS|配布ファイル|使い方|", "|---|---|---|"]
+    rows += ["", "## ビルドと確認範囲", "",
+             "同じコミットの全OS配布ビルドが成功した後に、この下書きを作成しています。", "",
+             "|OS|配布ビルド|実機でのIME入力|", "|---|---|---|"]
+    for os_name in ("Windows", "macOS", "Linux", "Android", "ChromeOS", "iOS"):
+        rows.append(f"|{os_name}|成功|未実施|")
+    rows += ["", "Windows・macOSはCI専用試験、Linuxは隔離IBus、Androidはエミュレーター、ChromeOSは実WASM・模擬IME API、iOSはiOS Simulatorで検証しています。通常アプリ・物理端末でのIME入力確認とは別です。",
+             "", "## 配布と導入", "", "|OS|配布ファイル|使い方|", "|---|---|---|"]
     platforms = [
         ("Windows x64", PACKAGES[0:1], "rust/WINDOWS-PACKAGE.md"),
         ("Linux x64", PACKAGES[1:2], "linux/README.md"),
@@ -116,8 +124,11 @@ def compose_body(tag, sha, benchmark, media_sha, changes):
     rows += [re.sub(r"(?m)^(#+) ", r"\1# ", benchmark),
              "GitHub共有Windowsランナー上の共通Coreの測定です。全OSの入力遅延や常駐IME全体の性能を示すものではありません。", "",
              "### 箱ひげ図", ""]
-    for name in IMAGES:
-        rows += [f"![{name}](https://raw.githubusercontent.com/{REPO}/{media_sha}/{tag}/{name})", ""]
+    for heading, names in [("Rust前版・現在版（2者比較）", RUST_IMAGES),
+                           ("C#・Rust前版・現在版（3者比較）", COMBINED_IMAGES)]:
+        rows += ["#### " + heading, ""]
+        for name in names:
+            rows += [f"![{name}](https://raw.githubusercontent.com/{REPO}/{media_sha}/{tag}/{name})", ""]
     rows += ["測定レポート・画像・生データのダウンロード用アセットは添付していません。", ""]
     body = normalize_markdown("\n".join(rows))
     if re.search(r"\]\((?!https://)[^)]+\)", body):
@@ -127,7 +138,7 @@ def compose_body(tag, sha, benchmark, media_sha, changes):
 
 def validate_rendered(body):
     html = gh("api", "markdown", payload={"text": body, "mode": "gfm", "context": REPO})
-    if len(re.findall(r"<table\b", html)) < 3 or len(re.findall(r"<img\b", html)) != 5:
+    if len(re.findall(r"<table\b", html)) < 3 or len(re.findall(r"<img\b", html)) != len(IMAGES):
         raise ValueError("GitHubで表または箱ひげ図を描画できません")
 
 

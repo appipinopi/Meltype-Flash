@@ -24,6 +24,72 @@ fn passes(s: &mut Session, raw: &str) {
     }
     assert!(s.raw().is_empty());
 }
+// v1.4.0 reserves an initial slash in prose for ・. Commands still pass in
+// code/terminal fields, and in prose after explicitly choosing / with Space.
+fn command(s: &mut Session, raw: &str) {
+    s.code_input = true;
+    passes(s, raw);
+    s.code_input = false;
+}
+#[test]
+fn v140_initial_slash_is_middle_dot_in_prose_comments_and_strings() {
+    for (code, before) in [
+        (false, ""),
+        (false, "文章 "),
+        (true, "// "),
+        (true, "let s = \" "),
+    ] {
+        let mut s = Session::default();
+        s.code_input = code;
+        s.set_context(Some(before), None);
+        for c in "/ka".chars() {
+            assert!(key(&mut s, c).consumed);
+        }
+        assert_eq!(s.display(false), "・か", "{before:?}");
+        assert_eq!(s.commit().commits[0].text, "・か");
+    }
+    for before in ["", "> ", "let path = "] {
+        let mut s = Session::default();
+        s.code_input = true;
+        s.set_context(Some(before), None);
+        passes(&mut s, "/help");
+    }
+    let mut s = Session::default();
+    key(&mut s, '/');
+    let result = key(&mut s, ' ');
+    assert_eq!(result.view.unwrap().candidates, ["/", "・", "･", "／"]);
+    let result = key(&mut s, 'h');
+    assert!(!result.consumed);
+    assert_eq!(result.commits[0].text, "/");
+    passes(&mut s, "elp");
+}
+#[test]
+fn v140_initial_slash_retains_kana_width_and_backspace_state() {
+    for (vk, expected) in [
+        (0x75, "・か"),
+        (0x76, "・カ"),
+        (0x77, "･ｶ"),
+        (0x78, "／ｋａ"),
+        (0x79, "/ka"),
+    ] {
+        let mut s = Session::default();
+        for c in "/ka".chars() {
+            key(&mut s, c);
+        }
+        s.key(vk, 0, 0);
+        assert_eq!(s.display(false), expected);
+    }
+    let mut s = Session::default();
+    key(&mut s, '/');
+    s.key(8, 0, 0);
+    assert!(s.raw().is_empty());
+    for c in "ka".chars() {
+        key(&mut s, c);
+    }
+    assert_eq!(s.commit().commits[0].text, "か");
+    s.code_input = true;
+    passes(&mut s, "/help");
+}
 #[test]
 fn upstream_sigil_words_pass_each_key_until_space_then_resume_japanese() {
     // CompositionTests.SigilWord_AtStartPassesNameToTheApp and
@@ -37,7 +103,11 @@ fn upstream_sigil_words_pass_each_key_until_space_then_resume_japanese() {
         "@file.rs",
     ] {
         let mut s = Session::default();
-        passes(&mut s, word);
+        if word.starts_with('/') {
+            command(&mut s, word);
+        } else {
+            passes(&mut s, word);
+        }
         passes(&mut s, " ");
         for c in "kyou".chars() {
             assert!(key(&mut s, c).consumed);
@@ -55,7 +125,7 @@ fn host_context_ends_a_sigil_when_space_or_newline_was_not_reported_as_a_key() {
     for before in ["/xyz ", "/xyz\r\n", "/xyz\n"] {
         let mut s = Session::default();
         s.set_context(Some(""), None);
-        passes(&mut s, "/xyz");
+        command(&mut s, "/xyz");
         s.set_context(Some(before), None);
         for c in "kyou".chars() {
             key(&mut s, c);
@@ -63,11 +133,11 @@ fn host_context_ends_a_sigil_when_space_or_newline_was_not_reported_as_a_key() {
         assert_eq!(s.display(false), "きょう", "{before:?}");
     }
     let mut s = Session::default();
-    passes(&mut s, "/xy");
+    command(&mut s, "/xy");
     s.set_context(Some("/xy"), None);
     passes(&mut s, "z");
     s.set_context(Some("/xyz "), None);
-    passes(&mut s, "/next");
+    command(&mut s, "/next");
 }
 #[test]
 fn boundaries_use_nonempty_context_but_empty_context_does_not_override_observed_letters() {
@@ -77,7 +147,7 @@ fn boundaries_use_nonempty_context_but_empty_context_does_not_override_observed_
     let mut s = Session::default();
     s.caret_moved(37, false);
     s.set_context(Some("> "), None);
-    passes(&mut s, "/review");
+    command(&mut s, "/review");
     let mut s = Session::default();
     s.direct = true;
     passes(&mut s, "taro");
@@ -94,7 +164,7 @@ fn escape_keeps_completion_active_backspace_restores_boundary_and_tab_requires_n
     for _ in 0..8 {
         assert!(!s.key(8, 0, 0).consumed);
     }
-    passes(&mut s, "/next");
+    command(&mut s, "/next");
     assert!(!s.key(9, 0, 0).consumed);
     s.set_context(Some("/next "), None);
     for c in "nihon".chars() {
@@ -135,7 +205,7 @@ fn direct_detection_never_steals_sigil_names_and_settings_or_kana_can_disable_pa
         assert!(key(&mut s, '/').consumed, "{setting}");
     }
     let mut s = Session::default();
-    passes(&mut s, "/review");
+    command(&mut s, "/review");
     assert!(!s.key(67, 0, 2).consumed);
     for c in "kyou".chars() {
         key(&mut s, c);

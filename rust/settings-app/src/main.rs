@@ -166,12 +166,15 @@ impl App {
         }
     }
     fn with_store(store: Store) -> Self {
+        let shortcut_warnings = std::fs::read_to_string(store.directory.join("config.json"))
+            .map(|text| Settings::shortcut_migration_warnings(&text).join("\n"))
+            .unwrap_or_default();
         let loaded = store.settings();
         let status = loaded
             .as_ref()
             .err()
             .map(ToString::to_string)
-            .unwrap_or_default();
+            .unwrap_or(shortcut_warnings);
         let settings = loaded.unwrap_or_default();
         // The input test must not write learning or settings to disk.
         let mut test_session = Session::default();
@@ -220,6 +223,7 @@ impl App {
     fn action(&mut self, request: Value) {
         let operation = request["op"].as_str().unwrap_or("");
         let name = request["name"].as_str().unwrap_or("");
+        let previous_shortcuts = self.settings.toggle_shortcuts();
         let draft = match operation {
             "settings_set" => Some(self.settings.set(name, request["value"].clone())),
             "profile_add" => Some(
@@ -240,6 +244,20 @@ impl App {
             match result {
                 Ok(()) => {
                     self.status = "変更は「OK」または閉じるボタンで保存します。".into();
+                    let shortcuts = self.settings.toggle_shortcuts();
+                    if name != "ToggleShortcuts" {
+                        for shortcut in previous_shortcuts
+                            .iter()
+                            .filter(|shortcut| !shortcuts.contains(shortcut))
+                        {
+                            if let Err(reason) = shortcut.validate(&self.settings, &[]) {
+                                self.status.push_str(&format!(
+                                    "\n切替キー「{}」を除外しました: {reason}",
+                                    shortcut.label()
+                                ));
+                            }
+                        }
+                    }
                     self.test_session.settings = self.settings.clone();
                 }
                 Err(error) => self.status = error,
@@ -266,20 +284,12 @@ impl App {
         }
     }
     fn save(&mut self) -> bool {
-        if cfg!(windows)
-            && self.settings.text("ToggleKeyboardShortcuts")
-                != self.opened.text("ToggleKeyboardShortcuts")
-            && self
-                .settings
-                .text("ToggleKeyboardShortcuts")
-                .split([';', ',', '\n'])
-                .any(|part| {
-                    !part.trim().is_empty() && meltype_core::shortcuts::parse(part).is_none()
-                })
-        {
-            self.status =
-                "切替キーを確認してください。例: Ctrl+Alt+J（複数は ; で区切ります）".into();
-            return false;
+        let shortcuts = self.settings.toggle_shortcuts();
+        for (index, shortcut) in shortcuts.iter().enumerate() {
+            if let Err(reason) = shortcut.validate(&self.settings, &shortcuts[..index]) {
+                self.status = format!("切替キー「{}」: {reason}", shortcut.label());
+                return false;
+            }
         }
         if self.settings.0 == self.opened.0 {
             return true;
@@ -664,20 +674,30 @@ impl App {
                                     }
                                     return;
                                 }
+                                if key == "ToggleShortcuts" {
+                                    ui.label(metadata::label(key)).on_hover_text(metadata::description(key));
+                                    if !cfg!(windows) { ui.weak("この切替キーはWindowsのキーボード方式に対応しています。"); }
+                                    let draft = self.complex.0.entry("toggle-shortcut-new".into()).or_default();
+                                    let edit = ui.add_enabled_ui(cfg!(windows), |ui| {
+                                        toggle_shortcuts_editor(ui, &mut value, &self.settings, draft)
+                                    }).inner;
+                                    match edit {
+                                        Ok(true) => self.action(json!({"op":"settings_set","name":key,"value":value})),
+                                        Err(error) => self.status = error,
+                                        _ => {}
+                                    }
+                                    return;
+                                }
                                 let limitation =
-                                    if cfg!(windows) && self.settings.text("Mode") == "Keyboard" {
+                                    if !cfg!(windows) && ["UseZenzai", "ZenzaiServerPath", "ZenzaiModelPath"].contains(&key.as_str()) {
+                                        Some("ZenzaiはWindowsのIME方式で使用できます。")
+                                    } else if cfg!(windows) && self.settings.text("Mode") == "Keyboard" {
                                         keyboard_limitation(key)
                                     } else {
                                         None
                                     };
                                 if let Some(reason) = limitation {
                                     ui.weak(reason);
-                                    ui.disable();
-                                }
-                                if key == "ToggleKeyboardShortcuts" && !cfg!(windows) {
-                                    ui.weak(
-                                        "この切替キーはWindowsのキーボード方式に対応しています。",
-                                    );
                                     ui.disable();
                                 }
                                 let row = ui.horizontal(|ui| {
@@ -1298,9 +1318,58 @@ impl App {
         }
     }
 }
+fn toggle_shortcuts_editor(
+    ui: &mut egui::Ui,
+    value: &mut Value,
+    settings: &Settings,
+    draft: &mut String,
+) -> Result<bool, String> {
+    use meltype_core::shortcuts::ToggleShortcut;
+    let mut shortcuts: Vec<ToggleShortcut> =
+        serde_json::from_value(value.clone()).map_err(|error| error.to_string())?;
+    let mut remove = None;
+    for (index, shortcut) in shortcuts.iter().enumerate() {
+        ui.horizontal(|ui| {
+            ui.label(shortcut.label());
+            if ui.small_button("削除").clicked() {
+                remove = Some(index);
+            }
+        });
+    }
+    let mut changed = false;
+    if let Some(index) = remove {
+        shortcuts.remove(index);
+        changed = true;
+    }
+    let mut add = false;
+    ui.horizontal(|ui| {
+        ui.text_edit_singleline(draft)
+            .on_hover_text("例: Ctrl+Alt+J、Ctrl+CapsLock、Alt+英数");
+        add = ui.button("追加").clicked();
+        if ui.button("初期値に戻す").clicked() {
+            shortcuts = ToggleShortcut::defaults();
+            changed = true;
+        }
+    });
+    ui.weak("複数のキーを登録できます。CapsLock・英数にはCtrl・Alt・Winを組み合わせます。");
+    if add {
+        let shortcut = ToggleShortcut::parse(draft)
+            .ok_or("切替キーを確認してください。例: Ctrl+Alt+J、Ctrl+CapsLock、Alt+英数")?;
+        shortcut
+            .validate(settings, &shortcuts)
+            .map_err(|reason| format!("{}: {reason}", shortcut.label()))?;
+        shortcuts.push(shortcut);
+        draft.clear();
+        changed = true;
+    }
+    if changed {
+        *value = serde_json::to_value(shortcuts).unwrap();
+    }
+    Ok(changed)
+}
 fn visible_by_default(key: &str) -> bool {
     supported(key)
-        || key == "ToggleKeyboardShortcuts"
+        || key == "ToggleShortcuts"
         || metadata::field(key).is_some_and(|f| f["category"] == "1. 全般")
 }
 fn supported(key: &str) -> bool {
@@ -1356,6 +1425,9 @@ fn supported(key: &str) -> bool {
         "ShowTypedKeys",
         "SnippetMark",
         "SpaceAroundEnglish",
+        "SpaceAroundNumbers",
+        "NumberKeysSelectCandidates",
+        "ZSymbols",
         "SlashAsMiddleDot",
     ]
     .contains(&key)
@@ -1364,9 +1436,12 @@ fn supported(key: &str) -> bool {
                 "TextInputApps",
                 "ShowNotifications",
                 "CursorIntoBrackets",
-                "ToggleKeyboardShortcuts",
+                "ToggleShortcuts",
                 "AllowInjectedInput",
                 "ConversionEngine",
+                "UseZenzai",
+                "ZenzaiServerPath",
+                "ZenzaiModelPath",
             ]
             .contains(&key)
 }
@@ -1382,6 +1457,9 @@ fn keyboard_limitation(key: &str) -> Option<&'static str> {
             Some("キーボード方式では確定済みの文章を書き換えません。IME方式で使用できます。")
         }
         "ConversionEngine"
+        | "UseZenzai"
+        | "ZenzaiServerPath"
+        | "ZenzaiModelPath"
         | "ClipboardCandidates"
         | "GitHubIssueCandidates"
         | "GitHubRepository" => {
@@ -1547,12 +1625,7 @@ impl eframe::App for App {
                 });
                 #[cfg(windows)]
                 if let Some(keyboard) = &self.keyboard {
-                    let shortcut = self.opened.text("ToggleKeyboardShortcuts");
-                    let shortcut = if shortcut.trim().is_empty() {
-                        "Ctrl+Alt+J"
-                    } else {
-                        shortcut
-                    };
+                    let shortcut = self.opened.toggle_shortcuts_label();
                     ui.label(format!(
                         "ポータブル入力: {}（{shortcut}で切替）",
                         if keyboard.enabled() { "ON" } else { "OFF" }
@@ -1824,22 +1897,46 @@ mod tests {
         let dir = tempfile::tempdir().unwrap();
         let store = Store::new(dir.path());
         let mut app = App::with_store(store.clone());
-        app.settings
-            .set("ToggleKeyboardShortcuts", json!("Ctrl+Unknown"))
-            .unwrap();
+        assert!(app
+            .settings
+            .set("ToggleShortcuts", json!([{"Key":0x55,"Modifiers":2}]))
+            .is_err());
+        // A malformed draft cannot be saved even when it bypasses the editor.
+        app.settings.0.insert(
+            "ToggleShortcuts".into(),
+            json!([{"Key":0x55,"Modifiers":2}]),
+        );
         assert!(!app.save());
         assert_eq!(
-            store.settings().unwrap().text("ToggleKeyboardShortcuts"),
-            ""
+            store.settings().unwrap().toggle_shortcuts(),
+            meltype_core::shortcuts::ToggleShortcut::defaults()
         );
         app.settings
-            .set("ToggleKeyboardShortcuts", json!("Ctrl+Shift+K;Alt+F9"))
+            .set(
+                "ToggleShortcuts",
+                json!([{"Key":0x4b,"Modifiers":3},{"Key":0x78,"Modifiers":4}]),
+            )
             .unwrap();
         app.settings.set("Mode", json!("Keyboard")).unwrap();
         assert!(app.save());
         assert!(keyboard_limitation("LiveConversion").is_some());
         assert!(keyboard_limitation("LearningEnabled").is_some());
         assert!(keyboard_limitation("ConversionEngine").is_some());
+        for key in ["UseZenzai", "ZenzaiServerPath", "ZenzaiModelPath"] {
+            assert!(supported(key), "Windows IME setting {key}");
+            assert!(
+                keyboard_limitation(key).is_some(),
+                "portable limitation {key}"
+            );
+        }
+        for key in [
+            "SpaceAroundNumbers",
+            "NumberKeysSelectCandidates",
+            "ZSymbols",
+        ] {
+            assert!(supported(key), "shared input setting {key}");
+            assert!(keyboard_limitation(key).is_none());
+        }
         assert!(keyboard_limitation("ControlKeyBindings").is_none());
         // Capability presentation does not overwrite the user's TSF preferences.
         assert_eq!(
@@ -1933,6 +2030,15 @@ mod tests {
                 continue;
             }
             let key = field["key"].as_str().unwrap();
+            if key == "ToggleKeyboardShortcuts" {
+                let metadata = metadata::field("ToggleShortcuts").expect("1.4 shortcut list");
+                assert!(!metadata["label"].as_str().unwrap().is_empty());
+                assert!(!metadata["description"].as_str().unwrap().is_empty());
+                assert!(Settings::default().0["ToggleShortcuts"].is_array());
+                assert!(visible_by_default("ToggleShortcuts"));
+                count += 1;
+                continue;
+            }
             let metadata = metadata::field(key).expect(key);
             assert!(!metadata["label"].as_str().unwrap().is_empty(), "{key}");
             assert!(
@@ -1948,7 +2054,7 @@ mod tests {
                 visible_by_default(key) || !cfg!(windows) && key == "CursorIntoBrackets",
                 "missing row {key}"
             );
-            if cfg!(windows) || !["CursorIntoBrackets", "ToggleKeyboardShortcuts"].contains(&key) {
+            if cfg!(windows) || !["CursorIntoBrackets"].contains(&key) {
                 assert!(supported(key), "hidden {key}");
             }
             count += 1;

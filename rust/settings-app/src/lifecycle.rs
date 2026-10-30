@@ -125,7 +125,7 @@ impl Lifecycle {
                     ui.label("2. IMEの導入は配布フォルダーの Manage-Windows.ps1 で行います。");
                     ui.label("3. Windowsの言語設定からMeltype-flash IMEを選択してください。");
                     ui.label("ZIPを展開・起動しただけではIMEは登録されません。");
-                    ui.label("登録なしで使う場合は Start-Portable.ps1 を実行します。入力の切替キーは既定で Ctrl+Alt+J です。設定画面で変更できます。");
+                    ui.label("登録なしで使う場合は Start-Portable.ps1 を実行します。入力の切替キーは既定で 半角/全角 または Alt+Backquote です。設定画面で複数登録できます。");
                 }
                 #[cfg(target_os = "linux")]
                 {

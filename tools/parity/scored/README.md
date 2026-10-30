@@ -5,10 +5,11 @@
 <!-- meltype-flash-document-banner:end -->
 
 `rust/core/tests/data/upstream-scored-keys.json` は、基準コミット
-`45e14f86558aa6ea34f2c2ecd038ba95ca8c3c46` の実際のC# Coreから採取した87入力です。
+`46db6ca2f941eb9580f4d5ed103ee0bee71111c7`（本家v1.4.0）の実際のC# Coreから採取した87入力です。
 元版の `ScoredSegmentationTests` の12入力と、既定入力の固定試験75入力について、
 スコア区切りをONにして全打鍵を採取しました。期待値はRustの出力から作っていません。
-ファイルに元版の実行ファイルと比較ホストのSHA-256を記録しています。
+ファイルに元版の実行ファイル・比較ホスト・Coreと辞書の全ソース・採取ログ・比較レポートのSHA-256を記録しています。
+通常判定の既存75入力もv1.4.0と全打鍵が一致することを別途確認しています。
 
 同梱スペル辞書は両版で有効、OSスペル辞書・学習・ライブ変換・予測は無効、周辺削除は可能です。
 比較項目は消費状態、確定編集、表示文字、変換状態です。候補・注釈・画面描画・実アプリ入力の比較ではありません。
@@ -32,17 +33,27 @@ Windows DLLの試験は一時ディレクトリー内だけで設定を読み書
 
 ```powershell
 New-Item -ItemType Directory dist/scored-reference -ErrorAction Stop
-git archive --format=tar --output=dist/scored-reference/baseline.tar 45e14f86558aa6ea34f2c2ecd038ba95ca8c3c46 src/Meltype.Core dictionaries
+git archive --format=tar --output=dist/scored-reference/baseline.tar 46db6ca2f941eb9580f4d5ed103ee0bee71111c7 src/Meltype.Core dictionaries
 tar -xf dist/scored-reference/baseline.tar -C dist/scored-reference
 $scoredCore = (Resolve-Path dist/scored-reference/src/Meltype.Core/Meltype.Core.csproj).Path
 dotnet publish tools/performance/windows/Compare.csproj -c Release -r win-x64 -p:PublishAot=true "-p:CoreProject=$scoredCore" -o dist/scored-reference/csharp
 cargo +stable build -p meltype-core --example benchmark --release --locked
-python tools/check-core-parity.py --csharp dist/scored-reference/csharp/Compare.exe --rust <target>/release/examples/benchmark.exe --cases rust/core/tests/data/upstream-scored-keys.json --output dist/scored-parity --check
+python tools/check-core-parity.py --csharp dist/scored-reference/csharp/Compare.exe --rust <target>/release/examples/benchmark.exe --cases rust/core/tests/data/upstream-scored-keys.json --scored --baseline-ref 46db6ca2f941eb9580f4d5ed103ee0bee71111c7 --output dist/scored-parity --check
 ```
 
 `--cases` は配列形式と固定試験の `cases` オブジェクト形式の両方に対応します。
 `--scored` を指定すると全入力でスコア区切りをONにします。指定しなければ各入力の `scored` フィールド、
 そのフィールドが無ければ従来どおりOFFを使用します。
+
+全87入力の比較に成功した後だけ、次のコマンドで期待値を再生成できます。
+
+```powershell
+python tools/parity/scored/regenerate.py dist/scored-parity --csharp dist/scored-reference/csharp/Compare.exe --rust <target>/release/examples/benchmark.exe --reference-source dist/scored-reference
+```
+
+生成処理は比較の不一致・実行ファイルの差替え・本家ソースとGitの差を拒否し、期待値にはC#の採取結果だけを使います。
+v1.4.0では`seeyo`の途中表示が`seeよ`に変わるため、古い固定値を本家の実出力から更新しています。
+`Goog`の途中表示は`Goおg`、Enterでの確定は`Goog`です。未完の子音だけで語全体を英字へ戻さない回帰試験を追加しています。
 
 ## 残る範囲
 

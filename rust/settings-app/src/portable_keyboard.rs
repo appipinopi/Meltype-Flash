@@ -70,7 +70,7 @@ struct Shared {
     // Sending never waits for the foreign UI Automation provider. An accepted
     // key stays in FIFO order; capacity exhaustion must not invalidate it.
     queue: Sender<Event>,
-    shortcuts: Mutex<Vec<meltype_core::shortcuts::Shortcut>>,
+    shortcuts: Mutex<Vec<meltype_core::shortcuts::ToggleShortcut>>,
     candidates: Mutex<Vec<CandidateHit>>,
     #[cfg(test)]
     test_pid: u32,
@@ -172,16 +172,10 @@ struct CandidateHit {
     key: Key,
 }
 thread_local! { static SUPPRESSED: RefCell<[bool;256]> = const { RefCell::new([false;256]) }; }
+thread_local! { static TOGGLES: RefCell<meltype_core::shortcuts::ToggleDetector> = RefCell::new(meltype_core::shortcuts::ToggleDetector::default()); }
 thread_local! { static MOUSE_SUPPRESSED: RefCell<bool> = const { RefCell::new(false) }; }
-fn toggle_shortcuts(settings: &Settings) -> Vec<meltype_core::shortcuts::Shortcut> {
-    let mut keys = meltype_core::shortcuts::parse_list(settings.text("ToggleKeyboardShortcuts"));
-    if keys.is_empty() {
-        keys.push(meltype_core::shortcuts::Shortcut {
-            vk: 0x4a,
-            modifiers: 6,
-        });
-    }
-    keys
+fn toggle_shortcuts(settings: &Settings) -> Vec<meltype_core::shortcuts::ToggleShortcut> {
+    settings.toggle_shortcuts()
 }
 fn initial_modifiers() -> u32 {
     unsafe {
@@ -235,6 +229,13 @@ unsafe extern "system" fn hook(code: i32, message: WPARAM, data: LPARAM) -> LRES
         let vk = event.vkCode;
         if let Some(bit) = modifier_bit(vk, event.scanCode, event.flags & LLKHF_EXTENDED != 0) {
             let previous = if matches!(message as u32, WM_KEYUP | WM_SYSKEYUP) {
+                TOGGLES.with(|detector| {
+                    detector.borrow_mut().release(
+                        vk as i32,
+                        event.scanCode,
+                        event.flags & LLKHF_EXTENDED != 0,
+                    )
+                });
                 shared.modifiers.fetch_and(!bit, Ordering::SeqCst)
             } else if matches!(message as u32, WM_KEYDOWN | WM_SYSKEYDOWN) {
                 shared.modifiers.fetch_or(bit, Ordering::SeqCst)
@@ -246,22 +247,49 @@ unsafe extern "system" fn hook(code: i32, message: WPARAM, data: LPARAM) -> LRES
             return previous & INJECTING != 0;
         }
         if matches!(message as u32, WM_KEYUP | WM_SYSKEYUP) {
-            return SUPPRESSED
+            let toggle = TOGGLES.with(|detector| {
+                detector.borrow_mut().release(
+                    vk as i32,
+                    event.scanCode,
+                    event.flags & LLKHF_EXTENDED != 0,
+                )
+            });
+            let suppressed = SUPPRESSED
                 .with(|keys| std::mem::replace(&mut keys.borrow_mut()[vk as usize], false));
+            return toggle || suppressed;
         }
         if !matches!(message as u32, WM_KEYDOWN | WM_SYSKEYDOWN) {
             return false;
         }
         let mods = modifier_flags(shared.modifiers.load(Ordering::SeqCst));
-        let toggle = shared.shortcuts.try_lock().is_ok_and(|keys| {
-            keys.iter()
-                .any(|key| key.vk == vk as i32 && key.modifiers == mods)
+        let unmodified = if event.scanCode == 0x29 && matches!(vk, 0x19 | 0xf3 | 0xf4) {
+            let thread = GetWindowThreadProcessId(GetForegroundWindow(), std::ptr::null_mut());
+            MapVirtualKeyExW(
+                event.scanCode,
+                MAPVK_VSC_TO_VK_EX,
+                GetKeyboardLayout(thread),
+            ) as i32
+        } else {
+            vk as i32
+        };
+        let toggle = TOGGLES.with(|detector| {
+            let keys = shared.shortcuts.try_lock().ok();
+            let bindings = keys.as_deref().map(Vec::as_slice).unwrap_or_default();
+            detector.borrow_mut().press(
+                vk as i32,
+                event.scanCode,
+                event.flags & LLKHF_EXTENDED != 0,
+                unmodified,
+                mods,
+                if shared.permitted.load(Ordering::Acquire) {
+                    bindings
+                } else {
+                    &[]
+                },
+            )
         });
-        if toggle && shared.permitted.load(Ordering::Acquire) {
-            // Ignore auto-repeat; physical key-up re-arms the toggle.
-            let repeated = SUPPRESSED
-                .with(|keys| std::mem::replace(&mut keys.borrow_mut()[vk as usize], true));
-            if !repeated {
+        if toggle.consume {
+            if toggle.toggle {
                 shared.active.fetch_xor(true, Ordering::SeqCst);
                 shared.generation.fetch_add(1, Ordering::SeqCst);
                 let _ = shared.queue.send(Event::Reset);
@@ -657,16 +685,26 @@ fn invalidate() {
         let _ = state.queue.send(Event::Reset);
     }
 }
+unsafe fn focus_targets_foreground(event_window: HWND, foreground: HWND) -> bool {
+    !event_window.is_null()
+        && !foreground.is_null()
+        && GetAncestor(event_window, GA_ROOT) == foreground
+}
 unsafe extern "system" fn focus_changed(
     _: windows_sys::Win32::UI::Accessibility::HWINEVENTHOOK,
     _: u32,
-    _: HWND,
+    event_window: HWND,
     _: i32,
     _: i32,
     _: u32,
     _: u32,
 ) {
-    invalidate();
+    // Background applications also emit focus events. Only the foreground
+    // document can invalidate its active composition; the worker separately
+    // observes foreground changes, including events queued for an old window.
+    if focus_targets_foreground(event_window, GetForegroundWindow()) {
+        invalidate();
+    }
 }
 unsafe extern "system" fn mouse_hook(code: i32, message: WPARAM, data: LPARAM) -> LRESULT {
     if code >= 0
@@ -1199,12 +1237,7 @@ impl Keyboard {
                             ShowWindow(*row, SW_HIDE);
                         }
                     }
-                    let shortcut = session.settings.text("ToggleKeyboardShortcuts");
-                    let shortcut = if shortcut.trim().is_empty() {
-                        "Ctrl+Alt+J"
-                    } else {
-                        shortcut
-                    };
+                    let shortcut = session.settings.toggle_shortcuts_label();
                     let footer: Vec<u16> = format!("{shortcut}: 入力切替 / Esc: 取消")
                         .encode_utf16()
                         .chain(Some(0))
@@ -1516,17 +1549,82 @@ mod tests {
     #[test]
     fn configured_toggle_replaces_default_and_retains_exact_modifiers() {
         let mut settings = Settings::default();
-        assert_eq!(toggle_shortcuts(&settings)[0].vk, 0x4a);
+        assert_eq!(toggle_shortcuts(&settings)[0].key, 0x19);
         settings
             .set(
-                "ToggleKeyboardShortcuts",
-                serde_json::json!("Ctrl+Shift+K;Alt+F9"),
+                "ToggleShortcuts",
+                serde_json::json!([{"Key":0x4b,"Modifiers":3},{"Key":0x78,"Modifiers":4}]),
             )
             .unwrap();
         let keys = toggle_shortcuts(&settings);
         assert_eq!(keys.len(), 2);
-        assert_eq!((keys[0].vk, keys[0].modifiers), (0x4b, 3));
-        assert_eq!((keys[1].vk, keys[1].modifiers), (0x78, 4));
+        assert_eq!((keys[0].key, keys[0].modifiers), (0x4b, 3));
+        assert_eq!((keys[1].key, keys[1].modifiers), (0x78, 4));
+    }
+    #[test]
+    fn background_focus_events_cannot_discard_foreground_composition() {
+        unsafe {
+            let instance = GetModuleHandleW(std::ptr::null());
+            let first = CreateWindowExW(
+                0,
+                w!("STATIC"),
+                w!(""),
+                WS_POPUP,
+                0,
+                0,
+                50,
+                50,
+                std::ptr::null_mut(),
+                std::ptr::null_mut(),
+                instance,
+                std::ptr::null(),
+            );
+            let second = CreateWindowExW(
+                0,
+                w!("STATIC"),
+                w!(""),
+                WS_POPUP,
+                0,
+                0,
+                50,
+                50,
+                std::ptr::null_mut(),
+                std::ptr::null_mut(),
+                instance,
+                std::ptr::null(),
+            );
+            let child = CreateWindowExW(
+                0,
+                w!("EDIT"),
+                w!(""),
+                WS_CHILD,
+                0,
+                0,
+                20,
+                20,
+                first,
+                std::ptr::null_mut(),
+                instance,
+                std::ptr::null(),
+            );
+            assert!(!first.is_null() && !second.is_null() && !child.is_null());
+            assert!(
+                focus_targets_foreground(child, first),
+                "a same-document focus change must cancel preedit"
+            );
+            assert!(
+                !focus_targets_foreground(child, second),
+                "a queued old-document event must not cancel new input"
+            );
+            assert!(
+                !focus_targets_foreground(second, first),
+                "background focus must not erase the active composition"
+            );
+            assert!(!focus_targets_foreground(std::ptr::null_mut(), first));
+            assert!(!focus_targets_foreground(child, std::ptr::null_mut()));
+            DestroyWindow(first);
+            DestroyWindow(second);
+        }
     }
     #[test]
     fn modifier_release_during_unicode_delivery_is_reconciled_before_unlocking() {

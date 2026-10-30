@@ -1,7 +1,7 @@
 // SPDX-License-Identifier: GPL-3.0-or-later
 //! Ordered auxiliary candidates and context rules, owned by a profile.
 use std::{
-    collections::BTreeMap,
+    collections::{BTreeMap, BTreeSet},
     sync::{Arc, OnceLock},
 };
 #[cfg(feature = "filesystem")]
@@ -13,6 +13,8 @@ pub(crate) struct Sources {
     contexts: BTreeMap<String, Vec<(String, Vec<String>)>>,
     imported: BTreeMap<String, Vec<String>>,
     phrases: BTreeMap<String, Vec<String>>,
+    head_only: BTreeSet<String>,
+    phrase_parts: BTreeMap<(String, String), Vec<(String, String)>>,
 }
 fn add(
     map: &mut BTreeMap<String, Vec<String>>,
@@ -72,11 +74,32 @@ impl Sources {
                 {
                     let mut parts = line.split('\t');
                     if let (Some(reading), Some(word)) = (parts.next(), parts.next()) {
-                        add(
-                            &mut source.phrases,
-                            reading,
-                            std::iter::once(word.to_owned()),
-                        );
+                        let head_only = reading.starts_with('^');
+                        let reading = reading.trim_start_matches('^');
+                        let readings: Vec<_> = reading.split('|').collect();
+                        let words: Vec<_> = word.split('|').collect();
+                        if readings.len() != words.len()
+                            || readings.iter().any(|s| s.is_empty())
+                            || words.iter().any(|s| s.is_empty())
+                        {
+                            continue;
+                        }
+                        let reading = readings.concat();
+                        let word = words.concat();
+                        if head_only {
+                            source.head_only.insert(reading.clone());
+                        }
+                        if readings.len() > 1 {
+                            source.phrase_parts.insert(
+                                (reading.clone(), word.clone()),
+                                readings
+                                    .into_iter()
+                                    .zip(words)
+                                    .map(|(r, w)| (r.to_owned(), w.to_owned()))
+                                    .collect(),
+                            );
+                        }
+                        add(&mut source.phrases, &reading, std::iter::once(word));
                     }
                 }
                 Arc::new(source)
@@ -173,6 +196,17 @@ impl Sources {
             .chain(self.phrases.get(reading).into_iter().flatten())
             .cloned()
             .collect()
+    }
+    pub fn head_only(&self, reading: &str) -> bool {
+        self.head_only.contains(reading)
+    }
+    pub fn phrase_parts(&self, reading: &str, word: &str) -> Option<&[(String, String)]> {
+        self.phrase_parts
+            .get(&(reading.to_owned(), word.to_owned()))
+            .map(Vec::as_slice)
+    }
+    pub fn phrase_groups(&self) -> impl Iterator<Item = &[(String, String)]> {
+        self.phrase_parts.values().map(Vec::as_slice)
     }
     pub fn registrations(&self) -> BTreeMap<String, (String, bool)> {
         let mut words: BTreeMap<_, _> = self

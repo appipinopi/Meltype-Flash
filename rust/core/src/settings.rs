@@ -47,12 +47,86 @@ fn migrate_input_style(values: &mut Map<String, Value>) {
         values.insert("InputStyle".into(), json!("Romaji"));
     }
 }
+fn normalize_toggle_shortcuts(values: &mut Map<String, Value>, warnings: &mut Vec<String>) {
+    use crate::shortcuts::ToggleShortcut;
+    let mut shortcuts = match values.get("ToggleShortcuts").and_then(Value::as_array) {
+        Some(entries) => entries.clone(),
+        None if values.get("HankakuTogglesKeyboard") == Some(&json!(false)) => vec![],
+        None => serde_json::to_value(ToggleShortcut::defaults())
+            .unwrap()
+            .as_array()
+            .unwrap()
+            .clone(),
+    };
+    if let Some(text) = values
+        .get("ToggleKeyboardShortcuts")
+        .and_then(Value::as_str)
+    {
+        // Flashの旧ポータブル入力では空文字がCtrl+Alt+Jを意味した。
+        let text = if text.trim().is_empty() {
+            "Ctrl+Alt+J"
+        } else {
+            text
+        };
+        for part in text
+            .split([';', ',', '\n'])
+            .map(str::trim)
+            .filter(|part| !part.is_empty())
+        {
+            if let Some(shortcut) = ToggleShortcut::parse(part) {
+                if !shortcuts
+                    .iter()
+                    .filter_map(|entry| {
+                        serde_json::from_value::<ToggleShortcut>(entry.clone()).ok()
+                    })
+                    .any(|other| other.matches(shortcut.key, shortcut.modifiers))
+                {
+                    shortcuts.push(serde_json::to_value(shortcut).unwrap());
+                }
+            } else {
+                warnings.push(format!(
+                    "切替キー「{part}」を除外しました: キーの書式を解釈できません"
+                ));
+            }
+        }
+    }
+    values.remove("HankakuTogglesKeyboard");
+    values.remove("ToggleKeyboardShortcuts");
+    let settings = Settings(values.clone());
+    let mut accepted = Vec::new();
+    for entry in shortcuts {
+        match serde_json::from_value::<ToggleShortcut>(entry) {
+            Ok(mut shortcut) => {
+                shortcut.key = ToggleShortcut::normalize_key(shortcut.key);
+                match shortcut.validate(&settings, &accepted) {
+                    Ok(()) => accepted.push(shortcut),
+                    Err(reason) => warnings.push(format!(
+                        "切替キー「{}」を除外しました: {reason}",
+                        shortcut.label()
+                    )),
+                }
+            }
+            Err(_) => warnings.push("不正な入力モード切替キーを除外しました".into()),
+        }
+    }
+    values.insert(
+        "ToggleShortcuts".into(),
+        serde_json::to_value(accepted).unwrap(),
+    );
+}
 impl Default for Settings {
     fn default() -> Self {
-        Self(
+        let settings = Self(
             serde_json::from_str(include_str!("../data/settings-defaults.json"))
                 .expect("bundled settings"),
-        )
+        );
+        #[cfg(any(target_os = "android", target_os = "ios"))]
+        let settings = {
+            let mut settings = settings;
+            settings.remove_neural_settings();
+            settings
+        };
+        settings
     }
 }
 impl Settings {
@@ -61,6 +135,14 @@ impl Settings {
     }
     pub(crate) fn parse_migrating(text: &str) -> Result<(Self, bool), String> {
         let mut loaded: Map<String, Value> = json5::from_str(text).map_err(|e| e.to_string())?;
+        let neural_migrate = if cfg!(any(target_os = "android", target_os = "ios")) {
+            let mut document = Self(loaded);
+            let removed = document.remove_neural_settings();
+            loaded = document.0;
+            removed
+        } else {
+            false
+        };
         let mut defaults = Self::default();
         let version = loaded
             .get("SettingsVersion")
@@ -71,7 +153,10 @@ impl Settings {
                 s.eq_ignore_ascii_case("AutoSwitch") || s.eq_ignore_ascii_case("Both")
             })
         };
-        let migrate = version < 5
+        let migrate = neural_migrate
+            || version < 7
+            || loaded.contains_key("HankakuTogglesKeyboard")
+            || loaded.contains_key("ToggleKeyboardShortcuts")
             || removed(loaded.get("Mode"))
             || removed(loaded.get("InputStyle"))
             || loaded
@@ -79,7 +164,10 @@ impl Settings {
                 .and_then(Value::as_array)
                 .is_some_and(|profiles| {
                     profiles.iter().any(|p| {
-                        removed(p["Values"].get("Mode")) || removed(p["Values"].get("InputStyle"))
+                        removed(p["Values"].get("Mode"))
+                            || removed(p["Values"].get("InputStyle"))
+                            || p["Values"].get("HankakuTogglesKeyboard").is_some()
+                            || p["Values"].get("ToggleKeyboardShortcuts").is_some()
                     })
                 });
         if version < 2 {
@@ -125,7 +213,8 @@ impl Settings {
                 }
             }
         }
-        loaded.insert("SettingsVersion".into(), json!(5));
+        normalize_toggle_shortcuts(&mut loaded, &mut Vec::new());
+        loaded.insert("SettingsVersion".into(), json!(7));
         defaults.0.extend(loaded);
         defaults.normalize();
         Ok((defaults, migrate))
@@ -139,7 +228,79 @@ impl Settings {
     pub fn text(&self, name: &str) -> &str {
         self.0.get(name).and_then(Value::as_str).unwrap_or("")
     }
+    pub fn toggle_shortcuts(&self) -> Vec<crate::shortcuts::ToggleShortcut> {
+        self.0
+            .get("ToggleShortcuts")
+            .cloned()
+            .and_then(|value| serde_json::from_value(value).ok())
+            .unwrap_or_else(crate::shortcuts::ToggleShortcut::defaults)
+    }
+    pub fn toggle_shortcuts_label(&self) -> String {
+        let labels = self
+            .toggle_shortcuts()
+            .iter()
+            .map(|shortcut| shortcut.label())
+            .collect::<Vec<_>>();
+        if labels.is_empty() {
+            "切替キー未登録".into()
+        } else {
+            labels.join(" / ")
+        }
+    }
+    /// 設定画面の起動前に移行で除外されるキーと理由を取得する。
+    pub fn shortcut_migration_warnings(text: &str) -> Vec<String> {
+        let Ok(mut values) = json5::from_str::<Map<String, Value>>(text) else {
+            return vec![];
+        };
+        let mut warnings = Vec::new();
+        normalize_toggle_shortcuts(&mut values, &mut warnings);
+        if let Some(profiles) = values.get_mut("Profiles").and_then(Value::as_array_mut) {
+            for profile in profiles {
+                if let Some(values) = profile.get_mut("Values").and_then(Value::as_object_mut) {
+                    normalize_toggle_shortcuts(values, &mut warnings);
+                }
+            }
+        }
+        warnings
+    }
+    /// Hosts without AI conversion discard model/server configuration, including
+    /// inactive profiles imported from desktop settings. Other fields survive.
+    /// Return whether anything was removed, so persisted documents can migrate.
+    pub fn remove_neural_settings(&mut self) -> bool {
+        fn remove(values: &mut Map<String, Value>) -> bool {
+            let mut removed = false;
+            for key in ["UseZenzai", "ZenzaiServerPath", "ZenzaiModelPath"] {
+                removed |= values.remove(key).is_some();
+            }
+            removed
+        }
+        let mut removed = remove(&mut self.0);
+        if let Some(profiles) = self.0.get_mut("Profiles").and_then(Value::as_array_mut) {
+            for profile in profiles {
+                if let Some(values) = profile.get_mut("Values").and_then(Value::as_object_mut) {
+                    removed |= remove(values);
+                }
+            }
+        }
+        removed
+    }
     pub fn set(&mut self, name: &str, value: Value) -> Result<(), String> {
+        if name == "ToggleKeyboardShortcuts" && !value.is_string()
+            || name == "HankakuTogglesKeyboard" && !value.is_boolean()
+        {
+            return Err(format!("invalid type for {name}"));
+        }
+        if name == "ToggleShortcuts" {
+            let shortcuts: Vec<crate::shortcuts::ToggleShortcut> =
+                serde_json::from_value(value.clone()).map_err(|_| {
+                    "切替キーはKeyとModifiersを持つ一覧で指定してください".to_owned()
+                })?;
+            for (index, shortcut) in shortcuts.iter().enumerate() {
+                shortcut
+                    .validate(self, &shortcuts[..index])
+                    .map_err(|reason| format!("{}: {reason}", shortcut.label()))?;
+            }
+        }
         if crate::settings_schema::OPTIONAL_BOOLEANS.contains(&name) && !value.is_boolean() {
             return Err(format!("invalid type for {name}"));
         }
@@ -172,6 +333,7 @@ impl Settings {
             self.0.insert("TsfIntroduced".into(), json!(false));
         }
         migrate_input_style(&mut self.0);
+        normalize_toggle_shortcuts(&mut self.0, &mut Vec::new());
         for (name, default) in &defaults.0 {
             let value = self
                 .0
@@ -249,6 +411,7 @@ impl Settings {
                 let mut values = p["Values"].clone();
                 if let Some(values) = values.as_object_mut() {
                     migrate_input_style(values);
+                    normalize_toggle_shortcuts(values, &mut Vec::new());
                     // Mode is shared; old profile copies must not reintroduce it.
                     if values
                         .get("Mode")
@@ -282,6 +445,8 @@ impl Settings {
             profiles.insert(0, json!({"Name":name,"Values":null}));
         }
         self.0.insert("Profiles".into(), json!(profiles));
+        #[cfg(any(target_os = "android", target_os = "ios"))]
+        self.remove_neural_settings();
     }
     fn profile_values(&self) -> Value {
         Value::Object(
@@ -486,18 +651,20 @@ impl Settings {
         self.delete_profile(name)
     }
     pub fn export_profile(&self) -> Value {
-        json!({"format":"meltype-profile","version":5,"name":self.text("ActiveProfile"),"values":self.profile_values()})
+        json!({"format":"meltype-profile","version":7,"name":self.text("ActiveProfile"),"values":self.profile_values()})
     }
     pub fn import_profile(&mut self, text: &str) -> Result<String, String> {
         let file: Value = json5::from_str(text).map_err(|e| e.to_string())?;
         if file["format"] != "meltype-profile" {
             return Err("not a Meltype profile".into());
         }
-        let raw = file["values"]
+        let mut raw = file["values"]
             .as_object()
-            .ok_or("profile values must be an object")?;
+            .ok_or("profile values must be an object")?
+            .clone();
+        normalize_toggle_shortcuts(&mut raw, &mut Vec::new());
         let mut imported = Self::default();
-        for (key, value) in raw {
+        for (key, value) in &raw {
             if (imported.0.contains_key(key)
                 || crate::settings_schema::OPTIONAL_BOOLEANS.contains(&key.as_str()))
                 && !SHARED.contains(&key.as_str())

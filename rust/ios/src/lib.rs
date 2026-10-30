@@ -32,6 +32,7 @@ fn run(handle: u64, action: impl FnOnce(&mut Session) -> SessionResult) -> *mut 
 pub extern "C" fn meltype_ios_create() -> u64 {
     static NEXT: AtomicU64 = AtomicU64::new(1);
     let mut session = Session::default();
+    session.settings.remove_neural_settings();
     session.can_delete = false;
     session.no_learning = true;
     let handle = NEXT.fetch_add(1, Ordering::Relaxed);

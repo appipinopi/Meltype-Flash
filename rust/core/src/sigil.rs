@@ -18,6 +18,9 @@ fn name(c: char) -> bool {
     c.is_ascii_graphic()
 }
 impl Sigil {
+    pub fn is_active(&self) -> bool {
+        self.length > 0
+    }
     pub fn context(&mut self, before: &str) {
         if let Some(last) = before.chars().next_back() {
             if self.length > 0 && !name(last) {

@@ -26,13 +26,12 @@ impl Session {
         let japanese = match (vk, modifiers & 15) {
             (0x16 | 0x1c | 0x15, 0) => true,
             (0x1a | 0x1d, 0) => false,
-            (0x19 | 0xf3 | 0xf4, 0) => self.input_is_direct(),
             _ => {
-                let configured =
-                    crate::shortcuts::parse_list(self.settings.text("ToggleKeyboardShortcuts"));
-                if !configured
+                if !self
+                    .settings
+                    .toggle_shortcuts()
                     .iter()
-                    .any(|key| key.vk == vk && key.modifiers == modifiers & 15)
+                    .any(|key| key.matches(vk, modifiers & 15))
                 {
                     return None;
                 }

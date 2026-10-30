@@ -62,10 +62,7 @@ unsafe fn request_inner(connection: *mut c_void, request: *const c_char) -> Opti
         .for_app(request["process"].as_str().unwrap_or(""));
     let code = settings.text("AppProfile") == "Code";
     #[cfg(windows)]
-    let _engine = crate::windows_converter::scope(
-        settings.text("ConversionEngine"),
-        settings.boolean("Enabled"),
-    );
+    let _engine = crate::windows_converter::scope(&settings);
     let direct_detection = settings.boolean("DirectModeAutoDetect") && !code;
     if op == "hello" {
         if !settings.boolean("Enabled") {

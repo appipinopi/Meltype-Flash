@@ -29,7 +29,7 @@ macOS上で、公証へ提出したものと同じ署名済み `.app` と公証�
 python3 ios/altstore-pal.py \
   --app "$PAL_SUBMITTED_APP" \
   --adp "$PAL_EXTRACTED_ADP" \
-  --tag flash-v0.1.0-preview.6 \
+  --tag flash-v0.1.0-preview.7 \
   --marketplace-id "$PAL_APPLE_ID" \
   --developer-name "$PAL_DEVELOPER_NAME" \
   --icon-url "$PAL_ICON_URL" \
@@ -38,7 +38,7 @@ python3 ios/altstore-pal.py \
   --output output/pal/altstore-source.json
 ```
 
-本体・キーボード拡張の署名、チーム・App Group・版番号の一致、実機向けビルド、ADPの主要ファイルを検査します。バージョン・ビルド番号・最低OS・権限は実際のアプリから読み、表示名にだけ `Pre6` を付けます。`version` を `0.1.0-pre.6` に書き換えないでください。サイズはADP内の1つのvariant IPAのバイト数です。
+本体・キーボード拡張の署名、チーム・App Group・版番号の一致、実機向けビルド、ADPの主要ファイルを検査します。バージョン・ビルド番号・最低OS・権限は実際のアプリから読み、上の例では表示名にだけ `Pre7` を付けます。`version` を `0.1.0-pre.7` に書き換えないでください。サイズはADP内の1つのvariant IPAのバイト数です。
 
 この検査はAppleの公証ステータス、ADPの暗号署名、提出アプリとADPの対応、HTTPS先の公開状態を保証しません。公証済みの同じビルドを指定し、公開先へADPを欠けなく配置したことを確認してください。
 

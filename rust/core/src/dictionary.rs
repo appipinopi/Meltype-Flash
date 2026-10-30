@@ -15,6 +15,7 @@ pub struct Dictionary {
     english: Arc<HashSet<String>>,
     japanese: Arc<HashSet<String>>,
     candidates: Arc<HashMap<String, Vec<String>>>,
+    head_only_phrases: HashSet<String>,
     emoji: Arc<HashMap<String, Vec<String>>>,
     kana_words: Arc<HashSet<String>>,
     max_kana_word_bytes: usize,
@@ -70,6 +71,20 @@ fn words(text: &str) -> impl Iterator<Item = &str> {
 }
 
 impl Dictionary {
+    pub(super) fn nasal_continues(lower: &str, next: &str) -> bool {
+        lower
+            .as_bytes()
+            .last()
+            .is_some_and(|c| b"aiueo".contains(c))
+            && next
+                .as_bytes()
+                .first()
+                .is_some_and(|c| c.eq_ignore_ascii_case(&b'n'))
+            && next
+                .as_bytes()
+                .get(1)
+                .is_none_or(|c| !b"aiueoy".contains(&c.to_ascii_lowercase()))
+    }
     fn prefers_standalone_english(&self, raw: &str, level: &str) -> bool {
         // Capitalized spellings already use the ordinary English rules. Keep
         // the hot lower-case lookup allocation-free for unrelated inputs.
@@ -220,6 +235,7 @@ impl Dictionary {
                         .collect(),
                 ),
                 candidates: Arc::default(),
+                head_only_phrases: HashSet::new(),
                 emoji: Arc::default(),
                 max_kana_word_bytes: 0,
                 kana_words: Arc::new(
@@ -289,7 +305,15 @@ impl Dictionary {
                                 }
                             }
                         } else {
-                            dict.add(fields[0], fields[1..].iter().copied());
+                            let reading = fields[0].trim_start_matches('^').replace('|', "");
+                            if fields[0].starts_with('^') {
+                                dict.head_only_phrases.insert(reading.clone());
+                            }
+                            let values: Vec<_> = fields[1..]
+                                .iter()
+                                .map(|word| word.replace('|', ""))
+                                .collect();
+                            dict.add(&reading, values.iter().map(String::as_str));
                         }
                     }
                 }
@@ -395,6 +419,7 @@ impl Dictionary {
     pub fn convert(&self, reading: &str) -> String {
         let mut rest = reading;
         let mut out = String::new();
+        let mut boundary = true;
         while !rest.is_empty() {
             let longest = rest
                 .char_indices()
@@ -403,6 +428,7 @@ impl Dictionary {
                 .find_map(|end| {
                     self.candidates
                         .get(&rest[..end])
+                        .filter(|_| boundary || !self.head_only_phrases.contains(&rest[..end]))
                         .filter(|_| rest[..end].chars().count() >= 2)
                         .and_then(|values| {
                             values
@@ -418,10 +444,12 @@ impl Dictionary {
             if let Some((end, text)) = longest {
                 out.push_str(text);
                 rest = &rest[end..];
+                boundary = true;
             } else {
                 let c = rest.chars().next().unwrap();
                 out.push(c);
                 rest = &rest[c.len_utf8()..];
+                boundary = false;
             }
         }
         out
@@ -640,6 +668,17 @@ impl Dictionary {
             return false;
         };
         let suffix = word[start..].trim_start_matches(|c: char| c.is_ascii_digit());
+        if start >= 2 && word.as_bytes()[start - 1].is_ascii_uppercase() {
+            let stem = &word[..start - 1];
+            let reading = romaji::analyze(stem, true);
+            if stem.bytes().all(|c| c.is_ascii_lowercase())
+                && reading.valid
+                && reading.partial.is_empty()
+                && !self.known_english(stem)
+            {
+                return true;
+            }
+        }
         let units = [
             "ji", "fun", "pun", "gatsu", "nichi", "nen", "jikan", "en", "nin", "sai", "mai", "hon",
             "bon", "ko", "kai", "kakeru", "waru", "tasu", "hiku", "purasu", "mainasu", "iko-ru",
@@ -664,6 +703,14 @@ impl Dictionary {
             );
         }
         let lower = raw.to_ascii_lowercase();
+        if self.starts_with_japanese_reading(raw) {
+            let upper = raw.bytes().position(|c| c.is_ascii_uppercase()).unwrap();
+            return format!(
+                "{}{}",
+                romaji::hiragana(&raw[..upper], true),
+                self.mixed_word(&raw[upper..], final_input)
+            );
+        }
         let canonical_case = Self::allows_mixed_case(raw);
         if let Some(end) = self.capitalized_split(raw, final_input) {
             return format!(
@@ -919,6 +966,8 @@ impl Dictionary {
                         && romaji::analyze(&piece[1..], true).valid);
                 let english_piece = boundaries[i]
                     && boundaries[end]
+                    && !(self.readable_english.contains(piece)
+                        && Self::nasal_continues(piece, &raw[end..]))
                     && !(end < n && raw.as_bytes()[end-1] == raw.as_bytes()[end]
                         && raw.as_bytes()[end].is_ascii_alphabetic()
                         && !b"aeioun".contains(&raw.as_bytes()[end]))
@@ -1116,6 +1165,9 @@ impl Dictionary {
                 && (self.common_english.contains(&lower[..head_end])
                     || self.proper.contains(&lower[..head_end]))
                 && pieces.iter().skip(1).all(|(_, _, en)| !en)
+                && romaji::hiragana(&raw[head_end..], final_input)
+                    .chars()
+                    .any(|c| c.is_ascii_alphabetic())
                 && ![
                     "kara", "made", "yori", "ga", "wo", "ni", "de", "no", "to", "mo", "ha", "wa",
                     "ya",
@@ -1399,6 +1451,18 @@ impl Dictionary {
 #[cfg(test)]
 mod prefix_tests {
     use super::*;
+    #[test]
+    fn v140_scored_pending_capitalized_word() {
+        let d = Dictionary::bundled();
+        assert_eq!(
+            d.composition_scored("Goog", false, "", "", "Balanced"),
+            "Goおg"
+        );
+        assert_eq!(
+            d.composition_scored("Goog", true, "", "", "Balanced"),
+            "Goog"
+        );
+    }
     #[test]
     fn cloned_dictionary_shares_system_data_and_detaches_only_modified_records() {
         let bundled = Dictionary::bundled();

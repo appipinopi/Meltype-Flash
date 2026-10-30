@@ -7,6 +7,11 @@ use serde_json::json;
 fn schema_covers_defaults_choices_labels_and_optional_fields() {
     let schema = settings_schema::schema();
     assert_eq!(schema["additionalProperties"], false);
+    let mut fields = std::collections::HashSet::new();
+    for field in settings_schema::metadata()["fields"].as_array().unwrap() {
+        let key = field["key"].as_str().unwrap();
+        assert!(fields.insert(key), "duplicate setting field: {key}");
+    }
     for (key, value) in Settings::default().0 {
         assert!(schema["properties"].get(&key).is_some(), "missing {key}");
         assert_eq!(schema["properties"][&key]["default"], value, "{key}");

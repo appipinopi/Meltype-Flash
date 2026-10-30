@@ -233,10 +233,11 @@ impl BrowserSession {
         } else {
             serde_json::from_str(snapshot).map_err(|e| e.to_string())?
         };
-        let settings = match snapshot.settings {
+        let mut settings = match snapshot.settings {
             Some(value) => Settings::parse(&value.to_string())?,
             None => Settings::default(),
         };
+        settings.remove_neural_settings();
         Self::validate(&settings)?;
         let mut session = Session::default();
         session.settings = settings.clone();
@@ -264,35 +265,15 @@ impl BrowserSession {
         let mut result = self.session.key_at(vk, character, modifiers, now_ms as u64);
         if !was_converting && self.session.is_converting() && result.consumed {
             let reading = self.session.conversion_reading();
-            // The browser presents sentence candidates in one candidate list.
-            // Retain that contract when Core separates English islands.
-            let mixed = reading.chars().any(|c| c.is_ascii_alphabetic())
-                && reading.chars().any(meltype_core::linguistics::kana);
-            let sentence = KANJI.with(|slot| {
+            let clauses = KANJI.with(|slot| {
                 slot.borrow()
                     .as_ref()
-                    .filter(|_| mixed)
-                    .map(|dictionary| Clause::new(reading.clone(), dictionary.convert(&reading)))
+                    .map(|dictionary| self.convert_clauses(&reading, dictionary))
             });
-            if let Some(sentence) = sentence {
-                if self.session.begin_clauses(vec![sentence]) {
-                    return serde_json::to_string(&self.session.result(true))
-                        .map_err(|e| e.to_string());
+            if let Some(clauses) = clauses {
+                if self.session.begin_clauses(clauses) {
+                    result = self.session.result(true);
                 }
-            }
-            let readings = self.session.clause_readings();
-            let external = KANJI.with(|slot| {
-                slot.borrow().as_ref().map(|dictionary| {
-                    readings
-                        .iter()
-                        .enumerate()
-                        .map(|(index, reading)| (index, dictionary.convert(reading)))
-                        .collect()
-                })
-            });
-            if let Some(external) = external {
-                self.session.refresh_clause_candidates(&readings, external);
-                result = self.session.result(true);
             }
         }
         serde_json::to_string(&result).map_err(|e| e.to_string())
@@ -300,6 +281,18 @@ impl BrowserSession {
 
     pub fn select(&mut self, index: u32) -> Result<String, String> {
         serde_json::to_string(&self.session.select(index as usize)).map_err(|e| e.to_string())
+    }
+
+    /// Finish the active composition before switching to/from direct input.
+    pub fn set_direct(&mut self, enabled: bool) -> Result<String, String> {
+        let mut result = self.session.commit();
+        self.session.set_direct(enabled);
+        result.consumed = true;
+        serde_json::to_string(&result).map_err(|e| e.to_string())
+    }
+
+    pub fn is_direct(&self) -> bool {
+        self.session.direct
     }
 
     pub fn select_prediction(&mut self, index: u32) -> Result<String, String> {
@@ -339,7 +332,8 @@ impl BrowserSession {
     }
 
     pub fn configure(&mut self, settings: &str) -> Result<(), String> {
-        let settings = Settings::parse(settings)?;
+        let mut settings = Settings::parse(settings)?;
+        settings.remove_neural_settings();
         Self::validate(&settings)?;
         self.reset();
         self.saved_settings = settings.clone();
@@ -368,6 +362,52 @@ impl BrowserSession {
 }
 
 impl BrowserSession {
+    /// Preserve English/protected runs and apply shared phrase registrations
+    /// before the browser's local converter, as native converter hosts do.
+    fn convert_clauses(&self, reading: &str, dictionary: &KanjiDictionary) -> Vec<Clause> {
+        let mut clauses = Vec::new();
+        let protected = meltype_core::protection::scan(reading);
+        let mut cursor = 0;
+        while cursor < reading.len() {
+            if let Some(span) = protected.iter().find(|span| span.start == cursor) {
+                clauses.push(Clause::literal(reading[cursor..span.end].into(), false));
+                cursor = span.end;
+                continue;
+            }
+            let english = reading[cursor..]
+                .chars()
+                .next()
+                .unwrap()
+                .is_ascii_alphabetic();
+            let end = reading[cursor..]
+                .char_indices()
+                .skip(1)
+                .find(|(offset, ch)| {
+                    ch.is_ascii_alphabetic() != english
+                        || protected.iter().any(|span| span.start == cursor + offset)
+                })
+                .map_or(reading.len(), |(offset, _)| cursor + offset);
+            let run = &reading[cursor..end];
+            if english {
+                clauses.push(Clause::literal(run.into(), true));
+            } else {
+                let plan = self
+                    .session
+                    .registered_conversion_plan(run, &[])
+                    .unwrap_or_else(|| vec![(run.to_owned(), None)]);
+                for (part, registered) in plan {
+                    let mut candidates = dictionary.convert(&part);
+                    if let Some(word) = registered {
+                        candidates.insert(0, word);
+                    }
+                    clauses.push(Clause::new(part, candidates));
+                }
+            }
+            cursor = end;
+        }
+        clauses
+    }
+
     fn validate(settings: &Settings) -> Result<(), String> {
         if settings.boolean("CursorIntoBrackets") {
             return Err(

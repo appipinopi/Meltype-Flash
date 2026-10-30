@@ -17,7 +17,18 @@ test("ChromeOSの同梱辞書で基本語と文を漢字変換し、Enterで確�
     try {
       type(s, input);
       const result = key(s, 32, " ");
-      assert(result.view.candidates.includes(expected), `${input}: ${JSON.stringify(result.view.candidates)}`);
+      if (input === "googledekensaku") {
+        // Candidates belong to the selected English clause; the complete
+        // sentence remains visible and Enter confirms both clauses together.
+        assert.deepEqual(result.view.clauses, ["google", "で検索"]);
+        assert.deepEqual(result.view.candidates, ["google", "Google", "GOOGLE", "ｇｏｏｇｌｅ"]);
+      } else if (input === "chatgptwotsukau" || input === "ChatGPTwotsukau") {
+        const english = input === "chatgptwotsukau" ? "chatgpt" : "ChatGPT";
+        assert.deepEqual(result.view.clauses, [english, "を使う"]);
+        assert.equal(result.view.candidates[0], english);
+      } else {
+        assert(result.view.candidates.includes(expected), `${input}: ${JSON.stringify(result.view.candidates)}`);
+      }
       assert.equal(result.view.text, expected, input);
       assert.equal(key(s, 13).commits[0].text, expected);
     } finally { s.free(); }
@@ -96,6 +107,29 @@ test("real WASM shares composition, FST candidates, selection and durable learni
   assert.deepEqual(JSON.parse(restored.snapshot()).state.preferences.selected, {});
   s.free(); restored.free();
 });
+
+test("ChromeOSの読込・再設定・書出しではAI設定を除き、辞書変換と予測を保持する", () => {
+  const settings = {UseZenzai: true, ZenzaiServerPath: "server", ZenzaiModelPath: "model",
+    PredictiveCandidates: true, FutureSetting: {keep: true},
+    Profiles: [{Name: "移行", Values: {UseZenzai: true, ZenzaiServerPath: "server", ZenzaiModelPath: "model", PredictiveCandidates: true}}]};
+  const s = new BrowserSession(JSON.stringify({settings}));
+  try {
+    for (const configure of [false, true]) {
+      if (configure) s.configure(JSON.stringify(settings));
+      const saved = JSON.parse(s.snapshot()).settings;
+      const profile = saved.Profiles.find(profile => profile.Name === "移行");
+      for (const key of ["UseZenzai", "ZenzaiServerPath", "ZenzaiModelPath"]) {
+        assert.equal(key in saved, false);
+        assert.equal(key in profile.Values, false);
+      }
+      assert.equal(saved.PredictiveCandidates, true);
+      assert.deepEqual(saved.FutureSetting, {keep: true});
+      type(s, "hashi");
+      assert(key(s, 32, " ").view.candidates.includes("橋"));
+      key(s, 13);
+    }
+  } finally { s.free(); }
+});
 test("uncommitted text is not saved; reset and no-learning focus preserve privacy", () => {
   const s = new BrowserSession("");
   s.focus(false);
@@ -144,4 +178,57 @@ test("real WASM exposes learned kanji predictions for browser candidate clicks",
   assert.equal(JSON.parse(s.select_prediction(index)).commits[0].text, phrase);
   assert.deepEqual(JSON.parse(s.snapshot()).state.preferences.selected, {});
   s.free();
+});
+
+
+test("ChatGPTを含む日英混在文は英語を保ち、日本語部分を漢字変換する", () => {
+  BrowserSession.load_dictionary(readFileSync(new URL("../pkg/kanji.bin", import.meta.url)));
+  for (const [raw, expected] of [["chatgptwotsukau", "chatgptを使う"],
+    ["chatgptwotsukatteimasu", "chatgptを使っています"],
+    ["ChatGPTwotsukau", "ChatGPTを使う"],
+    ["googledekensaku", "googleで検索"], ["githubwotsukau", "githubを使う"]]) {
+    const s = new BrowserSession("");
+    try {
+      type(s, raw);
+      const view = key(s, 32, " ").view;
+      assert.equal(view.text, expected, raw);
+      assert(view.clauses.length >= 2, raw);
+      assert.equal(key(s, 13).commits[0].text, expected, raw);
+    } finally { s.free(); }
+  }
+});
+
+test("上流Open・Closed PRのチャット語句は同梱語句を優先して変換する", () => {
+  for (const [raw, expected] of [["kyouhisashiburi", "今日久しぶり"], ["ryokai", "りょかい"],
+    ["nigakki", "二学期"], ["ichigakki", "一学期"], ["sangakki", "三学期"],
+    ["todorisuto", "todoリスト"], ["nasasou", "なさそう"], ["ninatta", "になった"],
+    ["shiri-zu", "シリーズ"], ["doshitano", "どしたの"], ["shitanode", "したので"],
+    ["kenritsu", "県立"], ["sukininatta", "好きになった"]]) {
+    const s = new BrowserSession("");
+    try {
+      type(s, raw);
+      assert.equal(key(s, 32, " ").view.text, expected, raw);
+      assert.equal(key(s, 13).commits[0].text, expected, raw);
+    } finally { s.free(); }
+  }
+});
+
+test("同梱語句の分割は二を助詞のにへ戻さず、別の単語の学習で変えない", () => {
+  BrowserSession.load_dictionary(readFileSync(new URL("../pkg/kanji.bin", import.meta.url)));
+  for (const [raw, expected] of [["nigakki", ["二", "学期"]],
+    ["ichigakki", ["一", "学期"]], ["sangakki", ["三", "学期"]]]) {
+    const s = new BrowserSession(JSON.stringify({state: {preferences: {selected: {
+      "に": "荷", "いち": "市", "さん": "酸", "がっき": "楽器",
+    }}}}));
+    try {
+      type(s, raw);
+      const result = key(s, 32, " ");
+      assert.deepEqual(result.view.clauses, expected, raw);
+      assert.equal(result.view.text, expected.join(""), raw);
+      const next = key(s, 39).view;
+      assert.equal(next.selectedClause, 1);
+      assert(next.candidates.includes("学期"));
+      assert.equal(key(s, 13).commits[0].text, expected.join(""), raw);
+    } finally { s.free(); }
+  }
 });
