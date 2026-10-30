@@ -317,8 +317,11 @@ impl Session {
                     0x75 => reading.map(str::to_owned),
                     0x76 => reading.map(romaji::katakana),
                     0x77 => reading.map(|s| crate::kana::halfwidth(&romaji::katakana(s))),
-                    0x78 => raw.map(crate::kana::fullwidth),
-                    _ => raw.map(str::to_owned),
+                    // 元の入力がない文節では、選択中の文字と文節の区切りを保つ (#1095)。
+                    0x78 => {
+                        Some(raw.map_or_else(|| clause.text().to_owned(), crate::kana::fullwidth))
+                    }
+                    _ => Some(raw.unwrap_or_else(|| clause.text()).to_owned()),
                 }
             } else {
                 None

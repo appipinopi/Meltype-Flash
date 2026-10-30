@@ -404,17 +404,16 @@ unsafe extern "C" fn process_key(
                 }
             }
         }
-        if !s.private
-            && matches!(
-                keyval,
-                0xff2a | 0xff29 | 0xff28 | 0xff30 | 0xff27 | 0xff22 | 0xff23
-            )
-        {
-            s.apply(engine, result(native::meltype_commit(s.session)));
-            s.direct =
-                matches!(keyval, 0xff30 | 0xff22) || matches!(keyval, 0xff28..=0xff2a) && !s.direct;
-            native::meltype_set_direct(s.session, s.direct as i32);
-            return 1;
+        if !s.private {
+            if let Some(vk) = crate::keys::mode_key(keyval, ibus_keyval_to_unicode(keyval)) {
+                let pointer =
+                    native::meltype_mode_key(s.session, vk, crate::keys::modifiers(state));
+                if !pointer.is_null() {
+                    s.apply(engine, result(pointer));
+                    s.direct = native::meltype_input_mode(s.session) == 1;
+                    return 1;
+                }
+            }
         }
         match crate::keys::translate(keyval, ibus_keyval_to_unicode(keyval)) {
             Some((vk, ch)) => s.key(engine, vk, ch, crate::keys::modifiers(state)) as i32,
@@ -429,6 +428,8 @@ unsafe extern "C" fn flush(engine: Obj, _data: Obj) {
         result_free(native::meltype_commit_preedit(s.session));
         s.hide(engine);
         result_free(native::meltype_reset(s.session));
+        native::meltype_caret_moved(s.session, 0, 0);
+        s.direct = native::meltype_input_mode(s.session) == 1;
     });
 }
 unsafe extern "C" fn enable(engine: Obj, _data: Obj) {
@@ -503,6 +504,10 @@ unsafe extern "C" fn page_down(engine: Obj, _data: Obj) {
     });
 }
 unsafe extern "C" fn focus_in(engine: Obj, _data: Obj) {
+    with(engine, |s| {
+        native::meltype_caret_moved(s.session, 0, 0);
+        s.direct = native::meltype_input_mode(s.session) == 1;
+    });
     let _ = catch_unwind(AssertUnwindSafe(|| {
         let properties = ibus_prop_list_new();
         for (key, label) in [

@@ -11,6 +11,7 @@ use std::collections::HashSet;
 pub struct Settings(pub Map<String, Value>);
 
 const SHARED: &[&str] = &[
+    "$schema",
     "Profiles",
     "ActiveProfile",
     "SettingsVersion",
@@ -300,6 +301,9 @@ impl Settings {
                     .map_err(|reason| format!("{}: {reason}", shortcut.label()))?;
             }
         }
+        if crate::settings_schema::OPTIONAL_BOOLEANS.contains(&name) && !value.is_boolean() {
+            return Err(format!("invalid type for {name}"));
+        }
         if let Some(default) = Self::default().0.get(name) {
             if !(default.is_boolean() && value.is_boolean()
                 || default.is_number() && value.is_i64()
@@ -315,6 +319,13 @@ impl Settings {
     }
     pub fn normalize(&mut self) {
         let defaults = Self::default();
+        for key in crate::settings_schema::OPTIONAL_BOOLEANS {
+            if let Some(value) = self.0.get_mut(*key) {
+                if !value.is_boolean() {
+                    *value = json!(false);
+                }
+            }
+        }
         // Removed choices are read case-insensitively by the 1.3.0 converters.
         // Only a top-level AutoSwitch restarts the first-run TSF introduction.
         if self.text("Mode").eq_ignore_ascii_case("AutoSwitch") {
@@ -570,6 +581,11 @@ impl Settings {
             current["Values"] = values;
         }
         let defaults = Self::default();
+        // Older profiles omit Flash-only options; absence means false, not
+        // the option inherited from the profile we just left.
+        for key in crate::settings_schema::OPTIONAL_BOOLEANS {
+            self.0.remove(*key);
+        }
         for (key, value) in defaults
             .0
             .iter()
@@ -649,7 +665,10 @@ impl Settings {
         normalize_toggle_shortcuts(&mut raw, &mut Vec::new());
         let mut imported = Self::default();
         for (key, value) in &raw {
-            if imported.0.contains_key(key) && !SHARED.contains(&key.as_str()) {
+            if (imported.0.contains_key(key)
+                || crate::settings_schema::OPTIONAL_BOOLEANS.contains(&key.as_str()))
+                && !SHARED.contains(&key.as_str())
+            {
                 imported.set(key, value.clone())?;
             }
         }

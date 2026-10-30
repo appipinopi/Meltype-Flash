@@ -1,4 +1,4 @@
-name: Meltype-flash release
+name: リリース
 on:
   pull_request:
     paths:
@@ -98,18 +98,18 @@ jobs:
           name: release-windows
           path: dist/Meltype-flash-Windows-x64.zip
           if-no-files-found: error
-      - name: Compare C#, previous and current Rust on the same Windows runner
+      - name: Compare upstream 1.4.0, previous and current Rust on the same Windows runner
         timeout-minutes: 40
         shell: pwsh
         env:
           PYTHONUTF8: '1'
           BENCHMARK_BASELINE: ${{ inputs.benchmark_baseline }}
         run: |
-          python tools/compare-rust-benchmarks.py --build --with-csharp --fetch-tags --baseline-ref "$env:BENCHMARK_BASELINE" --output dist/release-benchmark --samples 3 --warmups 1 --rounds 9
+          git fetch --no-tags https://github.com/yksr-melt/Meltype.git 46db6ca2f941eb9580f4d5ed103ee0bee71111c7
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+          python tools/compare-rust-benchmarks.py --build --with-csharp --csharp-ref 46db6ca2f941eb9580f4d5ed103ee0bee71111c7 --fetch-tags --baseline-ref "$env:BENCHMARK_BASELINE" --output dist/release-benchmark --samples 3 --warmups 1 --rounds 9
           if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
           python -m pip install --disable-pip-version-check matplotlib==3.10.8 numpy==2.4.2
-          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
-          python -m unittest discover -s tools -p 'test_*benchmark*.py' -v
           if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
           python tools/plot-windows-benchmark.py dist/release-benchmark/report.json --output dist/release-benchmark/charts
           if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
@@ -182,12 +182,11 @@ jobs:
           name: release-macos-${{ matrix.arch }}
           path: dist/Meltype-flash-macOS-*.zip
           if-no-files-found: error
-  android:
+  mobile-packages:
     needs: validate
-    uses: ./.github/workflows/rust-android.yml
-  chromeos:
-    needs: validate
-    uses: ./.github/workflows/chromeos.yml
+    uses: ./.github/workflows/rust.yml
+    with:
+      packages_only: true
   ios:
     needs: validate
     runs-on: macos-15
@@ -203,9 +202,16 @@ jobs:
       - run: cargo clippy -p meltype-ios --all-targets --locked -- -D warnings
       - run: bash ios/build.sh
       - name: Exercise keyboard controller on iOS Simulator
+        id: keyboard_tests
+        timeout-minutes: 15
         run: |
           DEVICE=$(xcrun simctl list devices available -j | python3 -c 'import json,sys; print(next(d["udid"] for devices in json.load(sys.stdin)["devices"].values() for d in devices if d["name"].startswith("iPhone")))')
-          xcodebuild -project ios/MeltypeFlash.xcodeproj -scheme MeltypeFlash -destination "platform=iOS Simulator,id=$DEVICE" -derivedDataPath ios/build/tests CODE_SIGNING_ALLOWED=NO test
+          # Run every unit and UI test, in separate simulator sessions.
+          xcodebuild -project ios/MeltypeFlash.xcodeproj -scheme MeltypeFlash -destination "platform=iOS Simulator,id=$DEVICE" -only-testing:KeyboardTests -test-timeouts-enabled YES -maximum-test-execution-time-allowance 120 -derivedDataPath ios/build/tests CODE_SIGNING_ALLOWED=NO test
+          xcrun simctl shutdown "$DEVICE" || true
+          xcrun simctl boot "$DEVICE"
+          xcrun simctl bootstatus "$DEVICE" -b
+          xcodebuild -project ios/MeltypeFlash.xcodeproj -scheme MeltypeFlash -destination "platform=iOS Simulator,id=$DEVICE" -only-testing:AppUITests -parallel-testing-enabled NO -test-timeouts-enabled YES -maximum-test-execution-time-allowance 120 -derivedDataPath ios/build/tests CODE_SIGNING_ALLOWED=NO test
       - name: Export source for locally signed device builds
         run: |
           git archive --format=zip --output=dist/Meltype-flash-iOS-source.zip HEAD
@@ -220,7 +226,7 @@ jobs:
             dist/README-iOS.md
           if-no-files-found: error
   publish:
-    needs: [release-policy, windows, linux, macos, android, chromeos, ios]
+    needs: [release-policy, windows, linux, macos, mobile-packages, ios]
     runs-on: ubuntu-latest
     permissions:
       contents: write

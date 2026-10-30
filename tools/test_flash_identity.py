@@ -17,7 +17,11 @@ class SyncRegressionTests(unittest.TestCase):
         (self.root/'README.md').write_text('# Meltype\nInstall C# from https://github.com/yksr-melt/Meltype/releases',encoding='utf-8')
         self.assertTrue(any('README' in error for error in audit.inspect(self.root)))
     def test_upstream_build_trigger_cannot_silently_return(self):
+        shutil.copyfile(self.root/'docs/ci-legacy/build.yml', self.root/'.github/workflows/build.yml')
         self.replace('.github/workflows/build.yml',"github.repository == 'yksr-melt/Meltype'",'true')
+        self.assertTrue(any('C# automation' in error for error in audit.inspect(self.root)))
+    def test_archived_build_guard_is_preserved(self):
+        self.replace('docs/ci-legacy/build.yml',"github.repository == 'yksr-melt/Meltype'",'true')
         self.assertTrue(any('C# automation' in error for error in audit.inspect(self.root)))
     def test_shared_ime_id_is_rejected(self):
         self.replace('rust/Manage-Windows.ps1','C540BAF6-88B1-5B30-B524-2C8702B034FC','417D801B-A9BD-4C26-BD16-356A825A6998')

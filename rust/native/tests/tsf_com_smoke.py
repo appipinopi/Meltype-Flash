@@ -227,6 +227,8 @@ def verify_langbar(native):
     assert other_cookie.value == 0xffffffff
     assert invoke(source, 4, HR, [U32], 123) == HR(0x80040200).value
     assert invoke(pointer, 7, HR, [HR, Point, P], 0, Point(), None) == 0
+    assert get_text() == "あ", "Unknown clicks must not toggle the input mode"
+    assert invoke(pointer, 7, HR, [HR, Point, P], 2, Point(), None) == 0
     assert get_text() == "A"
     assert get_text(6) == "Meltype-flash: 英数 (クリックで日本語)"
     assert updates == [7] and refs[0] == 2

@@ -1,57 +1,38 @@
-# CIの構成
+# CIの入口
 
-Meltype-flashの検査は、次のGitHub Actionsワークフローで行います。
+普段使う入口は次の4つです。OS別の手順は全OSビルドのジョブにまとめています。
 
-| ファイル | 役割 | 起動条件 |
-| --- | --- | --- |
-| `rust.yml` | Windows・Linux・macOSのRust検査、ABI・設定画面・参照実装との比較、Android検査の呼び出し | 関連ファイルのPR、手動 |
-| `rust-android.yml` | JNI・APK・lint・実エミュレーターの検査 | Rust preview／リリースからの呼び出し、手動 |
-| `fcitx-rust.yml` | Rust／従来版fcitx5アダプターのビルド、JSON・キー・状態・イベントABIの比較 | 関連ファイルのPR、Rust previewの手動実行からの呼び出し、単独の手動実行 |
-| `macos-rust.yml` | Carbon・IMK・Swiftの統合検査とmacOSパッケージの検査 | 関連ファイルのPR、手動 |
-| `chromeos.yml` | WASMとChromeOS拡張機能のビルド | 関連ファイルのPR、リリースからの呼び出し、手動 |
-| `flash-identity.yml` | Flash固有の実行ファイル・登録ID・保存先・公開条件の保護 | rust／mainへのpush・PR、手動 |
+|入口|定義|実行すること|
+|---|---|---|
+|PRチェック|`pr-checks.yml`|辞書形式、C#品質比較、報告の再現、Flash固有IDの保護|
+|全OSビルド・テスト|`rust.yml`|Windows・macOS・LinuxのCore/Native/設定画面、Android JNI/APK/エミュレーター、ChromeOS WASM、fcitx ABI、macOS SDK/Swift、iOSシミュレーター|
+|ベンチマーク|`platform-benchmarks.yml`|手動でWindows・macOS・LinuxのCoreとNative C ABIを比較|
+|リリース|`rust-release.yml`|明示したタグに対する全OS配布物の作成と公開。公開は手動操作のみ|
 
-Androidの手順は`rust-android.yml`だけで管理します。fcitx5の手順も`fcitx-rust.yml`だけで管理し、PRでは専用CI、Rust previewの手動実行では再利用呼び出しで検査します。
+このほか、`bot.yml`（リポジトリ管理・CLA・著作権表記）、`web.yml`、`sponsors.yml`を独立して残しています。実行可能なワークフローは計7本です。移動前の実行履歴は消していないため、GitHubの一覧にはしばらく古い名前も残る場合があります。
 
-Rust previewは参照用C#コード、設定画面の検査スクリプト、CI補助スクリプト、ブランド画像の変更でも起動します。`docs/`内だけの変更では起動しません。PRの更新時は同じPRの古い検査を中止します。手動実行は進行中の実行を中止せず、Android・fcitx5は呼び出し元ごとに待機を分けます。
+## 全OSの検証
 
-制限時間はRust desktopが90分、Androidが45分、fcitx5が30分、Flash identityが5分です。macOS SDKは既存の15分／30分を維持します。
+PRと手動操作で`rust.yml`を実行します。Coreだけでなく、mac・ios・chromeosの変更も起動条件に含めます。デスクトップの共通検証はWindows・macOS・Linuxのマトリックスで行います。OS固有のSDK・UI・エミュレーター検証は独立したジョブとして維持しています。
 
-## ベンチマークと画像
+AndroidとChromeOSの手順もこのファイルだけで管理します。リリースからは`workflow_call`の`packages_only: true`でこの2ジョブを再利用し、同じデスクトップ検証を重ねて実行しません。リリース自身のiOS配布ビルドは維持します。
 
-`rust.yml`のWindows desktopジョブで、C#の最新安定版・前のRust公開版・現在のRust版の共通Coreを比較します。Cargoのバージョンより前の公開タグを数値順に探します。現在はPre4なので`flash-v0.1.0-preview.3`が基準です。手動実行の`benchmark_baseline`でタグまたはコミットを指定することもできます。
+PR更新時は同じPRの古いデスクトップ・Android実行を中止します。手動実行は完了まで待機します。ビルド成功、シミュレーター確認、実機IME入力の確認は別のものとして報告してください。
 
-両版を同じRustコンパイラでReleaseビルドします。現在版のRelease依存関係を利用し、前のRust版はCoreと測定ホストだけを追加ビルドします。C#の最新安定タグも自動選択し、.NET 10のNativeAOTでCoreと測定ホストを追加ビルドします。プロセスを交互に測定する前に両バイナリを固定し、元のビルド先が上書きされても影響を受けないようにします。各版のコード・依存関係・同梱辞書の違いを含む比較です。コンパイラ・コミット・辞書・ソース・バイナリのハッシュも保存します。
+## ベンチマーク
 
-日本語・混在・英語・URL・編集の計21ケースで、各ケースを1回ウォームアップして5回測定します。C#→旧Rust→現在Rust、旧Rust→現在Rust→C#、現在Rust→C#→旧Rustの3巡で、各版・各ケース15試行です。リリース作成時は3試行×9巡です。外部変換・予測・学習・TSF・描画は対象外で、プロセス全体のCPU・RAMとキー処理の時間は区別します。
+通常のビルドでは性能測定を重ねて実行しません。手動のベンチマーク入口と公開用CIで、本家C# 1.4.0（`46db6ca2f941eb9580f4d5ed103ee0bee71111c7`）・前のRust公開版・現在のRustを比較します。本家はこのコミットに固定します。前版は現在のCargoの版より古い公開タグを数値順に選びます。Pre7ならPre6、0.1.1 Pre1なら0.1.0です。`benchmark_baseline`でタグやコミットを指定することもできます。
 
-実行のSummaryに中央値・新/旧の時間比・比較対象の状態一致を表示します。`windows-common-benchmark`成果物から、次を取得できます（保存期間14日）。
+CoreはRustのみの5枚とC#を含む3者比較5枚、Native C ABIはRustのみの5枚です。入力時間・CPU・RAMを分け、各パネルの表示範囲を調整します。極端な外れ値は図の説明と表へ残し、元データも保持します。同じ版内の比較はbefore/afterを付けます。
 
-- `charts/speed-32-64.png`、`speed-128-256.png`、`speed-short-edit.png`: 全21ケースの時間の分布
-- `charts/cpu.png`、`charts/ram.png`: 各版3プロセスのCPU・メモリ観測値
-- `report.json`、`*.jsonl`、`resources.json`、ビルドログ: 測定条件・ハッシュ・生データ
-- `charts/summary.json`、CSV、統計JSON、`README.md`: 再描画用データと説明
+21種類の入力を同じコンパイラで比較し、ソース・バイナリ・辞書のハッシュと状態一致を記録します。状態が異なるケースを同等動作の速度比較に使いません。前版と現在版の品質評価もそれぞれ保存し、現在版は既存の品質基準で検査します。異なる公開版には修正差分があるため、両版の品質JSONが完全一致することは要求しません。
 
-箱ひげ図は全観測値で統計を計算し、表示範囲を自動調整します。大きく離れた外れ値は画像に件数、本文の表に値を記載します。動作が違うケースには`TRACE MISMATCH`を付け、同等動作の速度比較から除外します。ソースやバイナリが測定中に変わった場合は画像生成を失敗させます。共有ランナーの速度変動を考慮し、固定倍率での合否判定は行いません。
+Windows・macOS・Linuxの観測はOSごとに分け、異なるランナーの値を合算しません。Android・iOS・ChromeOSは実機がない場合は未測定です。別OSのCore値やクロスビルドを実測として扱いません。成果物は3日間保持し、リリースAssetsには画像や生データを追加しません。
 
-画像にはmatplotlib 3.10.8とNumPy 2.4.2を使います。依存関係を測定前に導入し、測定中は同じジョブで他のビルドを動かしません。測定ステップは35分（リリースは40分）で打ち切り、後続テストが失敗した場合も測定済みデータを保存します。成果物には基準ソースやバイナリを含めません。
+## 権限と保管した定義
 
-測定専用のジョブやOSマトリックスは増やしません。3者比較は既存のWindowsジョブ内でPythonが自動実行し、整形確認はLinuxの1回にまとめます。従来の手動C#比較は`tools/benchmark-windows.py`で引き続き実行できます。
+`PRチェック`は読み取り権限でPRのコードを実行します。書き込み権限を持つCLA・著作権Botは、引き続き既定ブランチのBotだけをcheckoutし、PRのコードを実行しません。必須チェック名`Flash identity`は維持します。
 
-## 手元での確認
+停止済みの上流C#向け定義、上流専用IME検証、Pre3専用の追加配布定義は`docs/ci-legacy/`へ保管しました。テスト本体や過去の実行履歴は削除していません。現行の全OS配布は`rust-release.yml`を使います。
 
-変更したワークフローに`actionlint`を実行します。加えて、Flashの識別情報を次で確認できます。
-
-```powershell
-python tools/check-flash-identity.py
-python -m unittest discover -s tools -p test_flash_identity.py -v
-```
-
-各OSの統合検査はGitHub Actionsで確認します。リリース公開は引き続き手動操作で、`rust-release.yml`と`rust-distributions.yml`が担当します。上流C#版のビルド・配布ワークフローにあるリポジトリ条件は維持します。
-
-## 整理時点で確認した既存の失敗
-
-2026年10月22日の[実行39777313015](https://github.com/appipinopi/Meltype-Flash/actions/runs/39777313015)には、Windowsの`nihongoGitHub`の参照実装との分節不一致と、Androidの確認ダイアログで「復元」ボタンを検出できない失敗があります。今回の整理では該当テストを維持しています。CI設定の検証成功と、各OSの統合検査成功は別に確認してください。
-
-
-新しい3者レポートからは、Rust前版・現在版の2者比較5枚（`rust-*.png`）と、C#・Rust前版・現在版の3者比較5枚（従来の画像名）の計10枚を生成します。両セットは同じ測定データを使い、それぞれに適した表示範囲を選びます。本文には両セットの外れ値表と画像10枚を掲載します。凡例と表には`Rust v0.1.0 pre3`、`Rust v0.1.0 pre4`、`Rust v0.1.0`のように実際の版を表示します。`v0.1.1 pre1`の前版は、公開タグに`v0.1.0`があればその正式版です。過去の2者レポートは引き続き5枚で再描画できます。
+変更時はactionlint、Flash識別情報の検査、ベンチマークのPythonテストを実行します。各OSのビルドと統合検査はGitHub Actionsで確認します。

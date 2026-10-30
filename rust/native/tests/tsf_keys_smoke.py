@@ -81,7 +81,8 @@ class KeyboardTests(unittest.TestCase):
                     expected = self.reference.meltype_reference_key_flags(key, message)
                     # #599: the frozen reference predates CompatibleShortcuts.
                     # K/L must reach the core, which decides from the setting.
-                    if key in [0x4b, 0x4c] and mods & 2 and not mods & 12:
+                    # #1107: Ctrl+Enter confirms through the core before a chat can send.
+                    if key in [0x0d, 0x4b, 0x4c] and mods & 2 and not mods & 12:
                         expected |= 8
                     self.assertEqual(self.api.meltype_tsf_key_flags(key, message, mods), expected, (key, message, mods))
 
@@ -250,7 +251,7 @@ class AcceptanceTests(KeyboardTests):
 
     def test_composition_ctrl_shortcuts_remain_internal_and_other_shortcuts_commit(self):
         self.mods(2)
-        for key in [0x48, 0x55, 0x49, 0x4b, 0x4c, 0x4f, 0x50]:
+        for key in [0x0d, 0x48, 0x55, 0x49, 0x4b, 0x4c, 0x4f, 0x50]:
             self.composing()
             self.assertTrue(self.dispatch(key)[0])
             self.assertFalse(any(event[0] == "now" for event in self.events))

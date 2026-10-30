@@ -4,6 +4,7 @@ mod clause_metadata;
 mod direct;
 mod engine_learning;
 mod misspelling;
+mod mode;
 mod reconversion;
 mod v130;
 #[cfg(feature = "filesystem")]
@@ -1342,14 +1343,16 @@ impl Session {
         if format_phrases && self.automatic_english_spacing && self.function_key == 0 {
             text = crate::phrase_spacing::format(&text);
         }
-        if space_around || format_phrases && self.settings.boolean("SpaceAroundNumbers") {
-            text = space_words(
-                &text,
-                &self.before,
-                &self.after,
-                space_around,
-                format_phrases && self.settings.boolean("SpaceAroundNumbers"),
-            );
+        if space_around {
+            text = space_words(&text, &self.before, &self.after, true, false);
+        }
+        if format_phrases
+            && self.settings.boolean("SpaceAroundNumbers")
+            && !self.direct
+            && !self.private
+            && !self.code_english()
+        {
+            text = crate::phrase_spacing::space_numbers(&text, &self.before, &self.after);
         }
         let english =
             !text.trim().is_empty() && text.trim().bytes().all(|b| b.is_ascii_alphabetic());
@@ -2187,7 +2190,9 @@ impl Session {
                 if group.iter().zip(parts).all(|(clause, (reading, word))| {
                     &clause.reading == reading && clause.candidates.first() == Some(word)
                 }) {
-                    for (slot, (_, word)) in choices[start..start + parts.len()].iter_mut().zip(parts) {
+                    for (slot, (_, word)) in
+                        choices[start..start + parts.len()].iter_mut().zip(parts)
+                    {
                         *slot = Some(word.clone());
                     }
                 }
@@ -2439,6 +2444,25 @@ impl Session {
             result.consumed = false;
             return result;
         }
+        if self.settings.boolean("NumpadDirect")
+            && matches!(vk, 0x60..=0x69 | 0x6a | 0x6b | 0x6d..=0x6f)
+            && matches!(
+                char::from_u32(ch as u32),
+                Some('0'..='9' | '*' | '+' | '-' | '.' | '/')
+            )
+        {
+            let mut result = self.commit();
+            let text = char::from_u32(ch as u32).unwrap().to_string();
+            self.before.push_str(&text);
+            result.commits.push(TextEdit {
+                text,
+                delete_before: 0,
+                caret_back: 0,
+                expect: None,
+            });
+            result.consumed = true;
+            return result;
+        }
         if self.is_converting()
             && modifiers & 1 == 0
             && (matches!(vk, 0x31..=0x39)
@@ -2671,6 +2695,16 @@ impl Session {
                 self.begin_conversion(vec![]);
                 self.result(true)
             }
+            0x1d if self.settings.boolean("MuhenkanKatakanaCycle") && !self.raw.is_empty() => self
+                .key(
+                    match self.function_key {
+                        0x76 => 0x77,
+                        0x77 => 0x75,
+                        _ => 0x76,
+                    },
+                    0,
+                    modifiers,
+                ),
             0x1d if self.settings.boolean("SeparateKeyRoles") && !self.raw.is_empty() => {
                 self.key(0x79, 0, modifiers)
             }
@@ -2935,6 +2969,7 @@ impl Session {
                 if self.edited_units.is_none()
                     && !self.uses_kana()
                     && self.settings.boolean("ZSymbols")
+                    && !self.settings.boolean("DisableZShortcuts")
                     && crate::protection::scan(&self.raw).is_empty()
                     && romaji::z_symbol(character).is_some()
                     && !self.raw.to_ascii_lowercase().ends_with("zz")
@@ -2952,7 +2987,8 @@ impl Session {
                     if units.raw() == self.raw {
                         units.push_with_z_symbols(
                             &character.to_string(),
-                            self.settings.boolean("ZSymbols"),
+                            self.settings.boolean("ZSymbols")
+                                && !self.settings.boolean("DisableZShortcuts"),
                         );
                     } else {
                         self.edited_units = None;

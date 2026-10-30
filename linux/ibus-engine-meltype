@@ -90,6 +90,17 @@ if _role_key is not None:
     _role_key.argtypes = [ctypes.c_void_p, ctypes.c_int]
     _role_key.restype = ctypes.c_void_p
 
+_mode_key = getattr(_lib, "meltype_mode_key", None)
+_input_mode = getattr(_lib, "meltype_input_mode", None)
+_caret_moved = getattr(_lib, "meltype_caret_moved", None)
+if _caret_moved is not None:
+    _caret_moved.argtypes = [ctypes.c_void_p, ctypes.c_int, ctypes.c_int]
+if _mode_key is not None and _input_mode is not None:
+    _mode_key.argtypes = [ctypes.c_void_p, ctypes.c_int, ctypes.c_int]
+    _mode_key.restype = ctypes.c_void_p
+    _input_mode.argtypes = [ctypes.c_void_p]
+    _input_mode.restype = ctypes.c_int
+
 ROLE_KEYS = {IBus.KEY_Henkan: 0x1C, IBus.KEY_Muhenkan: 0x1D, IBus.KEY_Hiragana_Katakana: 0x15}
 
 # 半角/全角: 英数 (直接入力) ⇔ 日本語。英数・ひらがなのキーでも切り替える (JIS キーボード)。
@@ -214,13 +225,22 @@ class MeltypeEngine(IBus.Engine):
             if pointer:
                 self._apply(_result(pointer))
                 return True
+        vk, character = virtual_key(keyval)
+        mode_vk = (0x19 if keyval in ZENKAKU_HANKAKU_KEYS else
+                   0x1A if keyval in ALWAYS_DIRECT_KEYS else
+                   ROLE_KEYS.get(keyval, vk))
+        modifiers = modifier_flags(state)
+        if _mode_key is not None and _input_mode is not None and mode_vk is not None:
+            pointer = _mode_key(self._session, mode_vk, modifiers)
+            if pointer:
+                self._apply(_result(pointer))
+                self._direct = _input_mode(self._session) == 1
+                return True
         if keyval in MODE_SWITCH_KEYS:
             self._switch_mode(keyval)
             return True
-        vk, character = virtual_key(keyval)
         if vk is None:
             return False
-        modifiers = modifier_flags(state)
         before, after = (None, None) if self._preedit_visible else self._surrounding_text()
         result = _result(_lib.meltype_handle_key(
             self._session, vk, character, modifiers,
@@ -280,6 +300,10 @@ class MeltypeEngine(IBus.Engine):
             _set_code_input(self._session, 1 if purpose == IBus.InputPurpose.TERMINAL else 0)
 
     def do_focus_in(self):
+        if self._session and _caret_moved is not None:
+            _caret_moved(self._session, 0, 0)
+        if self._session and _input_mode is not None:
+            self._direct = _input_mode(self._session) == 1
         self.register_properties(self._properties)
 
     def do_property_activate(self, prop_name, state):

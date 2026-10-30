@@ -1,15 +1,8 @@
 // SPDX-License-Identifier: GPL-3.0-or-later
 // Copyright (C) 2026 Yukishiro, appipinopi
 use serde_json::Value;
-use std::sync::OnceLock;
 fn data() -> &'static Value {
-    static DATA: OnceLock<Value> = OnceLock::new();
-    DATA.get_or_init(|| {
-        serde_json::from_str(
-            &include_str!("../settings-ui.json").replace("Meltype", "Meltype-flash"),
-        )
-        .expect("settings UI metadata")
-    })
+    meltype_core::settings_schema::metadata()
 }
 pub fn fields() -> &'static [Value] {
     data()["fields"].as_array().unwrap()

@@ -130,6 +130,17 @@ fn translate(symbol: u32, scalar: u32) -> (u32, u32) {
     };
     (key, scalar)
 }
+pub(crate) fn sync_input_mode(handle: *mut c_void) -> Option<bool> {
+    let direct = match meltype_input_mode(handle) {
+        0 => false,
+        1 => true,
+        _ => return None,
+    };
+    let mut all = frontends().lock().ok()?;
+    let state = all.get_mut(&(handle as usize))?;
+    state.direct = direct;
+    Some(direct)
+}
 /// Low 32 bits: virtual key; high 32 bits: Unicode scalar. Zero means unhandled.
 #[no_mangle]
 pub extern "C" fn meltype_fcitx_key(symbol: u32, scalar: u32) -> u64 {

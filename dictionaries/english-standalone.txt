@@ -1,0 +1,6 @@
+# 単独の単語として打った場合だけ英字を保つ語。
+# english-readable.txt と異なり、日本語の途中をこの語で切り出さない。
+# Issue #918: pure は英語、puretuma のような後続ローマ字は通常の判定を続ける。
+pure
+# Issue #1003。metaru（メタル）などの途中には適用しない。
+meta

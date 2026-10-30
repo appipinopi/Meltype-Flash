@@ -24,6 +24,7 @@ pub mod protection;
 pub mod romaji;
 pub mod session;
 pub mod settings;
+pub mod settings_schema;
 pub mod shortcuts;
 mod sigil;
 pub mod spelling;

@@ -3,8 +3,8 @@
 <a id="meltype-for-linux"></a>
 <p align="center"><img src="../assets/branding/readme/linux/hero.svg" alt="Meltype-flash for Linux" width="1000"></p>
 <p align="center"><b>稲妻のように、言葉の壁を駆け抜ける日本語入力。</b></p>
-<p align="center"><a href="https://github.com/appipinopi/Meltype/releases/tag/flash-v0.1.0-preview.3"><img src="https://img.shields.io/badge/Flash-v0.1.0_Pre3-ffe34a" alt="Flash v0.1.0 Pre3"></a> <img src="https://img.shields.io/badge/status-開発プレビュー-666973" alt="開発プレビュー"></p>
-<p align="center"><a href="#インストール">ダウンロード・導入</a> · <a href="#使い方">使い方</a> · <a href="#困ったとき">困ったとき</a> · <a href="https://github.com/appipinopi/Meltype/issues/new/choose">不具合の報告・提案</a></p>
+<p align="center"><a href="https://github.com/appipinopi/Meltype-Flash/releases/tag/flash-v0.1.0-preview.7"><img src="https://img.shields.io/badge/Flash-v0.1.0_Pre7-ffe34a" alt="Flash v0.1.0 Pre7"></a> <img src="https://img.shields.io/badge/status-開発プレビュー-666973" alt="開発プレビュー"></p>
+<p align="center"><a href="#インストール">ダウンロード・導入</a> · <a href="#使い方">使い方</a> · <a href="#困ったとき">困ったとき</a> · <a href="https://github.com/appipinopi/Meltype-Flash/issues/new/choose">不具合の報告・提案</a></p>
 <p align="center">
   <a href="../rust/WINDOWS-PACKAGE.md"><img src="../assets/branding/readme/cards/os-windows.svg" alt="Windows" width="32%"></a>
   <a href="README.md"><img src="../assets/branding/readme/cards/os-linux-active.svg" alt="Linux" width="32%"></a>
@@ -45,30 +45,18 @@ fcitx5を使う環境は、下記のソースビルドと開発状況を参照�
 <a id="ubuntu向けdeb"></a>
 <h3><img src="../assets/branding/readme/linux/headings/a3beabf6efc7.svg" alt="Ubuntu向けdeb" width="1000"></h3>
 
-[FlashのPre3](https://github.com/appipinopi/Meltype/releases/tag/flash-v0.1.0-preview.3) からCPUに合うdebを取得し、そのファイルがあるフォルダーで実行します。
+Pre7ではdebとARM64版を添付していません。次のx64向けtar.gzを使ってください。
+
+[Pre7](https://github.com/appipinopi/Meltype-Flash/releases/tag/flash-v0.1.0-preview.7)の`Meltype-flash-Linux-x64.tar.gz`を全体展開し、`Meltype-flash-linux`フォルダーで実行します。
 
 ```sh
-# x64
-sudo apt install ./meltype-flash_0.1.0-pre.3_amd64.deb
-# ARM64ではこちら
-# sudo apt install ./meltype-flash_0.1.0-pre.3_arm64.deb
+bash install.sh
 ```
 
-<a id="zipから入れる"></a>
-<h3><img src="../assets/branding/readme/linux/headings/49219135210e.svg" alt="ZIPから入れる" width="1000"></h3>
-
-`Meltype-flash-Linux-x64.zip` または `Meltype-flash-Linux-arm64.zip` を**全体展開**し、`install.sh` のあるフォルダーで実行します。
-
-```sh
-sudo bash install.sh --system
-```
-
-導入後はログアウト・ログインし、OSのキーボード設定またはIBusの入力ソースに **Meltype-flash** を追加して選びます。
-ZIP用インストーラーはIBusを自動再起動したり、既定の入力方法を変更したりしません。
-debとZIPの管理方法を混ぜず、どちらで導入したか記録してください。
+導入後はログアウト・ログインし、OSのIBus入力ソースにMeltype-flashを追加して選びます。標準の配布物は補助辞書による変換に制限があります。
 
 <a id="使い方"></a>
-<h2><img src="../assets/branding/readme/linux/headings/23ca31abc8fa.svg" alt="使い方" width="1000"></h2>
+<h2><img src="../assets/branding/readme/linux/headings/f2353c3aa1bc.svg" alt="使い方" width="1000"></h2>
 
 入力ソースをMeltype-flashへ切り替え、テキスト欄にローマ字を入力します。
 
@@ -87,13 +75,13 @@ GNOMEの入力ソースにある「設定」からも設定画面を開けます
 アプリ別設定は [専用の案内](../rust/APP-RULES.md) を参照してください。IBusがアプリ名を渡さない経路では、自動切替を行いません。
 
 <a id="プライバシー"></a>
-<h2><img src="../assets/branding/readme/linux/headings/8e97c515b5c1.svg" alt="プライバシー" width="1000"></h2>
+<h2><img src="../assets/branding/readme/linux/headings/5b98193660c4.svg" alt="プライバシー" width="1000"></h2>
 
 共通Coreのデータは `${XDG_DATA_HOME:-~/.local/share}/Meltype-flash` に保存します。`MELTYPE_FLASH_DATA_DIR` で明示した保存先はそちらを優先します。
 通常の変換はローカルで処理します。設定・学習・辞書のバックアップには個人の語句が含まれる場合があります。
 
 <a id="困ったとき"></a>
-<h2><img src="../assets/branding/readme/linux/headings/eb24f202926d.svg" alt="困ったとき" width="1000"></h2>
+<h2><img src="../assets/branding/readme/linux/headings/4466f22d7395.svg" alt="困ったとき" width="1000"></h2>
 
 <details>
 <summary>入力ソースに出てこない</summary>
@@ -107,13 +95,13 @@ GNOMEの入力ソースにある「設定」からも設定画面を開けます
 <details>
 <summary>変換の候補が少ない・アプリによって入力できない</summary>
 
-公開IBus版は補助辞書による制限があります。OS・デスクトップ・Wayland/X11・アプリ名・入力例を [Issues](https://github.com/appipinopi/Meltype/issues/new/choose) に添えてください。
+公開IBus版は補助辞書による制限があります。OS・デスクトップ・Wayland/X11・アプリ名・入力例を [Issues](https://github.com/appipinopi/Meltype-Flash/issues/new/choose) に添えてください。
 端末や入力方式の違いを確かめるため、別の一般的なテキスト欄でも結果を比較してください。
 
 </details>
 
 <a id="アンインストール"></a>
-<h2><img src="../assets/branding/readme/linux/headings/0ccba09763e7.svg" alt="アンインストール" width="1000"></h2>
+<h2><img src="../assets/branding/readme/linux/headings/9648f59fe13b.svg" alt="アンインストール" width="1000"></h2>
 
 先にOSの入力ソースを別のものへ切り替え、Meltype-flashを入力ソース一覧から外します。
 
@@ -132,10 +120,10 @@ sudo bash /usr/libexec/meltype-flash/ibus/install.sh --system --uninstall
 個人の設定・学習は残ります。必要なデータを保存してから、削除するか判断してください。
 
 <a id="開発者向け"></a>
-<h2><img src="../assets/branding/readme/linux/headings/2e75e45b5878.svg" alt="開発者向け" width="1000"></h2>
+<h2><img src="../assets/branding/readme/linux/headings/9f8c2f09ae3c.svg" alt="開発者向け" width="1000"></h2>
 
 <a id="ソースからビルドする"></a>
-<h3><img src="../assets/branding/readme/linux/headings/7d54fb5c85d4.svg" alt="ソースからビルドする" width="1000"></h3>
+<h3><img src="../assets/branding/readme/linux/headings/f9d4e9685bb1.svg" alt="ソースからビルドする" width="1000"></h3>
 
 Rust 1.88以上、Cリンカー、IBus / GLibの開発用パッケージが必要です。リポジトリのルートで実行します。
 
@@ -149,7 +137,16 @@ Mozcヘルパーがない場合は、補助辞書によるパッケージを作�
 fcitx5のRustアダプターは `linux/fcitx5` にあり、必要な開発用ライブラリとCMakeを使います。[Rust用CI](../.github/workflows/rust.yml) と [移行記録](../rust/MIGRATION.md) を参照してください。
 本家向けの `linux/build.sh` / `linux/install.sh` とFlashの上記スクリプトを取り違えないでください。
 
+<a id="ターミナルと追加の切替キー"></a>
+<h3><img src="../assets/branding/readme/linux/headings/b5a47c3564e2.svg" alt="ターミナルと追加の切替キー" width="1000"></h3>
+
+ターミナルは英数のコード入力を既定にします。半角/全角でその入力行を日本語にし、もう一度押すと英数へ戻せます。カーソル移動・Tab・Ctrl操作で入力欄へキーを渡した場合や、フォーカスを移した場合は、コード入力へ戻ります。
+
+Rust版IBusとfcitx5では、既存の設定 `ToggleKeyboardShortcuts` に `Shift+Space; Ctrl+Space` のように指定すると、それらを切替キーとして処理します。切替時は表示中の入力を一度だけ確定し、余分な空白を挿入しません。設定が空なら、Shift+Spaceの従来の動作を保ちます。
+
+IBusはWSLの隔離したXvfb・D-Bus環境でも検証しています。通常のデスクトップや各アプリでの実機確認とは区別してください。
+
 <a id="ライセンス"></a>
-<h2><img src="../assets/branding/readme/linux/headings/c9f99e4fd56f.svg" alt="ライセンス" width="1000"></h2>
+<h2><img src="../assets/branding/readme/linux/headings/7b96bc7bad42.svg" alt="ライセンス" width="1000"></h2>
 
 [GPL-3.0-or-later](../LICENSE)。辞書と依存ライブラリのライセンスは [THIRD-PARTY-NOTICES.md](../THIRD-PARTY-NOTICES.md) を参照してください。

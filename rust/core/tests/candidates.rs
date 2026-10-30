@@ -42,7 +42,15 @@ fn upstream_date_and_clock_formats_validate_calendar_and_fullwidth_digits() {
     );
     assert_eq!(
         time::typed("１０がつ９にち", 2026).unwrap(),
-        ["10/9", "10/09", "10/9(金)", "2026/10/09"]
+        [
+            "10/9",
+            "10/09",
+            "10/9(金)",
+            "2026/10/09",
+            "10月9日",
+            "10月9日(金)",
+            "2026/10/09(金)"
+        ]
     );
     assert_eq!(time::typed("３じ５ぷん", 2026).unwrap(), ["3:05", "03:05"]);
     assert!(time::typed("2がつ29にち", 2026).unwrap().is_empty());

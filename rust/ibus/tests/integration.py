@@ -384,6 +384,69 @@ class EngineTests(unittest.TestCase):
         self.assertEqual(self.document, "kon")
         self.assertEqual(self.marked, "")
 
+    def test_issue_1022_terminal_can_switch_to_japanese_then_return_to_code(self):
+        self.context.set_content_type(IBus.InputPurpose.TERMINAL, 0)
+        pump()
+        self.assertFalse(any(self.type("a")))
+        self.assertTrue(self.key(IBus.KEY_Zenkaku_Hankaku))
+        self.assertTrue(all(self.type("nihongo")))
+        self.assertEqual(self.marked, "にほんご")
+        self.key(IBus.KEY_Return)
+        self.assertEqual(self.document, "aにほんご")
+        self.assertFalse(self.key(IBus.KEY_Left))
+        self.assertFalse(any(self.type("a")))
+        self.assertEqual(self.marked, "")
+
+    def test_issue_1033_shift_space_uses_configured_switch_without_inserting_space(self):
+        path = self.root / "data/config.json"
+        original = path.read_bytes()
+        self.addCleanup(path.write_bytes, original)
+        settings = json.loads(original)
+        settings["ToggleKeyboardShortcuts"] = "Shift+Space"
+        path.write_text(json.dumps(settings), encoding="utf-8")
+        self.assertTrue(all(self.type("kyou")))
+        self.assertEqual(self.marked, "きょう")
+        shift = int(IBus.ModifierType.SHIFT_MASK)
+        self.assertTrue(self.key(IBus.KEY_space, state=shift))
+        self.assertEqual(self.document, "きょう")
+        self.assertEqual(self.marked, "")
+        self.assertFalse(any(self.type("x")))
+        self.assertTrue(self.key(IBus.KEY_space, state=shift))
+        self.assertTrue(all(self.type("nihongo")))
+        self.assertEqual(self.marked, "にほんご")
+
+    def test_issue_1113_muhenkan_cycles_katakana_without_mode_change(self):
+        path = self.root / "data/config.json"
+        settings = json.loads(path.read_text(encoding="utf-8"))
+        updated = dict(settings, MuhenkanKatakanaCycle=True)
+        path.write_text(json.dumps(updated), encoding="utf-8")
+        self.addCleanup(path.write_text, json.dumps(settings), encoding="utf-8")
+        self.type("katakana")
+        for expected in ["カタカナ", "ｶﾀｶﾅ", "かたかな"]:
+            self.assertTrue(self.key(IBus.KEY_Muhenkan))
+            self.assertEqual(self.marked, expected)
+            self.assertEqual(self.document, "")
+        self.key(IBus.KEY_Return)
+        self.assertEqual(self.document, "かたかな")
+
+    def test_issue_1016_page_down_up_keep_candidates_unconfirmed(self):
+        self.type("merutaipu")
+        self.key(IBus.KEY_space)
+        self.assertGreater(len(self.candidates), 9)
+        selected = self.selected_candidate
+        self.assertTrue(self.key(IBus.KEY_Page_Down))
+        self.assertEqual(self.document, "")
+        self.assertEqual(self.selected_candidate, min(selected + 9, len(self.candidates) - 1))
+        self.assertTrue(self.key(IBus.KEY_Page_Up))
+        self.assertEqual(self.selected_candidate, selected)
+        self.assertEqual(self.document, "")
+
+    def test_issue_1107_control_enter_confirms_and_is_consumed(self):
+        self.type("kyou")
+        self.assertTrue(self.key(IBus.KEY_Return, state=int(IBus.ModifierType.CONTROL_MASK)))
+        self.assertEqual(self.document, "きょう")
+        self.assertEqual(self.marked, "")
+
     @classmethod
     def tearDownClass(cls):
         for name, file in [("engine", cls.engine_log), ("daemon", cls.daemon_log)]:

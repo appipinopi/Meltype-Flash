@@ -1,6 +1,15 @@
 // SPDX-License-Identifier: GPL-3.0-or-later
 // Copyright (C) 2026 Yukishiro, appipinopi
 #![cfg_attr(not(target_os = "linux"), allow(dead_code))]
+pub fn mode_key(keyval: u32, scalar: u32) -> Option<i32> {
+    Some(match keyval {
+        0xff28..=0xff2a => 0x19,
+        0xff30 | 0xff22 => 0x1a,
+        0xff23 => 0x1c,
+        0xff27 => 0x15,
+        _ => translate(keyval, scalar)?.0,
+    })
+}
 pub fn translate(keyval: u32, scalar: u32) -> Option<(i32, i32)> {
     let vk = match keyval {
         0xff0d | 0xff8d => 13,
@@ -62,5 +71,12 @@ mod tests {
         assert_eq!(translate(0, 0), None);
         assert_eq!(modifiers(1 | 4 | 8 | (1 << 26)), 15);
         assert_eq!(modifiers((1 << 1) | (1 << 4)), 0); // Caps/Num lock
+    }
+    #[test]
+    fn mode_keys_include_builtins_and_configurable_space() {
+        assert_eq!(mode_key(0xff2a, 0), Some(0x19));
+        assert_eq!(mode_key(0xff22, 0), Some(0x1a));
+        assert_eq!(mode_key(0xff23, 0), Some(0x1c));
+        assert_eq!(mode_key(32, 32), Some(32));
     }
 }

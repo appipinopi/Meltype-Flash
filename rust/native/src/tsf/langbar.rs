@@ -179,15 +179,86 @@ unsafe extern "system" fn text(this: *mut c_void, out: *mut MaybeUninit<BSTR>) -
 }
 unsafe extern "system" fn click(
     this: *mut c_void,
-    _click: TfLBIClick,
+    click: TfLBIClick,
     _point: POINT,
     _area: *const RECT,
 ) -> HRESULT {
     // Do not hold the lock across a callback: changing the mode can call Update
     // or Deactivate/Detach synchronously from the same TSF thread.
     if let Some(c) = client(bar(this)) {
-        (c.toggle)(c.context);
+        match click {
+            TF_LBI_CLK_LEFT => (c.toggle)(c.context),
+            TF_LBI_CLK_RIGHT => return open_settings(),
+            _ => {}
+        }
     }
+    S_OK
+}
+
+fn settings_candidates(module: &std::path::Path) -> Vec<std::path::PathBuf> {
+    let Some(directory) = module.parent() else {
+        return vec![];
+    };
+    let mut candidates = vec![directory.join("meltype-flash.exe")];
+    // Installed packages keep DLLs under tip/x64 and tip/x86. Never search
+    // PATH or the host application's working directory for an executable.
+    if directory
+        .file_name()
+        .is_some_and(|name| name == "x64" || name == "x86")
+    {
+        if let Some(tip) = directory
+            .parent()
+            .filter(|p| p.file_name().is_some_and(|n| n == "tip"))
+        {
+            if let Some(package) = tip.parent() {
+                candidates.push(package.join("meltype-flash.exe"));
+            }
+        }
+    }
+    candidates
+}
+
+#[cfg(not(test))]
+fn open_settings() -> HRESULT {
+    use std::os::windows::{ffi::OsStringExt, process::CommandExt};
+    use windows::{core::PCWSTR, Win32::System::LibraryLoader::*};
+    let mut module = HMODULE::default();
+    let mut path = vec![0; 32768];
+    unsafe {
+        if let Err(error) = GetModuleHandleExW(
+            GET_MODULE_HANDLE_EX_FLAG_FROM_ADDRESS | GET_MODULE_HANDLE_EX_FLAG_UNCHANGED_REFCOUNT,
+            PCWSTR(open_settings as *const () as *const u16),
+            &mut module,
+        ) {
+            return error.code();
+        }
+        let count = GetModuleFileNameW(module, &mut path) as usize;
+        if count == 0 || count >= path.len() {
+            return E_FAIL;
+        }
+        let module = std::path::PathBuf::from(std::ffi::OsString::from_wide(&path[..count]));
+        let Some(executable) = settings_candidates(&module)
+            .into_iter()
+            .find(|p| p.is_file())
+        else {
+            return HRESULT::from_win32(ERROR_FILE_NOT_FOUND.0);
+        };
+        match std::process::Command::new(&executable)
+            .current_dir(executable.parent().unwrap())
+            .creation_flags(0x08000000)
+            .spawn()
+        {
+            Ok(_) => S_OK,
+            Err(_) => E_FAIL,
+        }
+    }
+}
+
+#[cfg(test)]
+static SETTINGS_OPENS: AtomicU32 = AtomicU32::new(0);
+#[cfg(test)]
+fn open_settings() -> HRESULT {
+    SETTINGS_OPENS.fetch_add(1, Ordering::Relaxed);
     S_OK
 }
 unsafe extern "system" fn init_menu(_this: *mut c_void, _menu: *mut c_void) -> HRESULT {
@@ -499,4 +570,51 @@ unsafe fn create_icon(open: bool) -> windows::core::Result<HICON> {
     });
     let _ = DeleteObject(mask);
     result
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    static MODE: AtomicU32 = AtomicU32::new(1);
+    unsafe extern "C" fn read(_: *mut c_void) -> i32 {
+        MODE.load(Ordering::Relaxed) as i32
+    }
+    unsafe extern "C" fn toggle(_: *mut c_void) {
+        MODE.fetch_xor(1, Ordering::Relaxed);
+    }
+
+    #[test]
+    fn issue_1118_right_click_opens_settings_without_changing_input_mode() {
+        let pointer = create(ptr::null_mut(), Some(read), Some(toggle), None);
+        unsafe {
+            assert_eq!(
+                click(pointer, TF_LBI_CLK_RIGHT, POINT::default(), ptr::null()),
+                S_OK
+            );
+            assert_eq!(MODE.load(Ordering::Relaxed), 1);
+            assert_eq!(SETTINGS_OPENS.load(Ordering::Relaxed), 1);
+            assert_eq!(
+                click(pointer, TF_LBI_CLK_LEFT, POINT::default(), ptr::null()),
+                S_OK
+            );
+            assert_eq!(MODE.load(Ordering::Relaxed), 0);
+            assert_eq!(release(pointer), 0);
+        }
+    }
+
+    #[test]
+    fn settings_executable_is_resolved_only_inside_the_package() {
+        use std::path::Path;
+        assert_eq!(
+            settings_candidates(Path::new("C:/package/tip/x64/MeltypeTip.dll")),
+            vec![
+                Path::new("C:/package/tip/x64/meltype-flash.exe").to_path_buf(),
+                Path::new("C:/package/meltype-flash.exe").to_path_buf(),
+            ]
+        );
+        assert_eq!(
+            settings_candidates(Path::new("C:/other/native.dll")),
+            vec![Path::new("C:/other/meltype-flash.exe").to_path_buf(),]
+        );
+    }
 }

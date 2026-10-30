@@ -86,6 +86,24 @@ pub unsafe extern "C" fn meltype_fcitx_key_event(
             return 1;
         }
     }
+    let packed = meltype_fcitx_key(symbol, scalar);
+    let vk = packed as u32 as i32;
+    let mode_vk = match symbol {
+        0xff28..=0xff2a => 0x19,
+        0xff30 | 0xff22 => 0x1a,
+        0xff23 => 0x1c,
+        0xff27 => 0x15,
+        _ => vk,
+    };
+    let modifiers = meltype_fcitx_modifiers(states) | i32::from(symbol == 0xfe20);
+    if let Some((bytes, _)) = reply(meltype_mode_key(handle, mode_vk, modifiers)) {
+        apply(handle, &bytes, context, callback);
+        if let Some(direct) = sync_input_mode(handle) {
+            let label = if direct { "A" } else { "あ" };
+            callback(context, 14, 0, label.as_ptr(), label.len() as u32);
+        }
+        return 1;
+    }
     if mode & 1 != 0 {
         if let Some((bytes, _)) = reply(meltype_commit(handle)) {
             apply(handle, &bytes, context, callback);
@@ -96,8 +114,6 @@ pub unsafe extern "C" fn meltype_fcitx_key_event(
         callback(context, 14, 0, label.as_ptr(), label.len() as u32);
         return 1;
     }
-    let packed = meltype_fcitx_key(symbol, scalar);
-    let vk = packed as u32 as i32;
     if vk == 0 {
         return 0;
     }
@@ -124,7 +140,7 @@ pub unsafe extern "C" fn meltype_fcitx_key_event(
         handle,
         vk,
         (packed >> 32) as i32,
-        meltype_fcitx_modifiers(states) | i32::from(symbol == 0xfe20),
+        modifiers,
         before.as_ref().map_or(std::ptr::null(), |s| s.as_ptr()),
         after.as_ref().map_or(std::ptr::null(), |s| s.as_ptr()),
     );
@@ -166,6 +182,8 @@ pub unsafe extern "C" fn meltype_fcitx_action(
             meltype_free(pointer.cast());
             let reset = meltype_reset(handle);
             meltype_free(reset.cast());
+            meltype_caret_moved(handle, 0, 0);
+            sync_input_mode(handle);
             set_predicting(handle, false);
             meltype_fcitx_set_preedit(handle, 0);
             return i32::from(callback(context, 8, 0, b"".as_ptr(), 0) > 0);
@@ -178,5 +196,9 @@ pub unsafe extern "C" fn meltype_fcitx_action(
         return 0;
     };
     apply(handle, &bytes, context, callback);
+    if action == 4 {
+        meltype_caret_moved(handle, 0, 0);
+        sync_input_mode(handle);
+    }
     1
 }

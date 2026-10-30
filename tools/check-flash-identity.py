@@ -9,7 +9,8 @@ REQUIRED = (
     'README.md', '.gitattributes', 'Cargo.toml', 'rust/settings-app/Cargo.toml',
     'rust/native/src/tsf/identity.rs', 'rust/Manage-Windows.ps1', 'rust/core/src/storage.rs',
     '.github/workflows/rust-release.yml', 'rust/build-windows.ps1',
-    *('.github/workflows/'+name for name in UPSTREAM_WORKFLOWS),
+    '.github/workflows/web.yml',
+    *('docs/ci-legacy/'+name for name in UPSTREAM_WORKFLOWS if name != 'web.yml'),
 )
 def inspect(root):
     errors=[]; files={}
@@ -40,15 +41,23 @@ def inspect(root):
     require('  workflow_dispatch:' in release and not re.search(r'^  push:', release, re.M), 'Flash publication must be explicit, never an upstream-sync/push side effect')
     require('flash-v' in release and 'refs/heads/rust' in release, 'Flash releases must use Flash tags from the product branch')
     for name in UPSTREAM_WORKFLOWS:
-        workflow=files['.github/workflows/'+name]
-        if 'jobs:\n' not in workflow:
-            errors.append(name+': missing jobs mapping'); continue
-        jobs=workflow.split('jobs:\n',1)[1]
-        blocks=re.split(r'^  [A-Za-z0-9_-]+:[ \t]*$', jobs, flags=re.M)[1:]
-        require(bool(blocks), name+': no jobs found')
-        for number, block in enumerate(blocks, 1):
-            require(bool(re.search(r"^    if:.*github\.repository == 'yksr-melt/Meltype'", block, re.M)), f'{name} job {number}: upstream C# automation must not run as Flash')
+        active = root/'.github/workflows'/name
+        archived = root/'docs/ci-legacy'/name
+        paths = [path for path in (active, archived) if path.is_file()]
+        for path in paths:
+            check_upstream_workflow(path.read_text(encoding='utf-8-sig'), name, errors)
     return errors
+
+def check_upstream_workflow(workflow, name, errors):
+    def require(condition, message):
+        if not condition: errors.append(message)
+    if 'jobs:\n' not in workflow:
+        errors.append(name+': missing jobs mapping'); return
+    jobs=workflow.split('jobs:\n',1)[1]
+    blocks=re.split(r'^  [A-Za-z0-9_-]+:[ \t]*$', jobs, flags=re.M)[1:]
+    require(bool(blocks), name+': no jobs found')
+    for number, block in enumerate(blocks, 1):
+        require(bool(re.search(r"^    if:.*github\.repository == 'yksr-melt/Meltype'", block, re.M)), f'{name} job {number}: upstream C# automation must not run as Flash')
 if __name__=='__main__':
     parser=argparse.ArgumentParser(description=__doc__);parser.add_argument('root',type=Path,nargs='?',default=Path(__file__).resolve().parent.parent)
     args=parser.parse_args(); errors=inspect(args.root)

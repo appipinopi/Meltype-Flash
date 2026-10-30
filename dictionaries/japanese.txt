@@ -147,3 +147,6 @@ gamen botan messeeji menyuu risuto deeta saabaa apuri sofuto baagu tesuto koodo
 
 # 英語の固有名詞でも、日本語の文ではカタカナ表記にする語
 nikon
+
+# Issue #1005: ドキュメントの途中から英語を切り出さない。
+dokyumento

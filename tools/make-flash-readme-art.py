@@ -14,6 +14,7 @@ import os
 from pathlib import Path
 import re
 import subprocess
+import tomllib
 
 from fontTools.pens.svgPathPen import SVGPathPen
 from fontTools.pens.transformPen import TransformPen
@@ -174,16 +175,23 @@ def navigation(document, current=None):
 
 
 def header(document, key, name):
+    version = tomllib.loads((ROOT / "Cargo.toml").read_text(encoding="utf-8"))["workspace"]["package"]["version"]
+    match = re.fullmatch(r"(\d+\.\d+\.\d+)-pre\.(\d+)", version)
+    if not match:
+        raise ValueError("Flashのプレリリース版が必要です")
+    tag = f"flash-v{match[1]}-preview.{match[2]}"
+    label = f"v{match[1]} Pre{match[2]}"
+    badge_label = label.replace(" ", "_")
     return (f'{START}\n<p align="center"><img src="{relative(OUT / "logo.svg", document)}" alt="Meltype-flash" width="520"></p>\n'
             f'<a id="meltype-for-{key}"></a>\n'
             f'<p align="center"><img src="{relative(OUT / key / "hero.svg", document)}" alt="Meltype-flash for {name}" width="1000"></p>\n'
             '<p align="center"><b>稲妻のように、言葉の壁を駆け抜ける日本語入力。</b></p>\n'
-            '<p align="center"><a href="https://github.com/appipinopi/Meltype/releases/tag/flash-v0.1.0-preview.2">'
-            '<img src="https://img.shields.io/badge/Flash-v0.1.0_Pre2-ffe34a" alt="Flash v0.1.0 Pre2"></a> '
+            f'<p align="center"><a href="https://github.com/appipinopi/Meltype-Flash/releases/tag/{tag}">'
+            f'<img src="https://img.shields.io/badge/Flash-{badge_label}-ffe34a" alt="Flash {label}"></a> '
             '<img src="https://img.shields.io/badge/status-開発プレビュー-666973" alt="開発プレビュー"></p>\n'
             '<p align="center"><a href="#インストール">ダウンロード・導入</a> · '
             '<a href="#使い方">使い方</a> · <a href="#困ったとき">困ったとき</a> · '
-            '<a href="https://github.com/appipinopi/Meltype/issues/new/choose">不具合の報告・提案</a></p>\n'
+            '<a href="https://github.com/appipinopi/Meltype-Flash/issues/new/choose">不具合の報告・提案</a></p>\n'
             + navigation(document, key) + f'\n<p align="center"><a href="{relative(ROOT / "README.md", document)}">トップのREADME</a></p>\n{END}\n')
 
 

@@ -1,6 +1,92 @@
-# Meltype-flash v0.1.0 Pre4
+# Meltype-flash v0.1.0 Pre7
 
-2026年10月23日の開発版です。上流のClosed「優先: 中」145件を照合し、Rust版に残る移植漏れを修正しました。
+2026年10月30日の開発プレビューです。公開タグは `flash-v0.1.0-preview.7`、内部版番号は `0.1.0-pre.7` です。
+
+## Pre7の変更
+
+- 本家Meltype 1.4.0との差を確認し、候補操作・入力設定・辞書・日英判定を更新しました。文章の先頭の`/`は`・`として入力し、Spaceで`/`を選ぶとコマンド名を入力できます。コードとターミナルではコマンド入力を維持します。
+- ChromeOS: 半角/全角とAlt+Backquoteで日本語と半角英数を切り替えます。未確定入力は一度だけ確定し、通常のBackquoteは記号として入力します。長押し・失敗後の再試行も検査対象です。
+- ChromeOS・iOS・Android: AI変換とAI設定を除去しました。デスクトップ設定やモバイルのバックアップを読み込んでもAI設定を有効にしません。通常の辞書変換・予測候補・対応する学習は端末内で使えます。
+- Windows: TSF向けに任意のZenzai接続を試験実装しました。既定はオフで、モデルとllama-serverは同梱しません。起動中や応答失敗時は従来の変換器を使います。実モデルの精度・速度と通常アプリでのIME入力は未検証です。
+- Pre6の共通辞書の共有、報告された入力・切替操作の修正、追加設定、設定Schema、AltStore PAL向け検査も取り込みました。Appleの署名・公証・PAL公開は未完了です。
+
+詳細は[本家1.4.0との比較・対応](UPGRADE-1.4.0.md)、[追加設定](../docs/ISSUE-OPTIONS.md)、[配布ファイルの選び方](DOWNLOADS.md)を参照してください。本家と全機能・変換精度が同等の完成版ではありません。
+
+## Pre7の確認範囲
+
+このソース内の記録は、公開用の全OS CIを実行する前の準備時点です。統合前のローカル試験やPre6以前の成功を、Pre7の最終コミットの配布ビルド成功として扱いません。公開リリース本文には、最終コミットのCI結果とベンチマークを掲載します。
+
+| OS | Pre7最終コミットの配布ビルド | Pre7の実機IME入力 |
+| --- | --- | --- |
+| Windows | 未実施（CIで確認予定） | 未実施 |
+| macOS | 未実施（CIで確認予定） | 未実施 |
+| Linux | 未実施（CIで確認予定） | 未実施 |
+| Android | 未実施（CIで確認予定） | 未実施 |
+| ChromeOS | 未実施（CIで確認予定） | 未実施 |
+| iOS | 未実施（CIで確認予定） | 未実施 |
+
+Windowsの専用試験窓、ChromeOSの実WASMと模擬IME API、Androidエミュレーター、iOS Simulatorの検証は、それぞれ通常アプリ・物理端末でのIME入力確認とは区別します。
+
+## ベンチマークの扱い
+
+統合前のローカル比較では、Windows共通Coreの21入力条件で本家1.4.0と確定・途中表示が一致しました。この記録はPre7の最終コミットの測定結果ではありません。処理時間・倍率は最終CIで再測定し、比較条件、測定範囲、表、箱ひげ図を公開リリース本文へ掲載します。AI・外部変換器・描画・実機IME入力を含む速度としては案内しません。
+
+以下はPre6以前の履歴です。過去の確認範囲と今回の確認範囲を分けて記載しています。
+
+## Meltype-flash v0.1.0 Pre6（準備時の記録）
+
+2026年10月24日の開発プレビュー準備です。公開タグは `flash-v0.1.0-preview.6` を予定しています。全OSの配布物はまだ揃っておらず、公開・配布は行っていません。
+
+## Pre6の変更
+
+- 共通Core: 読み取り専用の辞書を共有し、辞書複製時の追加ヒープ要求を4,189,182バイトから0バイトへ削減しました。初期辞書・OSのRSS・アプリ全体のメモリー削減率はこの測定に含みません。
+- 共通Core: 報告された英語・ローマ字・ドットファイル等の判定、1文字読みのユーザー辞書、選択文節へのF6〜F10を修正しました。日付・曜日・アプリ名・バージョンなどの候補も補いました。
+- 設定: z記号変換の無効化、無変換でのカタカナ切替、テンキー直接確定、日本語と数字の自動空白を追加しました。いずれも既定オフです。テンキーの識別接続はWindows向けです。
+- 入力: 候補のPage Up／Down移動を追加し、Windows TSFのCtrl+Enterを入力中の確定処理へ届けます。
+- Linux: IBus・fcitxの設定済み切替キーと、ターミナルで日本語へ切り替える操作を修正しました。
+- 管理: 設定用JSON Schemaの生成・書き出しと、Pre6以降のAltStore PAL配布に向けた検査スクリプトを追加しました。Appleの署名・公証・PAL公開は未完了です。
+
+全242件の上流Issueの完了ではありません。[対応一覧](../docs/ISSUE-AUDIT.md)に48件分の限定的な修正・確認・部分対応を記録しています。[追加設定の使い方](../docs/ISSUE-OPTIONS.md)も参照してください。
+
+### Pre6の確認範囲
+
+版番号更新前の修正コードで共通Core 210件、Windows native単体55件、TSFキー検査18件、Windows／Linuxの切替API各7件、隔離IBus 23件が成功しました。IBusは初回に既存ケース1件が失敗し、再検査で再現しませんでした。原因特定とは扱いません。
+
+Pre6へ版番号を更新した後、CLIのコンパイル検査、追加操作・設定Schemaの13件、PAL検査スクリプトの9件が成功しました。全OSのPre6配布ビルドは未実施です。
+
+| OS | 修正コードのビルド | 実機・報告アプリ |
+| --- | --- | --- |
+| Windows | Core・TSF DLL・設定アプリ・CLI成功。インストーラー未実施 | 未実施 |
+| macOS | 未実施 | 未実施 |
+| Linux | WSLのIBus・native・fcitx5アドオン成功。設定UI・配布パッケージ未実施 | 通常デスクトップ未実施。隔離IBus検査は上記参照 |
+| Android | 未実施 | 未実施 |
+| ChromeOS | 未実施 | 未実施 |
+| iOS | 未実施 | 未実施 |
+
+Rust・Androidの内部版番号は `0.1.0-pre.6`、AndroidのversionCodeは6です。iOSのビルド番号は既存の10より大きい11とし、マーケティング版番号は `0.1.0` を維持します。ChromeOSは内部版番号 `0.1.5`、表示名 `0.1.0 Pre6` です。
+
+以下はPre5以前の履歴です。過去の検証成功をPre6の検証結果として扱いません。
+
+## Meltype-flash v0.1.0 Pre5
+
+2026年10月23日の開発プレビューです。
+
+## Pre5の変更
+
+- 共通Core: 候補リスト初期化時の余剰確保を削減しました。同じ辞書の要求中ヒープを約9.4%削減し、品質評価の全出力一致を確認しています。アプリ全体のRAMの削減率ではありません。
+- 共通Core: 学習・登録語を含む予測処理の不要な複製と全辞書走査を減らし、候補順を保つ回帰テストを追加しました。
+- ChromeOS・共通Core: 英字と日本語が混ざる入力の文節を保持し、`chatgptwotsukau` → `chatgptを使う`、大文字を含む`ChatGPT`、Ctrl+Enterでの確定を修正しました。
+- Android: 変換・入力・フリック・設定画面・背景処理をRustへ集約しました。OS接続用クラスはRustからビルド時に生成します。背景色・テーマ・好きな画像を選べます。
+- ベンチマーク: Windows・macOS・LinuxでCoreとNative C ABIを比較できます。前版を自動選択し、CoreはRust2者比較5枚とC#を含む3者比較5枚を生成します。表示範囲を自動調整し、極端な外れ値は表へ残します。
+- CI: 主な4入口と管理・Web・スポンサー処理の計7本へ整理しました。
+
+### 確認範囲と残る不一致
+
+Pre5準備前の検証では、Windows・macOS・Linux・Android・ChromeOS・iOSのビルドが成功しました。Androidエミュレーター、iOSシミュレーターと各OSの物理端末IME入力は区別しており、物理端末での入力確認は全OS未実施です。
+
+WindowsのMicrosoft IMEとC#参照の比較テストでは`plain:にほんご`の変換結果が一致せず、後続のWindows統合検証は未完了です。この不一致を修正済みとはしていません。取り込み前にも別の`nihongoGitHub`分節不一致がありました。共通品質評価は216/216、周辺削除不可の入力先は215/216です。
+
+以下はPre4からの変更履歴です。
 
 ## Pre4の変更
 
@@ -9,7 +95,8 @@
 - Windows: メニュー操作中のキーをアプリへ渡し、変換中のCtrl+K/Lを文節長変更の処理へ届けます。
 - Windows: Keyboard方式で遠隔操作ツール等の注入入力設定を反映し、Chrome Remote Desktop・Parsecの稼働判定を追加しました。自己送信したキーは再処理しません。
 - 共通Core: zh/zj/zk/zl等の矢印・記号入力、gameoverの英語保持、Fキーで表記を選んだ後の新しい入力を修正しました。
-- macOS: 辞書選択パネルの有効化と前面表示を追加しました。macOSでのビルド・実行確認は未実施です。
+- macOS: 辞書選択パネルの有効化と前面表示を追加しました。実機での操作確認は未実施です。
+- ChromeOS: 固定したMozc辞書からオフライン変換用データを生成し、拡張機能へ同梱します。
 - Linux: 設定画面の初回案内にWindows専用の導入手順が表示される問題を修正しました。WSLg上のGTK入力欄と実IBusエンジンで、日本語の入力・確定を確認しました。
 
 全145件の実機での解消を保証するものではありません。行頭スラッシュの新仕様、TSFの左右Alt単独切替などに差分が残っています。Rustの対象試験274件とWindows側の追加試験327件が成功しました。
@@ -29,16 +116,17 @@
 
 ## 配布と導入
 
-共通Rustエンジンを使うWindows・Linux・macOS・Android・ChromeOS向けプレビューです。元C#版と全機能・変換精度が同等の完成版ではありません。実機・実アプリでの受入確認が残っています。
+共通Rustエンジンを使うWindows・macOS・Linux・Android・ChromeOS・iOS向けプレビューです。元C#版と全機能・変換精度が同等の完成版ではありません。実機・実アプリでの受入確認が残っています。
 
 | 環境 | 配布ファイル | 導入 |
 |---|---|---|
 | Windows 10/11 x64 | Meltype-flash-Windows-x64.zip | 全体を展開し、README-Windows.mdを参照。管理者PowerShellでManage-Windows.ps1を実行。32bitアプリ用TIP/workerも同梱 |
-| Linux x64（Ubuntu 24.04でビルド） | Meltype-flash-Linux-x64.tar.gz | 展開後、sudo bash install.sh --system。システムのIBus/GLibと設定画面のGUI実行環境が必要 |
+| Linux x64（Ubuntu 24.04でビルド） | Meltype-flash-Linux-x64.tar.gz | 展開後、Meltype-flash-linuxでbash install.sh。システムのIBus/GLibと設定画面のGUI実行環境が必要 |
 | macOS 13以降・Apple Silicon | Meltype-flash-macOS-arm64.zip | ZIP全体を展開し、Install Meltype.commandを実行 |
 | macOS 13以降・Intel | Meltype-flash-macOS-x64.zip | ZIP全体を展開し、Install Meltype.commandを実行 |
 | Android 8.0以降・arm64/x86_64 | Meltype-flash-Android-debug.apk | 開発検証用APKをインストール後、システムのキーボード設定でMeltype-flash Previewを有効化 |
 | ChromeOS | Meltype-flash-ChromeOS.zip | 展開後、chrome://extensionsで「パッケージ化されていない拡張機能を読み込む」。入力方法にMeltype-flashを追加 |
+| iOS 15以降 | Meltype-flash-iOS-unsigned.ipa / Meltype-flash-iOS-source.zip | 自分の署名を設定して導入。Simulator用ZIPは実機に導入できません |
 
 Windowsは元C#版と異なる専用COM登録IDを使います。配布ZIPを展開するだけではIME登録は行いません。導入済みのFlash版を更新する場合は、同梱の`Manage-Windows.ps1 -Action Update`を管理者PowerShellで実行してください。旧バージョンのファイルと個人データは保持します。設定画面にはOpenGL 2.0以上が必要です。CIではソフトウェアOpenGLで実トレイの終了試験を行い、実Windowsでも設定クリックと更新を確認しています。
 
@@ -48,10 +136,10 @@ macOSはSwift InputMethodKitとazooKeyを利用します。署名はアドホッ
 
 Androidはエミュレーターで検証するdebug APKです。Play Store配布・正式な配布署名・物理端末での確認は未対応です。このAPKの署名鍵はCI実行ごとに変わるため、別のCI生成版からの上書き更新は保証できません。アンインストールするとアプリ内データを失うので、必要なデータは先にバックアップしてください。Mozcは同梱しません。
 
-ChromeOSはManifest V3とchrome.input.imeを使用する試験版です。ChromeOS製品版・管理ポリシーによって導入できない場合があります。Windows/macOS/Linux上のChrome用IMEではありません。Chrome Web Store公開は行っていません。サイト別切替は初期状態では無効です。設定の「サイトごとの自動切替」を有効にし、タブ参照を許可して保存してください。周辺テキストを渡さないエディターではコメント・文字列内の日本語入力を自動判別できないため、そのサイトを通常入力へ変更してください。ChromeOS実機でのPre3の入力検証は未実施です。
+ChromeOSはManifest V3とchrome.input.imeを使用する試験版です。ChromeOS製品版・管理ポリシーによって導入できない場合があります。Windows/macOS/Linux上のChrome用IMEではありません。Chrome Web Store公開は行っていません。サイト別切替は初期状態では無効です。設定の「サイトごとの自動切替」を有効にし、タブ参照を許可して保存してください。周辺テキストを渡さないエディターではコメント・文字列内の日本語入力を自動判別できないため、そのサイトを通常入力へ変更してください。ChromeOS実機でのPre7の入力検証は未実施です。
 
-RustとAndroidの内部バージョンは`0.1.0-pre.4`です。AndroidのversionCodeとiOSのビルド番号は4です。ChromeOSは既存版から更新できる拡張機能の内部バージョン`0.1.3`を使い、表示名を`0.1.0 Pre4`にしています。
+RustとAndroidの内部バージョンは`0.1.0-pre.7`、AndroidのversionCodeは7です。iOSのビルド番号は12、マーケティング版番号は`0.1.0`です。ChromeOSは拡張機能の内部バージョン`0.1.6`、表示名`0.1.0 Pre7`を使います。
 
-WindowsのC#最新版との比較検査には、`nihongoGitHub`の分割差が残っています。Rustは「にほんご」と「GitHub」に分け、比較対象のC#版は全体を英字として扱います。この比較検査は引き続き有効で、Pre3の共通Core・各OSの動作検査とは別に追跡します。
+本家との比較には、入力途中の表示や追加診断で残る差があります。従来の`nihongoGitHub`分節差を含む過去の記録と、本家1.4.0に対する統合前の比較結果は区別してください。[本家1.4.0との比較・対応](UPGRADE-1.4.0.md)に測定範囲を記載しています。
 
 各ファイルのSHA-256はSHA256SUMS.txtを参照してください。WindowsとChromeOSのZIPには内部ファイルのハッシュも含みます。ソースと各環境の詳細は同じリリースタグ内のrust/README.md、android/README.md、chromeos/README.mdを参照してください。

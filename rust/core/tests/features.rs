@@ -184,8 +184,14 @@ fn v140_phrase_boundaries_respect_user_words_with_the_same_reading() {
     ]));
     assert_eq!(session.display(false), "一学期");
     let mut session = Session::default();
-    session.preferences.selected.insert("に".into(), "荷".into());
-    session.preferences.selected.insert("がっき".into(), "楽器".into());
+    session
+        .preferences
+        .selected
+        .insert("に".into(), "荷".into());
+    session
+        .preferences
+        .selected
+        .insert("がっき".into(), "楽器".into());
     type_text(&mut session, "nigakki");
     assert!(session.begin_clauses(vec![
         meltype_core::session::Clause::new("に".into(), vec!["二".into()]),

@@ -541,7 +541,10 @@ fn v140_detection_regressions_keep_japanese_boundaries_and_product_names() {
 fn v140_scored_capitalized_prefix_uses_scores_without_splitting_acronyms() {
     for (raw, expected) in [("Goo", "Goお"), ("Googlede", "Googleで"), ("IME", "IME")] {
         let mut session = Session::default();
-        session.settings.set("ScoredSegmentation", serde_json::json!(true)).unwrap();
+        session
+            .settings
+            .set("ScoredSegmentation", serde_json::json!(true))
+            .unwrap();
         type_text(&mut session, raw);
         assert_eq!(session.display(false), expected, "{raw}");
     }

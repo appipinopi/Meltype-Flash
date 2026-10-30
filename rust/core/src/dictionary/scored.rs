@@ -120,6 +120,9 @@ impl Dictionary {
         level: &str,
         retained: Option<&crate::composition_units::Units>,
     ) -> String {
+        if self.prefers_standalone_english(raw, level) {
+            return raw.to_owned();
+        }
         if !raw.bytes().all(|b| b.is_ascii_alphabetic()) || raw.is_empty() {
             return self.composition(raw, final_input, before, after, level);
         }

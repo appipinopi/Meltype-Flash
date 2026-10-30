@@ -303,6 +303,9 @@ impl Dictionary {
         after: &str,
         level: &str,
     ) -> String {
+        if self.prefers_standalone_english(raw, level) {
+            return raw.to_owned();
+        }
         if level != "Manual" {
             if let Some(end) = self.english_compound_end(raw) {
                 return format!(

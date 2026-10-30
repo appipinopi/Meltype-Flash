@@ -3,9 +3,12 @@
 #   精度の比較   … 判定・変換の本体か辞書が変わったとき: main と Pull Request で品質テストを比べ、新しく外れた例があれば失敗
 #   報告の再現   … 本文の「## 確かめること」の「入力 → 期待」と、「Fixes #12」で閉じる誤判定の報告を、Pull Request のコードで確かめる
 # pull_request なので、フォークからの Pull Request でも書き込みの権限は持たない (結果は Summary とチェックの成否で返す)。
-name: pr-checks
+name: PRチェック
 
 on:
+  workflow_dispatch:
+  push:
+    branches: [rust, main]
   pull_request:
     types: [opened, reopened, synchronize, edited]
 
@@ -13,11 +16,12 @@ permissions:
   contents: read
 
 concurrency:
-  group: pr-checks-${{ github.event.pull_request.number }}
+  group: pr-checks-${{ github.event.pull_request.number || github.ref }}
   cancel-in-progress: true
 
 jobs:
   changes:
+    if: github.event_name == 'pull_request'
     runs-on: ubuntu-latest
     timeout-minutes: 5
     outputs:
@@ -81,6 +85,7 @@ jobs:
         run: node .github/bot/pr-checks.mjs compare "$RUNNER_TEMP/base.json" "$RUNNER_TEMP/pr.json"
 
   expectations:
+    if: github.event_name == 'pull_request'
     name: 報告の再現
     runs-on: ubuntu-latest
     timeout-minutes: 20
@@ -96,11 +101,29 @@ jobs:
         run: node .github/bot/pr-checks.mjs cases "$RUNNER_TEMP/cases.txt"
         env:
           GITHUB_TOKEN: ${{ github.token }}
-      - if: steps.cases.outputs.count != '0'
+      - if: steps.cases.outputs.count != '0' && github.event.pull_request.base.ref != 'rust'
         uses: actions/setup-dotnet@26b0ec14cb23fa6904739307f278c14f94c95bf1 # v5.4.0
         with:
           dotnet-version: 10.0.x
-      - if: steps.cases.outputs.count != '0'
+      - if: steps.cases.outputs.count != '0' && github.event.pull_request.base.ref != 'rust'
         run: |
           dotnet run --project src/Meltype.Core.Tests -c Release -- --expect "$RUNNER_TEMP/cases.txt" "$RUNNER_TEMP/cases.json"
           node .github/bot/pr-checks.mjs expect "$RUNNER_TEMP/cases.json"
+      - if: steps.cases.outputs.count != '0' && github.event.pull_request.base.ref == 'rust'
+        uses: dtolnay/rust-toolchain@stable
+      - if: steps.cases.outputs.count != '0' && github.event.pull_request.base.ref == 'rust'
+        run: |
+          cargo test -p meltype-core --locked --example pr_expect
+          cargo run -p meltype-core --locked --example pr_expect -- "$RUNNER_TEMP/cases.txt" "$RUNNER_TEMP/cases.json"
+          node .github/bot/pr-checks.mjs expect "$RUNNER_TEMP/cases.json"
+  verify:
+    name: Flash identity
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@v5
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - run: python tools/check-flash-identity.py
+      - run: python -m unittest discover -s tools -p test_flash_identity.py -v

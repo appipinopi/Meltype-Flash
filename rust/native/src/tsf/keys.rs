@@ -30,7 +30,7 @@ pub extern "C" fn meltype_tsf_key_flags(vk: u32, message: u64, mods: u32) -> u32
         && mods & (SHIFT | CONTROL | WIN) == 0;
     let shortcut = mods & CONTROL != 0
         && mods & (ALT | WIN) == 0
-        && matches!(vk, 0x48 | 0x55 | 0x49 | 0x4b | 0x4c | 0x4f | 0x50);
+        && matches!(vk, 0x0d | 0x48 | 0x55 | 0x49 | 0x4b | 0x4c | 0x4f | 0x50);
     u32::from(modifier)
         | u32::from(japanese) << 1
         | u32::from(toggle) << 2

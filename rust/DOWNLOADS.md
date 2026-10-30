@@ -1,30 +1,19 @@
 # 配布ファイルの選び方
 
-配布先は [Meltype-flash v0.1.0 Pre2](https://github.com/appipinopi/Meltype/releases/tag/flash-v0.1.0-preview.2) です。
-本家のC#版と区別するため、Flashのファイル名を使用します。
+[Meltype-flash v0.1.0 Pre7](https://github.com/appipinopi/Meltype-Flash/releases/tag/flash-v0.1.0-preview.7)の開発プレビューです。
 
-| ファイル | 用途 |
-| --- | --- |
-| `Meltype-flash-0.1.0-pre.2-setup.exe` | Windows向け。ウィザードでインストールし、専用IMEを登録します。管理者確認が出ます。 |
-| `Meltype-flash-Windows-portable.zip` | Windows向け。展開後 `Start-Portable.cmd` で起動します。IME登録なしのバッファ入力で、設定・学習は展開先の `data` に保存します。 |
-| `Meltype-flash-Windows.zip` / `Meltype-flash-Windows-x64.zip` | Windows向け。PowerShellで導入・更新するための従来の一式。同じ内容です。 |
-| `Meltype-flash-Linux-x64.zip` | Linux x64向け。展開後 `sudo bash install.sh --system` で導入します。 |
-| `Meltype-flash-Linux-arm64.zip` | Linux ARM64向け。同じ手順で導入します。 |
-| `meltype-flash_0.1.0-pre.2_amd64.deb` | Ubuntu 24.04以降のx64向け。`sudo apt install ./meltype-flash_0.1.0-pre.2_amd64.deb` で導入します。 |
-| `meltype-flash_0.1.0-pre.2_arm64.deb` | Ubuntu 24.04以降のARM64向け。`sudo apt install ./meltype-flash_0.1.0-pre.2_arm64.deb` で導入します。 |
-| `Meltype-flash-macOS-arm64.zip` | Apple Silicon Mac向け。 |
-| `Meltype-flash-macOS-x64.zip` | Intel Mac向け。 |
-| `Meltype-flash-Android-debug.apk` | Android試験版。デバッグ署名です。 |
-| `Meltype-flash-ChromeOS.zip` | ChromeOS拡張の試験版。通常のWindows版ChromeではIMEとして動作しません。 |
-| `Meltype-flash-iOS-Simulator-arm64.zip` | Apple Silicon MacのiOS Simulator向け。iPhone実機にはインストールできません。 |
-| `Meltype-flash-iOS-unsigned.ipa` | 自分のApple IDで署名してiPhoneに入れるための実機用IPA。WindowsからのAltStore Classicの手順は [iOSの案内](../ios/README.md) を参照してください。 |
-| `Meltype-flash-iOS-source.zip` | Xcodeで自分の署名を設定して実機ビルドするためのソース。[iOSの手順と制限](../ios/README.md)を参照してください。 |
+|ファイル|用途|
+|---|---|
+|`Meltype-flash-Windows-x64.zip`|Windows x64向け。64bit・32bitアプリ用IME、設定画面、登録・ポータブル試用スクリプトを同梱。[導入手順](WINDOWS-PACKAGE.md)|
+|`Meltype-flash-Linux-x64.tar.gz`|Linux x64向け。展開先の`Meltype-flash-linux`で`bash install.sh`を実行。[導入手順](../linux/README.md)|
+|`Meltype-flash-macOS-arm64.zip`|Apple Silicon Mac向け。[導入手順](../mac/README.md)|
+|`Meltype-flash-macOS-x64.zip`|Intel Mac向け。|
+|`Meltype-flash-Android-debug.apk`|Android検証用。debug署名です。[導入手順](../android/README.md)|
+|`Meltype-flash-ChromeOS.zip`|ChromeOS専用の拡張機能。[導入手順](../chromeos/README.md)|
+|`Meltype-flash-iOS-Simulator-arm64.zip`|Apple Silicon MacのiOS Simulator向け。実機へは導入できません。|
+|`Meltype-flash-iOS-unsigned.ipa`|自分のApple IDで署名するための未署名IPA。[署名と制限](../ios/README.md)|
+|`Meltype-flash-iOS-source.zip`|Xcodeで自分の署名を設定して実機ビルドするためのソース。|
 
-ZIPをアプリにドラッグしたり、ファイルの拡張子を変えたりして他のOSで使うことはできません。
-LinuxはIBusエンジンです。導入後はログインし直して入力ソースにMeltype-flashを追加してください。
-Linux・iOSには補助辞書による変換の制限が残っています。
-Windowsのポータブル入力の制限と操作は [Windowsの案内](WINDOWS-PACKAGE.md) を参照してください。
+Pre7では単独のWindowsセットアップEXE・portable ZIP、Linuxのdeb・ARM64版は添付していません。OSとCPUに合う配布物を選び、拡張子を変更して他のOSへ流用しないでください。
 
-追加配布のワークフローは既存Pre2のエンジンを使用し、公開済みファイルの置換を拒否します。
-ファイルのSHA256は添付の `SHA256SUMS.txt` とGitHubの各ファイルの表示で照合できます。
-iOSのソースには追加実装のコミットが含まれ、対応するコミット番号をリリース説明に記載します。
+ライセンスと`SHA256SUMS.txt`も添付しています。画像・ベンチマークのレポートや生データはダウンロード用アセットに含めません。全OSのビルド状況と実機確認の範囲、Windowsの比較テストの残る不一致はリリース本文を確認してください。

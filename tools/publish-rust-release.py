@@ -42,6 +42,13 @@ def api(path, payload=None, method=None):
     return json.loads(gh(*args, payload=payload))
 
 
+def find_release(tag):
+    # タグ未作成の下書きは /releases/tags/{tag} では取得できない。
+    # 認証済みの一覧を全ページ検索し、既存の下書きも重複作成しない。
+    pages = json.loads(gh("api", f"repos/{REPO}/releases?per_page=100", "--paginate", "--slurp"))
+    return next((release for page in pages for release in page if release["tag_name"] == tag), None)
+
+
 def normalize_markdown(text):
     text = text.replace("\r", "")
     text = re.sub(r"(?m)^(\|[^\n]*\|)\n+(?=\|)", r"\1\n", text)
@@ -93,7 +100,13 @@ def compose_body(tag, sha, benchmark, media_sha, changes):
             "## 変更内容", ""]
     # コミット件名は命令として実行せず、コード表記のテキストとして載せる。
     rows += ["- `" + line.replace("`", "'").replace("<", "&lt;").replace(">", "&gt;") + "`" for line in changes.splitlines() if line]
-    rows += ["", "## 配布と導入", "", "|OS|配布ファイル|使い方|", "|---|---|---|"]
+    rows += ["", "## ビルドと確認範囲", "",
+             "同じコミットの全OS配布ビルドが成功した後に、この下書きを作成しています。", "",
+             "|OS|配布ビルド|実機でのIME入力|", "|---|---|---|"]
+    for os_name in ("Windows", "macOS", "Linux", "Android", "ChromeOS", "iOS"):
+        rows.append(f"|{os_name}|成功|未実施|")
+    rows += ["", "Windows・macOSはCI専用試験、Linuxは隔離IBus、Androidはエミュレーター、ChromeOSは実WASM・模擬IME API、iOSはiOS Simulatorで検証しています。通常アプリ・物理端末でのIME入力確認とは別です。",
+             "", "## 配布と導入", "", "|OS|配布ファイル|使い方|", "|---|---|---|"]
     platforms = [
         ("Windows x64", PACKAGES[0:1], "rust/WINDOWS-PACKAGE.md"),
         ("Linux x64", PACKAGES[1:2], "linux/README.md"),
@@ -173,12 +186,7 @@ def main():
     validate_rendered(body)
     if args.publish:
         # 再実行で公開済みリリースや配布ファイルを上書きしない。
-        try:
-            api(f"releases/tags/{args.tag}")
-        except subprocess.CalledProcessError as error:
-            if "HTTP 404" not in (error.stderr or ""):
-                raise
-        else:
+        if find_release(args.tag) is not None:
             raise ValueError("同じタグのリリースが既にあります。上書きしません")
         media_sha = publish_images(args.tag, args.benchmark / "charts")
         title, body = compose_body(args.tag, args.sha, benchmark, media_sha, changes)
@@ -192,7 +200,9 @@ def main():
         names = [str(args.assets / name) for name in PACKAGES + DOCUMENTS]
         gh("release", "create", args.tag, *names, "--repo", REPO, "--target", args.sha,
            "--title", title, "--notes-file", str(args.output), "--prerelease", "--draft")
-        release = api(f"releases/tags/{args.tag}")
+        release = find_release(args.tag)
+        if release is None:
+            raise ValueError("作成した下書きを取得できません")
         uploaded = {asset["name"]: asset["digest"] for asset in release["assets"]}
         expected = {name: "sha256:" + hashlib.sha256((args.assets / name).read_bytes()).hexdigest() for name in PACKAGES + DOCUMENTS}
         if uploaded != expected or normalize_markdown(release["body"]) != body:

@@ -28,6 +28,7 @@ const formats = {
   'loanwords.txt': spaced((reading, rest) => [hiragana.test(reading) ? null : `読み「${reading}」がひらがなでない`, rest.length === 0 ? '候補が無い' : null]),
   'propernouns.txt': words(w => /^[A-Za-z][A-Za-z0-9.+&'-]*$/.test(w) ? null : `「${w}」が英字の語でない`),
   'english.txt': words(w => /^[a-z][a-z0-9_'-]*$/.test(w) ? null : `「${w}」が小文字の英字の語でない`),
+  'english-standalone.txt': words(w => /^[a-z]{3,}$/.test(w) ? null : `「${w}」が3文字以上の小文字の英単語でない`),
   'english-words.txt': words(w => /^[a-z]{2,}$/.test(w) ? null : `「${w}」が小文字の英字の語でない`),
   'japanese.txt': words(w => /^[a-z]+$/.test(w) ? null : `「${w}」が小文字のローマ字でない`),
   'contexts.txt': line => {

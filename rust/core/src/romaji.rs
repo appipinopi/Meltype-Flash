@@ -269,7 +269,14 @@ pub(crate) fn unit_boundaries(
                     .get(2)
                     .is_some_and(|c| b"aiueoy".contains(c))
                 && known_english(prefix)
-                && !analyze(prefix, true).valid;
+                && {
+                    let stem = analyze(prefix, true);
+                    !stem.valid
+                        || prefix.len() >= 4
+                            && whole_english(prefix)
+                            && stem.partial == "n"
+                            && !crate::typo::Corrector::bundled().is_common_japanese(prefix)
+                };
             let split_stem = length >= 2
                 && (matches!(rest.as_bytes()[0], b'l' | b'x')
                     || rest.starts_with("ts")

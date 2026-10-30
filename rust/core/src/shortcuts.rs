@@ -126,7 +126,11 @@ impl ToggleShortcut {
         if (0x75..=0x79).contains(&key) && self.modifiers & !1 == 0 {
             return Err("F6〜F10は字種変換に使います");
         }
-        if self.modifiers & !1 == 0 && !matches!(key, 0x19 | 0x1c | 0x1d) {
+        // Flashの旧切替設定で使われたShift+Spaceも移行後に保持する。
+        if self.modifiers & !1 == 0
+            && !matches!(key, 0x19 | 0x1c | 0x1d)
+            && !(key == 0x20 && self.modifiers == 1)
+        {
             return Err("このキーにはCtrl・Alt・Winのいずれかが必要です");
         }
         if self.modifiers == 0

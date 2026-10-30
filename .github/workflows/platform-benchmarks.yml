@@ -1,8 +1,14 @@
-name: Platform benchmarks
+name: ベンチマーク
 on:
   workflow_dispatch:
-  push:
-    branches: ['bench/all-os-*']
+    inputs:
+      benchmark_baseline:
+        description: 比較する前版タグまたはコミット（autoは現在版より前の最新公開版）
+        type: string
+        default: auto
+concurrency:
+  group: platform-benchmarks-${{ github.ref }}
+  cancel-in-progress: false
 permissions:
   contents: read
 jobs:
@@ -16,6 +22,7 @@ jobs:
     env:
       PYTHONUTF8: '1'
       CARGO_TARGET_DIR: ${{ github.workspace }}/target-benchmark
+      BENCHMARK_BASELINE: ${{ inputs.benchmark_baseline }}
     steps:
       - uses: actions/checkout@v5
         with:
@@ -34,13 +41,20 @@ jobs:
           python -m unittest discover -s tools -p test_compare_rust_benchmarks.py
           python -m unittest discover -s tools -p test_plot_windows_benchmark.py
           python -m unittest discover -s tools -p test_platform_benchmarks.py
+      - name: Fetch pinned C# 1.4.0
+        run: git fetch --no-tags https://github.com/yksr-melt/Meltype.git 46db6ca2f941eb9580f4d5ed103ee0bee71111c7
       - name: Core (C#, previous Rust, current Rust)
         shell: bash
-        run: python tools/compare-rust-benchmarks.py --build --current-ref HEAD --with-csharp --samples 3 --warmups 1 --rounds 3 --plot --output output/platform-benchmark/core --github-summary "${GITHUB_STEP_SUMMARY}"
+        run: python tools/compare-rust-benchmarks.py --build --current-ref HEAD --baseline-ref "$BENCHMARK_BASELINE" --with-csharp --csharp-ref 46db6ca2f941eb9580f4d5ed103ee0bee71111c7 --samples 5 --warmups 2 --rounds 4 --plot --output output/platform-benchmark/core --github-summary "${GITHUB_STEP_SUMMARY}"
       - name: Native C ABI (previous Rust, current Rust)
         shell: bash
         if: ${{ !cancelled() && hashFiles('output/platform-benchmark/core/report.json') != '' }}
-        run: python tools/compare-rust-benchmarks.py --build --current-ref HEAD --backend native --samples 3 --warmups 1 --rounds 2 --plot --output output/platform-benchmark/native --github-summary "${GITHUB_STEP_SUMMARY}"
+        run: python tools/compare-rust-benchmarks.py --build --current-ref HEAD --baseline-ref "$BENCHMARK_BASELINE" --backend native --samples 5 --warmups 2 --rounds 4 --plot --output output/platform-benchmark/native --github-summary "${GITHUB_STEP_SUMMARY}"
+      - name: Core regression and quality reports
+        run: |
+          cargo test -p meltype-core --locked
+          cargo run --release --locked --manifest-path output/platform-benchmark/core/baseline-source/Cargo.toml -p meltype-core --example quality -- output/platform-benchmark/before-quality.json
+          cargo run --release --locked -p meltype-core --example quality -- output/platform-benchmark/after-quality.json --check
       - name: Record platform coverage
         if: always()
         run: python tools/benchmark-platforms.py --input output/platform-benchmark --output output/platform-benchmark/coverage
@@ -50,6 +64,7 @@ jobs:
           name: platform-benchmark-${{ runner.os }}-${{ runner.arch }}
           retention-days: 3
           path: |
+            output/platform-benchmark/*-quality.json
             output/platform-benchmark/**/report.json
             output/platform-benchmark/**/resources.json
             output/platform-benchmark/**/charts/**

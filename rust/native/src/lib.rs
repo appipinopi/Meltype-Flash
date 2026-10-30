@@ -71,6 +71,12 @@ fn run(
     handle: *mut c_void,
     f: impl FnOnce(&mut Session) -> meltype_core::SessionResult,
 ) -> *mut c_char {
+    run_optional(handle, |session| Some(f(session)))
+}
+fn run_optional(
+    handle: *mut c_void,
+    f: impl FnOnce(&mut Session) -> Option<meltype_core::SessionResult>,
+) -> *mut c_char {
     catch_unwind(AssertUnwindSafe(|| {
         #[cfg(windows)]
         let learning = windows_converter::has_worker();
@@ -92,7 +98,7 @@ fn run(
         windows_converter::learn(notifications);
         #[cfg(not(windows))]
         let _ = notifications;
-        Some(allocate(&serde_json::to_string(&result).ok()?))
+        Some(allocate(&serde_json::to_string(&result?).ok()?))
     }))
     .ok()
     .flatten()
@@ -683,7 +689,12 @@ pub unsafe extern "C" fn meltype_handle_key(
                 s.begin_conversion(external);
                 s.result(true)
             } else {
-                s.key(vk, ch, modifiers)
+                let result = s.key(vk, ch, modifiers);
+                if !result.consumed && (matches!(vk, 9 | 0x21..=0x28 | 0x2e) || modifiers & 2 != 0)
+                {
+                    s.caret_moved(vk, modifiers & 2 != 0);
+                }
+                result
             }
         });
         // Let Core decide whether Tab, arrows or configured Control keys start conversion: suggestions,
@@ -998,7 +1009,49 @@ pub extern "C" fn meltype_set_direct_detection(handle: *mut c_void, enabled: i32
 }
 #[no_mangle]
 pub extern "C" fn meltype_set_code_input(handle: *mut c_void, enabled: i32) {
-    set(handle, |s| s.code_input = enabled != 0);
+    set(handle, |s| {
+        if s.code_input != (enabled != 0) {
+            s.caret_moved(0, false);
+        }
+        s.code_input = enabled != 0;
+    });
+}
+/// Effective input mode: 1 English/direct, 0 Japanese, -1 stale handle.
+#[no_mangle]
+pub extern "C" fn meltype_input_mode(handle: *mut c_void) -> i32 {
+    sessions()
+        .lock()
+        .ok()
+        .and_then(|all| {
+            all.get(&(handle as usize))
+                .map(|session| i32::from(session.input_is_direct()))
+        })
+        .unwrap_or(-1)
+}
+#[no_mangle]
+pub extern "C" fn meltype_caret_moved(handle: *mut c_void, vk: i32, control: i32) {
+    set(handle, |session| session.caret_moved(vk, control != 0));
+}
+/// NULL for ordinary keys. Try composition-role keys before this function.
+#[no_mangle]
+pub extern "C" fn meltype_mode_key(handle: *mut c_void, vk: i32, modifiers: i32) -> *mut c_char {
+    // Avoid a second profile reload/database read for every ordinary key.
+    let matches = sessions()
+        .lock()
+        .ok()
+        .and_then(|all| {
+            all.get(&(handle as usize))
+                .and_then(|session| session.mode_key_target(vk, modifiers))
+        })
+        .is_some();
+    // A newly saved shortcut must work on its first press too. Refresh for
+    // modified command keys; ordinary typing keeps the allocation-free probe.
+    let command = modifiers & 14 != 0 || vk == 32 && modifiers & 1 != 0;
+    if matches || command {
+        run_optional(handle, |session| session.mode_key(vk, modifiers))
+    } else {
+        std::ptr::null_mut()
+    }
 }
 /// Set a native process/bundle identity. Returns 1 for the code profile, 0 for
 /// normal input, or -1 for an invalid session. Call on focus, before composition.
@@ -1047,7 +1100,11 @@ pub extern "C" fn meltype_set_input_attributes(handle: *mut c_void, flags: u32) 
         }
         s.private = secret;
         s.no_learning = no_learning;
-        s.code_input = flags & 4 != 0 || s.settings.text("AppProfile") == "Code";
+        let code = flags & 4 != 0 || s.settings.text("AppProfile") == "Code";
+        if s.code_input != code {
+            s.caret_moved(0, false);
+        }
+        s.code_input = code;
     });
 }
 // Deletion is permitted only when the host supports expected-text validation.
@@ -1066,8 +1123,11 @@ pub extern "C" fn meltype_role_key(handle: *mut c_void, vk: i32) -> *mut c_char 
         .lock()
         .ok()
         .and_then(|all| {
-            all.get(&(handle as usize))
-                .map(|s| s.settings.boolean("SeparateKeyRoles") && !s.raw().is_empty())
+            all.get(&(handle as usize)).map(|s| {
+                !s.raw().is_empty()
+                    && (s.settings.boolean("SeparateKeyRoles")
+                        || vk == 0x1d && s.settings.boolean("MuhenkanKatakanaCycle"))
+            })
         })
         .unwrap_or(false);
     if enabled {

@@ -3,8 +3,8 @@
 <a id="meltype-for-chromeos"></a>
 <p align="center"><img src="../assets/branding/readme/chromeos/hero.svg" alt="Meltype-flash for ChromeOS" width="1000"></p>
 <p align="center"><b>稲妻のように、言葉の壁を駆け抜ける日本語入力。</b></p>
-<p align="center"><a href="https://github.com/appipinopi/Meltype/releases/tag/flash-v0.1.0-preview.3"><img src="https://img.shields.io/badge/Flash-v0.1.0_Pre3-ffe34a" alt="Flash v0.1.0 Pre3"></a> <img src="https://img.shields.io/badge/status-開発プレビュー-666973" alt="開発プレビュー"></p>
-<p align="center"><a href="#インストール">ダウンロード・導入</a> · <a href="#使い方">使い方</a> · <a href="#困ったとき">困ったとき</a> · <a href="https://github.com/appipinopi/Meltype/issues/new/choose">不具合の報告・提案</a></p>
+<p align="center"><a href="https://github.com/appipinopi/Meltype-Flash/releases/tag/flash-v0.1.0-preview.7"><img src="https://img.shields.io/badge/Flash-v0.1.0_Pre7-ffe34a" alt="Flash v0.1.0 Pre7"></a> <img src="https://img.shields.io/badge/status-開発プレビュー-666973" alt="開発プレビュー"></p>
+<p align="center"><a href="#インストール">ダウンロード・導入</a> · <a href="#使い方">使い方</a> · <a href="#困ったとき">困ったとき</a> · <a href="https://github.com/appipinopi/Meltype-Flash/issues/new/choose">不具合の報告・提案</a></p>
 <p align="center">
   <a href="../rust/WINDOWS-PACKAGE.md"><img src="../assets/branding/readme/cards/os-windows.svg" alt="Windows" width="32%"></a>
   <a href="../linux/README.md"><img src="../assets/branding/readme/cards/os-linux.svg" alt="Linux" width="32%"></a>
@@ -31,7 +31,7 @@ AI変換は搭載しません。デスクトップの設定を読み込んでも
 
 「入力のカスタマイズ」で日英判定、句読点、タイプミス補正、Tab変換、英語前後の空白、学習を変更し、「入力設定を保存」で反映します。詳細JSONとも同期します。「保存済み設定へ戻す」で未保存の編集を取り消せます。学習をオフにしても既存の履歴は削除しません。
 候補はChromeOS標準の表示を使い、色・フォント・位置の変更は未対応です。[カスタマイズの進め方](../docs/customization.md) に対応範囲と次の案をまとめています。
-[導入画面の記録](docs/INSTALLATION.md) はありますが、Pre3の修正を含む実機での変換・各アプリ入力の確認は未完了です。
+[導入画面の記録](docs/INSTALLATION.md) はありますが、Pre7の修正を含む実機での変換・各アプリ入力の確認は未完了です。
 
 [動く環境](#動く環境) · [インストール](#インストール) · [使い方](#使い方) · [困ったとき](#困ったとき) · [アンインストール](#アンインストール) · [開発者向け](#開発者向け)
 
@@ -47,7 +47,7 @@ AI変換は搭載しません。デスクトップの設定を読み込んでも
 <a id="インストール"></a>
 <h2><img src="../assets/branding/readme/chromeos/headings/4f36b3b314d8.svg" alt="インストール" width="1000"></h2>
 
-1. [FlashのPre3](https://github.com/appipinopi/Meltype/releases/tag/flash-v0.1.0-preview.3) から `Meltype-flash-ChromeOS.zip` を取得し、フォルダーへ全体展開します。
+1. [FlashのPre7](https://github.com/appipinopi/Meltype-Flash/releases/tag/flash-v0.1.0-preview.7) から `Meltype-flash-ChromeOS.zip` を取得し、フォルダーへ全体展開します。
 2. ChromeOSの `chrome://extensions` を開き、拡張機能の「デベロッパーモード」を有効にします。
 3. 「パッケージ化されていない拡張機能を読み込む」で、`manifest.json` のあるフォルダーを選びます。
 4. ChromeOSの言語・入力方法の設定からMeltypeを追加し、入力方法として選びます。
@@ -104,7 +104,7 @@ ChromeOSであること、OS側の入力方法へ追加したこと、管理ポ�
 
 まずSpaceで候補を確認します。サイトの周辺文字が取れない場合は通常入力へ変更し、更新後は拡張機能を再読み込みしてください。
 旧版は補助辞書しか接続しておらず、「橋」など一部の語以外は漢字候補が出ませんでした。修正版では `pkg/kanji.bin` も必要です。JSやWASMだけを個別にコピーせず、同じ拡張機能フォルダーをZIPの全内容で更新してから、拡張機能を再読み込みしてください。
-OS・拡張機能の版・サイト・入力手順を [Issues](https://github.com/appipinopi/Meltype/issues/new/choose) に記載してください。タブURLや文章に個人情報がないか確認してください。
+OS・拡張機能の版・サイト・入力手順を [Issues](https://github.com/appipinopi/Meltype-Flash/issues/new/choose) に記載してください。タブURLや文章に個人情報がないか確認してください。
 
 </details>
 

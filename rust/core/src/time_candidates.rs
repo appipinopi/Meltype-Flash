@@ -21,6 +21,12 @@ fn number(text: &str) -> Option<u32> {
     digits.parse().ok()
 }
 fn shape(reading: &str) -> Option<(bool, u32, u32)> {
+    if let Some((month, day)) = reading.split_once('/') {
+        return Some((true, number(month)?, number(day)?));
+    }
+    if let Some((month, day)) = reading.split_once('月') {
+        return Some((true, number(month)?, number(day.strip_suffix('日')?)?));
+    }
     if let Some((month, day)) = reading.split_once("がつ") {
         return Some((true, number(month)?, number(day.strip_suffix("にち")?)?));
     }
@@ -49,6 +55,9 @@ pub fn typed(reading: &str, year: i32) -> Option<Vec<String>> {
             format!("{a:02}/{b:02}"),
             format!("{a}/{b}({week})"),
             format!("{year:04}/{a:02}/{b:02}"),
+            format!("{a}月{b}日"),
+            format!("{a}月{b}日({week})"),
+            format!("{year:04}/{a:02}/{b:02}({week})"),
         ])
     } else if a <= 23 && b <= 59 {
         Some(vec![format!("{a}:{b:02}"), format!("{a:02}:{b:02}")])
@@ -112,7 +121,7 @@ pub fn is_dynamic_choice(reading: &str, text: &str) -> bool {
         || crate::math_candidates::is_choice(reading, text)
         || ["いま", "なう", "きょう"].contains(&reading)
             && (text.chars().any(|c| c.is_ascii_digit()) || text.ends_with("曜日"))
-        || shape(reading).is_some() && text.contains(['/', ':'])
+        || shape(reading).is_some() && text.contains(['/', ':', '月'])
 }
 pub fn join(clauses: Vec<Clause>) -> Vec<Clause> {
     let mut result = Vec::new();

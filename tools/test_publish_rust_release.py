@@ -20,6 +20,25 @@ class PresentationTests(unittest.TestCase):
         (directory / "SHA256SUMS.txt").write_text("".join(
             f"{hashlib.sha256(b'fixture').hexdigest()}  {name}\n" for name in publisher.PACKAGES), encoding="utf-8")
 
+    def test_draft_without_tag_is_found_on_later_pages(self):
+        draft = {"id": 42, "tag_name": "flash-v0.1.0-preview.5", "draft": True}
+        pages = [[{"tag_name": "flash-v0.1.0-preview.50", "draft": False}], [draft]]
+        with patch.object(publisher, "gh", return_value=json.dumps(pages)) as command:
+            self.assertEqual(publisher.find_release(draft["tag_name"]), draft)
+        command.assert_called_once_with("api", f"repos/{publisher.REPO}/releases?per_page=100", "--paginate", "--slurp")
+
+    def test_published_release_is_also_detected_to_prevent_overwrite(self):
+        release = {"id": 43, "tag_name": "flash-v0.1.0-preview.4", "draft": False}
+        with patch.object(publisher, "gh", return_value=json.dumps([[release]])):
+            self.assertEqual(publisher.find_release(release["tag_name"]), release)
+
+    def test_missing_release_is_distinct_from_an_api_error(self):
+        with patch.object(publisher, "gh", return_value=json.dumps([[]])):
+            self.assertIsNone(publisher.find_release("flash-v0.1.0-preview.5"))
+        with patch.object(publisher, "gh", side_effect=RuntimeError("API unavailable")):
+            with self.assertRaisesRegex(RuntimeError, "API unavailable"):
+                publisher.find_release("flash-v0.1.0-preview.5")
+
     def test_only_all_platforms_licenses_and_sums_are_accepted(self):
         with tempfile.TemporaryDirectory() as temporary:
             directory = Path(temporary)
@@ -54,7 +73,10 @@ class PresentationTests(unittest.TestCase):
         title, body = publisher.compose_body("flash-v0.1.0-preview.4", "a" * 40, benchmark, "b" * 40, "fix: table\nfix: `quoted` <tag>")
         self.assertEqual(title, "Meltype-flash v0.1.0 Pre4")
         for os_name in ("Windows", "Linux", "macOS", "Android", "ChromeOS", "iOS"):
-            self.assertIn(os_name, body)
+            self.assertIn(f"|{os_name}|成功|未実施|", body)
+        for scope in ("CI専用試験", "隔離IBus", "エミュレーター", "実WASM・模擬IME API", "iOS Simulator"):
+            self.assertIn(scope, body)
+        self.assertIn("通常アプリ・物理端末でのIME入力確認とは別です", body)
         self.assertEqual(body.count("https://raw.githubusercontent.com/"), 10)
         self.assertIn("/" + "b" * 40 + "/flash-v0.1.0-preview.4/", body)
         self.assertNotIn("releases/download/flash-v0.1.0-preview.4/cpu.png", body)
