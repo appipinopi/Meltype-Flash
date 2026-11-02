@@ -123,20 +123,45 @@ def main(library):
         connection = api.meltype_tip_create()
         assert connection
         try:
-            def tip(letter, before):
-                request = {"op":"key", "sid":"completion", "process":"notepad.exe",
-                           "ch":ord(letter), "before":before, "canDelete":True}
+            def tip(letter, before, sid="completion", process="notepad.exe", code=False, vk=0):
+                request = {"op":"key", "sid":sid, "process":process, "code":code,
+                           "vk":vk, "ch":ord(letter), "before":before, "canDelete":True}
                 return result(api.meltype_tip_request(connection, json.dumps(request).encode()))
 
+            # 1.4の文章入力では先頭の/は・になる。明示候補/とコードの直接入力も確認する。
+            for letter in "/ka":
+                value = tip(letter, "", sid="prose")
+                assert value["active"] and value["consumed"] and value["commits"] == []
+            assert value["view"]["text"] == "・か"
+            value = result(api.meltype_tip_request(connection, json.dumps(
+                {"op":"commit", "sid":"prose", "process":"notepad.exe"}).encode()))
+            assert value["commits"] == [{"deleteBefore":0,"text":"・か"}]
+
+            value = tip("/", "")
+            assert value["active"] and value["consumed"] and value["view"]["text"] == "・"
+            value = tip(" ", "", vk=32)
+            assert value["consumed"] and value["commits"] == []
+            assert value["view"]["candidates"] == ["/", "・", "･", "／"]
+            assert value["view"]["text"] == "/"
             before = ""
-            for letter in "/review":
+            for index, letter in enumerate("review"):
                 value = tip(letter, before)
                 assert value["active"] and not value["consumed"]
-                assert value["commits"] == [] and value["view"] is None
+                expected = [{"deleteBefore":0,"text":"/"}] if index == 0 else []
+                assert value["commits"] == expected and value["view"] is None
+                if index == 0:
+                    before = "/"
                 before += letter
             for letter in "kyou":
                 value = tip(letter, "/review ")
             assert value["consumed"] and value["view"]["text"] == "きょう"
+            for process in ("Code.exe", "WindowsTerminal.exe"):
+                before = ""
+                for letter in "/review":
+                    value = tip(letter, before, sid=process, process=process, code=True)
+                    assert value["active"] and not value["consumed"]
+                    assert value["commits"] == [] and value["view"] is None
+                    before += letter
         finally:
             api.meltype_tip_destroy(connection)
         handle = api.meltype_create()

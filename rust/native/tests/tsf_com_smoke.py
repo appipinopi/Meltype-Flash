@@ -21,6 +21,7 @@ HR = c.c_int32
 INVALID = -2147024809
 NO_INTERFACE = -2147467262
 NOT_IMPLEMENTED = -2147467263
+TF_LBI_CLK_LEFT = 2  # Windows SDKの左クリック。0はunknown-clickの負例に残す。
 
 class Guid(c.Structure):
     _fields_ = [("a", U32), ("b", c.c_uint16), ("c", c.c_uint16), ("d", c.c_ubyte * 8)]
@@ -228,7 +229,7 @@ def verify_langbar(native):
     assert invoke(source, 4, HR, [U32], 123) == HR(0x80040200).value
     assert invoke(pointer, 7, HR, [HR, Point, P], 0, Point(), None) == 0
     assert get_text() == "あ", "Unknown clicks must not toggle the input mode"
-    assert invoke(pointer, 7, HR, [HR, Point, P], 2, Point(), None) == 0
+    assert invoke(pointer, 7, HR, [HR, Point, P], TF_LBI_CLK_LEFT, Point(), None) == 0
     assert get_text() == "A"
     assert get_text(6) == "Meltype-flash: 英数 (クリックで日本語)"
     assert updates == [7] and refs[0] == 2
@@ -296,7 +297,7 @@ def verify_langbar(native):
     native.meltype_tsf_langbar_detach(pointer)
     before = len(reads)
     assert get_text() == "あ"
-    assert invoke(pointer, 7, HR, [HR, Point, P], 0, Point(), None) == 0
+    assert invoke(pointer, 7, HR, [HR, Point, P], TF_LBI_CLK_LEFT, Point(), None) == 0
     assert not mode[0] and len(reads) == before
     japanese_icon = draw_icon(inspect=True)
     assert latin_icon[:2] == japanese_icon[:2] and latin_icon[2] != japanese_icon[2]

@@ -6,13 +6,23 @@
 
 元版の基準は`45e14f86558aa6ea34f2c2ecd038ba95ca8c3c46`です。元の`MozcConverter.cs`と`CompositionController.cs`は変更せず、元プロジェクトを参照したC#ホストから実行します。
 
+CIでは`prepare_reference.py`でこのコミットのCoreと辞書を隔離展開し、`CoreProject`を指定して比較ホストをビルドします。凍結した13系列とMisspellingsの基準SHAが異なる場合は停止します。通常のチェックアウト内の新しいC#を、古い凍結期待値の比較元には使いません。本家1.4.0の比較・測定は別の固定コミットを使います。
+
+```powershell
+python tools/parity/mozc-lifecycle/prepare_reference.py dist/frozen-csharp-reference
+$frozenCore = Join-Path $PWD 'dist/frozen-csharp-reference/src/Meltype.Core/Meltype.Core.csproj'
+dotnet build tools/parity/mozc-lifecycle/MozcLifecycle.csproj "-p:CoreProject=$frozenCore"
+```
+
+展開先は既存フォルダーを上書きしません。`reference-provenance.json`はローカル・CI専用の証跡で、リリースAssetsへ添付しません。
+
 ## 通信・保存
 
 `cases.json`の13操作（空の文節列1件、学習要求12件）を、元版とRustの`Mozc`へ同じ順で渡します。タブ／改行／USの置換、文節間のRS、文脈、学習拒否`NG`、成功5回ごとの`S`を全通信ログで比較します。保存を拒否するヘルパーと、終了通知`Q`に応答しないヘルパーも別プロセスで比較します。正常時は`Q`でヘルパー自身の最終保存へ進み、応答しなければ元版と同じ1秒の猶予後に終了させます。失敗した通信・不正な応答では強制終了し、正常保存の経路へ戻しません。
 
 ```powershell
 rustc --edition=2021 -O rust/native/tests/fixtures/windows_mozc.rs -o helper.exe
-dotnet build tools/parity/mozc-lifecycle/MozcLifecycle.csproj
+dotnet build tools/parity/mozc-lifecycle/MozcLifecycle.csproj "-p:CoreProject=$frozenCore"
 cargo build -p meltype-core --example mozc_lifecycle --locked
 python rust/native/tests/mozc_lifecycle_smoke.py helper.exe tools/parity/mozc-lifecycle/bin/Debug/net10.0/MozcLifecycle.dll target/debug/examples/mozc_lifecycle.exe
 ```
@@ -24,7 +34,7 @@ python rust/native/tests/mozc_lifecycle_smoke.py helper.exe tools/parity/mozc-li
 `filter-cases.json`の22ケースでは、元版Controllerの文節・文脈を制御し、実際の`Learn`から非同期の`ILearningConverter.Learn`へ渡った文節列を採取します。日本語の連続区間、英語、入力した英字そのもの、翻訳、日時・計算記号、読みの英数字、学習無効、プライベート欄、10 UTF-16単位の文脈切出しと文末境界を含みます。
 
 ```powershell
-dotnet run --project tools/parity/mozc-lifecycle/MozcLifecycle.csproj -- --filter tools/parity/mozc-lifecycle/filter-cases.json > filter-reference.jsonl
+dotnet run --project tools/parity/mozc-lifecycle/MozcLifecycle.csproj "-p:CoreProject=$frozenCore" -- --filter tools/parity/mozc-lifecycle/filter-cases.json > filter-reference.jsonl
 python rust/native/tests/mozc_learning_reference.py filter-reference.jsonl
 cargo test -p meltype-core --lib original_controller_learning_runs_and_context_match --locked
 ```
@@ -50,7 +60,7 @@ Coreの確定処理から通知を取り出し、ネイティブのセッショ�
 `Clause`はRawとTranslationsを個別に保持します。通常の文節生成では、保持している音単位と最終読みに対応する元入力を確認し、音単位の途中で切った場合や対応を証明できない場合はRawを付けません。かな入力・選択範囲からの再変換では通常入力のRawを流用せず、文節伸縮後は古いRaw／Translationsを消します。翻訳を選んだ文節はエンジン学習から除外し、永続履歴にも翻訳として記録します。元の英字を選んだ文節を通常の変換履歴へ登録せず、複数文節を別々に記録した後で文全体を再び通常変換として登録する重複も避けます。文全体の翻訳候補一覧で隣の文節まで除外しません。
 
 ```powershell
-dotnet run --project tools/parity/mozc-lifecycle/MozcLifecycle.csproj -- --raw tools/parity/mozc-lifecycle/raw-cases.json > raw-reference.jsonl
+dotnet run --project tools/parity/mozc-lifecycle/MozcLifecycle.csproj "-p:CoreProject=$frozenCore" -- --raw tools/parity/mozc-lifecycle/raw-cases.json > raw-reference.jsonl
 python rust/native/tests/mozc_learning_reference.py filter-reference.jsonl raw-reference.jsonl
 ```
 
@@ -65,7 +75,7 @@ python rust/native/tests/mozc_learning_reference.py filter-reference.jsonl raw-r
 通常の文節にChangedを保持し、候補選択API・候補送りで操作した文節だけを変更済みにします。境界伸縮と再変換では初期化します。変更済みの日本語文節でRawと同じ英字を選ぶと英語として、英語文節で日本語候補を選ぶと日本語として学習します。候補からの選択はF6／F10の明示切替とは区別して、既存の回数学習へ渡します。
 
 ```powershell
-dotnet run --project tools/parity/mozc-lifecycle/MozcLifecycle.csproj -- --language tools/parity/mozc-lifecycle/language-cases.json > clause-language-reference.jsonl
+dotnet run --project tools/parity/mozc-lifecycle/MozcLifecycle.csproj "-p:CoreProject=$frozenCore" -- --language tools/parity/mozc-lifecycle/language-cases.json > clause-language-reference.jsonl
 python rust/native/tests/mozc_learning_reference.py filter-reference.jsonl raw-reference.jsonl clause-language-reference.jsonl
 ```
 
@@ -78,7 +88,7 @@ python rust/native/tests/mozc_learning_reference.py filter-reference.jsonl raw-r
 元ControllerのLearnから、ConversionHistoryとTranslationHistoryへ実際に渡された結果を25ケースで採取します。選び直していない文節、英語文節、1 UTF-16単位の読み、ひらがな・カタカナ・元入力と同じ候補、日時・計算記号は通常の優先候補へ登録しません。翻訳候補の所属は別の条件で扱い、選び直し状態や読みの長さで選択回数を捨てません。元と同じく読みの長さはUTF-16単位で数えます。
 
 ```powershell
-dotnet run --project tools/parity/mozc-lifecycle/MozcLifecycle.csproj -- --history tools/parity/mozc-lifecycle/history-cases.json > clause-history-reference.jsonl
+dotnet run --project tools/parity/mozc-lifecycle/MozcLifecycle.csproj "-p:CoreProject=$frozenCore" -- --history tools/parity/mozc-lifecycle/history-cases.json > clause-history-reference.jsonl
 python rust/native/tests/mozc_learning_reference.py filter-reference.jsonl raw-reference.jsonl clause-language-reference.jsonl clause-history-reference.jsonl
 ```
 
@@ -93,7 +103,7 @@ python rust/native/tests/mozc_learning_reference.py filter-reference.jsonl raw-r
 `Choice.cs`は元の公開`MeltypeSession.HandleKey`／`SelectCandidate`を使用し、文字入力→Space（またはgoの入力中候補）→候補選択→Enterを実行します。元版の組込み辞書・LanguageMemoryを接続したManualの16操作について、確定文字列と日英学習の方向・回数・有効状態を`upstream-single-choice.json`へ採取します。Rust側も公開のキー／候補選択入口を通し、通常の単一変換が文節リストを持たない経路であることを明示的に検査します。候補一覧の全順序は比較対象にしていません。
 
 ```powershell
-dotnet run --project tools/parity/mozc-lifecycle/MozcLifecycle.csproj -- --choice tools/parity/mozc-lifecycle/choice-cases.json > single-choice-reference.jsonl
+dotnet run --project tools/parity/mozc-lifecycle/MozcLifecycle.csproj "-p:CoreProject=$frozenCore" -- --choice tools/parity/mozc-lifecycle/choice-cases.json > single-choice-reference.jsonl
 python rust/native/tests/mozc_learning_reference.py filter-reference.jsonl raw-reference.jsonl clause-language-reference.jsonl clause-history-reference.jsonl single-choice-reference.jsonl
 ```
 
@@ -108,7 +118,7 @@ Rustは文節のない変換に同じ日英学習の選別を適用し、goの�
 元の公開MeltypeSessionで文字入力→F6〜F10→Enter／Space／変換キー→Enterを24操作採取し、変換状態・確定全文・エンジン学習通知を`upstream-engine-keys.json`へ固定しています。元版Controllerとセッションは変更せず、試験変換器の応答と学習通知だけを観測します。非同期学習は専用の単一スレッドと末尾通知で完了を待ちます。
 
 ```powershell
-dotnet run --project tools/parity/mozc-lifecycle/MozcLifecycle.csproj -- --engine-keys tools/parity/mozc-lifecycle/engine-key-cases.json > engine-keys-reference.jsonl
+dotnet run --project tools/parity/mozc-lifecycle/MozcLifecycle.csproj "-p:CoreProject=$frozenCore" -- --engine-keys tools/parity/mozc-lifecycle/engine-key-cases.json > engine-keys-reference.jsonl
 python rust/native/tests/mozc_learning_reference.py filter-reference.jsonl raw-reference.jsonl clause-language-reference.jsonl clause-history-reference.jsonl single-choice-reference.jsonl engine-keys-reference.jsonl
 ```
 
@@ -147,7 +157,7 @@ Shift＋Space修正後は全187テスト・Rust 1.99の全体／TSF-server Clipp
 元の公開MeltypeSessionでF9連打・F10連打・両キーの切替を96入力列（各6操作）実行し、各キーのconsumed／表示全文／変換状態を`upstream-case-keys.json`へ採取します。Manual／Balanced、ひらがな表示のhashi、すでに英語表示のhello、大文字HASHI、単字、数字、GitHub・apiV2を含みます。
 
 ```powershell
-dotnet run --project tools/parity/mozc-lifecycle/MozcLifecycle.csproj -- --case-keys tools/parity/mozc-lifecycle/case-key-cases.json > case-keys-reference.jsonl
+dotnet run --project tools/parity/mozc-lifecycle/MozcLifecycle.csproj "-p:CoreProject=$frozenCore" -- --case-keys tools/parity/mozc-lifecycle/case-key-cases.json > case-keys-reference.jsonl
 python rust/native/tests/mozc_learning_reference.py filter-reference.jsonl raw-reference.jsonl clause-language-reference.jsonl clause-history-reference.jsonl single-choice-reference.jsonl engine-keys-reference.jsonl case-keys-reference.jsonl
 cargo test -p meltype-core --test upstream_case_keys --locked
 ```
@@ -173,7 +183,7 @@ Mac向け共通Core回帰のseeyouagainも元版へ追加し、先行90入力列
 比較で数字キー処理の欠落に加え、読みが辞書候補より前へ入ること、打ったローマ字と全角形の欠落、意味注釈用辞書の逆引き語が余分な候補になることを発見しました。外部変換文節の候補組立てを修正し、ローマ字の後ろへ絵文字を配置します。Clauseの生成は入力された候補順を維持し、空の応答だけ読みへフォールバックします。変換器が無いローカル変換経路と全候補源の順序、候補の取得タイミング、全設定・編集履歴の組合せは継続確認です。
 
 ```powershell
-dotnet run --project tools/parity/mozc-lifecycle/MozcLifecycle.csproj -- --number-keys tools/parity/mozc-lifecycle/number-key-cases.json
+dotnet run --project tools/parity/mozc-lifecycle/MozcLifecycle.csproj "-p:CoreProject=$frozenCore" -- --number-keys tools/parity/mozc-lifecycle/number-key-cases.json
 dotnet run --no-build --project tools/parity/mozc-lifecycle/MozcLifecycle.csproj -- --public-number-keys tools/parity/mozc-lifecycle/public-number-key-cases.json
 python rust/native/tests/number_keys_smoke.py target/release/meltype_native.dll
 ```
@@ -191,7 +201,7 @@ Rustでは最初のBackspaceは変換だけを取り消し、次のBackspaceで�
 nativeはCoreがTabの変換開始を受理した後で外部変換器へ問い合わせます。これにより提案・予測・保護入力の優先処理へ先回りしません。Windows workerのフレーム試験にもTab開始・候補巡回・取消・SpaceからのTab通過と、F7後に変換してEscで字種を戻す操作を追加しています。変換キーの日本語優先経路でも既知英単語と未知の綴りの境界を保ち、既存の文節伸縮ケースを回帰に使います。
 
 ```powershell
-dotnet run --project tools/parity/mozc-lifecycle/MozcLifecycle.csproj -- --conversion-keys tools/parity/mozc-lifecycle/conversion-key-cases.json
+dotnet run --project tools/parity/mozc-lifecycle/MozcLifecycle.csproj "-p:CoreProject=$frozenCore" -- --conversion-keys tools/parity/mozc-lifecycle/conversion-key-cases.json
 python rust/native/tests/number_keys_smoke.py target/release/meltype_native.dll rust/core/tests/data/upstream-conversion-keys.json
 ```
 
@@ -212,7 +222,7 @@ RustのTab巡回は候補の末尾と先頭の間に未選択（-1）を挟み�
 `upstream-prediction-keys.json`へ元の全返信とソースハッシュを固定し、Coreの公開入口とC ABIで消費・編集・表示・予測一覧・選択位置・保存後の語句を比較します。DLLでは変換中の候補一覧と文節も比較。ヒント・意味注釈・非変換中の候補選択sentinel・使用日時そのもの・実OSの描画は比較対象外です。ライブ変換はOFFで、ユーザー辞書／変換履歴を加えた予測順位、全判定レベル・かな入力・全誤字と全編集履歴は継続確認です。変換中のTabによる誤字修正の移行は残っています。
 
 ```powershell
-dotnet run --project tools/parity/mozc-lifecycle/MozcLifecycle.csproj -- --prediction-keys tools/parity/mozc-lifecycle/prediction-key-cases.json
+dotnet run --project tools/parity/mozc-lifecycle/MozcLifecycle.csproj "-p:CoreProject=$frozenCore" -- --prediction-keys tools/parity/mozc-lifecycle/prediction-key-cases.json
 cargo test -p meltype-core --test upstream_prediction_keys --locked
 python rust/native/tests/prediction_keys_smoke.py target/release/meltype_native.dll
 ```
@@ -231,6 +241,6 @@ python rust/native/tests/prediction_keys_smoke.py target/release/meltype_native.
 このホストはTranslationDictionaryを接続しないため、native比較側もTranslationCandidatesをOFFにします。その他の候補源を含む全設定の比較ではありません。`rust/core/tests/data/upstream-misspelling-keys.json` が元版の採取結果とソースハッシュを保持し、非変換の75列をCore、全104列の編集・表示・誤字案内・変換中の候補一覧をnative ABIで検査します。`mozc_learning_reference.py` の13番目の引数に再採取したJSONLを渡すと全行を照合できます。
 
 ```
-dotnet run --project tools/parity/mozc-lifecycle/MozcLifecycle.csproj -- --misspelling-keys tools/parity/mozc-lifecycle/misspelling-key-cases.json
+dotnet run --project tools/parity/mozc-lifecycle/MozcLifecycle.csproj "-p:CoreProject=$frozenCore" -- --misspelling-keys tools/parity/mozc-lifecycle/misspelling-key-cases.json
 python rust/native/tests/number_keys_smoke.py target/release/meltype_native.dll rust/core/tests/data/upstream-misspelling-keys.json
 ```

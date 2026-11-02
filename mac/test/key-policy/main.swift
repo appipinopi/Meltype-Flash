@@ -817,9 +817,19 @@ let dictionaryRows:[[String:Any]]=[
     ["reading":"ab\tcd","phrase":"tab"], ["reading":"ヷ","phrase":"変換"],
     ["reading":"e\u{301}x","phrase":"a\u{0}b"], ["reading":"\u{2028} カナ \u{2029}","phrase":"\u{a0}単語\u{a0}"]
 ]
+// 新しいFoundationのXML writerはNULを拒否する。通常行はXML/binaryの両形式で、
+// NULを含む元の行はbinaryで比較し、結合文字の読みと後続のfile importも維持する。
+let dictionaryTextRows=dictionaryRows.map { row -> [String:Any] in
+    var textRow=row
+    if let phrase=row["phrase"] as? String {
+        textRow["phrase"]=phrase.replacingOccurrences(of:"\u{0}",with:"")
+    }
+    return textRow
+}
 var dictionaryParseCases=0
-for root in [dictionaryRows,["UserDictionary":dictionaryRows],[dictionaryRows[0],"bad"] as [Any],["UserDictionary":["bad"]],[],["other":dictionaryRows]] as [Any] {
- for format in [PropertyListSerialization.PropertyListFormat.xml,.binary] {
+func compareDictionaryShapes(_ rows:[[String:Any]],formats:[PropertyListSerialization.PropertyListFormat]) throws {
+ for root in [rows,["UserDictionary":rows],[rows[0],"bad"] as [Any],["UserDictionary":["bad"]],[],["other":rows]] as [Any] {
+  for format in formats {
     let data=try PropertyListSerialization.data(fromPropertyList:root,format:format,options:0)
     let expected=Result {try LegacyMacUserDictionary.entries(from:data)}
     let actual=Result {try MacUserDictionary.entries(from:data)}
@@ -832,8 +842,14 @@ for root in [dictionaryRows,["UserDictionary":dictionaryRows],[dictionaryRows[0]
     default:fatalError("plist accepted/rejected differently")
     }
     dictionaryParseCases+=1
+  }
  }
 }
+try compareDictionaryShapes(dictionaryTextRows,formats:[.xml,.binary])
+try compareDictionaryShapes(dictionaryRows,formats:[.binary])
+let dictionaryNulData=try PropertyListSerialization.data(fromPropertyList:dictionaryRows,format:.binary,options:0)
+let dictionaryNulEntries=try MacUserDictionary.entries(from:dictionaryNulData)
+precondition(dictionaryNulEntries.contains {Array($0.1.utf16)==[0x61,0,0x62]},"binary plist lost embedded NUL")
 for data in [Data(),Data("invalid plist".utf8),Data([0,255,17])] {
     do {_=try MacUserDictionary.entries(from:data);fatalError("bad plist accepted")} catch {
         do {_=try LegacyMacUserDictionary.entries(from:data);fatalError("reference accepted bad plist")} catch let original {
