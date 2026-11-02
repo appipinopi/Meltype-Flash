@@ -71,7 +71,11 @@ fn encode(text: &str) -> String {
     output
 }
 fn report_url(template: &str, fields: &[(&str, &str)]) -> String {
-    let mut url = format!("{}?template={}", crate::lifecycle::REPORT, encode(template));
+    let mut url = format!(
+        "{}?template={}",
+        crate::lifecycle::REPORT.trim_end_matches("/choose"),
+        encode(template)
+    );
     for (name, value) in fields {
         url.push('&');
         url.push_str(&encode(name));
@@ -474,7 +478,9 @@ mod tests {
         assert!(url.contains("&typed=hashi&actual="));
         assert!(url.contains("&expected=hashi&key="));
         assert!(!url.contains("&body="));
-        assert!(url.starts_with(crate::lifecycle::REPORT));
+        assert!(url.starts_with(
+            "https://github.com/appipinopi/Meltype-Flash/issues/new?template=2-misdetection.yml&"
+        ));
         assert!(url.contains("%26%20%23%3F%0A"));
         assert!(!url.contains('\n'));
         assert!(!url.contains('😀'));

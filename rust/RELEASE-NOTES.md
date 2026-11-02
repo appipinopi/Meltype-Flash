@@ -1,3 +1,35 @@
+# Meltype-flash v1.0.0
+
+公開タグは `flash-v1.0.0`、共通Core・デスクトップ・Android・ChromeOS・iOSの製品版番号は `1.0.0` です。
+
+## 1.0.0の変更
+
+- ChromeOS設定画面を、本家に近いコンパクトな分類パネル・左右のフォーム・タブ切替・下部の説明と保存操作へ整えました。サイト別設定、入力設定、学習削除、書き出しは維持します（[#32](https://github.com/appipinopi/Meltype-Flash/issues/32)）。
+- Flashの報告と本家C#専用の報告を分ける案内・フォーム・自動処理の境界を整えました。本家Issueの参照台帳を、Flashで解決済みの一覧とは扱いません（[#33](https://github.com/appipinopi/Meltype-Flash/issues/33)）。
+- 各OSの版番号と、報告・更新先をMeltype-Flashへ揃えました。正式タグにも対応し、既存のPre版の公開手順を維持します。
+- Pre7の本家1.4.0対応、ChromeOSの半角/全角・Alt+Backquote切替、ChromeOS・iOS・AndroidのAI除去を引き継いでいます。
+
+対応範囲は[配布ファイルの選び方](DOWNLOADS.md)と各OSの導入案内、報告先は[Issueの扱い](../docs/ISSUE-TRIAGE.md)を参照してください。本家と全機能・精度が同じことを示す版番号ではありません。
+
+## 確認範囲
+
+この記録は公開用CI前の準備時点です。公開リリース本文に、同じ配布元コミットの全OSビルド、署名条件、検証範囲と測定結果を掲載します。過去の成功を今回のビルド成功として扱いません。
+
+| OS | 1.0.0の配布ビルド | 実機でのIME入力 |
+| --- | --- | --- |
+| Windows | 未実施 | 未実施 |
+| macOS | 未実施 | 未実施 |
+| Linux | 未実施 | 未実施 |
+| Android | 未実施 | 未実施 |
+| ChromeOS | 未実施 | 未実施 |
+| iOS | 未実施 | 未実施 |
+
+Androidはdebug署名、macOSはアドホック署名、iOS IPAは未署名です。1.0.0の版番号はストア公開・Appleの公証・PAL公開・物理端末での確認完了を意味しません。ChromeOS拡張はChromeOS専用で、通常のデスクトップChrome用IMEではありません。
+
+速度は本家1.4.0・Pre7・1.0.0の共通Coreで再測定します。結果、条件、測定範囲、表と箱ひげ図をリリース本文へ掲載し、以前の測定値を今回の結果として流用しません。
+
+以下はPre7以前の履歴です。
+
 # Meltype-flash v0.1.0 Pre7
 
 2026年10月30日の開発プレビューです。公開タグは `flash-v0.1.0-preview.7`、内部版番号は `0.1.0-pre.7` です。

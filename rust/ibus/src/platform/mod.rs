@@ -594,7 +594,7 @@ unsafe extern "C" fn property(_engine: Obj, name: *const c_char, _state: u32, _d
             }
         } else if CStr::from_ptr(name) == c"report" {
             let _ = std::process::Command::new("xdg-open")
-                .arg("https://github.com/appipinopi/Meltype/issues/new")
+                .arg("https://github.com/appipinopi/Meltype-Flash/issues/new/choose")
                 .spawn();
         }
     }));
@@ -660,13 +660,14 @@ pub fn run() -> Result<(), String> {
                 return Err("IBusの名前を取得できません。".into());
             }
         } else {
+            let version = CString::new(env!("CARGO_PKG_VERSION")).unwrap();
             let component = ibus_component_new(
                 BUS.as_ptr(),
                 c"Meltype-flash".as_ptr(),
-                c"0.1.0".as_ptr(),
+                version.as_ptr(),
                 c"GPL-3.0-or-later".as_ptr(),
                 c"Yukishiro, appipinopi".as_ptr(),
-                c"https://github.com/appipinopi/Meltype".as_ptr(),
+                c"https://github.com/appipinopi/Meltype-Flash".as_ptr(),
                 c"".as_ptr(),
                 c"".as_ptr(),
             );

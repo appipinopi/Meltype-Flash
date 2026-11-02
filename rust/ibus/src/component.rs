@@ -26,7 +26,7 @@ pub fn xml(executable: &Path) -> String {
  <exec>{command}</exec>
  <version>{}</version><license>GPL-3.0-or-later</license>
  <author>Yukishiro, appipinopi</author>
- <homepage>https://github.com/appipinopi/Meltype</homepage>
+ <homepage>https://github.com/appipinopi/Meltype-Flash</homepage>
  <engines><engine>
   <name>meltype-flash</name><longname>Meltype-flash</longname>
   <description>日本語と英語を打ち分ける日本語入力</description>

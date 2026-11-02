@@ -9,7 +9,7 @@ case "$(uname -s)" in
     MELTYPE_NATIVE_LIBRARY="$root/target/release/libmeltype_native.dylib" \
       MELTYPE_RUST_REGISTER_HELPER="$root/target/release/meltype-register-input-source" \
       MELTYPE_RUST_SELECT_HELPER="$root/target/release/meltype-select-input-source" \
-      MELTYPE_RUST_CORE=1 MELTYPE_VERSION=0.1.0 bash "$root/mac/build.sh" --no-install
+      MELTYPE_RUST_CORE=1 MELTYPE_VERSION=1.0.0 bash "$root/mac/build.sh" --no-install
     ;;
   Linux)
     bash "$root/rust/build-linux.sh"

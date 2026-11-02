@@ -1,8 +1,55 @@
 // SPDX-License-Identifier: GPL-3.0-or-later
+// Copyright (C) 2026 appipinopi
 import {validatePreferences} from "./site-profiles.mjs";
 const status = document.querySelector("#status"), settings = document.querySelector("#settings");
 const siteStatus = document.querySelector("#site-status"), siteEnabled = document.querySelector("#site-enabled");
 const rules = document.querySelector("#site-rules"), defaultMode = document.querySelector("#default-mode");
+const saveSettings = document.querySelector("#save-settings"), reloadSettings = document.querySelector("#reload");
+const contextHelp = document.querySelector("#context-help"), helpPanel = document.querySelector("#help-panel");
+const showHelp = document.querySelector("#show-help"), pageBody = document.querySelector("#page-body");
+const tabs = [...document.querySelectorAll('[role="tab"]')];
+const panels = [...document.querySelectorAll('[role="tabpanel"]')];
+const pageActions = [...document.querySelectorAll("[data-actions]")];
+const hints = {
+  "panel-settings": "変更した設定を保存して反映します。",
+  "panel-sites": "サイト別設定はこの端末だけに保存します。",
+  "panel-data": "書き出すファイルには個人の辞書・学習を含みます。",
+  "panel-help": "ChromeOSの入力方法でMeltype-flashを選択してください。",
+};
+function selectPage(selected) {
+  for (const tab of tabs) {
+    const active = tab === selected;
+    tab.setAttribute("aria-selected", String(active));
+    tab.tabIndex = active ? 0 : -1;
+  }
+  for (const panel of panels) panel.hidden = panel.id !== selected.dataset.panel;
+  for (const actions of pageActions) actions.hidden = actions.dataset.actions !== selected.dataset.panel;
+  document.querySelector("#page-hint").textContent = hints[selected.dataset.panel];
+  contextHelp.textContent = "項目を選ぶと、ここに説明を表示します。";
+  pageBody.scrollTop = 0;
+}
+for (const [index, tab] of tabs.entries()) {
+  tab.addEventListener("click", () => selectPage(tab));
+  tab.addEventListener("keydown", event => {
+    let next;
+    if (event.key === "ArrowRight") next = (index + 1) % tabs.length;
+    else if (event.key === "ArrowLeft") next = (index + tabs.length - 1) % tabs.length;
+    else if (event.key === "Home") next = 0;
+    else if (event.key === "End") next = tabs.length - 1;
+    else return;
+    event.preventDefault();
+    selectPage(tabs[next]);
+    tabs[next].focus();
+  });
+}
+showHelp.addEventListener("change", () => { helpPanel.hidden = !showHelp.checked; });
+for (const field of document.querySelectorAll("[data-help]")) {
+  field.setAttribute("aria-describedby", "context-help");
+  const explain = () => { contextHelp.textContent = field.dataset.help; };
+  field.addEventListener("focus", explain);
+  field.addEventListener("mouseenter", explain);
+}
+selectPage(tabs[0]);
 const desktopOnly = new Set(["AppRules", "AppKinds", "AppProfile", "StopInGames"]);
 const neuralSettings = ["UseZenzai", "ZenzaiServerPath", "ZenzaiModelPath"];
 function withoutNeuralSettings(value) {
@@ -17,6 +64,11 @@ function withoutNeuralSettings(value) {
 let savedSettings = {};
 const coreControls = document.querySelector("#core-controls");
 const fields = [...document.querySelectorAll("[data-setting]")];
+function disableCore(disabled) {
+  coreControls.disabled = disabled;
+  saveSettings.disabled = disabled;
+  reloadSettings.disabled = disabled;
+}
 function parseSettings() {
   const value = JSON.parse(settings.value);
   if (!value || typeof value !== "object" || Array.isArray(value)) throw new Error("設定はJSONオブジェクトで入力してください。");
@@ -54,7 +106,7 @@ async function loadSettings() {
   savedSettings = withoutNeuralSettings(JSON.parse(snapshot).settings);
   settings.value = JSON.stringify(Object.fromEntries(Object.entries(savedSettings).filter(([key]) => !desktopOnly.has(key))), null, 2);
   displayFields(savedSettings);
-  coreControls.disabled = false;
+  disableCore(false);
 }
 function addRule(rule = {host: "", mode: "code"}) {
   const row = document.createElement("div"); row.className = "site-rule";
@@ -109,13 +161,15 @@ async function reload() {
   const {preferences} = await request({op: "site_preferences"});
   displayPreferences(preferences);
   const state = await request({op: "status"});
-  status.textContent = state.diagnostic;
+  document.querySelector("#diagnostic").textContent = state.diagnostic;
   if (!state.available) {
-    coreControls.disabled = true;
+    status.textContent = "この環境ではMeltypeを入力方法として利用できません。ChromeOSの入力方法・管理設定を確認してください。";
+    disableCore(true);
     document.querySelectorAll("#export, #clear").forEach(element => { element.disabled = true; });
     return;
   }
   await loadSettings();
+  status.textContent = "入力設定を読み込みました。";
 }
 document.querySelector("#reload").addEventListener("click", () => show(async () => {
   await loadSettings(); status.textContent = "保存済みの入力設定へ戻しました。";
@@ -124,14 +178,14 @@ document.querySelector("#settings-form").addEventListener("submit", event => {
   event.preventDefault();
   return show(async () => {
     const value = parseSettings();
-    coreControls.disabled = true;
+    disableCore(true);
     try {
       const {snapshot} = await request({op: "snapshot"});
       const latest = JSON.parse(snapshot).settings;
       const hidden = Object.fromEntries(Object.entries(latest).filter(([key]) => desktopOnly.has(key)));
       await request({op: "configure", settings: JSON.stringify({...value, ...hidden})});
       await loadSettings();
-    } finally { coreControls.disabled = false; }
+    } finally { disableCore(false); }
     status.textContent = "設定を保存しました。";
   });
 });

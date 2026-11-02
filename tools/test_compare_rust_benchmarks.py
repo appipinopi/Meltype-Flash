@@ -45,6 +45,16 @@ class ComparisonTests(unittest.TestCase):
             "flash-v0.1.0-preview.3\nflash-v0.1.0-preview.4\nflash-v0.1.0\nflash-v0.1.1-preview.1"]):
             self.assertEqual(comparison.previous_release("flash-v0.1.1-preview.1"), "flash-v0.1.0")
 
+    def test_first_stable_flash_uses_pre7_as_automatic_baseline(self):
+        tags = "flash-v0.1.0-preview.6\nflash-v0.1.0-preview.7\nflash-v1.0.0\nflash-v1.0.1-preview.1\nv1.4.0"
+        with tempfile.TemporaryDirectory() as temporary:
+            root = Path(temporary)
+            (root / "Cargo.toml").write_text('[workspace.package]\nversion="1.0.0"', encoding="utf-8")
+            with patch.object(comparison, "ROOT", root), patch.object(comparison.benchmark, "command", return_value=tags):
+                self.assertEqual(comparison.previous_release(), "flash-v0.1.0-preview.7")
+        with patch.object(comparison.benchmark, "command", side_effect=['[workspace.package]\nversion="1.0.0"', tags]):
+            self.assertEqual(comparison.previous_release("flash-v1.0.0"), "flash-v0.1.0-preview.7")
+
     def test_csharp_auto_uses_latest_stable_not_rust_or_preview(self):
         with patch.object(comparison.benchmark, "command", return_value=
             "v1.9.0\nv1.10.0\nv2.0.0-pre.1\nflash-v9.0.0\nrust-v8.0.0"):

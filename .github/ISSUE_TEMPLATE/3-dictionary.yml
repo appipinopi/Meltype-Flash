@@ -1,4 +1,4 @@
-name: 辞書に追加してほしい語
+name: Meltype-flashの辞書に追加してほしい語
 description: 出ない変換候補・英字にしてほしい固有名詞・同音異義語など
 title: "[辞書] "
 labels: ["辞書"]
@@ -7,6 +7,19 @@ body:
     attributes:
       value: |
         自分で辞書 (dictionaries/) を直して Pull Request を送ってもらうこともできます。その場合は CONTRIBUTING.md の同意 (CLA) を書いてください。
+
+        ここはMeltype-flash（Rust版）の窓口です。[本家Meltype（C#版）だけの報告は本家へ](https://github.com/yksr-melt/Meltype/issues/new/choose)お願いします。両方で起きる場合や判断できない場合は、このフォームを使えます。[報告先の分け方](https://github.com/appipinopi/Meltype-Flash/blob/rust/docs/ISSUE-TRIAGE.md)
+
+  - type: dropdown
+    id: product
+    attributes:
+      label: 報告対象
+      options:
+        - Meltype-flash（Rust版）
+        - Meltype-flashと本家Meltypeの両方
+        - 分からない
+    validations:
+      required: true
 
   - type: dropdown
     id: kind

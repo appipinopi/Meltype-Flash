@@ -91,12 +91,18 @@ def validate_benchmark(directory, sha):
     return report, normalize_markdown(notes.split("## 全画像")[0])
 
 
-def compose_body(tag, sha, benchmark, media_sha, changes):
-    match = re.fullmatch(r"flash-v(\d+\.\d+\.\d+)-preview\.(\d+)", tag)
+def parse_tag(tag):
+    match = re.fullmatch(r"flash-v(\d+\.\d+\.\d+)(?:-preview\.(\d+))?", tag)
     if not match:
-        raise ValueError("Flashのプレビュータグが必要です")
-    title = f"Meltype-flash v{match[1]} Pre{match[2]}"
-    rows = [f"# {title}", "", "共通Rustコアを使う開発プレビューです。ビルド成功と各OSの実機確認は別です。", "",
+        raise ValueError("Flashの正式版またはプレビュー版のタグが必要です")
+    return match[1], match[2]
+
+
+def compose_body(tag, sha, benchmark, media_sha, changes):
+    version, preview = parse_tag(tag)
+    title = f"Meltype-flash v{version}" + (f" Pre{preview}" if preview is not None else "")
+    description = "共通Rustコアを使う開発プレビューです。" if preview is not None else "共通Rustコアを使う正式版です。"
+    rows = [f"# {title}", "", description + "ビルド成功と各OSの実機確認は別です。", "",
             "## 変更内容", ""]
     # コミット件名は命令として実行せず、コード表記のテキストとして載せる。
     rows += ["- `" + line.replace("`", "'").replace("<", "&lt;").replace(">", "&gt;") + "`" for line in changes.splitlines() if line]
@@ -119,7 +125,7 @@ def compose_body(tag, sha, benchmark, media_sha, changes):
         links = "<br>".join(f"[{name}](https://github.com/{REPO}/releases/download/{tag}/{name})" for name in files)
         rows.append(f"|{os_name}|{links}|[導入手順](https://github.com/{REPO}/blob/{sha}/{guide})|")
     rows += ["", "iOSのIPAは未署名です。実機へ入れるには自分のApple IDでの署名が必要です。Simulator ZIPとソースZIPは開発用です。",
-             "Androidはdebug署名、macOSはアドホック署名のプレビューです。ChromeOSは通常のデスクトップChrome用IMEではありません。",
+             "Androidはdebug署名、macOSはアドホック署名です。ChromeOSは通常のデスクトップChrome用IMEではありません。",
              "各配布ファイルのSHA256は添付のSHA256SUMS.txtで確認できます。", "", "## ベンチマーク", ""]
     rows += [re.sub(r"(?m)^(#+) ", r"\1# ", benchmark),
              "GitHub共有Windowsランナー上の共通Coreの測定です。全OSの入力遅延や常駐IME全体の性能を示すものではありません。", "",
@@ -172,6 +178,8 @@ def main():
     parser.add_argument("--output", type=Path, required=True)
     parser.add_argument("--publish", action="store_true", help="検証後、画像と下書きをGitHubへ保存する")
     args = parser.parse_args()
+    _, preview = parse_tag(args.tag)
+    prerelease = preview is not None
     if not re.fullmatch(r"[0-9a-f]{40}", args.sha):
         parser.error("完全なコミットSHAが必要です")
     if args.publish:
@@ -199,10 +207,12 @@ def main():
     if args.publish:
         names = [str(args.assets / name) for name in PACKAGES + DOCUMENTS]
         gh("release", "create", args.tag, *names, "--repo", REPO, "--target", args.sha,
-           "--title", title, "--notes-file", str(args.output), "--prerelease", "--draft")
+           "--title", title, "--notes-file", str(args.output), f"--prerelease={str(prerelease).lower()}", "--draft")
         release = find_release(args.tag)
         if release is None:
             raise ValueError("作成した下書きを取得できません")
+        if release.get("draft") is not True or release.get("prerelease") is not prerelease:
+            raise ValueError("GitHub上の下書き・プレリリース設定が期待した内容と一致しません")
         uploaded = {asset["name"]: asset["digest"] for asset in release["assets"]}
         expected = {name: "sha256:" + hashlib.sha256((args.assets / name).read_bytes()).hexdigest() for name in PACKAGES + DOCUMENTS}
         if uploaded != expected or normalize_markdown(release["body"]) != body:

@@ -1138,7 +1138,14 @@ pub extern "C" fn meltype_role_key(handle: *mut c_void, vk: i32) -> *mut c_char 
 }
 #[no_mangle]
 pub extern "C" fn meltype_version() -> *mut c_char {
-    allocate(concat!(env!("CARGO_PKG_VERSION"), "-rust-preview"))
+    allocate(&version_label(env!("CARGO_PKG_VERSION")))
+}
+fn version_label(version: &str) -> String {
+    if version.contains('-') {
+        format!("{version}-rust-preview")
+    } else {
+        version.to_owned()
+    }
 }
 #[no_mangle]
 pub extern "C" fn meltype_data_directory() -> *mut c_char {
@@ -1147,7 +1154,7 @@ pub extern "C" fn meltype_data_directory() -> *mut c_char {
 }
 #[no_mangle]
 pub extern "C" fn meltype_report_url(_platform: *const c_char) -> *mut c_char {
-    allocate("https://github.com/appipinopi/Meltype/issues/new")
+    allocate("https://github.com/appipinopi/Meltype-Flash/issues/new/choose")
 }
 
 /// # Safety
@@ -1167,6 +1174,21 @@ mod android_input;
 #[cfg(test)]
 mod tests {
     use super::*;
+    #[test]
+    fn stable_product_version_and_report_endpoint_use_flash_identity() {
+        assert_eq!(version_label("1.0.0"), "1.0.0");
+        assert_eq!(version_label("0.1.0-pre.7"), "0.1.0-pre.7-rust-preview");
+        unsafe {
+            assert_eq!(
+                take(meltype_version()).as_deref(),
+                Some(version_label(env!("CARGO_PKG_VERSION")).as_str())
+            );
+            assert_eq!(
+                take(meltype_report_url(std::ptr::null())).as_deref(),
+                Some("https://github.com/appipinopi/Meltype-Flash/issues/new/choose")
+            );
+        }
+    }
     #[test]
     fn linux_attributes_distinguish_secret_no_learning_and_terminal() {
         let directory = tempfile::tempdir().unwrap();

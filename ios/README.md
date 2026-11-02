@@ -3,7 +3,7 @@
 <a id="meltype-for-ios"></a>
 <p align="center"><img src="../assets/branding/readme/ios/hero.svg" alt="Meltype-flash for iOS" width="1000"></p>
 <p align="center"><b>稲妻のように、言葉の壁を駆け抜ける日本語入力。</b></p>
-<p align="center"><a href="https://github.com/appipinopi/Meltype-Flash/releases/tag/flash-v0.1.0-preview.7"><img src="https://img.shields.io/badge/Flash-v0.1.0_Pre7-ffe34a" alt="Flash v0.1.0 Pre7"></a> <img src="https://img.shields.io/badge/status-開発プレビュー-666973" alt="開発プレビュー"></p>
+<p align="center"><a href="https://github.com/appipinopi/Meltype-Flash/releases/tag/flash-v1.0.0"><img src="https://img.shields.io/badge/Flash-v1.0.0-ffe34a" alt="Flash v1.0.0"></a> <img src="https://img.shields.io/badge/status-正式版-666973" alt="正式版"></p>
 <p align="center"><a href="#インストール">ダウンロード・導入</a> · <a href="#使い方">使い方</a> · <a href="#困ったとき">困ったとき</a> · <a href="https://github.com/appipinopi/Meltype-Flash/issues/new/choose">不具合の報告・提案</a></p>
 <p align="center">
   <a href="../rust/WINDOWS-PACKAGE.md"><img src="../assets/branding/readme/cards/os-windows.svg" alt="Windows" width="32%"></a>
@@ -43,7 +43,7 @@ iOS側が標準キーボードへ切り替えるパスワード欄や、外部�
 <a id="インストール"></a>
 <h2><img src="../assets/branding/readme/ios/headings/4f36b3b314d8.svg" alt="インストール" width="1000"></h2>
 
-[FlashのPre7](https://github.com/appipinopi/Meltype-Flash/releases/tag/flash-v0.1.0-preview.7) の配布から、目的に合うものを選びます。
+[Flash 1.0.0](https://github.com/appipinopi/Meltype-Flash/releases/tag/flash-v1.0.0) の配布から、目的に合うものを選びます。
 
 | ファイル | 用途 |
 | --- | --- |
@@ -66,12 +66,12 @@ AltStore PALとは別の導入方法です。[更新と制限](https://faq.altst
 この経路による実機入力は未検証です。署名・導入サービス側の画面や条件は公式の案内を優先してください。
 
 <a id="altstore-palでの配布準備"></a>
-<h3><img src="../assets/branding/readme/ios/headings/041e7e9b3d23.svg" alt="AltStore PALでの配布準備" width="1000"></h3>
+<h3><img src="../assets/branding/readme/ios/headings/79ebbb904c3c.svg" alt="AltStore PALでの配布準備" width="1000"></h3>
 
 Pre6で追加した[署名・公証・PALソースJSONの生成手順](ALTSTORE-PAL.md)を用意しています。PALへの公開はまだ完了していません。有料のApple Developer登録とAppleの公証が必要で、上記の未署名IPAはPALへ直接登録できません。この準備では版番号や公開タグを変更しません。
 
 <a id="キーボードを有効にする"></a>
-<h3><img src="../assets/branding/readme/ios/headings/819be477da10.svg" alt="キーボードを有効にする" width="1000"></h3>
+<h3><img src="../assets/branding/readme/ios/headings/410a26926cd1.svg" alt="キーボードを有効にする" width="1000"></h3>
 
 導入後は「設定 → 一般 → キーボード → キーボード → 新しいキーボードを追加」からMeltype-flashを追加し、入力欄で🌐から選びます。
 **フルアクセスの許可は不要です。**
@@ -82,7 +82,7 @@ Pre6で追加した[署名・公証・PALソースJSONの生成手順](ALTSTORE-
 拡張の同梱表示は、署名の有効性やiOS側の有効化を保証するものではありません。
 
 <a id="背景とテーマ"></a>
-<h3><img src="../assets/branding/readme/ios/headings/b187ca0a8267.svg" alt="背景とテーマ" width="1000"></h3>
+<h3><img src="../assets/branding/readme/ios/headings/c80ec1b8d107.svg" alt="背景とテーマ" width="1000"></h3>
 
 本体アプリの「キーボードの背景・テーマ」を開き、システム・ライト・ダーク・ブルー・ピンク・ミントから配色を選びます。「好きな画像を選ぶ」で写真の選択画面を開き、1枚を背景にできます。画像は長辺1280ピクセル以下へ縮小して端末内に保存し、中央基準で切り抜いて表示します。キーボードを開き直すと反映されます。
 
@@ -91,7 +91,7 @@ Pre6で追加した[署名・公証・PALソースJSONの生成手順](ALTSTORE-
 背景の共有には、本体アプリとキーボードの両方で同じApp Groupを署名へ含める必要があります。自分のチームで署名するときは、`ios/project.yml` の `MELTYPE_APP_GROUP` を利用可能なグループIDへ変更し、両方のApp IDとプロビジョニングプロファイルへ登録してください。共有領域を利用できない場合、設定画面にその旨を表示し、キーボードは標準配色で動きます。この追加機能のiOSビルド・Simulator・実機確認は未実施です。
 
 <a id="使い方"></a>
-<h2><img src="../assets/branding/readme/ios/headings/23ca31abc8fa.svg" alt="使い方" width="1000"></h2>
+<h2><img src="../assets/branding/readme/ios/headings/ef766b2672e1.svg" alt="使い方" width="1000"></h2>
 
 アプリ内のホームの入力テストとフリックのお試し画面では、入力した文字を長押し・選択するとiOS標準の編集メニューが開きます。コピー・切り取り・ペースト・全選択は標準機能を使います。
 選択メニューの「Meltypeで変換」から候補を選ぶと、選んだ範囲だけを置き換えます。「キャンセル」なら元の文字を残します。「選択範囲を削除」で選んだ部分をまとめて消せます。範囲や文章が変わった場合は置き換えません。
@@ -107,14 +107,14 @@ Pre6で追加した[署名・公証・PALソースJSONの生成手順](ALTSTORE-
 入力欄を移動すると未確定入力を破棄し、確定済みの文字をさかのぼって修正しません。
 
 <a id="プライバシー"></a>
-<h2><img src="../assets/branding/readme/ios/headings/8e97c515b5c1.svg" alt="プライバシー" width="1000"></h2>
+<h2><img src="../assets/branding/readme/ios/headings/b4b5391c3c92.svg" alt="プライバシー" width="1000"></h2>
 
 入力内容を通信・記録する機能はありません。アプリ内のコピー・ペーストはユーザーが標準メニューから操作したときにiOSが処理します。入力履歴や学習は保存しません。選んだ配列はキーボード内に保存します。
 キーボードの制限はiOSと使用中のアプリの挙動にも従います。
 署名・アプリ導入に使うApple IDや認証情報を不具合報告へ添付しないでください。
 
 <a id="困ったとき"></a>
-<h2><img src="../assets/branding/readme/ios/headings/eb24f202926d.svg" alt="困ったとき" width="1000"></h2>
+<h2><img src="../assets/branding/readme/ios/headings/6839caf4f5ba.svg" alt="困ったとき" width="1000"></h2>
 
 <details>
 <summary>キーボード一覧に出ない</summary>
@@ -138,13 +138,13 @@ iOSはパスワード欄などで標準キーボードへ切り替えます。�
 </details>
 
 <a id="アンインストール"></a>
-<h2><img src="../assets/branding/readme/ios/headings/0ccba09763e7.svg" alt="アンインストール" width="1000"></h2>
+<h2><img src="../assets/branding/readme/ios/headings/c1fad2ad08d6.svg" alt="アンインストール" width="1000"></h2>
 
 設定のキーボード一覧からMeltype-flashを外し、ホーム画面またはアプリ一覧からアプリ本体を削除します。
 署名・更新に使った導入サービス側の登録やデータの扱いは、そのサービスの案内に従ってください。
 
 <a id="開発者向け"></a>
-<h2><img src="../assets/branding/readme/ios/headings/2e75e45b5878.svg" alt="開発者向け" width="1000"></h2>
+<h2><img src="../assets/branding/readme/ios/headings/f147a128017c.svg" alt="開発者向け" width="1000"></h2>
 
 MacにXcode、Rust、XcodeGenを用意し、リポジトリのルートから実行します。
 

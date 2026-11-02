@@ -1,4 +1,4 @@
-name: 不具合の報告
+name: Meltype-flashの不具合
 description: 動かない・止まる・落ちる・表示がおかしいなど
 title: "[不具合] "
 labels: ["bug"]
@@ -9,6 +9,19 @@ body:
         報告ありがとうございます。日本語・英語の判定や変換の間違い (「日本語」が「にほんgo」になった など) は、「変換・判定の間違い」から報告してください。
         ⚠ パスワードや個人的な文章を貼らないでください。ログには直前に打った文字の一部が入ることがあります。見られて困る部分は消してから貼ってください。
 
+        ここはMeltype-flash（Rust版）の窓口です。[本家Meltype（C#版）だけの報告は本家へ](https://github.com/yksr-melt/Meltype/issues/new/choose)お願いします。両方で起きる場合や判断できない場合は、このフォームを使えます。[報告先の分け方](https://github.com/appipinopi/Meltype-Flash/blob/rust/docs/ISSUE-TRIAGE.md)
+
+  - type: dropdown
+    id: product
+    attributes:
+      label: 報告対象
+      options:
+        - Meltype-flash（Rust版）
+        - Meltype-flashと本家Meltypeの両方
+        - 分からない
+    validations:
+      required: true
+
   - type: dropdown
     id: os
     attributes:
@@ -16,8 +29,11 @@ body:
       options:
         - Windows 11
         - Windows 10
-        - Mac (プレビュー版)
-        - Linux (プレビュー版)
+        - macOS
+        - Linux
+        - Android
+        - ChromeOS
+        - iOS
     validations:
       required: true
 
@@ -25,15 +41,15 @@ body:
     id: os-detail
     attributes:
       label: OS の詳細 (分かれば)
-      description: "Mac: macOS 15.2 / M2 など。Linux: Ubuntu 24.04 / GNOME / Wayland など"
+      description: "macOS: 版とCPU。Linux: 版・デスクトップ・Wayland/X11。Android・iOS: 版と機種。ChromeOS: 版と機種・キーボード配列。"
       placeholder: Ubuntu 24.04 / GNOME / Wayland
 
   - type: input
     id: version
     attributes:
       label: Meltype の版
-      description: "Windows: トレイのアイコンを右クリック →「Meltype について...」"
-      placeholder: 0.2.0
+      description: "Meltype-flashの版を書いてください。Windowsはトレイの「Meltype-flash について」、ChromeOSは拡張機能の詳細でも確認できます。"
+      placeholder: 1.0.0
     validations:
       required: true
 
@@ -42,9 +58,9 @@ body:
     attributes:
       label: 使っていたモード (Windows)
       options:
-        - Meltype IME (入力欄に直接入力)
-        - Meltype キーボード (変換ボックスで入力)
-        - 分からない / Mac・Linux
+        - Meltype-flash IME (入力欄に直接入力)
+        - Meltype-flash キーボード (変換ボックスで入力)
+        - 分からない / Windows以外
 
   - type: input
     id: app

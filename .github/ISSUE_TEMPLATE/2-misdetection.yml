@@ -1,4 +1,4 @@
-name: 変換・判定の間違い
+name: Meltype-flashの変換・判定の間違い
 description: 日本語になるはずが英字になった・英語になるはずがかなになった・変換の候補がおかしい
 title: "[誤判定] "
 labels: ["誤判定"]
@@ -8,6 +8,19 @@ body:
       value: |
         「打ったもの」と「期待した結果」をもらえれば、そのままテストに入れて直せます。1 つの報告に 1 つの例でも、まとめて何個でも大丈夫です。
         ⚠ パスワードや個人的な文章は書かないでください (似た例に書き換えてもらって大丈夫です)。
+
+        ここはMeltype-flash（Rust版）の窓口です。[本家Meltype（C#版）だけの報告は本家へ](https://github.com/yksr-melt/Meltype/issues/new/choose)お願いします。両方で起きる場合や判断できない場合は、このフォームを使えます。[報告先の分け方](https://github.com/appipinopi/Meltype-Flash/blob/rust/docs/ISSUE-TRIAGE.md)
+
+  - type: dropdown
+    id: product
+    attributes:
+      label: 報告対象
+      options:
+        - Meltype-flash（Rust版）
+        - Meltype-flashと本家Meltypeの両方
+        - 分からない
+    validations:
+      required: true
 
   - type: dropdown
     id: kind
@@ -78,14 +91,18 @@ body:
       label: OS
       options:
         - Windows
-        - Mac (プレビュー版)
-        - Linux (プレビュー版)
+        - macOS
+        - Linux
+        - Android
+        - ChromeOS
+        - iOS
 
   - type: input
     id: version
     attributes:
       label: Meltype の版
-      placeholder: 0.2.0
+      description: Meltype-flashの版を書いてください。本家でも試した場合は、その版を補足に書いてください。
+      placeholder: 1.0.0
 
   - type: textarea
     id: environment

@@ -1,4 +1,4 @@
-name: 機能提案
+name: Meltype-flashの機能提案
 description: 新しい機能の提案・リクエスト
 title: "[機能提案] "
 labels: ["機能提案"]
@@ -8,6 +8,19 @@ body:
       value: |
         機能提案ありがとうございます。今は不具合の修正と判定・変換の精度を優先しているため、すぐには入れられないことがあります。
         機能の利用シーン・利点などを詳しく説明いただけると、検討しやすくなります。
+
+        ここはMeltype-flash（Rust版）の窓口です。[本家Meltype（C#版）だけの報告は本家へ](https://github.com/yksr-melt/Meltype/issues/new/choose)お願いします。両方で起きる場合や判断できない場合は、このフォームを使えます。[報告先の分け方](https://github.com/appipinopi/Meltype-Flash/blob/rust/docs/ISSUE-TRIAGE.md)
+
+  - type: dropdown
+    id: product
+    attributes:
+      label: 報告対象
+      options:
+        - Meltype-flash（Rust版）
+        - Meltype-flashと本家Meltypeの両方
+        - 分からない
+    validations:
+      required: true
 
   - type: textarea
     id: use-case
@@ -69,8 +82,11 @@ body:
       multiple: true
       options:
         - Windows
-        - Mac
+        - macOS
         - Linux
+        - Android
+        - ChromeOS
+        - iOS
         - すべて
 
   - type: checkboxes

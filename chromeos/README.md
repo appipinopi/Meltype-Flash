@@ -3,7 +3,7 @@
 <a id="meltype-for-chromeos"></a>
 <p align="center"><img src="../assets/branding/readme/chromeos/hero.svg" alt="Meltype-flash for ChromeOS" width="1000"></p>
 <p align="center"><b>稲妻のように、言葉の壁を駆け抜ける日本語入力。</b></p>
-<p align="center"><a href="https://github.com/appipinopi/Meltype-Flash/releases/tag/flash-v0.1.0-preview.7"><img src="https://img.shields.io/badge/Flash-v0.1.0_Pre7-ffe34a" alt="Flash v0.1.0 Pre7"></a> <img src="https://img.shields.io/badge/status-開発プレビュー-666973" alt="開発プレビュー"></p>
+<p align="center"><a href="https://github.com/appipinopi/Meltype-Flash/releases/tag/flash-v1.0.0"><img src="https://img.shields.io/badge/Flash-v1.0.0-ffe34a" alt="Flash v1.0.0"></a> <img src="https://img.shields.io/badge/status-正式版-666973" alt="正式版"></p>
 <p align="center"><a href="#インストール">ダウンロード・導入</a> · <a href="#使い方">使い方</a> · <a href="#困ったとき">困ったとき</a> · <a href="https://github.com/appipinopi/Meltype-Flash/issues/new/choose">不具合の報告・提案</a></p>
 <p align="center">
   <a href="../rust/WINDOWS-PACKAGE.md"><img src="../assets/branding/readme/cards/os-windows.svg" alt="Windows" width="32%"></a>
@@ -27,11 +27,11 @@ ChromeOSの `chrome.input.ime` と共通Rust CoreのWASMを接続する、日本
 ローマ字・かな、英語・日本語の判定、漢字変換、予測候補、候補選択、設定と学習の保存を接続しています。
 AI変換は搭載しません。デスクトップの設定を読み込んでも、Zenzaiの有効化・サーバー・モデルの設定は取り込みません。通常の辞書変換・予測候補・学習は端末内で使えます。
 漢字変換には、固定版Mozcの語彙と接続コストを同梱しています。「にほんご → 日本語」「きょうはいいてんきです → 今日はいい天気です」のように、端末内で変換します。Mozc本体とは異なる上限付きの探索処理であり、候補や順位はデスクトップ版と一致するとは限りません。
-設定画面では、通常入力とコード入力、サイトごとの切替、入力のカスタマイズ、詳細JSON、スナップショットの保存を扱います。
+設定画面は本家の分類枠・左側の項目名と右側の操作・下部の説明欄に合わせ、「設定」「サイト別設定」「学習とデータ」「使い方」の4ページにまとめています。Flashの表示と、ChromeOS固有のサイト切替・端末内のデータ管理は維持しています。
 
-「入力のカスタマイズ」で日英判定、句読点、タイプミス補正、Tab変換、英語前後の空白、学習を変更し、「入力設定を保存」で反映します。詳細JSONとも同期します。「保存済み設定へ戻す」で未保存の編集を取り消せます。学習をオフにしても既存の履歴は削除しません。
+「設定」で日英判定、句読点、タイプミス補正、Tab変換、英語前後の空白、学習を変更し、下部の「入力設定を保存」で反映します。詳細JSONとも同期します。「保存済み設定へ戻す」で未保存の編集を取り消せます。ページを切り替えても編集中の内容は保持します。タブは左右矢印・Home・Endでも移動でき、項目へフォーカスすると下部に説明を表示します。学習をオフにしても既存の履歴は削除しません。
 候補はChromeOS標準の表示を使い、色・フォント・位置の変更は未対応です。[カスタマイズの進め方](../docs/customization.md) に対応範囲と次の案をまとめています。
-[導入画面の記録](docs/INSTALLATION.md) はありますが、Pre7の修正を含む実機での変換・各アプリ入力の確認は未完了です。
+[導入画面の記録](docs/INSTALLATION.md) はありますが、今回の修正を含む実機での変換・各アプリ入力の確認は未完了です。
 
 [動く環境](#動く環境) · [インストール](#インストール) · [使い方](#使い方) · [困ったとき](#困ったとき) · [アンインストール](#アンインストール) · [開発者向け](#開発者向け)
 
@@ -47,12 +47,12 @@ AI変換は搭載しません。デスクトップの設定を読み込んでも
 <a id="インストール"></a>
 <h2><img src="../assets/branding/readme/chromeos/headings/4f36b3b314d8.svg" alt="インストール" width="1000"></h2>
 
-1. [FlashのPre7](https://github.com/appipinopi/Meltype-Flash/releases/tag/flash-v0.1.0-preview.7) から `Meltype-flash-ChromeOS.zip` を取得し、フォルダーへ全体展開します。
+1. [Flash 1.0.0](https://github.com/appipinopi/Meltype-Flash/releases/tag/flash-v1.0.0) から `Meltype-flash-ChromeOS.zip` を取得し、フォルダーへ全体展開します。
 2. ChromeOSの `chrome://extensions` を開き、拡張機能の「デベロッパーモード」を有効にします。
 3. 「パッケージ化されていない拡張機能を読み込む」で、`manifest.json` のあるフォルダーを選びます。
 4. ChromeOSの言語・入力方法の設定からMeltypeを追加し、入力方法として選びます。
 
-メニューの表示名に `Meltype Rust` が残っている版もあります。画面の経路は [画像付きの導入案内](docs/INSTALLATION.md) を参照してください。
+表示名は `Meltype-flash` です。旧版では `Meltype Rust` と表示します。[画像付きの導入案内](docs/INSTALLATION.md) は旧版の画面ですが、追加する経路は同じです。
 既存版を更新する場合は、先に設定画面で必要なスナップショットを保存します。同じフォルダーを新しいファイルで更新し、拡張機能を再読み込みしてください。学習を残したい場合は、先に拡張機能を削除しないでください。
 
 <a id="使い方"></a>
@@ -76,7 +76,7 @@ ChromeOSの入力方式切替はOS側の設定を使います。
 <a id="サイトごとの通常入力コード入力"></a>
 <h3><img src="../assets/branding/readme/chromeos/headings/56ec4448115b.svg" alt="サイトごとの通常入力・コード入力" width="1000"></h3>
 
-初期状態ではサイト別の自動切替は無効です。設定画面で「サイトごとの自動切替」を有効にし、必要なタブ参照を許可して保存します。
+初期状態ではサイト別の自動切替は無効です。「サイト別設定」ページで「サイトごとの自動切替」を有効にし、必要なタブ参照を許可して「入力モードを保存」を押します。
 `vscode.com`・`vscode.dev`・`github.dev` は初期候補です。権限を許可しない場合は手動の入力モードを使えます。
 周辺テキストを渡さないエディターではコメント・文字列の判定ができないため、そのサイトは通常入力へ切り替えてください。
 サイト別設定はCoreの学習スナップショットとは別で、現在のJSON書き出しには含まれません。

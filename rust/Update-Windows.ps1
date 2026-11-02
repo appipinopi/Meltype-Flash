@@ -3,7 +3,7 @@
 [CmdletBinding(SupportsShouldProcess=$true)]
 param([ValidateSet('Check','Stage','Apply')][string]$Action = 'Check')
 $ErrorActionPreference = 'Stop'
-$repository = 'appipinopi/Meltype'
+$repository = 'appipinopi/Meltype-Flash'
 $limit = 268435456L
 function Installed-Root {
     $machine = [Microsoft.Win32.RegistryKey]::OpenBaseKey([Microsoft.Win32.RegistryHive]::LocalMachine, [Microsoft.Win32.RegistryView]::Registry64)
