@@ -2,8 +2,8 @@
 //! Product entry points; opening a browser never sends learned text or diagnostics.
 use eframe::egui;
 use meltype_core::{settings::Settings, storage::Store};
-pub const RELEASES: &str = "https://github.com/appipinopi/Meltype/releases";
-pub const REPORT: &str = "https://github.com/appipinopi/Meltype/issues/new";
+pub const RELEASES: &str = "https://github.com/appipinopi/Meltype-Flash/releases";
+pub const REPORT: &str = "https://github.com/appipinopi/Meltype-Flash/issues/new/choose";
 #[derive(Default)]
 pub struct Lifecycle {
     pub welcome: bool,
@@ -57,7 +57,7 @@ impl Lifecycle {
         std::thread::spawn(move || {
             #[cfg(windows)]
             let message = match meltype_core::windows_http::get_api_json(
-                "/repos/appipinopi/Meltype/releases?per_page=20",
+                "/repos/appipinopi/Meltype-Flash/releases?per_page=20",
                 None,
             ) {
                 Some(body) => rust_release(&body).map_or_else(
@@ -118,7 +118,11 @@ impl Lifecycle {
         if self.welcome {
             ctx.send_viewport_cmd(egui::ViewportCommand::Visible(true));
             egui::Window::new("Meltype-flash へようこそ").collapsible(false).resizable(false).show(ctx, |ui| {
-                ui.label("共通Rust Coreを使う移植プレビューです。");
+                ui.label(if env!("CARGO_PKG_VERSION").contains('-') {
+                    "共通Rust Coreを使う移植プレビューです。"
+                } else {
+                    "日本語と英語を自動判定する日本語入力です。"
+                });
                 ui.label("1. 設定と入力テストで、入力方式や候補を確認してください。");
                 #[cfg(windows)]
                 {
@@ -141,9 +145,9 @@ impl Lifecycle {
                 ui.label(format!("データ保存先: {}", store.directory.display()));
                 ui.label("元版のデータは自動で置き換えません。移行前にバックアップを保存してください。");
                 #[cfg(windows)]
-                ui.hyperlink_to("導入と配布の説明", "https://github.com/appipinopi/Meltype/blob/codex/rust-cross-platform/rust/WINDOWS-PACKAGE.md");
+                ui.hyperlink_to("導入と配布の説明", "https://github.com/appipinopi/Meltype-Flash/blob/rust/rust/WINDOWS-PACKAGE.md");
                 #[cfg(not(windows))]
-                ui.hyperlink_to("導入と配布の説明", "https://github.com/appipinopi/Meltype/blob/rust/rust/README.md");
+                ui.hyperlink_to("導入と配布の説明", "https://github.com/appipinopi/Meltype-Flash/blob/rust/rust/README.md");
                 if ui.button("設定を始める").clicked() { acknowledge = true; }
             });
         }
@@ -162,7 +166,7 @@ impl Lifecycle {
                     ui.label("Rust移植: appipinopi / GPL-3.0-or-later");
                     ui.hyperlink_to(
                         "ソースコードとライセンス",
-                        "https://github.com/appipinopi/Meltype",
+                        "https://github.com/appipinopi/Meltype-Flash",
                     );
                     ui.add_space(12.);
                     ui.with_layout(egui::Layout::right_to_left(egui::Align::Center), |ui| {
@@ -302,14 +306,15 @@ mod tests {
             {"tag_name":"legacy-rust","assets":[{"name":"Meltype-Rust-Windows-x64.zip"}]},
             {"tag_name":"rust-draft","draft":true,"assets":[{"name":"Meltype-flash-Windows.zip"}]},
             {"tag_name":"rust-linux","assets":[{"name":"Meltype-flash-Linux.zip"}]},
-            {"tag_name":"rust-preview","assets":[{"name":"Meltype-flash-Windows-x64.zip"}]}
+            {"tag_name":"flash-v1.1.0-preview.1","prerelease":true,"assets":[{"name":"Meltype-flash-Windows-x64.zip"}]},
+            {"tag_name":"flash-v1.0.0","draft":false,"prerelease":false,"assets":[{"name":"Meltype-flash-Windows-x64.zip"}]}
         ]);
         for release in releases.as_array_mut().unwrap() {
             for asset in release["assets"].as_array_mut().unwrap() {
                 asset["digest"] = json!(format!("sha256:{}", "a".repeat(64)));
             }
         }
-        assert_eq!(rust_release(&releases).as_deref(), Some("rust-preview"));
+        assert_eq!(rust_release(&releases).as_deref(), Some("flash-v1.0.0"));
         assert!(rust_release(&json!([])).is_none());
         let settings = Settings::parse(r#"{"AutoUpdate":false,"SettingsVersion":5}"#).unwrap();
         let mut lifecycle = Lifecycle::new(&settings);

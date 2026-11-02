@@ -1,5 +1,6 @@
 // SPDX-License-Identifier: GPL-3.0-or-later
 // Copyright (C) 2026 Yukishiro
+// Copyright (C) 2026 appipinopi
 //
 // Meltype の GitHub bot (.github/workflows/bot.yml から呼ぶ)。外部のパッケージは使わない (Node.js の fetch だけ)。
 //   node meltype-bot.mjs parse    … Issue の作成・編集 / コメントのコマンドを読み、次の job に何をするかを渡す
@@ -10,6 +11,7 @@ import path from 'node:path';
 
 const api = process.env.GITHUB_API_URL ?? 'https://api.github.com';
 const repo = process.env.GITHUB_REPOSITORY;
+const flashRepository = repo?.toLowerCase() === 'appipinopi/meltype-flash';
 const token = process.env.GITHUB_TOKEN;
 // workflow_dispatch は bot の App に Actions の権限が無いので、job の GITHUB_TOKEN (actions: write) で叩く
 const dispatchToken = process.env.BOT_DISPATCH_TOKEN || token;
@@ -213,6 +215,18 @@ const Help = [
   'PR のコードを動かすコマンドの `<SHA>` は、中身を確かめた commit の SHA (40 桁)。PR の今の head と違えば動かしません。',
 ].join('\n');
 
+const FlashHelp = [
+  'ここはMeltype-flash（Rust版）の窓口です。',
+  '',
+  'Flashの再現・修正確認はRust版のコードと対象OSで行います。本家C#版の結果をFlashの「再現済み」や完了の判定には使いません。',
+  '[Flashの全OSビルド・テスト](https://github.com/appipinopi/Meltype-Flash/actions/workflows/rust.yml)と、PR本文の「確かめること」に書いた入力例を使って確認します。',
+  '[Flashの公開手順](https://github.com/appipinopi/Meltype-Flash/actions/workflows/rust-release.yml)は管理者が手動で実行します。',
+  'このbotからC#版の再現・テスト・パッケージ・公開コマンドは実行しません。',
+  '',
+  '本家Meltype（C#版）だけの報告は[本家の窓口](https://github.com/yksr-melt/Meltype/issues/new/choose)へお願いします。',
+  '[報告先と確認範囲](https://github.com/appipinopi/Meltype-Flash/blob/rust/docs/ISSUE-TRIAGE.md)',
+].join('\n');
+
 // /release <版>・/pre-release <版> (issue #665)。管理者 (admin / maintain) だけ。
 //   1. 版の形を確かめる (release: 1.2.3 / pre-release: 1.2.3-pre.1)
 //   2. main の csproj (2 つ)・Info.plist の版が <版> と合うか確かめる (版を上げ忘れた配布を防ぐ: issue #601)
@@ -222,6 +236,7 @@ const Help = [
 // タグを GITHUB_TOKEN で作ると push の起動が掛からないので、workflow_dispatch で明示的に起動する。
 async function releaseCommand(issue, command, version) {
   const reply = text => upsertComment(issue, `release-${event.comment.id}`, text);
+  if (flashRepository) return reply(FlashHelp);
   const pre = command === 'pre-release';
   const permission = await gh('GET', `/collaborators/${event.comment.user.login}/permission`).then(r => r.permission).catch(() => 'none');
   if (!['admin', 'maintain'].includes(permission)) return reply(`\`/${command}\` は管理者 (admin / maintain) だけが使えます。`);
@@ -293,9 +308,10 @@ async function parse() {
     const related = await relatedIssues(issue, event.issue.body, misdetection ? field(form, '打ったもの') : '');
     if (related.length > 0) text.push('<details><summary>🔗 関連しそうな Issue (自動・根拠つき)</summary>', '', ...related, '', '本文の参照と「打ったもの」の一致だけを根拠にした候補です。同じ問題とは限りません (ラベルや状態は変えていません)。', '</details>', '');
     if (reasons.length > 0) text.push('<details><summary>🤖 自動の仕分け</summary>', '', ...reasons.map(r => `- ${r}`), '', '優先度・分類は本文からの見当です。作者が確認したら `要トリアージ` を外します。', '</details>');
+    if (flashRepository && misdetection && problems.length === 0) text.push(FlashHelp);
     if (text.length > 0) await upsertComment(issue, 'triage', text.join('\n'));
 
-    if (misdetection && problems.length === 0) {
+    if (!flashRepository && misdetection && problems.length === 0) {
       return output({
         action: 'repro', issue, keys: keys.slice(0, MaxKeys), last: lastKey(field(form, '最後に押したキー')),
         reported: field(form, '出たもの'), expected: field(form, '期待した結果'), kind: field(form, '種類'),
@@ -308,6 +324,10 @@ async function parse() {
   const match = line.match(/^\/(repro|explain|ca|jht|test-repro|test-jht|test-explain|test|pack|pre-release|release|help)\b\s*(.*)$/);
   if (!match || event.comment.user?.type === 'Bot') return output({ action: 'none' });
   const [, command, rest] = match;
+  if (flashRepository) {
+    await upsertComment(issue, `help-${event.comment.id}`, FlashHelp);
+    return output({ action: 'none' });
+  }
   const maintainer = Maintainers.includes(event.comment.author_association);
   const prOnly = ['test', 'pack', 'test-repro', 'test-jht', 'test-explain'];
 
@@ -427,6 +447,10 @@ function readText(file, max = 6000) {
 async function report() {
   const action = process.env.BOT_ACTION;
   const issue = process.env.BOT_ISSUE;
+  if (flashRepository) {
+    await upsertComment(issue, 'reference-product', FlashHelp);
+    return;
+  }
   const dir = process.env.BOT_RESULTS ?? 'results';
   const runUrl = `${process.env.GITHUB_SERVER_URL}/${repo}/actions/runs/${process.env.GITHUB_RUN_ID}`;
   const keys = process.env.BOT_KEYS;
@@ -594,7 +618,7 @@ try {
   }
   else if (mode === 'report') {
     await report();
-    await react(process.env.BOT_JOB_RESULT === 'success' ? 'rocket' : 'confused');
+    if (!flashRepository) await react(process.env.BOT_JOB_RESULT === 'success' ? 'rocket' : 'confused');
   }
 } catch (error) {
   console.error(error);

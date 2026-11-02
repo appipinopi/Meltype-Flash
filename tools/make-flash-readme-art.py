@@ -176,11 +176,13 @@ def navigation(document, current=None):
 
 def header(document, key, name):
     version = tomllib.loads((ROOT / "Cargo.toml").read_text(encoding="utf-8"))["workspace"]["package"]["version"]
-    match = re.fullmatch(r"(\d+\.\d+\.\d+)-pre\.(\d+)", version)
+    match = re.fullmatch(r"(\d+\.\d+\.\d+)(?:-pre\.(\d+))?", version)
     if not match:
-        raise ValueError("Flashのプレリリース版が必要です")
-    tag = f"flash-v{match[1]}-preview.{match[2]}"
-    label = f"v{match[1]} Pre{match[2]}"
+        raise ValueError("Flashの正式版またはプレリリース版が必要です")
+    preview = match[2] is not None
+    tag = f"flash-v{match[1]}" + (f"-preview.{match[2]}" if preview else "")
+    label = f"v{match[1]}" + (f" Pre{match[2]}" if preview else "")
+    status = "開発プレビュー" if preview else "正式版"
     badge_label = label.replace(" ", "_")
     return (f'{START}\n<p align="center"><img src="{relative(OUT / "logo.svg", document)}" alt="Meltype-flash" width="520"></p>\n'
             f'<a id="meltype-for-{key}"></a>\n'
@@ -188,7 +190,7 @@ def header(document, key, name):
             '<p align="center"><b>稲妻のように、言葉の壁を駆け抜ける日本語入力。</b></p>\n'
             f'<p align="center"><a href="https://github.com/appipinopi/Meltype-Flash/releases/tag/{tag}">'
             f'<img src="https://img.shields.io/badge/Flash-{badge_label}-ffe34a" alt="Flash {label}"></a> '
-            '<img src="https://img.shields.io/badge/status-開発プレビュー-666973" alt="開発プレビュー"></p>\n'
+            f'<img src="https://img.shields.io/badge/status-{status}-666973" alt="{status}"></p>\n'
             '<p align="center"><a href="#インストール">ダウンロード・導入</a> · '
             '<a href="#使い方">使い方</a> · <a href="#困ったとき">困ったとき</a> · '
             '<a href="https://github.com/appipinopi/Meltype-Flash/issues/new/choose">不具合の報告・提案</a></p>\n'

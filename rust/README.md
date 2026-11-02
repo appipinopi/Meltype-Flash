@@ -1,14 +1,14 @@
-# Meltype-flash 移植プレビュー
+# Meltype-flash
 
-このソースはPre7（`0.1.0-pre.7`）です。[変更と確認範囲](RELEASE-NOTES.md)と[本家1.4.0との差への対応](UPGRADE-1.4.0.md)を参照してください。ChromeOS・iOS・AndroidにはAI変換を搭載しません。Windows TSFのZenzai接続は既定オフの試験実装です。
+このソースは1.0.0です。[変更と確認範囲](RELEASE-NOTES.md)と[本家1.4.0との差への対応](UPGRADE-1.4.0.md)を参照してください。ChromeOS・iOS・AndroidにはAI変換を搭載しません。Windows TSFのZenzai接続は既定オフの試験実装です。
 
 ## リリース本文と配布物の自動作成
 
-GitHub Actionsの **Meltype-flash release** を `rust` ブランチで実行し、`tag` に次の版（例: `flash-v0.1.0-preview.7`）を指定します。Cargoの版も対応する `0.1.0-pre.7` に更新しておく必要があります。比較元は既定の `auto` で現在版より前の最新タグを選びます。
+GitHub Actionsの **リリース** を `rust` ブランチで実行し、`tag` に次の版（例: `flash-v1.0.0`）を指定します。Cargoの版も対応する `1.0.0` に更新しておく必要があります。比較元は既定の `auto` で現在版より前の最新タグを選びます。
 
 Windows・Linux・macOS（Apple Silicon / Intel）・Android・ChromeOS・iOSのビルドと検証が全て成功すると、全OSの配布ファイルを添付したリリースの**下書き**を自動作成します。既存の同じタグのリリースは上書きしません。公開は下書きの内容を確認してから行います。
 
-同じ実行のWindowsランナーで以前の版と現在版を測定し、比較条件・全ケースの表・CPUとRAMの表・箱ひげ図5枚を本文へ入れます。表と画像はGitHubのMarkdown APIで描画を検査します。測定対象はWindows上の共通Coreで、各OSの実機入力の性能を示すものではありません。
+同じ実行のWindowsランナーで本家1.4.0・以前のFlash・現在のFlashを測定し、比較条件・全ケースの表・CPUとRAMの表・箱ひげ図10枚を本文へ入れます。表と画像はGitHubのMarkdown APIで描画を検査します。測定対象はWindows上の共通Coreで、各OSの実機入力の性能を示すものではありません。
 
 画像は `release-media` ブランチへ保存し、変更されないコミットSHAのURLを本文へ埋め込みます。画像・ベンチマークZIP・レポート・生データ・重複ZIP・単独の説明書やビルド記録はリリースのAssetsへ添付しません。処理の受け渡し用CI成果物は1日保持です。
 
@@ -18,13 +18,13 @@ Windows・Linux・macOS（Apple Silicon / Intel）・Android・ChromeOS・iOSの
 
 Windows の新しい配布は本家と異なる IME 登録 ID・実行ファイル・保存先を使用します。[名称と共存方針](BRANDING.md)を参照してください。
 
-Fork: https://github.com/appipinopi/Meltype · 元: https://github.com/yksr-melt/Meltype
+Fork: https://github.com/appipinopi/Meltype-Flash · 元: https://github.com/yksr-melt/Meltype
 
-[Rustプレビューのダウンロード](https://github.com/appipinopi/Meltype/releases) · [Windows / Linux / macOS / Android / ChromeOSの配布内容・導入・制限](RELEASE-NOTES.md)
+[Flashのダウンロード](https://github.com/appipinopi/Meltype-Flash/releases) · [Windows / Linux / macOS / Android / ChromeOS / iOSの配布内容・導入・制限](RELEASE-NOTES.md)
 
 [ChromeOS試験版](../chromeos/README.md)は`chrome.input.ime`と共通CoreのWebAssemblyを接続する別ホストです。作成・設定と模擬API/WASM試験を用意していますが、ChromeOS実機での導入・入力は未確認です。
 
-**全機能をRustに書き換えた完成版ではありません。** 元の実装を残したまま、OS共通のRustエンジンと4OSから接続する入口を追加しています。元のC#の機能・精度と同等とは保証できません。元のREADMEのダウンロードリンクは上流版です。
+OS共通のRustエンジンと6環境の入力ホストを配布します。C#の元実装は比較用に保持しています。本家専用機能への対応や全機能・精度の一致を保証するものではありません。報告先の区別は[Issueの扱い](../docs/ISSUE-TRIAGE.md)を参照してください。
 
 ## ビルド・確認
 

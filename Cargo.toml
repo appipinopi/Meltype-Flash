@@ -3,11 +3,11 @@ members = ["rust/core", "rust/native", "rust/cli", "rust/settings-app", "rust/ib
 resolver = "2"
 
 [workspace.package]
-version = "0.1.0-pre.7"
+version = "1.0.0"
 edition = "2021"
 rust-version = "1.88"
 license = "GPL-3.0-or-later"
-repository = "https://github.com/appipinopi/Meltype"
+repository = "https://github.com/appipinopi/Meltype-Flash"
 
 [workspace.dependencies]
 meltype-core = { path = "rust/core" }

@@ -70,6 +70,41 @@ class SourceTests(unittest.TestCase):
             with self.assertRaises(ValueError):
                 self.generate()
 
+    def set_stable_version(self):
+        self.args['tag'] = 'flash-v1.0.0'
+        self.info.update(CFBundleShortVersionString='1.0.0', CFBundleVersion='13')
+        self.child_info.update(CFBundleShortVersionString='1.0.0', CFBundleVersion='13')
+        self.write_info(self.app, self.info)
+        self.write_info(self.keyboard, self.child_info)
+
+    def test_stable_source_uses_matching_app_and_extension_versions(self):
+        self.set_stable_version()
+        app = self.generate()['apps'][0]
+        self.assertEqual(app['versions'][0]['version'], '1.0.0')
+        self.assertEqual(app['versions'][0]['buildVersion'], '13')
+        self.assertEqual(app['versions'][0]['marketingVersion'], '1.0.0')
+        self.assertEqual(app['appPermissions']['entitlements'], ['com.apple.security.application-groups'])
+
+    def test_stable_tag_and_app_version_must_match(self):
+        self.args['tag'] = 'flash-v1.0.0'
+        with self.assertRaisesRegex(ValueError, 'タグとアプリ'):
+            self.generate()
+
+    def test_stable_extension_version_and_build_must_match_app(self):
+        self.set_stable_version()
+        for key, value in (('CFBundleShortVersionString', '0.1.0'), ('CFBundleVersion', '12')):
+            with self.subTest(key=key):
+                self.write_info(self.keyboard, dict(self.child_info, **{key: value}))
+                with self.assertRaisesRegex(ValueError, '本体と拡張のバージョン'):
+                    self.generate()
+
+    def test_stable_tags_older_than_pal_support_are_rejected(self):
+        for tag in ('flash-v0.0.9', 'v1.0.0', 'flash-v1.0.0-pre.1'):
+            with self.subTest(tag=tag):
+                self.args['tag'] = tag
+                with self.assertRaisesRegex(ValueError, 'PAL対応'):
+                    self.generate()
+
     def test_unsigned_ipa_url_is_rejected(self):
         self.args['download_url'] = 'https://example.com/unsigned.ipa'
         with self.assertRaises(ValueError):

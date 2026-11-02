@@ -9,10 +9,10 @@
 
 本家 [Meltype](https://github.com/yksr-melt/Meltype) を参照して開発している、Rust版の日本語入力です。
 Windows・Mac・Linux・Android・ChromeOS・iOSで共通の入力コアを使います。
-**現在は開発プレビューです。環境によって変換エンジン・設定・学習・操作が異なり、本家と同じ機能や精度を保証する完成版ではありません。**
+**Flash 1.0.0です。環境によって変換エンジン・設定・学習・操作が異なります。本家C#版と全機能・精度が同じことを示す版番号ではありません。**
 
 <p align="center">
-<a href="https://github.com/appipinopi/Meltype-Flash/releases/tag/flash-v0.1.0-preview.7"><b>ダウンロード</b></a> ·
+<a href="https://github.com/appipinopi/Meltype-Flash/releases/tag/flash-v1.0.0"><b>ダウンロード</b></a> ·
 <a href="#使い始める">使い方</a> ·
 <a href="https://github.com/appipinopi/Meltype-Flash/issues/new/choose">不具合の報告・提案</a> ·
 <a href="rust/README.md">実装・検証の状況</a>
@@ -52,8 +52,8 @@ Windows・Mac・Linux・Android・ChromeOS・iOSで共通の入力コアを使�
 </p>
 <!-- meltype-flash-os-navigation:end -->
 
-このソースに対応するプレビューは [v0.1.0 Pre7](https://github.com/appipinopi/Meltype-Flash/releases/tag/flash-v0.1.0-preview.7) です。
-版番号はPre7（`0.1.0-pre.7`）です。本家1.4.0との差への対応、ChromeOSの半角/全角切替、ChromeOS・iOS・AndroidのAI設定除去を含みます。[Pre7の変更と確認範囲](rust/RELEASE-NOTES.md)を参照してください。公開状況と配布物は上のリリースページで確認してください。
+このソースに対応するリリースは [v1.0.0](https://github.com/appipinopi/Meltype-Flash/releases/tag/flash-v1.0.0) です。
+版番号は`1.0.0`です。ChromeOSの設定画面を本家に近い配置へ整え、Flashと本家専用Issueの報告先を分けました。半角/全角切替とChromeOS・iOS・AndroidのAI除去も維持しています。[1.0.0の変更と確認範囲](rust/RELEASE-NOTES.md)を参照してください。公開状況と配布物は上のリリースページで確認してください。
 [配布ファイルの選び方](rust/DOWNLOADS.md) で、OSとCPUに合うファイルを選んでください。
 ZIP・APK・IPAは互換ではありません。本家のC#版の配布ファイルをFlash用として案内していません。
 

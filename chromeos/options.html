@@ -1,61 +1,129 @@
 <!doctype html>
+<!-- SPDX-License-Identifier: GPL-3.0-or-later -->
+<!-- Copyright (C) 2026 appipinopi -->
 <html lang="ja">
-<meta charset="utf-8">
-<title>Meltype Rust — ChromeOS</title>
-<link rel="stylesheet" href="options.css">
-<main>
-  <h1>Meltype Rust for ChromeOS</h1>
-  <p>chrome.input.ime を使う試験版です。ChromeOSの設定 → 言語と入力 → 入力方法で「Meltype Rust」を追加して選択してください。</p>
-  <p id="status" role="status" aria-live="polite">起動状態を確認中…</p>
-  <p>共通Coreの変換・判定・辞書を使います。OS辞書、確定後の削除・Undo、カーソル移動、全画面の互換性は未対応です。物理JIS配列は実機未確認です。</p>
-  <p>この版にはAI変換を含めません。通常の辞書変換・予測候補・学習は端末内で使えます。</p>
-  <form id="site-form">
-    <h2>入力モード</h2>
-    <label for="default-mode">通常使うモード</label>
-    <select id="default-mode"><option value="normal">通常入力（日英の自動判定）</option><option value="code">コード入力（英数字をそのまま入力）</option></select>
-    <p>コード入力では識別子や記号をそのまま入力します。周辺テキストを取得できるエディターでは、コメント・文字列の中で日本語入力を使えます。</p>
-    <label class="check"><input type="checkbox" id="site-enabled"> サイトごとの自動切替を使う</label>
-    <p class="help">有効にするとChromeにタブの参照許可を求めます。現在のサイトを判定するためにURLを参照し、閲覧履歴・URL・ページ内容は記録しません。下のホスト名と設定だけを端末に保存します。</p>
-    <p>アプリ別設定の代わりにサイトを登録できます。サブドメインにも適用し、より具体的なサイトの設定を優先します。アドレス欄やシークレットではサイト別設定を適用しません。</p>
-    <div id="site-rules" aria-label="サイトごとの入力モード"></div>
-    <button type="button" id="site-add">サイトを追加</button>
-    <button type="submit">入力モードを保存</button>
-    <p id="site-status" role="status" aria-live="polite"></p>
-  </form>
-  <form id="settings-form">
-  <fieldset id="core-controls" disabled>
-    <legend>入力のカスタマイズ</legend>
-    <label for="detection-level">日英の自動判定</label>
-    <select id="detection-level" data-setting="DetectionLevel">
-      <option value="Aggressive">積極的</option><option value="Balanced">標準</option>
-      <option value="Conservative">慎重</option><option value="Manual">手動（提案のみ）</option>
-    </select>
-    <label for="punctuation">日本語の句読点</label>
-    <select id="punctuation" data-setting="Punctuation">
-      <option value="Japanese">、。</option><option value="FullWidthCommaPeriod">，．</option>
-      <option value="FullWidthCommaKuten">，。</option><option value="ToutenFullWidthPeriod">、．</option>
-    </select>
-    <label class="check"><input type="checkbox" data-setting="CorrectTypos"> タイプミスを補正する</label>
-    <label class="check"><input type="checkbox" data-setting="TabConversion"> Tabキーで変換する</label>
-    <p class="help">オフにするとTabで漢字変換を開始しません。予測候補の選択や、手動判定の提案への切替には引き続きTabを使います。</p>
-    <label class="check"><input type="checkbox" data-setting="SpaceAroundEnglish"> 英語の前後に空白を入れて確定する</label>
-    <label class="check"><input type="checkbox" data-setting="LearningEnabled"> 変換結果を学習する</label>
-    <p class="help">学習をオフにしても保存済みの履歴は残ります。履歴の削除は下の「学習を削除」で行えます。</p>
-    <p class="help">この版の候補はChromeOS標準の表示です。色・フォント・表示位置のカスタマイズは未対応です。</p>
-  <details>
-    <summary>詳細設定（Core JSON）</summary>
-    <label for="settings">変換・判定の共通設定（デスクトップのアプリ別項目は表示しません）</label>
-    <textarea id="settings" rows="24" spellcheck="false"></textarea>
-  </details>
-    <button type="submit">入力設定を保存</button>
-    <button type="button" id="reload">保存済み設定へ戻す</button>
-  </fieldset>
-  </form>
-  <h2>学習とデータ</h2>
-  <p>設定・学習・ユーザー辞書はこの端末の拡張機能ストレージに保存します。未確定文字列は保存しません。Chrome Syncやサーバーへ送信しません。</p>
-  <button id="export" type="button">設定・学習・辞書をJSONで書き出す</button>
-  <button id="clear" type="button">学習を削除</button>
-  <p>ユーザー辞書はスナップショット内に保持します。SQLiteの直接取込み・辞書編集画面・バックアップの復元は今後の対応です。</p>
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Meltype-flash 設定 — ChromeOS</title>
+  <link rel="stylesheet" href="options.css">
+</head>
+<body>
+<main class="settings-window">
+  <header class="window-header">
+    <div class="brand"><span class="flash-mark" aria-hidden="true"><svg viewBox="0 0 43 56" width="15" height="20"><path fill="currentColor" d="M25 0 0 32H17L10 56 43 20H24L34 0Z"/></svg></span><h1>Meltype-flash 設定</h1><span class="platform">ChromeOS</span></div>
+    <p id="status" role="status" aria-live="polite">入力設定を読み込んでいます…</p>
+  </header>
+  <nav class="page-tabs" role="tablist" aria-label="設定のページ">
+    <button id="tab-settings" type="button" role="tab" aria-selected="true" aria-controls="panel-settings" data-panel="panel-settings">設定</button>
+    <button id="tab-sites" type="button" role="tab" aria-selected="false" aria-controls="panel-sites" data-panel="panel-sites" tabindex="-1">サイト別設定</button>
+    <button id="tab-data" type="button" role="tab" aria-selected="false" aria-controls="panel-data" data-panel="panel-data" tabindex="-1">学習とデータ</button>
+    <button id="tab-help" type="button" role="tab" aria-selected="false" aria-controls="panel-help" data-panel="panel-help" tabindex="-1">使い方</button>
+  </nav>
+  <div class="view-options"><label class="compact-check"><input id="show-help" type="checkbox" checked> 下部に説明を表示</label></div>
+  <div id="page-body" class="page-body">
+    <section id="panel-settings" class="page-panel" role="tabpanel" aria-labelledby="tab-settings">
+      <form id="settings-form">
+        <fieldset id="core-controls" disabled>
+          <legend class="visually-hidden">入力設定</legend>
+          <fieldset class="settings-group">
+            <legend>日英の判定</legend>
+            <div class="setting-row">
+              <label for="detection-level">日英の自動判定</label>
+              <select id="detection-level" data-setting="DetectionLevel" data-help="ローマ字を日本語と英語のどちらで入力するかの判定です。標準を基本に、積極的・慎重・手動から選べます。">
+                <option value="Aggressive">積極的</option><option value="Balanced">標準</option>
+                <option value="Conservative">慎重</option><option value="Manual">手動（提案のみ）</option>
+              </select>
+            </div>
+            <label class="setting-row toggle-row" for="correct-typos"><span>タイプミスを補正する</span><span class="switch-control"><input id="correct-typos" type="checkbox" role="switch" data-setting="CorrectTypos" data-help="ローマ字や英単語のタイプミスを補正します。意図と異なる補正が多い場合はオフにできます。"><span class="switch-state" aria-hidden="true"></span></span></label>
+          </fieldset>
+          <fieldset class="settings-group">
+            <legend>変換と確定</legend>
+            <div class="setting-row">
+              <label for="punctuation">日本語の句読点</label>
+              <select id="punctuation" data-setting="Punctuation" data-help="日本語を入力するときに使う読点と句点の組み合わせです。">
+                <option value="Japanese">、。</option><option value="FullWidthCommaPeriod">，．</option>
+                <option value="FullWidthCommaKuten">，。</option><option value="ToutenFullWidthPeriod">、．</option>
+              </select>
+            </div>
+            <label class="setting-row toggle-row" for="tab-conversion"><span>Tabキーで変換する</span><span class="switch-control"><input id="tab-conversion" type="checkbox" role="switch" data-setting="TabConversion" data-help="オフにするとTabで漢字変換を開始しません。予測候補の選択や、手動判定の提案への切替には引き続きTabを使います。"><span class="switch-state" aria-hidden="true"></span></span></label>
+            <label class="setting-row toggle-row" for="space-around-english"><span>英語の前後に空白を入れる</span><span class="switch-control"><input id="space-around-english" type="checkbox" role="switch" data-setting="SpaceAroundEnglish" data-help="日本語の中の英語を確定するとき、前後の空白を調整します。"><span class="switch-state" aria-hidden="true"></span></span></label>
+          </fieldset>
+          <fieldset class="settings-group">
+            <legend>学習</legend>
+            <label class="setting-row toggle-row" for="learning-enabled"><span>変換結果を学習する</span><span class="switch-control"><input id="learning-enabled" type="checkbox" role="switch" data-setting="LearningEnabled" data-help="変換結果をこの端末で学習します。オフにしても保存済みの履歴は残ります。削除は「学習とデータ」で行えます。"><span class="switch-state" aria-hidden="true"></span></span></label>
+          </fieldset>
+          <details class="advanced-settings">
+            <summary>詳細設定</summary>
+            <label for="settings">入力・変換の設定（JSON）</label>
+            <textarea id="settings" rows="16" spellcheck="false" data-help="細かな設定をJSONで編集できます。上の入力設定と同期します。ChromeOSで使わないデスクトップのアプリ別設定とAI設定は表示しません。"></textarea>
+          </details>
+        </fieldset>
+      </form>
+    </section>
+    <section id="panel-sites" class="page-panel" role="tabpanel" aria-labelledby="tab-sites" hidden>
+      <form id="site-form">
+        <fieldset class="settings-group">
+          <legend>入力モード</legend>
+          <div class="setting-row">
+            <label for="default-mode">通常使うモード</label>
+            <select id="default-mode" data-help="通常入力では日英を自動判定します。コード入力では識別子や記号をそのまま入力し、周辺テキストを取得できる欄のコメント・文字列では日本語を使えます。"><option value="normal">通常入力（日英の自動判定）</option><option value="code">コード入力</option></select>
+          </div>
+          <label class="setting-row toggle-row" for="site-enabled"><span>サイトごとの自動切替を使う</span><span class="switch-control"><input type="checkbox" id="site-enabled" role="switch" data-help="有効にするとタブの参照許可を求めます。現在のサイトを判定するためにURLを参照し、閲覧履歴・URL・ページ内容は記録しません。"><span class="switch-state" aria-hidden="true"></span></span></label>
+          <p class="group-description">有効にするとタブの参照許可を求めます。現在のサイトの判定に使い、URL・閲覧履歴・ページ内容は保存しません。</p>
+        </fieldset>
+        <fieldset class="settings-group">
+          <legend>サイトごとの設定</legend>
+          <p class="group-description">ホスト名と入力モードを登録します。サブドメインにも適用し、より具体的なサイトを優先します。</p>
+          <div class="site-columns" aria-hidden="true"><span>サイト</span><span>入力モード</span><span></span></div>
+          <div id="site-rules" aria-label="サイトごとの入力モード"></div>
+          <button type="button" id="site-add">サイトを追加</button>
+          <p class="group-description">アドレス欄やシークレットではサイト別設定を適用しません。</p>
+        </fieldset>
+        <p id="site-status" class="inline-status" role="status" aria-live="polite"></p>
+      </form>
+    </section>
+    <section id="panel-data" class="page-panel" role="tabpanel" aria-labelledby="tab-data" hidden>
+      <fieldset class="settings-group">
+        <legend>書き出し</legend>
+        <p>設定・学習・ユーザー辞書を、この端末からJSONファイルへ書き出します。</p>
+        <button id="export" type="button" data-help="書き出すファイルには個人のユーザー辞書と学習履歴を含みます。共有前に内容を確認してください。">設定・学習・辞書を書き出す…</button>
+        <p class="group-description">サイト別設定はこのファイルに含まれません。辞書編集とバックアップの復元は未対応です。</p>
+      </fieldset>
+      <fieldset class="settings-group">
+        <legend>学習履歴</legend>
+        <p>学習履歴だけを削除します。ユーザー辞書と入力設定は残ります。</p>
+        <button id="clear" type="button" data-help="削除前に確認します。学習履歴だけを削除し、ユーザー辞書と入力設定は保持します。">学習を削除…</button>
+      </fieldset>
+      <fieldset class="settings-group">
+        <legend>データの保存</legend>
+        <p>設定・学習・ユーザー辞書はこの端末に保存します。未確定の文字列は保存せず、Chrome Syncやサーバーへ送信しません。</p>
+        <p class="group-description">拡張機能を削除すると保存データも失われます。削除前に必要なファイルを書き出してください。</p>
+      </fieldset>
+    </section>
+    <section id="panel-help" class="page-panel" role="tabpanel" aria-labelledby="tab-help" hidden>
+      <fieldset class="settings-group">
+        <legend>使い始める</legend>
+            <p>ChromeOSの設定 → 言語と入力 → 入力方法からMeltype-flashを追加して選択します。</p>
+        <dl class="key-guide"><dt>半角/全角・Alt+Backquote</dt><dd>日本語と半角英数を切り替えます。</dd><dt>Space</dt><dd>変換・候補を切り替えます。</dd><dt>Enter</dt><dd>選択した候補を確定します。</dd><dt>Esc</dt><dd>未確定入力を取り消します。</dd></dl>
+        <p class="group-description">未確定入力があるときの半角/全角・Alt+Backquoteは、一度確定してから切り替えます。通常のBackquoteは記号として入力します。</p>
+      </fieldset>
+      <fieldset class="settings-group">
+        <legend>ChromeOSで使えること</legend>
+        <p>通常の辞書変換・予測候補・学習を端末内で使えます。AI変換は搭載していません。</p>
+        <p>候補はChromeOS標準の表示を使います。候補の色・フォント・位置の変更、OS辞書、確定後の削除・Undoは未対応です。</p>
+        <p class="group-description">通常のWindows・macOS・Linux上のChrome用IMEではありません。物理JIS配列や各アプリでの動作は、実機で未確認の範囲があります。</p>
+      </fieldset>
+      <details class="advanced-settings"><summary>状態の詳細</summary><pre id="diagnostic">起動状態を確認中…</pre></details>
+    </section>
+  </div>
+  <aside id="help-panel" class="help-panel" aria-label="設定の説明"><p id="context-help">項目を選ぶと、ここに説明を表示します。変更した入力設定は「入力設定を保存」で反映します。</p></aside>
+  <footer class="dialog-actions">
+    <p id="page-hint">変更した設定を保存して反映します。</p>
+    <div id="settings-actions" data-actions="panel-settings"><button type="button" id="reload" disabled>保存済み設定へ戻す</button><button type="submit" id="save-settings" form="settings-form" class="primary" disabled>入力設定を保存</button></div>
+    <div id="site-actions" data-actions="panel-sites" hidden><button type="submit" form="site-form" class="primary">入力モードを保存</button></div>
+  </footer>
 </main>
 <script type="module" src="options.mjs"></script>
+</body>
 </html>

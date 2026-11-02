@@ -37,9 +37,9 @@ def signed_entitlements(bundle):
 
 def make_source(app, adp, *, tag, marketplace_id, developer_name, icon_url,
                 download_url, release_date):
-    match = re.fullmatch(r'flash-v(\d+\.\d+\.\d+)-preview\.(\d+)', tag)
-    if not match or (*map(int, match[1].split('.')), int(match[2])) < (0, 1, 0, 6):
-        raise ValueError('PAL対応はflash-v0.1.0-preview.6以降のプレビューが対象です')
+    match = re.fullmatch(r'flash-v(\d+\.\d+\.\d+)(?:-preview\.(\d+))?', tag)
+    if not match or (*map(int, match[1].split('.')), int(match[2] is None), int(match[2] or 0)) < (0, 1, 0, 0, 6):
+        raise ValueError('PAL対応はflash-v0.1.0-preview.6以降の正式版・プレビュー版が対象です')
     if not re.fullmatch(r'[1-9]\d*', marketplace_id):
         raise ValueError('App Store Connectの実際のApple IDを指定してください')
     if not developer_name.strip():
@@ -116,7 +116,7 @@ def make_source(app, adp, *, tag, marketplace_id, developer_name, icon_url,
             'versions': [{
                 'version': info['CFBundleShortVersionString'],
                 'buildVersion': str(info['CFBundleVersion']),
-                'marketingVersion': f'{match[1]} Pre{match[2]}',
+                'marketingVersion': match[1] + (f' Pre{match[2]}' if match[2] is not None else ''),
                 'date': release_date,
                 'downloadURL': download_url,
                 'size': variants[0].stat().st_size,

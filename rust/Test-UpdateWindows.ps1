@@ -27,6 +27,7 @@ if (-not (Test-Path -LiteralPath (Join-Path $Package 'payload.txt'))) { throw 'M
 Set-Content -LiteralPath (Join-Path $PSScriptRoot 'inspected') -Value $Package
 '@)
 Add-Type -AssemblyName System.IO.Compression.FileSystem
+Add-Type -AssemblyName System.IO.Compression
 function Archive([string]$Name, [string[]]$Entries) {
     $path = Join-Path $root $Name
     $zip = [IO.Compression.ZipFile]::Open($path,[IO.Compression.ZipArchiveMode]::Create)
@@ -39,8 +40,8 @@ function Archive([string]$Name, [string[]]$Entries) {
     return $path
 }
 function Release([string]$Archive) {
-    $asset = @{name='Meltype-flash-Windows-x64.zip';size=(Get-Item -LiteralPath $Archive).Length;digest=('sha256:'+(Get-FileHash -LiteralPath $Archive).Hash);browser_download_url='https://github.com/appipinopi/Meltype/releases/download/rust-1/Meltype-flash-Windows-x64.zip'}
-    return @{id=123;tag_name='rust-1';draft=$false;prerelease=$false;assets=@($asset)}
+    $asset = @{name='Meltype-flash-Windows-x64.zip';size=(Get-Item -LiteralPath $Archive).Length;digest=('sha256:'+(Get-FileHash -LiteralPath $Archive).Hash);browser_download_url='https://github.com/appipinopi/Meltype-Flash/releases/download/flash-v1.0.0/Meltype-flash-Windows-x64.zip'}
+    return @{id=123;tag_name='flash-v1.0.0';draft=$false;prerelease=$false;assets=@($asset)}
 }
 function Reject([scriptblock]$Run,[string]$Pattern) {
     $failed = $false
@@ -65,11 +66,12 @@ foreach ($entry in @('../escape.txt','/absolute.txt','C:/drive.txt','folder\bad.
 }
 $state.archive=Archive 'duplicates.zip' @('a.txt','A.txt'); $state.releases=@(Release $state.archive)
 Reject { & $script -Action Stage } '*Duplicate or escaping*'
-foreach ($invalid in @('missing-digest','foreign-host','draft','pre-release','csharp')) {
+foreach ($invalid in @('missing-digest','foreign-host','old-fork','draft','pre-release','csharp')) {
     $release=Release $good
     switch ($invalid) {
         'missing-digest' { $release.assets[0].digest=$null }
         'foreign-host' { $release.assets[0].browser_download_url='https://example.org/update.zip' }
+        'old-fork' { $release.assets[0].browser_download_url='https://github.com/appipinopi/Meltype/releases/download/flash-v1.0.0/Meltype-flash-Windows-x64.zip' }
         'draft' { $release.draft=$true }
         'pre-release' { $release.prerelease=$true }
         'csharp' { $release.assets[0].name='Meltype-Windows.zip' }

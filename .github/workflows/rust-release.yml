@@ -7,7 +7,7 @@ on:
   workflow_dispatch:
     inputs:
       tag:
-        description: New Meltype-flash preview tag
+        description: 'Meltype-flashの正式版またはプレビュー版タグ'
         required: true
       benchmark_baseline:
         description: '比較する以前の公開タグ（auto: 現在版より前の最新タグ）'
@@ -35,7 +35,7 @@ jobs:
       - env:
           TAG: ${{ inputs.tag }}
         run: |
-          [[ "$TAG" =~ ^flash-v[0-9]+\.[0-9]+\.[0-9]+-preview\.[0-9]+$ ]]
+          [[ "$TAG" =~ ^flash-v[0-9]+\.[0-9]+\.[0-9]+(-preview\.[0-9]+)?$ ]]
           test "$GITHUB_REPOSITORY" = appipinopi/Meltype-Flash
           test "$GITHUB_REF" = refs/heads/rust
           VERSION=$(python3 -c 'import tomllib; print(tomllib.load(open("Cargo.toml", "rb"))["workspace"]["package"]["version"])')

@@ -4,6 +4,8 @@
 
 これはMeltype-flash側の記録です。上流Issueの変更・終了は行いません。未解決Issueには不具合・辞書要望・機能提案・外部サービスに関する相談が含まれます。
 
+この242件は取得時点の本家Issueを参照する台帳であり、[Flashの実Issue一覧](https://github.com/appipinopi/Meltype-Flash/issues)やFlash 1.0の未完了件数ではありません。本家専用の運用・C#版だけの問題と、Flashでも再現する問題を分けます。Flashで未対応・未検証の項目は、その事実を残します。[報告先と確認範囲](ISSUE-TRIAGE.md)に分類と終了時の扱いをまとめています。
+
 「共通コア確認」は回帰テストの条件で確認した範囲です。OS固有の変換エンジン、報告アプリの画面操作、署名・公証、実機確認まで完了したことを意味しません。既存コードにIssue番号があっても修正済みとは判定しません。
 
 以下はPre6の準備時に記録した対応と検証範囲です。210件等の検証結果はPre6へ版番号を更新する前の修正コードでの結果であり、Pre7最終コミットの結果ではありません。Pre7にはこれらの変更を取り込みます。公開状況と配布ビルドは[リリースノート](../rust/RELEASE-NOTES.md)と公開リリース本文を参照してください。
@@ -32,10 +34,10 @@
 | [#1113](https://github.com/yksr-melt/Meltype/issues/1113) | 無変換キーの動作について | MuhenkanKatakanaCycleを追加。無変換で全角カタカナ→半角カタカナ→ひらがな。共通コア・native ABI・隔離IBusで検証。設定UIにも表示。報告アプリ実機は未確認。 |
 | [#1112](https://github.com/yksr-melt/Meltype/issues/1112) | Windows (Meltype IME): Meltype.exe を起動し直した後、各アプリで最初に打ったキーが英字のまま入る | 未検証。本文・コメントはローカルの取得記録に保存。再現・修正・対象OSでの検証が必要。 |
 | [#1111](https://github.com/yksr-melt/Meltype/issues/1111) | [不具合] 「英単語の前後に半角スペース」を有効にすると、日本語単語入力後にも半角スペースが入ることがある | 未検証。本文・コメントはローカルの取得記録に保存。再現・修正・対象OSでの検証が必要。 |
-| [#1110](https://github.com/yksr-melt/Meltype/issues/1110) | [不具合] 公式サイトにて | 未対応。上流のbot／公開サイトの報告。該当する運用コードと公開先の確認が必要。 |
+| [#1110](https://github.com/yksr-melt/Meltype/issues/1110) | [不具合] 公式サイトにて | 本家の公開サイトについての運用報告として、元の窓口で扱う。Flash側の同種不具合は未検証で、Flashの修正・完了には数えない。 |
 | [#1107](https://github.com/yksr-melt/Meltype/issues/1107) | [機能提案] 変換確定のキー設定 | 入力中のCtrl+Enterによる確定を検証。Windows TSFで先に確定してキーをアプリへ渡す経路を修正。TSFキー写像・受理検査と隔離IBusで確認。空入力時はアプリに渡る。自由な割り当ての全OS接続と実アプリ確認は未対応。 |
 | [#1106](https://github.com/yksr-melt/Meltype/issues/1106) | [辞書] ブルアカ->ブルーアーカイブ | 補助辞書へ報告の候補を追加し、候補一覧で確認。同音語は複数残す。OSの変換器での順位・実機確認は未実施。 |
-| [#1103](https://github.com/yksr-melt/Meltype/issues/1103) | botのhelpコマンドにあるわかりにくい部分を修正する | 未対応。上流のbot／公開サイトの報告。該当する運用コードと公開先の確認が必要。 |
+| [#1103](https://github.com/yksr-melt/Meltype/issues/1103) | botのhelpコマンドにあるわかりにくい部分を修正する | 本家botについての運用報告として、元の窓口で扱う。Flash側の同種不具合は未検証で、Flashの修正・完了には数えない。 |
 | [#1097](https://github.com/yksr-melt/Meltype/issues/1097) | [提案] AUR (Arch Linux) で入れられるようにする (meltype-bin / meltype-ut) | 未検証。本文・コメントはローカルの取得記録に保存。再現・修正・対象OSでの検証が必要。 |
 | [#1095](https://github.com/yksr-melt/Meltype/issues/1095) | [不具合] 任意のアプリ: 全体に効いてしまっている | 共通コア修正・回帰テスト確認。英語文節へのF6〜F10も選択文節だけへ適用し、元の打鍵が取れないときも文全体へ作用させない。報告アプリでの実機確認は未実施。 |
 | [#1094](https://github.com/yksr-melt/Meltype/issues/1094) | [提案] 開発ありがとうございます。何度間違った変換をしても何度間違った変換を修正しても、正しい変換が学習されて上に出てきてくれ… | 未検証。本文・コメントはローカルの取得記録に保存。再現・修正・対象OSでの検証が必要。 |

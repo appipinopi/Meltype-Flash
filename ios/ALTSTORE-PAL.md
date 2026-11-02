@@ -1,6 +1,6 @@
-# AltStore PALへの配布準備（Pre6以降）
+# AltStore PALへの配布準備（正式版・Pre6以降）
 
-対象は `flash-v0.1.0-preview.6` 以降です。この準備でCargoの版番号・iOSのビルド番号・公開タグは変更しません。Pre5の未署名IPAはPALへ登録できません。
+対象は `flash-v1.0.0` などの正式版と、`flash-v0.1.0-preview.6` 以降のプレビュー版です。この準備でCargoの版番号・iOSのビルド番号・公開タグは変更しません。Pre5以前は対象外です。正式版を含め、未署名IPAはPALへ登録できません。
 
 ## 初回の登録と公証
 
@@ -29,7 +29,7 @@ macOS上で、公証へ提出したものと同じ署名済み `.app` と公証�
 python3 ios/altstore-pal.py \
   --app "$PAL_SUBMITTED_APP" \
   --adp "$PAL_EXTRACTED_ADP" \
-  --tag flash-v0.1.0-preview.7 \
+  --tag flash-v1.0.0 \
   --marketplace-id "$PAL_APPLE_ID" \
   --developer-name "$PAL_DEVELOPER_NAME" \
   --icon-url "$PAL_ICON_URL" \
@@ -38,7 +38,7 @@ python3 ios/altstore-pal.py \
   --output output/pal/altstore-source.json
 ```
 
-本体・キーボード拡張の署名、チーム・App Group・版番号の一致、実機向けビルド、ADPの主要ファイルを検査します。バージョン・ビルド番号・最低OS・権限は実際のアプリから読み、上の例では表示名にだけ `Pre7` を付けます。`version` を `0.1.0-pre.7` に書き換えないでください。サイズはADP内の1つのvariant IPAのバイト数です。
+本体・キーボード拡張の署名、チーム・App Group・版番号の一致、実機向けビルド、ADPの主要ファイルを検査します。バージョン・ビルド番号・最低OS・権限は実際のアプリから読み、上の正式版の例では表示名も `1.0.0` になります。プレビュータグの `flash-v0.1.0-preview.7` では表示名にだけ `Pre7` を付け、`version` は `0.1.0` のままにします。`version` を `0.1.0-pre.7` に書き換えないでください。サイズはADP内の1つのvariant IPAのバイト数です。
 
 この検査はAppleの公証ステータス、ADPの暗号署名、提出アプリとADPの対応、HTTPS先の公開状態を保証しません。公証済みの同じビルドを指定し、公開先へADPを欠けなく配置したことを確認してください。
 

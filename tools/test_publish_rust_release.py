@@ -4,6 +4,7 @@ import hashlib
 import importlib.util
 import json
 from pathlib import Path
+import sys
 import tempfile
 import unittest
 from unittest.mock import patch
@@ -82,6 +83,74 @@ class PresentationTests(unittest.TestCase):
         self.assertNotIn("releases/download/flash-v0.1.0-preview.4/cpu.png", body)
         self.assertNotIn("[全測定", body)
         self.assertIn("&lt;tag&gt;", body)
+
+    def test_stable_body_uses_release_title_and_retains_signing_limits(self):
+        title, body = publisher.compose_body("flash-v1.0.0", "a" * 40, "測定結果", "b" * 40, "fix: release")
+        self.assertEqual(title, "Meltype-flash v1.0.0")
+        self.assertIn("共通Rustコアを使う正式版です", body)
+        self.assertNotIn("開発プレビュー", body)
+        self.assertIn("iOSのIPAは未署名です", body)
+        self.assertIn("Androidはdebug署名、macOSはアドホック署名です", body)
+        for os_name in ("Windows", "macOS", "Linux", "Android", "ChromeOS", "iOS"):
+            self.assertIn(f"|{os_name}|成功|未実施|", body)
+        self.assertEqual(body.count("https://raw.githubusercontent.com/"), 10)
+        self.assertIn("/" + "b" * 40 + "/flash-v1.0.0/", body)
+
+    def test_only_flash_stable_and_preview_tags_are_accepted(self):
+        self.assertEqual(publisher.parse_tag("flash-v1.0.0"), ("1.0.0", None))
+        self.assertEqual(publisher.parse_tag("flash-v0.1.0-preview.7"), ("0.1.0", "7"))
+        for tag in ("v1.0.0", "rust-v1.0.0", "flash-v1.0.0-pre.1", "flash-v1.0.0-preview", "flash-v1.0.0-preview.1-extra"):
+            with self.subTest(tag=tag), self.assertRaises(ValueError):
+                publisher.parse_tag(tag)
+
+    def publish_fixture(self, root, tag, version, release_override=None):
+        assets = root / "assets"
+        assets.mkdir()
+        self.assets(assets)
+        output = root / "body.md"
+        lookups = []
+
+        def find_release(release_tag):
+            lookups.append(release_tag)
+            if len(lookups) == 1:
+                return None
+            release = {"draft": True, "prerelease": "-preview." in tag, "html_url": "https://example.invalid/release",
+                       "body": output.read_text(encoding="utf-8"), "assets": [
+                           {"name": name, "digest": "sha256:" + hashlib.sha256((assets / name).read_bytes()).hexdigest()}
+                           for name in publisher.PACKAGES + publisher.DOCUMENTS]}
+            release.update(release_override or {})
+            return release
+
+        arguments = ["publish-rust-release.py", "--tag", tag, "--sha", "a" * 40, "--assets", str(assets),
+                     "--benchmark", str(root / "benchmark"), "--output", str(output), "--publish"]
+        with patch.object(sys, "argv", arguments), \
+             patch.object(publisher.subprocess, "check_output", side_effect=["a" * 40, "fix: release"]), \
+             patch.object(publisher.tomllib, "loads", return_value={"workspace": {"package": {"version": version}}}), \
+             patch.object(publisher, "validate_benchmark", return_value=({"old_commit": "c" * 40}, "測定結果")), \
+             patch.object(publisher, "validate_rendered"), \
+             patch.object(publisher, "find_release", side_effect=find_release), \
+             patch.object(publisher, "publish_images", return_value="b" * 40), \
+             patch.object(publisher, "gh") as command, patch("builtins.print"):
+            publisher.main()
+        self.assertEqual(lookups, [tag, tag])
+        return command
+
+    def test_publish_keeps_stable_and_preview_releases_as_drafts(self):
+        for tag, version, flag in (("flash-v1.0.0", "1.0.0", "--prerelease=false"),
+                                   ("flash-v0.1.0-preview.7", "0.1.0-pre.7", "--prerelease=true")):
+            with self.subTest(tag=tag), tempfile.TemporaryDirectory() as temporary:
+                command = self.publish_fixture(Path(temporary), tag, version)
+                arguments = command.call_args.args
+                self.assertEqual(arguments[:3], ("release", "create", tag))
+                self.assertIn(flag, arguments)
+                self.assertIn("--draft", arguments)
+                command.assert_called_once()
+
+    def test_publish_rejects_wrong_release_settings_after_upload(self):
+        for override in ({"draft": False}, {"prerelease": True}):
+            with self.subTest(override=override), tempfile.TemporaryDirectory() as temporary:
+                with self.assertRaisesRegex(ValueError, "下書き・プレリリース設定"):
+                    self.publish_fixture(Path(temporary), "flash-v1.0.0", "1.0.0", override)
 
     def test_github_rendering_requires_tables_and_ten_images(self):
         with patch.object(publisher, "gh", return_value='<table role="table"></table>' * 3 + '<img src="a">' * 10):

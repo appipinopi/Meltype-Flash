@@ -3,7 +3,7 @@
 <a id="meltype-for-windows"></a>
 <p align="center"><img src="../assets/branding/readme/windows/hero.svg" alt="Meltype-flash for Windows" width="1000"></p>
 <p align="center"><b>稲妻のように、言葉の壁を駆け抜ける日本語入力。</b></p>
-<p align="center"><a href="https://github.com/appipinopi/Meltype-Flash/releases/tag/flash-v0.1.0-preview.7"><img src="https://img.shields.io/badge/Flash-v0.1.0_Pre7-ffe34a" alt="Flash v0.1.0 Pre7"></a> <img src="https://img.shields.io/badge/status-開発プレビュー-666973" alt="開発プレビュー"></p>
+<p align="center"><a href="https://github.com/appipinopi/Meltype-Flash/releases/tag/flash-v1.0.0"><img src="https://img.shields.io/badge/Flash-v1.0.0-ffe34a" alt="Flash v1.0.0"></a> <img src="https://img.shields.io/badge/status-正式版-666973" alt="正式版"></p>
 <p align="center"><a href="#インストール">ダウンロード・導入</a> · <a href="#使い方">使い方</a> · <a href="#困ったとき">困ったとき</a> · <a href="https://github.com/appipinopi/Meltype-Flash/issues/new/choose">不具合の報告・提案</a></p>
 <p align="center">
   <a href="WINDOWS-PACKAGE.md"><img src="../assets/branding/readme/cards/os-windows-active.svg" alt="Windows" width="32%"></a>
@@ -19,7 +19,7 @@
 <!-- meltype-flash-platform:end -->
 
 Windowsの入力欄に直接入力するRust版IMEと、登録不要のポータブル入力を用意しています。
-**開発プレビューです。Windowsへの登録と、各アプリでの実入力の検証は別に扱っています。**
+**Windowsへの登録と、各アプリでの実入力の検証は別に扱っています。確認範囲はリリース本文を参照してください。**
 
 <a id="内容"></a>
 <h2><img src="../assets/branding/readme/windows/headings/df8764ebcf5d.svg" alt="内容" width="1000"></h2>
@@ -49,14 +49,14 @@ Windows ARM64向けのネイティブ配布を案内するものではありま�
 <a id="セットアップ版"></a>
 <h3><img src="../assets/branding/readme/windows/headings/f361bd6b29a2.svg" alt="セットアップ版" width="1000"></h3>
 
-Pre7ではセットアップEXEは添付していません。次のZIPからの導入手順を使ってください。
+1.0.0ではセットアップEXEは添付していません。次のZIPからの導入手順を使ってください。
 
 警告やセキュリティ製品の検出が出た場合は、配布元・ファイル名・チェックサムを確認し、保護機能の無効化を前提に進めないでください。
 
 <a id="zipから登録する"></a>
 <h3><img src="../assets/branding/readme/windows/headings/b7962eec4c15.svg" alt="ZIPから登録する" width="1000"></h3>
 
-[Pre7](https://github.com/appipinopi/Meltype-Flash/releases/tag/flash-v0.1.0-preview.7)の`Meltype-flash-Windows-x64.zip`を全体展開します。
+[1.0.0](https://github.com/appipinopi/Meltype-Flash/releases/tag/flash-v1.0.0)の`Meltype-flash-Windows-x64.zip`を全体展開します。
 管理者PowerShellで、そのフォルダーから実行します。
 
 ```powershell

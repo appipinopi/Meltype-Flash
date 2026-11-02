@@ -7,20 +7,35 @@ import {readFileSync} from "node:fs";
 // 設定画面の実モジュールを、DOMとChrome通信の最小限の代替で動かす。
 class Element {
   value = ""; checked = false; disabled = false; textContent = "";
-  children = []; options = []; dataset = {}; listeners = new Map();
+  children = []; options = []; dataset = {}; listeners = new Map(); attributes = new Map();
+  hidden = false; tabIndex = 0; id = "";
   addEventListener(type, callback) { this.listeners.set(type, callback); }
   append(...items) { this.children.push(...items); this.options.push(...items); }
   replaceChildren(...items) { this.children = items; }
-  async fire(type) { await this.listeners.get(type)?.({preventDefault() {}}); }
+  setAttribute(name, value) { this.attributes.set(name, value); }
+  getAttribute(name) { return this.attributes.get(name); }
+  focus() { document.activeElement = this; }
+  async fire(type, details = {}) { await this.listeners.get(type)?.({preventDefault() {}, ...details}); }
 }
 let serial = 0;
 async function page(t, {available = true} = {}) {
   const oldDocument = globalThis.document, oldChrome = globalThis.chrome;
   t.after(() => { globalThis.document = oldDocument; globalThis.chrome = oldChrome; });
   const html = readFileSync(new URL("../options.html", import.meta.url), "utf8");
-  const elements = new Map([...html.matchAll(/\bid="([^"]+)"/g)].map(([, id]) => [`#${id}`, new Element()]));
+  const elements = new Map([...html.matchAll(/<[a-z][\w-]*\b([^>]*\bid="([^"]+)"[^>]*)>/g)].map(([, attrs, id]) => {
+    const element = new Element(); element.id = id;
+    for (const [, name, value] of attrs.matchAll(/([\w-]+)="([^"]*)"/g)) {
+      element.setAttribute(name, value);
+      if (name.startsWith("data-")) element.dataset[name.slice(5)] = value;
+    }
+    element.checked = /\schecked(?:\s|$)/.test(attrs);
+    element.disabled = /\sdisabled(?:\s|$)/.test(attrs);
+    element.hidden = /\shidden(?:\s|$)/.test(attrs);
+    return [`#${id}`, element];
+  }));
   const fields = [...html.matchAll(/<(input|select)\b([^>]*\bdata-setting="([^"]+)"[^>]*)>/g)].map(([, tag, attrs, key]) => {
-    const field = new Element(); field.dataset.setting = key;
+    const id = attrs.match(/\bid="([^"]+)"/)[1];
+    const field = elements.get(`#${id}`); field.dataset.setting = key;
     field.type = tag === "input" ? "checkbox" : "select-one";
     if (tag === "select") {
       const contents = html.slice(html.indexOf(`<select${attrs}>`) + `<select${attrs}>`.length).split("</select>")[0];
@@ -31,7 +46,15 @@ async function page(t, {available = true} = {}) {
   elements.get("#core-controls").disabled = true;
   globalThis.document = {
     querySelector: selector => { assert(elements.has(selector), selector); return elements.get(selector); },
-    querySelectorAll: selector => selector === "[data-setting]" ? fields : [elements.get("#export"), elements.get("#clear")],
+    querySelectorAll: selector => {
+      if (selector === "[data-setting]") return fields;
+      if (selector === '[role="tab"]') return [...elements.values()].filter(element => element.getAttribute("role") === "tab");
+      if (selector === '[role="tabpanel"]') return [...elements.values()].filter(element => element.getAttribute("role") === "tabpanel");
+      if (selector === "[data-actions]") return [...elements.values()].filter(element => element.dataset.actions);
+      if (selector === "[data-help]") return [...elements.values()].filter(element => element.dataset.help);
+      assert.equal(selector, "#export, #clear");
+      return [elements.get("#export"), elements.get("#clear")];
+    },
     createElement: () => new Element(),
   };
   let saved = {...JSON.parse(readFileSync(new URL("../../rust/core/data/settings-defaults.json", import.meta.url))),
@@ -114,8 +137,58 @@ test("不正なJSONと保存エラーで設定を失わず、再試行できる"
 
 test("IMEが利用できない環境では入力設定と学習の操作を無効にする", async t => {
   const p = await page(t, {available: false});
-  for (const id of ["#core-controls", "#export", "#clear"]) assert.equal(p.elements.get(id).disabled, true);
+  for (const id of ["#core-controls", "#save-settings", "#reload", "#export", "#clear"]) assert.equal(p.elements.get(id).disabled, true);
   assert.equal(p.elements.get("#site-enabled").disabled, false);
+  assert.equal(p.writes.length, 0);
+});
+
+test("ページを切り替えても編集中の設定を保持し、キーボードでも各ページへ移動する", async t => {
+  const p = await page(t), get = id => p.elements.get(id);
+  p.fields.CorrectTypos.checked = false;
+  await p.fields.CorrectTypos.fire("change");
+  const draft = get("#settings").value;
+  await get("#tab-sites").fire("click");
+  assert.equal(get("#panel-settings").hidden, true);
+  assert.equal(get("#panel-sites").hidden, false);
+  assert.equal(get("#settings-actions").hidden, true);
+  assert.equal(get("#site-actions").hidden, false);
+  assert.equal(get("#tab-sites").getAttribute("aria-selected"), "true");
+  assert.equal(get("#tab-settings").tabIndex, -1);
+  await get("#tab-sites").fire("keydown", {key: "ArrowRight"});
+  assert.equal(document.activeElement, get("#tab-data"));
+  assert.equal(get("#panel-data").hidden, false);
+  await get("#tab-data").fire("keydown", {key: "End"});
+  assert.equal(document.activeElement, get("#tab-help"));
+  assert.equal(get("#panel-help").hidden, false);
+  await get("#tab-help").fire("keydown", {key: "ArrowRight"});
+  assert.equal(document.activeElement, get("#tab-settings"));
+  await get("#tab-settings").fire("keydown", {key: "ArrowLeft"});
+  assert.equal(document.activeElement, get("#tab-help"));
+  await get("#tab-help").fire("keydown", {key: "Home"});
+  assert.equal(document.activeElement, get("#tab-settings"));
+  assert.equal(get("#panel-settings").hidden, false);
+  assert.equal(get("#settings-actions").hidden, false);
+  assert.equal(get("#settings").value, draft);
+  assert.equal(p.writes.length, 0);
+  await get("#settings-form").fire("submit");
+  assert.equal(p.saved().CorrectTypos, false);
+});
+
+test("下部の説明表示と項目の説明は、設定データを保存せず切り替えられる", async t => {
+  const p = await page(t), get = id => p.elements.get(id);
+  const draft = get("#settings").value;
+  await p.fields.TabConversion.fire("focus");
+  assert.match(get("#context-help").textContent, /予測候補/);
+  assert.equal(p.fields.TabConversion.getAttribute("aria-describedby"), "context-help");
+  get("#show-help").checked = false;
+  await get("#show-help").fire("change");
+  assert.equal(get("#help-panel").hidden, true);
+  get("#show-help").checked = true;
+  await get("#show-help").fire("change");
+  assert.equal(get("#help-panel").hidden, false);
+  await p.fields.LearningEnabled.fire("mouseenter");
+  assert.match(get("#context-help").textContent, /履歴は残ります/);
+  assert.equal(get("#settings").value, draft);
   assert.equal(p.writes.length, 0);
 });
 

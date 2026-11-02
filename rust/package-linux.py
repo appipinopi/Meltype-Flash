@@ -63,7 +63,7 @@ def package(bundle, output, version, arch):
             'Section: utils\nPriority: optional\n'
             'Depends: ibus, libc6 (>= 2.39), libgcc-s1, libxkbcommon-x11-0\n'
             'Recommends: fonts-noto-cjk\n'
-            'Homepage: https://github.com/appipinopi/Meltype\n'
+            'Homepage: https://github.com/appipinopi/Meltype-Flash\n'
             'Description: Meltype-flash Rust Japanese input method\n'
             ' Rust IBus engine and settings. Sign out and select Meltype-flash after installation.\n', encoding='utf-8')
         # No process termination, input-source changes, or deletion of personal data.
