@@ -16,8 +16,11 @@ body:
       options:
         - Windows 11
         - Windows 10
+        - Linux
         - Mac (プレビュー版)
-        - Linux (プレビュー版)
+        - ios (プレビュー版)
+        - Andorid (プレビュー版)
+        - ChromeOS (プレビュー版)
     validations:
       required: true
 
