@@ -11,6 +11,8 @@
 using namespace meltype;
 #ifdef MELTYPE_TEST_NATIVE_OWNER
 // Exercise the actual production DLL and class factory, not compatibility code.
+// 互換ヘッダーの本家IDと分け、配布するFlash固有のクラスを要求する。
+constexpr CLSID CLSID_FlashTextService = {0xc540baf6,0x88b1,0x5b30,{0xb5,0x24,0x2c,0x87,0x02,0xb0,0x34,0xfc}};
 HMODULE nativeShell=nullptr;
 using CanUnload=HRESULT (STDAPICALLTYPE *)();
 int NativeUnloadState() {
@@ -34,7 +36,7 @@ public:
         using GetClass=HRESULT (STDAPICALLTYPE *)(REFCLSID,REFIID,void**);
         auto get=reinterpret_cast<GetClass>(GetProcAddress(nativeShell,"DllGetClassObject"));assert(get);
         IClassFactory* factory=nullptr;
-        assert(get(CLSID_TextService,IID_IClassFactory,reinterpret_cast<void**>(&factory))==S_OK && factory);
+        assert(get(CLSID_FlashTextService,IID_IClassFactory,reinterpret_cast<void**>(&factory))==S_OK && factory);
         assert(factory->CreateInstance(nullptr,IID_ITfTextInputProcessorEx,reinterpret_cast<void**>(&root))==S_OK && root);
         factory->Release();
         assert(NativeLiveCount()==1);
