@@ -39,6 +39,7 @@ CORE_CLOCK=c.CFUNCTYPE(c.c_uint64,c.c_void_p)
 NOTICE=c.CFUNCTYPE(None,c.c_void_p,c.c_int)
 READ=c.CFUNCTYPE(c.c_int,c.c_void_p)
 TOGGLE=c.CFUNCTYPE(None,c.c_void_p)
+TF_LBI_CLK_LEFT=2  # Windows SDKのTfLBIClick。0は左クリックではない。
 class Point(c.Structure):
     _fields_=[('x',HR),('y',HR)]
 P=c.c_void_p
@@ -315,7 +316,7 @@ class StateTests(unittest.TestCase):
         allocator=c.WinDLL('oleaut32');allocator.SysFreeString.argtypes=[P]
         try:return c.wstring_at(text)
         finally:allocator.SysFreeString(text)
-    def click_bar(self,bar):self.assertEqual(invoke(bar,7,HR,[HR,Point,P],0,Point(),None),0)
+    def click_bar(self,bar):self.assertEqual(invoke(bar,7,HR,[HR,Point,P],TF_LBI_CLK_LEFT,Point(),None),0)
     def test_bar_replacement_detaches_retained_old_reference(self):
         state=self.create();old,mode=self.create_bar(state)
         invoke(old,1,U32,[]);self.assertEqual(self.bar_text(old),'A')
