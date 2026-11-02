@@ -682,10 +682,18 @@ jobs:
           if-no-files-found: ignore
   ios:
     if: ${{ !inputs.packages_only }}
-    runs-on: macos-15
+    runs-on: macos-26
     timeout-minutes: 45
     steps:
       - uses: actions/checkout@v5
+        with:
+          ref: c48fd8dcbaed3b63f13d8e02df2d6b9c96dbe5ed
+      - name: Verify merged source and ARM architecture
+        run: |
+          git rev-parse HEAD
+          uname -m
+          test "$(git rev-parse HEAD)" = c48fd8dcbaed3b63f13d8e02df2d6b9c96dbe5ed
+          test "$(uname -m)" = arm64
       - uses: dtolnay/rust-toolchain@stable
       - uses: Swatinem/rust-cache@v2
         with:

@@ -1,173 +1,36 @@
-name: リリース
+# SPDX-License-Identifier: GPL-3.0-or-later
+# Copyright (C) 2026 appipinopi
+# 一時的な容量不足への対応。取り込み済みソースだけを検査し、公開は行わない。
+name: Apple Silicon 1.0.0配布検証（ソース固定）
 on:
-  pull_request:
-    paths:
-      - '.github/workflows/rust-release.yml'
-      - 'tools/*release*.py'
   workflow_dispatch:
-    inputs:
-      tag:
-        description: 'Meltype-flashの正式版またはプレビュー版タグ'
-        required: true
-      benchmark_baseline:
-        description: '比較する以前の公開タグ（auto: 現在版より前の最新タグ）'
-        required: true
-        default: auto
 permissions:
   contents: read
 concurrency:
-  group: rust-release-${{ github.event_name == 'pull_request' && github.ref || 'publish' }}
+  group: flash-v1-apple26-recovery
   cancel-in-progress: false
 jobs:
-  release-policy:
-    runs-on: ubuntu-latest
-    steps:
-      - uses: actions/checkout@v5
-      - uses: actions/setup-python@v5
-        with:
-          python-version: '3.12'
-      - run: python -m unittest discover -s tools -p 'test_*release*.py' -v
-  validate:
-    if: github.event_name == 'workflow_dispatch'
-    runs-on: ubuntu-latest
-    steps:
-      - uses: actions/checkout@v5
-      - env:
-          TAG: ${{ inputs.tag }}
-        run: |
-          [[ "$TAG" =~ ^flash-v[0-9]+\.[0-9]+\.[0-9]+(-preview\.[0-9]+)?$ ]]
-          test "$GITHUB_REPOSITORY" = appipinopi/Meltype-Flash
-          test "$GITHUB_REF" = refs/heads/rust
-          VERSION=$(python3 -c 'import tomllib; print(tomllib.load(open("Cargo.toml", "rb"))["workspace"]["package"]["version"])')
-          test "$VERSION" = "$(echo "${TAG#flash-v}" | sed 's/-preview\./-pre./')"
-  windows:
-    needs: validate
-    runs-on: windows-latest
+  macos-arm64:
+    runs-on: macos-26
     timeout-minutes: 60
     steps:
       - uses: actions/checkout@v5
         with:
-          fetch-depth: 0
-      - uses: actions/setup-python@v5
-        with:
-          python-version: '3.12'
-      - uses: actions/setup-dotnet@v4
-        with:
-          dotnet-version: '10.0.x'
-      - uses: dtolnay/rust-toolchain@stable
-        with:
-          components: clippy
-      - uses: Swatinem/rust-cache@v2
-        with:
-          shared-key: rust-release-windows
-      - run: ./rust/Test-BuildWindowsArgs.ps1
-      - run: cargo clippy --workspace --all-targets --locked -- -D warnings
-      - run: cargo test --workspace --locked
-      - run: ./rust/build-windows.ps1 -WithTip
-      - name: Software OpenGL and actual tray lifecycle
-        shell: pwsh
+          ref: c48fd8dcbaed3b63f13d8e02df2d6b9c96dbe5ed
+      - name: Verify merged source and ARM architecture
         run: |
-          ./tools/ci/setup-windows-opengl.ps1 -Directories target/x86_64-pc-windows-msvc/release
-      - name: Exercise normal and portable tray shutdown
-        shell: pwsh
-        run: |
-          ./rust/Test-TrayStop.ps1 -Binary target/x86_64-pc-windows-msvc/release/meltype-flash.exe
-          ./rust/Test-TrayStop.ps1 -Binary target/x86_64-pc-windows-msvc/release/meltype-flash.exe -Portable
-      - name: Inspect native server and package lifecycle
-        shell: pwsh
-        run: |
-          python rust/native/tests/tsf_server_smoke.py native/tip/bin/rust-x64/MeltypeTip.dll
-          if ($LASTEXITCODE -ne 0) { throw 'TSF server test failed' }
-          ./rust/Test-Manage-Windows.ps1
-          ./rust/Test-WindowsLifecycle.ps1
-          ./rust/Test-UpdateWindows.ps1
-          ./rust/Test-StartupCli.ps1 -Binary target/x86_64-pc-windows-msvc/release/meltype-flash.exe
-          python -m unittest discover -s tools -p test_rust_windows_package.py -v
-          if ($LASTEXITCODE -ne 0) { throw 'Package tests failed' }
-      - name: Assemble audited Windows ZIP
-        shell: pwsh
-        run: |
-          $vswhere = Join-Path ${env:ProgramFiles(x86)} 'Microsoft Visual Studio/Installer/vswhere.exe'
-          $vs = & $vswhere -latest -products * -requires Microsoft.VisualStudio.Component.VC.Tools.x86.x64 -property installationPath
-          $redist = Get-ChildItem -LiteralPath (Join-Path $vs 'VC/Redist/MSVC') -Directory | Where-Object Name -Match '^\d+\.' | Sort-Object Name -Descending | Select-Object -First 1
-          if (-not $redist) { throw 'Redistributable CRT directory missing' }
-          python rust/package-windows.py --settings target/x86_64-pc-windows-msvc/release/meltype-flash.exe --cli target/x86_64-pc-windows-msvc/release/meltype-rs.exe --worker-x64 target/x86_64-pc-windows-msvc/release/meltype-tip-worker.exe --worker-x86 target/i686-pc-windows-msvc/release/meltype-tip-worker.exe --redist-root $redist.FullName --output dist/Meltype-flash-Windows-x64
-          if ($LASTEXITCODE -ne 0) { throw 'Package audit failed' }
-      - uses: actions/upload-artifact@v4
-        with:
-          name: release-windows
-          path: dist/Meltype-flash-Windows-x64.zip
-          if-no-files-found: error
-      - name: Compare upstream 1.4.0, previous and current Rust on the same Windows runner
-        timeout-minutes: 40
-        shell: pwsh
-        env:
-          PYTHONUTF8: '1'
-          BENCHMARK_BASELINE: ${{ inputs.benchmark_baseline }}
-        run: |
-          git fetch --no-tags https://github.com/yksr-melt/Meltype.git 46db6ca2f941eb9580f4d5ed103ee0bee71111c7
-          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
-          python tools/compare-rust-benchmarks.py --build --with-csharp --csharp-ref 46db6ca2f941eb9580f4d5ed103ee0bee71111c7 --fetch-tags --baseline-ref "$env:BENCHMARK_BASELINE" --output dist/release-benchmark --samples 3 --warmups 1 --rounds 9
-          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
-          python -m pip install --disable-pip-version-check matplotlib==3.10.8 numpy==2.4.2
-          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
-          python tools/plot-windows-benchmark.py dist/release-benchmark/report.json --output dist/release-benchmark/charts
-          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
-      - uses: actions/upload-artifact@v4
-        with:
-          name: release-benchmark
-          retention-days: 1
-          if-no-files-found: error
-          path: |
-            dist/release-benchmark/report.json
-            dist/release-benchmark/charts/*.png
-            dist/release-benchmark/charts/README.md
-            dist/release-benchmark/charts/summary.json
-  linux:
-    needs: validate
-    runs-on: ubuntu-24.04
-    timeout-minutes: 40
-    steps:
-      - uses: actions/checkout@v5
+          git rev-parse HEAD
+          uname -m
+          test "$(git rev-parse HEAD)" = c48fd8dcbaed3b63f13d8e02df2d6b9c96dbe5ed
+          test "$(uname -m)" = arm64
       - uses: dtolnay/rust-toolchain@stable
       - uses: Swatinem/rust-cache@v2
         with:
-          shared-key: rust-release-linux
-      - run: sudo apt-get update && sudo apt-get install -y libibus-1.0-dev ibus gir1.2-ibus-1.0 python3-gi dbus-x11 xvfb fonts-noto-cjk libxkbcommon-x11-0
-      - run: cargo test --workspace --locked
-      - run: bash rust/build-linux.sh
-      - name: Validate packaged IBus engine
-        run: |
-          python3 rust/ibus/tests/installation.py target/release/meltype-ibus
-          MELTYPE_IBUS_TEST_INSTALLED=1 xvfb-run -a dbus-run-session -- /usr/bin/python3 rust/ibus/tests/integration.py target/release/meltype-ibus
-          cp linux/build/Meltype-flash-linux.tar.gz Meltype-flash-Linux-x64.tar.gz
-      - uses: actions/upload-artifact@v4
-        with:
-          name: release-linux
-          path: Meltype-flash-Linux-x64.tar.gz
-          if-no-files-found: error
-  macos:
-    needs: validate
-    strategy:
-      fail-fast: false
-      matrix:
-        include:
-          - os: macos-15
-            arch: arm64
-          - os: macos-15-intel
-            arch: x64
-    runs-on: ${{ matrix.os }}
-    timeout-minutes: 60
-    steps:
-      - uses: actions/checkout@v5
-      - uses: dtolnay/rust-toolchain@stable
-      - uses: Swatinem/rust-cache@v2
-        with:
-          shared-key: rust-release-macos-${{ matrix.arch }}
+          shared-key: rust-release-macos-arm64
       - uses: actions/cache@v5
         with:
           path: mac/.build
-          key: release-swift-${{ matrix.arch }}-${{ hashFiles('mac/Package.swift', 'mac/Package.resolved') }}
+          key: release-swift-arm64-${{ hashFiles('mac/Package.swift', 'mac/Package.resolved') }}
       - run: cargo test --workspace --locked
       - run: bash rust/build-desktop.sh
       - name: Inspect macOS package
@@ -176,75 +39,9 @@ jobs:
           MELTYPE_RUST_DATA_DIR="$RUNNER_TEMP/meltype-release-test" mac/build/Meltype.app/Contents/MacOS/Meltype --self-test
           bash mac/test/register-helper/run.sh "$PWD/mac/build/Meltype.app/Contents/MacOS/MeltypeRegisterInputSource"
           python3 rust/native/tests/macos_product_smoke.py target/release/libmeltype_native.dylib
-          bash mac/package.sh Meltype-flash-macOS-${{ matrix.arch }}.zip
+          bash mac/package.sh Meltype-flash-macOS-arm64.zip
       - uses: actions/upload-artifact@v4
         with:
-          name: release-macos-${{ matrix.arch }}
+          name: release-macos-arm64
           path: dist/Meltype-flash-macOS-*.zip
           if-no-files-found: error
-  mobile-packages:
-    needs: validate
-    uses: ./.github/workflows/rust.yml
-    with:
-      packages_only: true
-  ios:
-    needs: validate
-    runs-on: macos-15
-    timeout-minutes: 45
-    steps:
-      - uses: actions/checkout@v5
-      - uses: dtolnay/rust-toolchain@stable
-      - uses: Swatinem/rust-cache@v2
-        with:
-          shared-key: flash-ios
-      - run: brew install xcodegen
-      - run: cargo test -p meltype-ios --locked
-      - run: cargo clippy -p meltype-ios --all-targets --locked -- -D warnings
-      - run: bash ios/build.sh
-      - name: Exercise keyboard controller on iOS Simulator
-        id: keyboard_tests
-        timeout-minutes: 15
-        run: |
-          DEVICE=$(xcrun simctl list devices available -j | python3 -c 'import json,sys; print(next(d["udid"] for devices in json.load(sys.stdin)["devices"].values() for d in devices if d["name"].startswith("iPhone")))')
-          # Run every unit and UI test, in separate simulator sessions.
-          xcodebuild -project ios/MeltypeFlash.xcodeproj -scheme MeltypeFlash -destination "platform=iOS Simulator,id=$DEVICE" -only-testing:KeyboardTests -test-timeouts-enabled YES -maximum-test-execution-time-allowance 120 -derivedDataPath ios/build/tests CODE_SIGNING_ALLOWED=NO test
-          xcrun simctl shutdown "$DEVICE" || true
-          xcrun simctl boot "$DEVICE"
-          xcrun simctl bootstatus "$DEVICE" -b
-          xcodebuild -project ios/MeltypeFlash.xcodeproj -scheme MeltypeFlash -destination "platform=iOS Simulator,id=$DEVICE" -only-testing:AppUITests -parallel-testing-enabled NO -test-timeouts-enabled YES -maximum-test-execution-time-allowance 120 -derivedDataPath ios/build/tests CODE_SIGNING_ALLOWED=NO test
-      - name: Export source for locally signed device builds
-        run: |
-          git archive --format=zip --output=dist/Meltype-flash-iOS-source.zip HEAD
-          cp ios/README.md dist/README-iOS.md
-      - uses: actions/upload-artifact@v4
-        with:
-          name: release-ios
-          path: |
-            dist/Meltype-flash-iOS-Simulator-arm64.zip
-            dist/Meltype-flash-iOS-unsigned.ipa
-            dist/Meltype-flash-iOS-source.zip
-            dist/README-iOS.md
-          if-no-files-found: error
-  publish:
-    needs: [release-policy, windows, linux, macos, mobile-packages, ios]
-    runs-on: ubuntu-latest
-    permissions:
-      contents: write
-    steps:
-      - uses: actions/checkout@v5
-        with:
-          fetch-depth: 0
-      - uses: actions/download-artifact@v4
-        with:
-          path: artifacts
-      - name: Collect verified release assets
-        run: |
-          python3 -m unittest discover -s tools -p test_collect_rust_release.py -v
-          python3 tools/collect-rust-release.py artifacts release-assets
-          cp LICENSE THIRD-PARTY-NOTICES.md release-assets/
-      - name: Publish all platforms together
-        env:
-          GH_TOKEN: ${{ github.token }}
-          TAG: ${{ inputs.tag }}
-        run: |
-          python3 tools/publish-rust-release.py --tag "$TAG" --sha "$GITHUB_SHA" --assets release-assets --benchmark artifacts/release-benchmark --output release-body.md --publish
