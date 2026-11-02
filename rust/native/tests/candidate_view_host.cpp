@@ -10,7 +10,7 @@ namespace {
 BOOL CALLBACK Find(HWND window,LPARAM data) {
     wchar_t name[128] = {};
     GetClassNameW(window,name,ARRAYSIZE(name));
-    if (wcscmp(name,L"MeltypeRustCandidateWindow") == 0 && IsWindowVisible(window)) {
+    if (wcscmp(name,L"Meltype-flashCandidateWindow") == 0 && IsWindowVisible(window)) {
         *reinterpret_cast<HWND*>(data) = window; return FALSE;
     }
     return TRUE;
