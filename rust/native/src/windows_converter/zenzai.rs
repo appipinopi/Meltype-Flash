@@ -623,6 +623,8 @@ mod tests {
                         Err(error) => panic!("fake server did not receive request: {error}"),
                     }
                 };
+                // 接続待ちだけを非同期にし、受信は既存の期限付き同期readで行う。
+                stream.set_nonblocking(false).unwrap();
                 stream
                     .set_read_timeout(Some(Duration::from_secs(2)))
                     .unwrap();
