@@ -178,7 +178,12 @@ jobs:
           if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
           python rust/native/tests/prediction_worker_smoke.py target/release/meltype-tip-worker.exe
           if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
-          dotnet build tools/parity/mozc-lifecycle/MozcLifecycle.csproj --nologo
+          git fetch --no-tags --depth=1 https://github.com/yksr-melt/Meltype.git 45e14f86558aa6ea34f2c2ecd038ba95ca8c3c46
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+          python tools/parity/mozc-lifecycle/prepare_reference.py dist/frozen-csharp-reference
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+          $frozenCore = Join-Path $PWD 'dist/frozen-csharp-reference/src/Meltype.Core/Meltype.Core.csproj'
+          dotnet build tools/parity/mozc-lifecycle/MozcLifecycle.csproj "-p:CoreProject=$frozenCore" --nologo
           if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
           dotnet run --no-build --project tools/parity/mozc-lifecycle/MozcLifecycle.csproj -- --filter tools/parity/mozc-lifecycle/filter-cases.json > mozc-learning-filter-reference.jsonl
           if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
@@ -218,7 +223,8 @@ jobs:
         if: runner.os == 'Windows'
         shell: pwsh
         run: |
-          dotnet run --project tools/parity/misspellings/Misspellings.csproj -- tools/parity/misspellings/cases.json > misspelling-reference.jsonl
+          $frozenCore = Join-Path $PWD 'dist/frozen-csharp-reference/src/Meltype.Core/Meltype.Core.csproj'
+          dotnet run --project tools/parity/misspellings/Misspellings.csproj "-p:CoreProject=$frozenCore" -- tools/parity/misspellings/cases.json > misspelling-reference.jsonl
           if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
           python rust/native/tests/misspelling_reference.py misspelling-reference.jsonl
           if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
