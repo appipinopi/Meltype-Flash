@@ -6,7 +6,8 @@ $exe = (Resolve-Path -LiteralPath $Binary).Path
 $root = Join-Path ([IO.Path]::GetTempPath()) ('meltype tray stop 日本語-' + [Guid]::NewGuid().ToString('N'))
 New-Item -ItemType Directory -Path $root | Out-Null
 $configPath = Join-Path $root 'config.json'
-$config = '{"SettingsVersion":5,"WelcomeShown":true,"TsfIntroduced":true,"AutoUpdate":false,"Enabled":true}'
+$settingsVersion = (Get-Content -LiteralPath (Join-Path $PSScriptRoot 'core/data/settings-defaults.json') -Raw -Encoding UTF8 | ConvertFrom-Json).SettingsVersion
+$config = [ordered]@{SettingsVersion=$settingsVersion;WelcomeShown=$true;TsfIntroduced=$true;AutoUpdate=$false;Enabled=$true} | ConvertTo-Json -Compress
 [IO.File]::WriteAllText($configPath, $config)
 $previousDataDirectory = $env:MELTYPE_RUST_DATA_DIR
 $previousFlashDirectory = $env:MELTYPE_FLASH_DATA_DIR

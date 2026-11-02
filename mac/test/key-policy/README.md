@@ -175,12 +175,13 @@ fixture also checks autorelease ownership and background-thread rejection. It
 does not prove presentation or action delivery from the installed OS input menu.
 
 
-The macOS dictionary bridge now parses plist rows and merges text in Rust. The
-SDK fixture keeps the former Swift implementation as a test-only reference and
-compares twelve XML/binary plist shapes, normalization/filtering and original
-Foundation error domain/code, thirty-two merges (including canonical duplicates,
-CRLF grapheme semantics and NUL), and repeated imports into separate private
-folders. The production import path now calls Foundation source/read/create/atomic NSData write
+macOSの辞書ブリッジはplistの読込とテキストの統合をRustで行います。
+SDK試験は旧Swift実装と比較し、通常の辞書の6形状をXML・バイナリ各形式で12件、
+NULを含む元の辞書の6形状をバイナリ形式で6件、計18件を検証します。
+新しいFoundationがXML中のNULを拒否するため、NULはバイナリで保持を確認します。
+文字列の正規化・除外、Foundationのエラー、32件の統合（結合文字・CRLF・NULを含む）、
+別々の専用フォルダーへの繰り返し取込も旧Swiftと比較します。
+The production import path now calls Foundation source/read/create/atomic NSData write
 operations from Rust too. The IO fixture checks nested Unicode paths, no-op file
 mtime, seven failures against the former Swift errors/content, and five UTF-8 decoding cases (BOM, malformed sequences and NUL). Atomic NSData writes preserve the UTF-8 bytes without a converting NSString initializer. A bare word is
 a valid OpenStep plist, so malformed-input cases use broken syntax. The open/alert
