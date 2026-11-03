@@ -26,3 +26,13 @@ Flash側の修正を本家にも提案する場合は、元Issueへの参照と�
 本家から継承したbotの`/repro`・`/explain`・`/ca`・`/jht`や、`/test`・`/pack`・`/release`等はC#版用です。FlashではこれらをC#版へ送らず、Rust版の[全OS検証](https://github.com/appipinopi/Meltype-Flash/actions/workflows/rust.yml)と[公開用ワークフロー](https://github.com/appipinopi/Meltype-Flash/actions/workflows/rust-release.yml)を案内します。
 
 Flashの誤判定フォームからC#版の自動再現は起動せず、C#版の結果に基づく「再現済み」ラベルも付けません。Flashの再現確認はRustコードで行い、PRの「確かめること」にある入力例や対象OSの検査結果を記録します。本家リポジトリでのC#版botの動作は維持します。
+
+## リリース時の版番号選択肢
+
+GitHub Issue Formsの選択肢は静的なため、リリースの準備時に次を実行し、版番号更新と同じPRへ含めます。
+
+```sh
+python tools/sync-issue-versions.py --include flash-v1.0.1
+```
+
+`--include`には準備中のタグを指定します。公開済みの版だけへ揃える場合は、この引数を省きます。下書きは自動では含めません。`rust`ブランチは保護されているため、更新結果は通常のPRと必須チェックを通して取り込みます。
