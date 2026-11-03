@@ -15,7 +15,7 @@ import zipfile
 TARGET = '/usr/libexec/meltype-flash/ibus'
 EXECUTABLES = ('meltype-ibus', 'meltype-flash', 'meltype-rs', 'install.sh')
 # GUIがdlopenするライブラリはELFの自動依存検出に現れない。
-DEB_DEPENDS = ('ibus, zenity, libc6 (>= 2.39), libgcc-s1, libibus-1.0-5, '
+DEB_DEPENDS = ('ibus, zenity, libc6 (>= 2.39), libgcc-s1, libstdc++6, libibus-1.0-5, '
                'libglib2.0-0t64 | libglib2.0-0, libdbus-1-3, '
                'libx11-6, libx11-xcb1, libxcursor1, libxi6, libxkbcommon0, '
                'libxkbcommon-x11-0, libegl1, libgl1, libwayland-client0, libwayland-egl1')
