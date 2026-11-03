@@ -29,7 +29,7 @@ class ServerTests(unittest.TestCase):
         cls.directory=tempfile.TemporaryDirectory(prefix='meltype-rust-server-')
         cls.previous={key:os.environ.get(key) for key in ['LOCALAPPDATA','MELTYPE_TIP_LOG']}
         os.environ['LOCALAPPDATA']=cls.directory.name;os.environ['MELTYPE_TIP_LOG']='1'
-        (Path(cls.directory.name)/'Meltype-flash').mkdir()
+        (Path(cls.directory.name)/'Meltype-FLASH').mkdir()
     @classmethod
     def tearDownClass(cls):
         for key,value in cls.previous.items():

@@ -386,7 +386,7 @@ ast 明日
 ぶいあーるちゃっと VRChat
 いしゅー issues
 # #959 / #1020
-めるたいぷ Meltype-flash Meltype
+めるたいぷ Meltype-FLASH Meltype-flash Meltype
 いいよこいよ 114514
 # #1076。直接入力のスラッシュは維持し、明示変換の候補だけ補う。
 / ・

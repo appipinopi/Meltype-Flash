@@ -136,7 +136,7 @@ mkdir -p "$stage/new/mozc" "$stage/old/mozc"
 install_files=()
 for file in "${files[@]}"; do
     if [[ "$file" == .meltype-flash-ibus ]]; then
-        printf 'Meltype-flash IBus\n' > "$stage/new/$file"
+        printf 'Meltype-FLASH IBus\n' > "$stage/new/$file"
     elif [[ -f "$source_dir/$file" ]]; then
         cp -- "$source_dir/$file" "$stage/new/$file"
     else
@@ -177,7 +177,7 @@ mv -fT -- "$temporary" "$component"
 temporary=""
 complete=true
 if $system; then
-    echo 'Installed. Sign out/in, then select Meltype-flash in IBus input sources.'
+    echo 'Installed. Sign out/in, then select Meltype-FLASH in IBus input sources.'
     printf 'Remove with: sudo bash %q --system --prefix %q --uninstall\n' "$target/install.sh" "$prefix"
 else
     echo 'User files installed. IBus does not discover user components by default.'

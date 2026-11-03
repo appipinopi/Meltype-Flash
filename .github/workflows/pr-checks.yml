@@ -44,6 +44,7 @@ jobs:
       # 表記の bot (notices.yml) の判定を確かめる (GitHub には何も書かない)
       - run: node .github/bot/notices.mjs --self-test
       - run: node --test .github/bot/test-flash-routing.mjs
+      - run: python -m unittest discover -s tools -p test_sync_issue_versions.py -v
 
   dictionaries:
     name: 辞書の形式

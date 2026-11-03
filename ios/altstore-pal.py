@@ -101,12 +101,12 @@ def make_source(app, adp, *, tag, marketplace_id, developer_name, icon_url,
                         if key.startswith('NS') and 'UsageDescription' in key})
     permissions.difference_update({'application-identifier', 'com.apple.developer.team-identifier'})
     return {
-        'name': 'Meltype-flash',
+        'name': 'Meltype-FLASH',
         'subtitle': '日本語・英語を入力できるキーボード',
         'website': 'https://github.com/appipinopi/Meltype-Flash',
         'nsfw': False,
         'apps': [{
-            'name': 'Meltype-flash',
+            'name': 'Meltype-FLASH',
             'bundleIdentifier': info['CFBundleIdentifier'],
             'marketplaceID': marketplace_id,
             'developerName': developer_name,

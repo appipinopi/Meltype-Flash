@@ -240,9 +240,21 @@ jobs:
         run: |
           git fetch --no-tags --depth=1 https://github.com/yksr-melt/Meltype.git 46db6ca2f941eb9580f4d5ed103ee0bee71111c7
           python tools/extract-rust-settings-ui.py --check
+      - uses: bazel-contrib/setup-bazel@0.15.0
+        if: runner.os == 'Linux'
+        with:
+          bazelisk-cache: true
+          disk-cache: linux-mozc
+      - name: Build Linux kanji converter
+        if: runner.os == 'Linux'
+        run: |
+          sudo apt-get install -y clang libglib2.0-dev libgtk-3-dev libxcb-xfixes0-dev libxcb-keysyms1-dev
+          bash native/mozc/build-mozc-helper.sh "$RUNNER_TEMP/mozc"
       - name: Package standalone Rust IBus engine
         if: runner.os == 'Linux'
-        run: bash rust/build-linux.sh
+        run: |
+          MELTYPE_REQUIRE_MOZC=1 bash rust/build-linux.sh
+          MELTYPE_MOZC_HELPER="$PWD/linux/build/Meltype-flash-linux/mozc/meltype_mozc_helper" python3 rust/native/tests/linux_mozc_smoke.py target/release/libmeltype_native.so
       - uses: actions/upload-artifact@v4
         if: runner.os == 'Linux'
         with:

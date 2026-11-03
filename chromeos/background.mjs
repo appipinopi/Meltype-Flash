@@ -21,7 +21,7 @@ const controller = available ? new ImeController({
     core.focusIfNeeded = (generation, learning) => {
       if (focusedGeneration !== generation) { core.focus(learning); focusedGeneration = generation; }
     };
-    diagnostic = "Rust Core・漢字辞書起動済み。ChromeOSの入力方法にMeltype Rustを追加してください。";
+    diagnostic = "Rust Core・漢字辞書起動済み。ChromeOSの入力方法にMeltype-FLASH（日本語配列）またはMeltype-FLASH（US配列）を追加してください。";
     return core;
   },
   persist: snapshot => chrome.storage.local.set({snapshot}),

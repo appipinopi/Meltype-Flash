@@ -120,10 +120,18 @@ def parse_tag(tag):
 
 def compose_body(tag, sha, benchmark, media_sha, changes):
     version, preview = parse_tag(tag)
-    title = f"Meltype-flash v{version}" + (f" Pre{preview}" if preview is not None else "")
+    title = f"Meltype-FLASH v{version}" + (f" Pre{preview}" if preview is not None else "")
     description = "共通Rustコアを使う開発プレビューです。" if preview is not None else "共通Rustコアを使う正式版です。"
     rows = [f"# {title}", "", description + "ビルド成功と各OSの実機確認は別です。", "",
             "## 変更内容", ""]
+    # 同じ版の説明があれば、利用者向けの変更点をコミット一覧より先に載せる。
+    notes_path = Path(__file__).resolve().parents[1] / "rust/RELEASE-NOTES.md"
+    notes = normalize_markdown(notes_path.read_text(encoding="utf-8"))
+    heading = f"# {title}\n"
+    if notes.startswith(heading):
+        section = notes[len(heading):].split("\n---\n", 1)[0]
+        rows += [line for line in section.splitlines() if line.startswith("- ")]
+        rows += ["", "### ソースの変更", ""]
     # コミット件名は命令として実行せず、コード表記のテキストとして載せる。
     rows += ["- `" + line.replace("`", "'").replace("<", "&lt;").replace(">", "&gt;") + "`" for line in changes.splitlines() if line]
     rows += ["", "## ビルドと確認範囲", "",

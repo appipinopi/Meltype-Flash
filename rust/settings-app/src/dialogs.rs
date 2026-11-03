@@ -50,7 +50,7 @@ pub struct Dialogs {
 }
 fn environment(settings: &Settings) -> String {
     format!(
-        "Meltype-flash {}\nOS: {} ({})\n動作モード: {}\n自動判定の強さ: {}",
+        "Meltype-FLASH {}\nOS: {} ({})\n動作モード: {}\n自動判定の強さ: {}",
         env!("CARGO_PKG_VERSION"),
         std::env::consts::OS,
         std::env::consts::ARCH,
@@ -217,7 +217,7 @@ impl Dialogs {
             self.log = window(
                 ctx,
                 "flash-log",
-                "Meltype-flash ログ / 判定理由",
+                "Meltype-FLASH ログ / 判定理由",
                 [900., 480.],
                 |ui| {
                     ui.horizontal(|ui| {
@@ -268,7 +268,7 @@ impl Dialogs {
             self.report = window(
                 ctx,
                 "flash-report",
-                "Meltype-flash 不具合の報告・提案",
+                "Meltype-FLASH 不具合の報告・提案",
                 [700., 580.],
                 |ui| {
                     ui.label("「フォームで報告」を押すと、報告の画面がブラウザーで開きます。下の実行環境が入ります。");
@@ -360,7 +360,7 @@ impl Dialogs {
             self.corrections = window(
                 ctx,
                 "flash-corrections",
-                "Meltype-flash 直した誤判定を報告",
+                "Meltype-FLASH 直した誤判定を報告",
                 [640., 480.],
                 |ui| {
                     ui.label("直した判定を選んで中身を確かめ、個人的な文章は似た例に書き換えてから「GitHub で報告」を押してください。");

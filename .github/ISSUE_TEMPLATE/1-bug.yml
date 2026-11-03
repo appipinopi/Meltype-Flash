@@ -1,4 +1,4 @@
-name: Meltype-flashの不具合
+name: Meltype-FLASHの不具合
 description: 動かない・止まる・落ちる・表示がおかしいなど
 title: "[不具合] "
 labels: ["bug"]
@@ -9,15 +9,15 @@ body:
         報告ありがとうございます。日本語・英語の判定や変換の間違い (「日本語」が「にほんgo」になった など) は、「変換・判定の間違い」から報告してください。
         ⚠ パスワードや個人的な文章を貼らないでください。ログには直前に打った文字の一部が入ることがあります。見られて困る部分は消してから貼ってください。
 
-        ここはMeltype-flash（Rust版）の窓口です。[本家Meltype（C#版）だけの報告は本家へ](https://github.com/yksr-melt/Meltype/issues/new/choose)お願いします。両方で起きる場合や判断できない場合は、このフォームを使えます。[報告先の分け方](https://github.com/appipinopi/Meltype-Flash/blob/rust/docs/ISSUE-TRIAGE.md)
+        ここはMeltype-FLASH（Rust版）の窓口です。[本家Meltype（C#版）だけの報告は本家へ](https://github.com/yksr-melt/Meltype/issues/new/choose)お願いします。両方で起きる場合や判断できない場合は、このフォームを使えます。[報告先の分け方](https://github.com/appipinopi/Meltype-Flash/blob/rust/docs/ISSUE-TRIAGE.md)
 
   - type: dropdown
     id: product
     attributes:
       label: 報告対象
       options:
-        - Meltype-flash（Rust版）
-        - Meltype-flashと本家Meltypeの両方
+        - Meltype-FLASH（Rust版）
+        - Meltype-FLASHと本家Meltypeの両方
         - 分からない
     validations:
       required: true
@@ -44,12 +44,23 @@ body:
       description: "macOS: 版とCPU。Linux: 版・デスクトップ・Wayland/X11。Android・iOS: 版と機種。ChromeOS: 版と機種・キーボード配列。"
       placeholder: Ubuntu 24.04 / GNOME / Wayland
 
-  - type: input
+  - type: dropdown
     id: version
     attributes:
-      label: Meltype の版
-      description: "Meltype-flashの版を書いてください。Windowsはトレイの「Meltype-flash について」、ChromeOSは拡張機能の詳細でも確認できます。"
-      placeholder: 1.0.0
+      label: Meltype-FLASH の版
+      description: "使用中の版をリリースタグから選択してください。開発版はそのほかを選び、詳細に記入してください。"
+      options:
+        - "flash-v1.0.1"
+        - "flash-v1.0.0"
+        - "flash-v0.1.0-preview.7"
+        - "flash-v0.1.0-preview.6"
+        - "flash-v0.1.0-preview.5"
+        - "flash-v0.1.0-preview.4"
+        - "flash-v0.1.0-preview.3"
+        - "flash-v0.1.0-preview.2"
+        - "rust-v0.1.0-preview.1"
+        - "そのほか / 開発版"
+        - "分からない"
     validations:
       required: true
 
@@ -58,8 +69,8 @@ body:
     attributes:
       label: 使っていたモード (Windows)
       options:
-        - Meltype-flash IME (入力欄に直接入力)
-        - Meltype-flash キーボード (変換ボックスで入力)
+        - Meltype-FLASH IME (入力欄に直接入力)
+        - Meltype-FLASH キーボード (変換ボックスで入力)
         - 分からない / Windows以外
 
   - type: input

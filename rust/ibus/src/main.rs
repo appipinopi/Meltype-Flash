@@ -33,7 +33,7 @@ fn main() {
         return;
     }
     if std::env::args().any(|arg| arg == "--version") {
-        println!("Meltype-flash IBus {}", env!("CARGO_PKG_VERSION"));
+        println!("Meltype-FLASH IBus {}", env!("CARGO_PKG_VERSION"));
         return;
     }
     #[cfg(target_os = "linux")]

@@ -1,7 +1,7 @@
-# Meltype-flash — README共通画像
+# Meltype-FLASH — README共通画像
 
 <!-- meltype-flash-document-banner:start -->
-<p align="center"><img src="documentation.svg" alt="Meltype-flash — 稲妻のように、言葉の壁を駆け抜ける日本語入力。" width="1000"></p>
+<p align="center"><img src="documentation.svg" alt="Meltype-FLASH — 稲妻のように、言葉の壁を駆け抜ける日本語入力。" width="1000"></p>
 <!-- meltype-flash-document-banner:end -->
 
 以前の「M＋稲妻」ロゴを原本のまま使い、Windows・Linux・Mac・Android・ChromeOS・iOSのREADMEを揃えています。
@@ -9,7 +9,7 @@
 
 - `logo.svg`: 共通の横長ロゴ。
 - `documentation.svg`: 各機能・検証フォルダーのREADMEに置く、大きな稲妻と正式なモットー入りの共通バナー。
-- `<環境>/hero.svg`: 「Meltype-flash for Windows」など、正式な製品名と環境名入りの6環境のバナー。
+- `<環境>/hero.svg`: 「Meltype-FLASH for Windows」など、正式な製品名と環境名入りの6環境のバナー。
 - `cards/os-<環境>.svg`: リンクカード。`-active`付きは現在のページ用。
 - `<環境>/headings/*.svg`: 「内容」「動く環境」「インストール」など、各READMEの雷付き見出し。日本語を含め文字をパス化しています。
 - `preview.html`: バナー・見出し・カードを並べた確認用ページ。

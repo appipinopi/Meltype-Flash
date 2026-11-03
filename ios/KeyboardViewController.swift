@@ -67,7 +67,7 @@ class KeyboardViewController: UIInputViewController, UIContextMenuInteractionDel
             column.topAnchor.constraint(equalTo: view.topAnchor, constant: 7),
             column.bottomAnchor.constraint(equalTo: view.bottomAnchor, constant: -7)
         ])
-        preedit.text = "Meltype-flash"
+        preedit.text = "Meltype-FLASH"
         preedit.font = .systemFont(ofSize: 16, weight: .medium)
         preedit.layer.cornerRadius = 10
         preedit.clipsToBounds = true

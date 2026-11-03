@@ -1,9 +1,9 @@
 <!-- meltype-flash-platform:start -->
-<p align="center"><img src="../assets/branding/readme/logo.svg" alt="Meltype-flash" width="520"></p>
+<p align="center"><img src="../assets/branding/readme/logo.svg" alt="Meltype-FLASH" width="520"></p>
 <a id="meltype-for-chromeos"></a>
-<p align="center"><img src="../assets/branding/readme/chromeos/hero.svg" alt="Meltype-flash for ChromeOS" width="1000"></p>
+<p align="center"><img src="../assets/branding/readme/chromeos/hero.svg" alt="Meltype-FLASH for ChromeOS" width="1000"></p>
 <p align="center"><b>稲妻のように、言葉の壁を駆け抜ける日本語入力。</b></p>
-<p align="center"><a href="https://github.com/appipinopi/Meltype-Flash/releases/tag/flash-v1.0.0"><img src="https://img.shields.io/badge/Flash-v1.0.0-ffe34a" alt="Flash v1.0.0"></a> <img src="https://img.shields.io/badge/status-正式版-666973" alt="正式版"></p>
+<p align="center"><a href="https://github.com/appipinopi/Meltype-Flash/releases/tag/flash-v1.0.1"><img src="https://img.shields.io/badge/Flash-v1.0.1-ffe34a" alt="Flash v1.0.1"></a> <img src="https://img.shields.io/badge/status-正式版-666973" alt="正式版"></p>
 <p align="center"><a href="#インストール">ダウンロード・導入</a> · <a href="#使い方">使い方</a> · <a href="#困ったとき">困ったとき</a> · <a href="https://github.com/appipinopi/Meltype-Flash/issues/new/choose">不具合の報告・提案</a></p>
 <p align="center">
   <a href="../rust/WINDOWS-PACKAGE.md"><img src="../assets/branding/readme/cards/os-windows.svg" alt="Windows" width="32%"></a>
@@ -52,7 +52,7 @@ AI変換は搭載しません。デスクトップの設定を読み込んでも
 3. 「パッケージ化されていない拡張機能を読み込む」で、`manifest.json` のあるフォルダーを選びます。
 4. ChromeOSの言語・入力方法の設定からMeltypeを追加し、入力方法として選びます。
 
-表示名は `Meltype-flash` です。旧版では `Meltype Rust` と表示します。[画像付きの導入案内](docs/INSTALLATION.md) は旧版の画面ですが、追加する経路は同じです。
+表示名は `Meltype-FLASH` です。旧版では `Meltype Rust` と表示します。[画像付きの導入案内](docs/INSTALLATION.md) は旧版の画面ですが、追加する経路は同じです。
 既存版を更新する場合は、先に設定画面で必要なスナップショットを保存します。同じフォルダーを新しいファイルで更新し、拡張機能を再読み込みしてください。学習を残したい場合は、先に拡張機能を削除しないでください。
 
 <a id="使い方"></a>
@@ -133,3 +133,8 @@ python chromeos/build.py
 <h2><img src="../assets/branding/readme/chromeos/headings/cfc7325a7d0e.svg" alt="ライセンス" width="1000"></h2>
 
 [GPL-3.0-or-later](../LICENSE)。ZIPにはライセンス・第三者表示・解決済み依存関係の表示を同梱します。[THIRD-PARTY-NOTICES.md](../THIRD-PARTY-NOTICES.md) を参照してください。
+
+<a id="101のキーボード配列"></a>
+<h2><img src="../assets/branding/readme/chromeos/headings/5019e541f273.svg" alt="1.0.1のキーボード配列" width="1000"></h2>
+
+ChromeOSの入力方法で「Meltype-FLASH（日本語配列）」または「Meltype-FLASH（US配列）」を選んでください。既存の入力方法は日本語配列へ更新されます。USキーボードの場合はUS配列を追加して選び直してください。日本語配列では半角／全角、US配列ではAlt+Backquoteで英数・日本語を切り替えます。

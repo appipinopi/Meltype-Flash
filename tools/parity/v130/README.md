@@ -1,7 +1,7 @@
 # Meltype 1.3.0の参照比較
 
 <!-- meltype-flash-document-banner:start -->
-<p align="center"><img src="../../../assets/branding/readme/documentation.svg" alt="Meltype-flash — 稲妻のように、言葉の壁を駆け抜ける日本語入力。" width="1000"></p>
+<p align="center"><img src="../../../assets/branding/readme/documentation.svg" alt="Meltype-FLASH — 稲妻のように、言葉の壁を駆け抜ける日本語入力。" width="1000"></p>
 <!-- meltype-flash-document-banner:end -->
 
 対象タグは `v1.3.0`、コミット `6310c44b728d5ad88284853f9ef37ea224993b18`。`python tools/parity/v130/regenerate.py` でタグのCore・辞書を一時フォルダーへ展開し、元ソースを変更せず.NET 10でビルドして応答を再生成する。既存のC#ソースや利用者の設定は変更しない。

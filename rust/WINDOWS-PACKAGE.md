@@ -1,9 +1,9 @@
 <!-- meltype-flash-platform:start -->
-<p align="center"><img src="../assets/branding/readme/logo.svg" alt="Meltype-flash" width="520"></p>
+<p align="center"><img src="../assets/branding/readme/logo.svg" alt="Meltype-FLASH" width="520"></p>
 <a id="meltype-for-windows"></a>
-<p align="center"><img src="../assets/branding/readme/windows/hero.svg" alt="Meltype-flash for Windows" width="1000"></p>
+<p align="center"><img src="../assets/branding/readme/windows/hero.svg" alt="Meltype-FLASH for Windows" width="1000"></p>
 <p align="center"><b>稲妻のように、言葉の壁を駆け抜ける日本語入力。</b></p>
-<p align="center"><a href="https://github.com/appipinopi/Meltype-Flash/releases/tag/flash-v1.0.0"><img src="https://img.shields.io/badge/Flash-v1.0.0-ffe34a" alt="Flash v1.0.0"></a> <img src="https://img.shields.io/badge/status-正式版-666973" alt="正式版"></p>
+<p align="center"><a href="https://github.com/appipinopi/Meltype-Flash/releases/tag/flash-v1.0.1"><img src="https://img.shields.io/badge/Flash-v1.0.1-ffe34a" alt="Flash v1.0.1"></a> <img src="https://img.shields.io/badge/status-正式版-666973" alt="正式版"></p>
 <p align="center"><a href="#インストール">ダウンロード・導入</a> · <a href="#使い方">使い方</a> · <a href="#困ったとき">困ったとき</a> · <a href="https://github.com/appipinopi/Meltype-Flash/issues/new/choose">不具合の報告・提案</a></p>
 <p align="center">
   <a href="WINDOWS-PACKAGE.md"><img src="../assets/branding/readme/cards/os-windows-active.svg" alt="Windows" width="32%"></a>
@@ -51,7 +51,7 @@ Windows ARM64向けのネイティブ配布を案内するものではありま�
 
 [1.0.0](https://github.com/appipinopi/Meltype-Flash/releases/tag/flash-v1.0.0)の`Meltype-flash-Windows-x64-setup.exe`を実行し、管理者権限の確認後に導入します。公開済みZIPと同じ1.0.0バイナリを収めています。
 
-この追加セットアップのインストール動作テストとベンチマーク再測定は未実施です。導入後はOSの入力ソースからMeltype-flashを選び、開いていたアプリを起動し直してください。
+この追加セットアップのインストール動作テストとベンチマーク再測定は未実施です。導入後はOSの入力ソースからMeltype-FLASHを選び、開いていたアプリを起動し直してください。
 
 警告やセキュリティ製品の検出が出た場合は、配布元・ファイル名・チェックサムを確認し、保護機能の無効化を前提に進めないでください。
 

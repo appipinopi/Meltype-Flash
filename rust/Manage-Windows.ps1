@@ -56,7 +56,7 @@ function Test-Package([string]$Root) {
         $hex = [BitConverter]::ToString([IO.File]::ReadAllBytes($dll))
         foreach ($id in @([Guid]$clsid, [Guid]'{6D01DE9C-8AB3-5CFC-A5C6-10893CDF8762}')) {
             if (-not $hex.Contains([BitConverter]::ToString($id.ToByteArray()))) {
-                throw "Missing Meltype-flash identity: tip/$arch/MeltypeTip.dll. Rebuild the Flash DLL; legacy shared-ID packages cannot be installed."
+                throw "Missing Meltype-FLASH identity: tip/$arch/MeltypeTip.dll. Rebuild the Flash DLL; legacy shared-ID packages cannot be installed."
             }
         }
     }
@@ -76,11 +76,11 @@ if ($Action -eq 'Update' -and $null -eq $state) { throw 'No managed installation
 if ($Action -notin @('Uninstall','Cleanup')) {
     foreach ($arch in 'x64','x86') {
         if ($old[$arch] -and -not $old[$arch].StartsWith($installRoot+'\',[StringComparison]::OrdinalIgnoreCase) -and -not $ReplaceExisting) {
-            throw "Another Meltype-flash is registered: $($old[$arch]). Back up its data; use -ReplaceExisting to replace the Meltype-flash registration."
+            throw "Another Meltype-FLASH is registered: $($old[$arch]). Back up its data; use -ReplaceExisting to replace the Meltype-FLASH registration."
         }
     }
 }
-if (-not $PSCmdlet.ShouldProcess($installRoot, "$Action Meltype-flash IME")) { return }
+if (-not $PSCmdlet.ShouldProcess($installRoot, "$Action Meltype-FLASH IME")) { return }
 Assert-Administrator
 $windows = [Environment]::GetFolderPath('Windows')
 $reg64 = Join-Path $windows 'System32\regsvr32.exe'
@@ -256,5 +256,5 @@ if (-not $SkipCurrentUserStartup) {
         throw "IME installation completed, but current-user startup was not updated: $_. Old version files were retained; retry the startup helper from the new folder."
     }
 }
-Write-Host "Installed: $versionRoot. Select Meltype-flash in Windows language settings; restart open applications."
+Write-Host "Installed: $versionRoot. Select Meltype-FLASH in Windows language settings; restart open applications."
 Write-Host "Start tray: & '$versionRoot\meltype-flash.exe' --tray"

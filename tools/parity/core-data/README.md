@@ -1,7 +1,7 @@
 # 共通Core・データ互換の照合
 
 <!-- meltype-flash-document-banner:start -->
-<p align="center"><img src="../../../assets/branding/readme/documentation.svg" alt="Meltype-flash — 稲妻のように、言葉の壁を駆け抜ける日本語入力。" width="1000"></p>
+<p align="center"><img src="../../../assets/branding/readme/documentation.svg" alt="Meltype-FLASH — 稲妻のように、言葉の壁を駆け抜ける日本語入力。" width="1000"></p>
 <!-- meltype-flash-document-banner:end -->
 
 元版 `45e14f86558aa6ea34f2c2ecd038ba95ca8c3c46` の `src/Meltype.Core` を変更せず、実際の `MeltypeSession.CreateDefault`、`Settings`、各学習ストア、辞書、定型文、`Backup` API を呼び出す。試験データは指定した専用ディレクトリーだけに作る。利用中のプロファイルを指定しない。

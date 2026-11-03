@@ -1,6 +1,6 @@
 # 配布ファイルの選び方
 
-[Meltype-flash v1.0.0](https://github.com/appipinopi/Meltype-Flash/releases/tag/flash-v1.0.0)の配布内容です。
+[Meltype-FLASH v1.0.0](https://github.com/appipinopi/Meltype-Flash/releases/tag/flash-v1.0.0)の配布内容です。
 
 |ファイル|用途|
 |---|---|

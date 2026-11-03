@@ -1,7 +1,7 @@
-# Meltype-flash
+# Meltype-FLASH
 
 <!-- meltype-flash-platform:start -->
-![Meltype-flash](assets/branding/readme/logo.svg)
+![Meltype-FLASH](assets/branding/readme/logo.svg)
 
 <!-- meltype-flash-platform:end -->
 
@@ -69,7 +69,7 @@ ZIP・APK・IPAは互換ではありません。本家のC#版の配布ファイ
 <a id="使い始める"></a>
 <h2><img src="assets/branding/readme/overview/headings/f02cecb06ef8.svg" alt="使い始める" width="1000"></h2>
 
-インストール後は、そのOSの入力方法としてMeltype-flashを選びます。設定画面だけを起動しても、IMEの登録やOS側の切替は完了しません。
+インストール後は、そのOSの入力方法としてMeltype-FLASHを選びます。設定画面だけを起動しても、IMEの登録やOS側の切替は完了しません。
 
 - **Space**：変換・候補の選択。
 - **Enter**：確定。

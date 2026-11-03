@@ -1,9 +1,9 @@
 <!-- meltype-flash-platform:start -->
-<p align="center"><img src="../assets/branding/readme/logo.svg" alt="Meltype-flash" width="520"></p>
+<p align="center"><img src="../assets/branding/readme/logo.svg" alt="Meltype-FLASH" width="520"></p>
 <a id="meltype-for-ios"></a>
-<p align="center"><img src="../assets/branding/readme/ios/hero.svg" alt="Meltype-flash for iOS" width="1000"></p>
+<p align="center"><img src="../assets/branding/readme/ios/hero.svg" alt="Meltype-FLASH for iOS" width="1000"></p>
 <p align="center"><b>稲妻のように、言葉の壁を駆け抜ける日本語入力。</b></p>
-<p align="center"><a href="https://github.com/appipinopi/Meltype-Flash/releases/tag/flash-v1.0.0"><img src="https://img.shields.io/badge/Flash-v1.0.0-ffe34a" alt="Flash v1.0.0"></a> <img src="https://img.shields.io/badge/status-正式版-666973" alt="正式版"></p>
+<p align="center"><a href="https://github.com/appipinopi/Meltype-Flash/releases/tag/flash-v1.0.1"><img src="https://img.shields.io/badge/Flash-v1.0.1-ffe34a" alt="Flash v1.0.1"></a> <img src="https://img.shields.io/badge/status-正式版-666973" alt="正式版"></p>
 <p align="center"><a href="#インストール">ダウンロード・導入</a> · <a href="#使い方">使い方</a> · <a href="#困ったとき">困ったとき</a> · <a href="https://github.com/appipinopi/Meltype-Flash/issues/new/choose">不具合の報告・提案</a></p>
 <p align="center">
   <a href="../rust/WINDOWS-PACKAGE.md"><img src="../assets/branding/readme/cards/os-windows.svg" alt="Windows" width="32%"></a>
@@ -18,7 +18,7 @@
 <p align="center"><a href="../README.md">トップのREADME</a></p>
 <!-- meltype-flash-platform:end -->
 
-iPhone・iPadのカスタムキーボードとして動く、Rust版Meltype-flashの初期プレビューです。
+iPhone・iPadのカスタムキーボードとして動く、Rust版Meltype-FLASHの初期プレビューです。
 **未確定文字はキーボードの中に表示し、確定した文字だけを入力欄へ送ります。**
 
 <a id="内容"></a>
@@ -73,7 +73,7 @@ Pre6で追加した[署名・公証・PALソースJSONの生成手順](ALTSTORE-
 <a id="キーボードを有効にする"></a>
 <h3><img src="../assets/branding/readme/ios/headings/410a26926cd1.svg" alt="キーボードを有効にする" width="1000"></h3>
 
-導入後は「設定 → 一般 → キーボード → キーボード → 新しいキーボードを追加」からMeltype-flashを追加し、入力欄で🌐から選びます。
+導入後は「設定 → 一般 → キーボード → キーボード → 新しいキーボードを追加」からMeltype-FLASHを追加し、入力欄で🌐から選びます。
 **フルアクセスの許可は不要です。**
 
 アプリにはロゴ、設定を開くボタン、入力テスト、背景・テーマ設定があります。
@@ -140,7 +140,7 @@ iOSはパスワード欄などで標準キーボードへ切り替えます。�
 <a id="アンインストール"></a>
 <h2><img src="../assets/branding/readme/ios/headings/c1fad2ad08d6.svg" alt="アンインストール" width="1000"></h2>
 
-設定のキーボード一覧からMeltype-flashを外し、ホーム画面またはアプリ一覧からアプリ本体を削除します。
+設定のキーボード一覧からMeltype-FLASHを外し、ホーム画面またはアプリ一覧からアプリ本体を削除します。
 署名・更新に使った導入サービス側の登録やデータの扱いは、そのサービスの案内に従ってください。
 
 <a id="開発者向け"></a>

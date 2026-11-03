@@ -1,14 +1,14 @@
-# Meltype-flash
+# Meltype-FLASH
 
-このフォークのRust版の製品名は **Meltype-flash**。参照元のC#／WinForms版は **Meltype** と呼び分ける。
-外観・入力機能の再現作業は、Meltype-flash向けに継続する。
+このフォークのRust版の製品名は **Meltype-FLASH**。参照元のC#／WinForms版は **Meltype** と呼び分ける。
+外観・入力機能の再現作業は、Meltype-FLASH向けに継続する。
 
 ## Windows の分離
 
-| 対象 | Meltype-flash |
+| 対象 | Meltype-FLASH |
 |---|---|
 | 設定・トレイ実行ファイル | `meltype-flash.exe` |
-| 設定画面・IME・トレイ表示 | Meltype-flash |
+| 設定画面・IME・トレイ表示 | Meltype-FLASH |
 | インストール先 | `%ProgramFiles%/Meltype-flash` |
 | データ既定値 | `%LOCALAPPDATA%/Meltype-flash` |
 | 起動タスク／Run項目 | `Meltype-flash-<ユーザー識別値>` |
@@ -23,7 +23,7 @@
 ## 旧Rust版からの移行
 
 旧Rust版は本家と同じCOM登録IDを使用していたため、C#のトレイとRustのIMEが同時に動く場合がある。
-Meltype-flashのインストーラーは旧登録の解除や本家DLLへの復元を自動実行しない。
+Meltype-FLASHのインストーラーは旧登録の解除や本家DLLへの復元を自動実行しない。
 この改名の作業では実機の登録・既存プロセス・学習データを変更していない。
 本家の復元とFlashの導入は、配布物の検査後に別の導入作業として行う。
 新しいパッケージ検査は、Flash専用IDを持たない古いDLLの同梱を拒否する。

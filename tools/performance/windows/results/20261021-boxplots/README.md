@@ -1,7 +1,7 @@
 # Windows共通Coreの再測定（2026-10-21）
 
 <!-- meltype-flash-document-banner:start -->
-<p align="center"><img src="../../../../../assets/branding/readme/documentation.svg" alt="Meltype-flash — 稲妻のように、言葉の壁を駆け抜ける日本語入力。" width="1000"></p>
+<p align="center"><img src="../../../../../assets/branding/readme/documentation.svg" alt="Meltype-FLASH — 稲妻のように、言葉の壁を駆け抜ける日本語入力。" width="1000"></p>
 <!-- meltype-flash-document-banner:end -->
 
 C# v1.3.0 NativeAOT と Rust `ed6067e` Release。比較可能な入力は 21/21、Rustの中央値が短い入力は 21/21。

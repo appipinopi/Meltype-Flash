@@ -1,9 +1,9 @@
 <!-- meltype-flash-platform:start -->
-<p align="center"><img src="../assets/branding/readme/logo.svg" alt="Meltype-flash" width="520"></p>
+<p align="center"><img src="../assets/branding/readme/logo.svg" alt="Meltype-FLASH" width="520"></p>
 <a id="meltype-for-linux"></a>
-<p align="center"><img src="../assets/branding/readme/linux/hero.svg" alt="Meltype-flash for Linux" width="1000"></p>
+<p align="center"><img src="../assets/branding/readme/linux/hero.svg" alt="Meltype-FLASH for Linux" width="1000"></p>
 <p align="center"><b>稲妻のように、言葉の壁を駆け抜ける日本語入力。</b></p>
-<p align="center"><a href="https://github.com/appipinopi/Meltype-Flash/releases/tag/flash-v1.0.0"><img src="https://img.shields.io/badge/Flash-v1.0.0-ffe34a" alt="Flash v1.0.0"></a> <img src="https://img.shields.io/badge/status-正式版-666973" alt="正式版"></p>
+<p align="center"><a href="https://github.com/appipinopi/Meltype-Flash/releases/tag/flash-v1.0.1"><img src="https://img.shields.io/badge/Flash-v1.0.1-ffe34a" alt="Flash v1.0.1"></a> <img src="https://img.shields.io/badge/status-正式版-666973" alt="正式版"></p>
 <p align="center"><a href="#インストール">ダウンロード・導入</a> · <a href="#使い方">使い方</a> · <a href="#困ったとき">困ったとき</a> · <a href="https://github.com/appipinopi/Meltype-Flash/issues/new/choose">不具合の報告・提案</a></p>
 <p align="center">
   <a href="../rust/WINDOWS-PACKAGE.md"><img src="../assets/branding/readme/cards/os-windows.svg" alt="Windows" width="32%"></a>
@@ -18,7 +18,7 @@
 <p align="center"><a href="../README.md">トップのREADME</a></p>
 <!-- meltype-flash-platform:end -->
 
-Linuxの入力ソースとして使うRust版Meltype-flashです。**公開プレビューはRust製IBusエンジン**です。
+Linuxの入力ソースとして使うRust版Meltype-FLASHです。**公開プレビューはRust製IBusエンジン**です。
 fcitx5アダプターのソースと試験はありますが、公開IBusパッケージにfcitx5版は同梱していません。
 
 <a id="内容"></a>
@@ -72,12 +72,12 @@ sudo dnf install ./Meltype-flash-Linux-x64.rpm
 bash install.sh
 ```
 
-導入後はログアウト・ログインし、OSのIBus入力ソースにMeltype-flashを追加して選びます。標準の配布物は補助辞書による変換に制限があります。
+導入後はログアウト・ログインし、OSのIBus入力ソースにMeltype-FLASHを追加して選びます。標準の配布物は補助辞書による変換に制限があります。
 
 <a id="使い方"></a>
 <h2><img src="../assets/branding/readme/linux/headings/f2353c3aa1bc.svg" alt="使い方" width="1000"></h2>
 
-入力ソースをMeltype-flashへ切り替え、テキスト欄にローマ字を入力します。
+入力ソースをMeltype-FLASHへ切り替え、テキスト欄にローマ字を入力します。
 
 | キー | 操作 |
 | --- | --- |
@@ -122,7 +122,7 @@ GNOMEの入力ソースにある「設定」からも設定画面を開けます
 <a id="アンインストール"></a>
 <h2><img src="../assets/branding/readme/linux/headings/9648f59fe13b.svg" alt="アンインストール" width="1000"></h2>
 
-先にOSの入力ソースを別のものへ切り替え、Meltype-flashを入力ソース一覧から外します。
+先にOSの入力ソースを別のものへ切り替え、Meltype-FLASHを入力ソース一覧から外します。
 
 debで導入した場合:
 
@@ -175,3 +175,8 @@ IBusはWSLの隔離したXvfb・D-Bus環境でも検証しています。通常�
 <h2><img src="../assets/branding/readme/linux/headings/c9f99e4fd56f.svg" alt="ライセンス" width="1000"></h2>
 
 [GPL-3.0-or-later](../LICENSE)。辞書と依存ライブラリのライセンスは [THIRD-PARTY-NOTICES.md](../THIRD-PARTY-NOTICES.md) を参照してください。
+
+<a id="101の漢字変換"></a>
+<h2><img src="../assets/branding/readme/linux/headings/b9a45e8335c2.svg" alt="1.0.1の漢字変換" width="1000"></h2>
+
+正式配布にはMozc変換ヘルパーとライセンスを同梱します。1.0.0でひらがなのまま変換できなかった場合は、1.0.1のパッケージ全体を更新し、サインアウト・サインイン後にMeltype-FLASHを選び直してください。ソースビルドでは先に `bash native/mozc/build-mozc-helper.sh` を実行し、`MELTYPE_REQUIRE_MOZC=1 bash rust/build-linux.sh` で同梱を確認できます。

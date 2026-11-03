@@ -11,7 +11,7 @@
 #endif
 [Setup]
 AppId=Meltype-flash
-AppName=Meltype-flash
+AppName=Meltype-FLASH
 AppVersion={#AppVersion}
 AppPublisher=appipinopi
 AppPublisherURL=https://github.com/appipinopi/Meltype-Flash
@@ -49,7 +49,7 @@ begin
     '-NoProfile -ExecutionPolicy Bypass -File "' + ExpandConstant('{app}\Invoke-FlashSetup.ps1') +
     '" -Action ' + Action,
     ExpandConstant('{app}'), SW_HIDE, ewWaitUntilTerminated, Code, nil);
-  Log('Meltype-flash ' + Action + ' result: ' + IntToStr(Code));
+  Log('Meltype-FLASH ' + Action + ' result: ' + IntToStr(Code));
   Result := Result and (Code = 0);
 end;
 procedure CurStepChanged(CurStep: TSetupStep);
@@ -57,7 +57,7 @@ begin
   if CurStep = ssPostInstall then
     if not Manage('Install') then begin
       InstallFailed := True;
-      RaiseException('Meltype-flash の IME 登録に失敗しました。セットアップログを確認してください。');
+      RaiseException('Meltype-FLASH の IME 登録に失敗しました。セットアップログを確認してください。');
     end;
 end;
 function GetCustomSetupExitCode(): Integer;

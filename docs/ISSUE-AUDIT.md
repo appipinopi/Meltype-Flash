@@ -2,7 +2,7 @@
 
 対象: [yksr-melt/Meltypeの未解決Issue](https://github.com/yksr-melt/Meltype/issues)。2026年10月24日に取得した全242件。
 
-これはMeltype-flash側の記録です。上流Issueの変更・終了は行いません。未解決Issueには不具合・辞書要望・機能提案・外部サービスに関する相談が含まれます。
+これはMeltype-FLASH側の記録です。上流Issueの変更・終了は行いません。未解決Issueには不具合・辞書要望・機能提案・外部サービスに関する相談が含まれます。
 
 この242件は取得時点の本家Issueを参照する台帳であり、[Flashの実Issue一覧](https://github.com/appipinopi/Meltype-Flash/issues)やFlash 1.0の未完了件数ではありません。本家専用の運用・C#版だけの問題と、Flashでも再現する問題を分けます。Flashで未対応・未検証の項目は、その事実を残します。[報告先と確認範囲](ISSUE-TRIAGE.md)に分類と終了時の扱いをまとめています。
 
@@ -115,7 +115,7 @@
 | [#970](https://github.com/yksr-melt/Meltype/issues/970) | [不具合] 自動更新でサインイン直後に、説明なしで Microsoft 名義の UAC (powershell.exe -EncodedCommand) が表示される | 未検証。本文・コメントはローカルの取得記録に保存。再現・修正・対象OSでの検証が必要。 |
 | [#961](https://github.com/yksr-melt/Meltype/issues/961) | [機能提案] Mozc-UT 辞書を任意で使えるようにする (環境変数 MELTYPE_UT_DICTIONARY) | 未検証。本文・コメントはローカルの取得記録に保存。再現・修正・対象OSでの検証が必要。 |
 | [#960](https://github.com/yksr-melt/Meltype/issues/960) | [誤判定] "くぉ" と期待してたのが、"k を" になった | 共通コア修正・回帰テスト確認。kwo → くぉ（kwa/kwi/kweも確認）。 |
-| [#959](https://github.com/yksr-melt/Meltype/issues/959) | [辞書] ローマ字入力で「merutaipu」と入力して「Meltype」を表示して欲しい、他1件 | めるたいぷ→Meltype-flash／Meltypeを補助辞書へ追加。ばーじょんにRustパッケージの実バージョンを候補追加。共通コアで検証。実機未確認。 |
+| [#959](https://github.com/yksr-melt/Meltype/issues/959) | [辞書] ローマ字入力で「merutaipu」と入力して「Meltype」を表示して欲しい、他1件 | めるたいぷ→Meltype-FLASH／Meltypeを補助辞書へ追加。ばーじょんにRustパッケージの実バージョンを候補追加。共通コアで検証。実機未確認。 |
 | [#958](https://github.com/yksr-melt/Meltype/issues/958) | [機能提案] 日本語と半角数字の間にスペースを自動挿入するオプション | SpaceAroundNumbersを追加。確定時に日本語と半角数字の境界へ空白を入れる。小数・桁区切り・既存の空白・識別子・URL・ファイル名・前後の文脈を共通コアで検証。既定オフ。設定UIにも表示。実機未確認。 |
 | [#955](https://github.com/yksr-melt/Meltype/issues/955) | [提案] 日本語 / 英数を切り替えるキーにCapsLockがない | 未検証。本文・コメントはローカルの取得記録に保存。再現・修正・対象OSでの検証が必要。 |
 | [#954](https://github.com/yksr-melt/Meltype/issues/954) | [不具合] macos golden gate 27.1.0 26A4…: 表示されるファイルピッカーでどこをクリックしてもピッカーが消えてしまい何も選択できない | 未検証。本文・コメントはローカルの取得記録に保存。再現・修正・対象OSでの検証が必要。 |

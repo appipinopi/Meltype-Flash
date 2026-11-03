@@ -663,7 +663,7 @@ pub fn run() -> Result<(), String> {
             let version = CString::new(env!("CARGO_PKG_VERSION")).unwrap();
             let component = ibus_component_new(
                 BUS.as_ptr(),
-                c"Meltype-flash".as_ptr(),
+                c"Meltype-FLASH".as_ptr(),
                 version.as_ptr(),
                 c"GPL-3.0-or-later".as_ptr(),
                 c"Yukishiro, appipinopi".as_ptr(),
@@ -676,8 +676,8 @@ pub fn run() -> Result<(), String> {
                 component,
                 ibus_engine_desc_new(
                     ENGINE.as_ptr(),
-                    c"Meltype-flash".as_ptr(),
-                    c"Meltype-flash".as_ptr(),
+                    c"Meltype-FLASH".as_ptr(),
+                    c"Meltype-FLASH".as_ptr(),
                     c"ja".as_ptr(),
                     c"GPL-3.0-or-later".as_ptr(),
                     c"Yukishiro, appipinopi".as_ptr(),

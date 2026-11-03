@@ -1,7 +1,7 @@
 # 元版の書き間違い候補との比較
 
 <!-- meltype-flash-document-banner:start -->
-<p align="center"><img src="../../../assets/branding/readme/documentation.svg" alt="Meltype-flash — 稲妻のように、言葉の壁を駆け抜ける日本語入力。" width="1000"></p>
+<p align="center"><img src="../../../assets/branding/readme/documentation.svg" alt="Meltype-FLASH — 稲妻のように、言葉の壁を駆け抜ける日本語入力。" width="1000"></p>
 <!-- meltype-flash-document-banner:end -->
 
 変更していない元の`MisspellingDictionary.Find`を実行し、正しい形への置換全文か、候補なしをJSONLへ採取します。元版のUTF-16範囲と`CompositionText.ToKatakana`で置換を組み立て、Rustの探索結果と比較します。

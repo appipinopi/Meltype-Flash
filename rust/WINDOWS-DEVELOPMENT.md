@@ -3,7 +3,7 @@
 現在の導入・操作は [Windows版README](WINDOWS-PACKAGE.md)、現在の公開ファイルは [配布案内](DOWNLOADS.md) を参照してください。
 以下は以前の開発用READMEから移した記録です。「リリースがない」などの記述は当時の状況であり、現在の公開状況を説明するものではありません。導入コマンドと登録IDの説明は、現在のFlash専用登録に合わせています。
 
-# Meltype-flash Windows版・配布前確認用
+# Meltype-FLASH Windows版・配布前確認用
 
 Windows 10/11 x64向けの開発用プレビューです。x86のTIPとworkerは32bitアプリ用です。登録・更新・登録解除用の `Manage-Windows.ps1` を同梱します。管理者権限が必要です。クリーン環境での導入・更新・削除の実動確認は未完了です。
 
@@ -29,7 +29,7 @@ $env:MELTYPE_FLASH_DATA_DIR = Join-Path $env:TEMP 'Meltype-flash-preview-check'
 
 System変換にはWindowsの日本語言語コンポーネントが必要です。任意のMozcヘルパー・Mozc-UT・Zenzaiサーバーやモデルは同梱していません。Mozcが無い場合のSystemへのフォールバックは、実Mozcの動作確認とは別です。
 
-このZIPを展開しただけではIMEは登録されません。Meltype-flashは本家と異なるCOM／入力プロファイルIDとインストール先を使用します。旧Rust版が共有していた本家の登録IDは変更しません。元版の `Register-Tip.ps1` ではなく、同梱の管理スクリプトを使用してください。
+このZIPを展開しただけではIMEは登録されません。Meltype-FLASHは本家と異なるCOM／入力プロファイルIDとインストール先を使用します。旧Rust版が共有していた本家の登録IDは変更しません。元版の `Register-Tip.ps1` ではなく、同梱の管理スクリプトを使用してください。
 
 検査の成功は、必要ファイル・PEのx64/x86・TSF公開関数・静的DLL依存・ZIP内ハッシュの確認です。クリーンなWindowsへの導入、OpenGL描画環境、動的ロードされる全コンポーネント、実アプリ入力・更新・削除の受入成功を意味しません。
 
@@ -139,6 +139,6 @@ Chromium/Electronの空のcontenteditableには、UIAのValue/TextPatternに加�
 
 ## 直接入力IMEとポータブル入力の違い
 
-「Meltype IME (入力欄に直接入力)」にはRust TIPのWindowsへの登録とWin+Spaceによる選択が必要です。トレイの選択だけでは登録されません。Meltype-flashはC#版と異なるCOM登録IDを使うため、元版の登録先を変更せず、`Manage-Windows.ps1 -Action Install`を管理者として実行します。開いているアプリを再起動してください。
+「Meltype IME (入力欄に直接入力)」にはRust TIPのWindowsへの登録とWin+Spaceによる選択が必要です。トレイの選択だけでは登録されません。Meltype-FLASHはC#版と異なるCOM登録IDを使うため、元版の登録先を変更せず、`Manage-Windows.ps1 -Action Install`を管理者として実行します。開いているアプリを再起動してください。
 
 直接入力用の設定・学習は通常`%LOCALAPPDATA%/Meltype-flash`です。`Start-Portable.ps1`はパッケージ内`data`を使うため、直接入力のトレイは`MELTYPE_FLASH_DATA_DIR`（旧 `MELTYPE_RUST_DATA_DIR` も明示指定時のみ対応）を指定せず`meltype-flash.exe --tray`で起動してください。Rust設定のMode=Tsf/Enabled=trueと、Windows側でMeltypeが選択されていることの両方が必要です。C#プロセスとポータブル入力の同時動作は避けてください。

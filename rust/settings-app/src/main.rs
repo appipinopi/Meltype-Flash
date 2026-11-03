@@ -38,7 +38,7 @@ fn main() -> eframe::Result {
     let mut options = options;
     options.viewport = options.viewport.with_visible(!resident);
     eframe::run_native(
-        "Meltype-flash 設定",
+        "Meltype-FLASH 設定",
         options,
         Box::new(|cc| {
             widgets::configure_style(&cc.egui_ctx);
@@ -187,7 +187,7 @@ impl App {
             settings,
             discard: false,
             closing: false,
-            help: "Meltype-flash を有効にする".into(),
+            help: "Meltype-FLASH を有効にする".into(),
             #[cfg(windows)]
             resident: std::env::args()
                 .any(|a| matches!(a.as_str(), "--tray" | "--portable-keyboard")),
@@ -830,7 +830,7 @@ impl App {
             });
     }
     fn dictionary(&mut self, ui: &mut egui::Ui) {
-        ui.heading("Meltype-flash ユーザー辞書");
+        ui.heading("Meltype-FLASH ユーザー辞書");
         let reading_finished = ui
             .horizontal_wrapped(|ui| {
                 ui.label("読み (ローマ字・ひらがな)");
@@ -944,7 +944,7 @@ impl App {
         }
     }
     fn snippets(&mut self, ui: &mut egui::Ui) {
-        ui.heading("Meltype-flash 定型文");
+        ui.heading("Meltype-FLASH 定型文");
         ui.label(format!("行の先頭か空白の直後に {}名前 と打って Space / Tab を押すと、登録した文に置き換えます。", self.settings.text("SnippetMark")));
         ui.horizontal(|ui| {
             ui.label("名前");
@@ -1017,7 +1017,7 @@ impl App {
         }
     }
     fn learning(&mut self, ui: &mut egui::Ui) {
-        ui.heading("Meltype-flash 学習した語");
+        ui.heading("Meltype-FLASH 学習した語");
         ui.horizontal(|ui| {
             if ui.button("更新").clicked() {
                 self.action(json!({"op":"learning_list"}));
@@ -1132,14 +1132,14 @@ impl App {
     fn create_backup_dialog(&mut self) {
         if let Some(path) = rfd::FileDialog::new()
             .set_title("バックアップを書き出す")
-            .add_filter("Meltype-flash バックアップ", &["meltype-backup", "json"])
+            .add_filter("Meltype-FLASH バックアップ", &["meltype-backup", "json"])
             .set_file_name("Meltype-flash.meltype-backup")
             .save_file()
         {
             self.action(json!({"op":"backup_create","path":path}));
             let saved = self.result["saved"] == true;
             rfd::MessageDialog::new()
-                .set_title("Meltype-flash バックアップ")
+                .set_title("Meltype-FLASH バックアップ")
                 .set_level(if saved {
                     rfd::MessageLevel::Info
                 } else {
@@ -1156,7 +1156,7 @@ impl App {
     fn open_backup_dialog(&mut self) {
         if let Some(path) = rfd::FileDialog::new()
             .set_title("バックアップから戻す")
-            .add_filter("Meltype-flash バックアップ", &["meltype-backup", "json"])
+            .add_filter("Meltype-FLASH バックアップ", &["meltype-backup", "json"])
             .pick_file()
         {
             self.action(json!({"op":"backup_inspect","path":path}));
@@ -1164,7 +1164,7 @@ impl App {
             self.restore_prompt = self.restore_path.is_some();
             if !self.restore_prompt {
                 rfd::MessageDialog::new()
-                    .set_title("Meltype-flash バックアップ")
+                    .set_title("Meltype-FLASH バックアップ")
                     .set_level(rfd::MessageLevel::Error)
                     .set_description(&self.status)
                     .show();
@@ -1172,7 +1172,7 @@ impl App {
         }
     }
     fn backup(&mut self, ui: &mut egui::Ui) {
-        ui.heading("Meltype-flash バックアップ");
+        ui.heading("Meltype-FLASH バックアップ");
         ui.horizontal(|ui| {
             if ui.button("バックアップを書き出す...").clicked() {
                 self.create_backup_dialog();
@@ -1736,7 +1736,7 @@ impl eframe::App for App {
                     self.lifecycle.updates = true;
                     ui.close_menu();
                 }
-                if ui.button("Meltype-flash について...").clicked() {
+                if ui.button("Meltype-FLASH について...").clicked() {
                     self.lifecycle.about = true;
                     ui.close_menu();
                 }

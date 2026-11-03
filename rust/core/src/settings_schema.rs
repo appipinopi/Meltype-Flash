@@ -17,7 +17,7 @@ pub fn metadata() -> &'static Value {
     DATA.get_or_init(|| {
         let mut data: Value = serde_json::from_str(
             &include_str!("../../settings-app/settings-ui.json")
-                .replace("Meltype", "Meltype-flash"),
+                .replace("Meltype", "Meltype-FLASH"),
         )
         .expect("settings UI metadata");
         for (key, label, description) in [
@@ -76,7 +76,7 @@ pub fn schema() -> Value {
     properties.insert("$schema".into(), json!({"type":"string"}));
     json!({
         "$schema":"https://json-schema.org/draft/2020-12/schema",
-        "title":"Meltype-flash config.json",
+        "title":"Meltype-FLASH config.json",
         "type":"object", "properties":properties, "additionalProperties":false,
     })
 }
