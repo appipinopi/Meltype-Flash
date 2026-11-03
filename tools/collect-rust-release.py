@@ -1,4 +1,6 @@
 #!/usr/bin/env python3
+# SPDX-License-Identifier: GPL-3.0-or-later
+# Copyright (C) 2026 appipinopi
 """Collect the required platforms from one successful workflow run."""
 import hashlib
 from pathlib import Path
@@ -10,6 +12,8 @@ def collect(source: Path, output: Path):
     assets = {
         'Meltype-flash-Windows-x64.zip': 'release-windows/Meltype-flash-Windows-x64.zip',
         'Meltype-flash-Linux-x64.tar.gz': 'release-linux/Meltype-flash-Linux-x64.tar.gz',
+        'Meltype-flash-Linux-x64.deb': 'release-linux/Meltype-flash-Linux-x64.deb',
+        'Meltype-flash-Linux-x64.rpm': 'release-linux/Meltype-flash-Linux-x64.rpm',
         'Meltype-flash-macOS-arm64.zip': 'release-macos-arm64/Meltype-flash-macOS-arm64.zip',
         'Meltype-flash-macOS-x64.zip': 'release-macos-x64/Meltype-flash-macOS-x64.zip',
         'Meltype-flash-ChromeOS.zip': 'Meltype-ChromeOS-preview/chromeos-preview.zip',

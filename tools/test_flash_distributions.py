@@ -55,6 +55,9 @@ class DistributionTests(unittest.TestCase):
                 self.assertIn('Package: meltype-flash\n', control)
                 self.assertIn('Architecture: arm64\n', control)
                 self.assertIn('Version: 0.1.0~pre.2\n', control)
+                self.assertIn('libc6 (>= 2.39)', control)
+                self.assertIn('libx11-xcb1', control)
+                self.assertIn('libwayland-egl1', control)
                 xml = (root / 'usr/share/ibus/component/meltype-flash.xml').read_text()
                 self.assertNotIn(str(bundle), xml)
                 self.assertIn('/usr/libexec/meltype-flash/ibus/meltype-ibus', xml)
@@ -63,6 +66,7 @@ class DistributionTests(unittest.TestCase):
                 self.assertIn('Exec=/usr/libexec/meltype-flash/ibus/meltype-flash\n', setup)
                 self.assertIn('NoDisplay=true\n', setup)
                 self.assertIn('X-Meltype-Flash-IBus=true\n', setup)
+                Path(command[-1]).write_bytes(b'deb fixture')
             def component_command(command, text):
                 self.assertEqual(command[1:], ['--print-component', '--component-executable', '/usr/libexec/meltype-flash/ibus/meltype-ibus'])
                 return '<exec>/usr/libexec/meltype-flash/ibus/meltype-ibus --ibus</exec>'
@@ -70,6 +74,53 @@ class DistributionTests(unittest.TestCase):
                 linux.package(bundle, output, '0.1.0-pre.2', 'arm64')
             with zipfile.ZipFile(output / 'Meltype-flash-Linux-arm64.zip') as archive:
                 self.assertIn('Meltype-flash-linux/install.sh', archive.namelist())
+
+    def test_linux_rpm_keeps_elf_dependencies_and_published_bytes(self):
+        with tempfile.TemporaryDirectory() as directory:
+            bundle = Path(directory) / 'bundle'
+            bundle.mkdir()
+            for name in ('meltype-ibus', 'meltype-flash', 'meltype-rs'):
+                (bundle / name).write_bytes(b'\x7fELF\x02\x01' + b'\0' * 12 + (62).to_bytes(2, 'little'))
+            for name in ('icon.png', 'LICENSE', 'THIRD-PARTY-NOTICES.md', 'install.sh'):
+                (bundle / name).write_text('fixture')
+            output = Path(directory) / 'output'
+            def inspect_rpm(command, check):
+                self.assertEqual(command[:4], ['rpmbuild', '-bb', '--target', 'x86_64'])
+                self.assertIn('_rpmformat 4', command)
+                spec = Path(command[-1])
+                text = spec.read_text(encoding='utf-8')
+                self.assertIn('Name: meltype-flash\nVersion: 1.0.0\n', text)
+                self.assertIn('glibc >= 2.39', text)
+                self.assertIn('libX11-xcb.so.1()(64bit)', text)
+                self.assertIn('libEGL.so.1()(64bit)', text)
+                self.assertIn('%global __os_install_post %{nil}', text)
+                self.assertNotIn('AutoReqProv: no', text)
+                self.assertNotIn('/opt/meltype', text)
+                self.assertNotIn('pkill', text)
+                payload = spec.parent / 'payload' / 'usr/libexec/meltype-flash/ibus'
+                self.assertEqual((payload / 'meltype-ibus').read_bytes(), (bundle / 'meltype-ibus').read_bytes())
+                rpm = spec.parent / 'rpms/x86_64/meltype-flash-1.0.0-1.x86_64.rpm'
+                rpm.parent.mkdir(parents=True)
+                rpm.write_bytes(b'rpm fixture')
+            with patch.object(linux.subprocess, 'check_output', return_value='<component/>'), patch.object(linux.subprocess, 'run', side_effect=inspect_rpm):
+                linux.package(bundle, output, '1.0.0', 'amd64', ['rpm'])
+            self.assertEqual([p.name for p in output.iterdir()], ['meltype-flash-1.0.0-1.x86_64.rpm'])
+            with self.assertRaises(FileExistsError):
+                linux.package(bundle, output, '1.0.0', 'amd64', ['rpm'])
+
+    def test_linux_failed_native_build_leaves_no_partial_archive(self):
+        with tempfile.TemporaryDirectory() as directory:
+            bundle = Path(directory) / 'bundle'
+            bundle.mkdir()
+            for name in ('meltype-ibus', 'meltype-flash', 'meltype-rs'):
+                (bundle / name).write_bytes(b'\x7fELF\x02\x01' + b'\0' * 12 + (62).to_bytes(2, 'little'))
+            for name in ('icon.png', 'LICENSE', 'THIRD-PARTY-NOTICES.md', 'install.sh'):
+                (bundle / name).write_text('fixture')
+            output = Path(directory) / 'output'
+            with patch.object(linux.subprocess, 'check_output', return_value='<component/>'), patch.object(linux.subprocess, 'run', side_effect=RuntimeError('build failed')):
+                with self.assertRaisesRegex(RuntimeError, 'build failed'):
+                    linux.package(bundle, output, '1.0.0', 'amd64')
+            self.assertFalse(output.exists())
 
     def test_partial_release_is_never_uploaded(self):
         with tempfile.TemporaryDirectory() as directory, patch.object(release.subprocess, 'run') as invoke:
