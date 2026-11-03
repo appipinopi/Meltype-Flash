@@ -5,10 +5,10 @@ use std::ffi::{c_char, c_void, CStr};
 pub type Host = unsafe extern "C" fn(*mut c_void, *mut c_void, u32, i32) -> i32;
 fn message(code: i32) -> &'static CStr {
     match code {
-        1 => c"Meltypeの入力モードはメインスレッドで変更してください。",
-        2 => c"Meltypeの入力モードの指定が不正です。",
-        3 => c"入力ソースでMeltypeを選択してください。",
-        _ => c"Meltypeの入力欄を取得できませんでした。",
+        1 => c"Meltype-FLASHの入力モードはメインスレッドで変更してください。",
+        2 => c"Meltype-FLASHの入力モードの指定が不正です。",
+        3 => c"入力ソースでMeltype-FLASHを選択してください。",
+        _ => c"Meltype-FLASHの入力欄を取得できませんでした。",
     }
 }
 #[no_mangle]

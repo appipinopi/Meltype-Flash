@@ -1,4 +1,19 @@
-# Meltype-flash v1.0.0
+# Meltype-FLASH v1.0.1
+
+公開タグは `flash-v1.0.1`、製品版番号は `1.0.1` です。
+
+## 1.0.1の変更
+
+- ChromeOSの既存の入力方法を日本語配列へ変更し、US配列の入力方法を別に追加しました。日本語キーボードの半角／全角キーを記号として扱う原因となっていたUS配列固定を解消します。USキーボードでは「Meltype-FLASH（US配列）」を選択してください。
+- Linux正式配布でMozc変換ヘルパーとライセンスを必須同梱します。これまでのリリース工程ではヘルパーが作成されず、小さな内蔵辞書だけで変換していました。ヘルパーがない場合はリリースビルドを失敗させ、配布するヘルパーを使った漢字変換を検査します。
+- アプリ・設定・入力方法の表示名をMeltype-FLASHへ統一しました。保存先・登録ID・更新用の配布ファイル名は既存版との互換性を維持します。
+- 不具合・誤変換のIssueフォームの版番号を、公開リリースタグから選べるプルダウンへ変更しました。
+
+ビルド・検証結果は公開リリース本文へ記載します。実機入力の確認は別途必要です。
+
+---
+
+# Meltype-FLASH v1.0.0
 
 公開タグは `flash-v1.0.0`、共通Core・デスクトップ・Android・ChromeOS・iOSの製品版番号は `1.0.0` です。
 
@@ -32,7 +47,7 @@ Androidはdebug署名、macOSはアドホック署名、iOS IPAは未署名で�
 
 以下はPre7以前の履歴です。
 
-# Meltype-flash v0.1.0 Pre7
+# Meltype-FLASH v0.1.0 Pre7
 
 2026年10月30日の開発プレビューです。公開タグは `flash-v0.1.0-preview.7`、内部版番号は `0.1.0-pre.7` です。
 
@@ -67,7 +82,7 @@ Windowsの専用試験窓、ChromeOSの実WASMと模擬IME API、Androidエミ�
 
 以下はPre6以前の履歴です。過去の確認範囲と今回の確認範囲を分けて記載しています。
 
-## Meltype-flash v0.1.0 Pre6（準備時の記録）
+## Meltype-FLASH v0.1.0 Pre6（準備時の記録）
 
 2026年10月24日の開発プレビュー準備です。公開タグは `flash-v0.1.0-preview.6` を予定しています。全OSの配布物はまだ揃っておらず、公開・配布は行っていません。
 
@@ -101,7 +116,7 @@ Rust・Androidの内部版番号は `0.1.0-pre.6`、AndroidのversionCodeは6で
 
 以下はPre5以前の履歴です。過去の検証成功をPre6の検証結果として扱いません。
 
-## Meltype-flash v0.1.0 Pre5
+## Meltype-FLASH v0.1.0 Pre5
 
 2026年10月23日の開発プレビューです。
 
@@ -159,7 +174,7 @@ WindowsのMicrosoft IMEとC#参照の比較テストでは`plain:にほんご`�
 | macOS 13以降・Apple Silicon | Meltype-flash-macOS-arm64.zip | ZIP全体を展開し、Install Meltype.commandを実行 |
 | macOS 13以降・Intel | Meltype-flash-macOS-x64.zip | ZIP全体を展開し、Install Meltype.commandを実行 |
 | Android 8.0以降・arm64/x86_64 | Meltype-flash-Android-debug.apk | 開発検証用APKをインストール後、システムのキーボード設定でMeltype-flash Previewを有効化 |
-| ChromeOS | Meltype-flash-ChromeOS.zip | 展開後、chrome://extensionsで「パッケージ化されていない拡張機能を読み込む」。入力方法にMeltype-flashを追加 |
+| ChromeOS | Meltype-flash-ChromeOS.zip | 展開後、chrome://extensionsで「パッケージ化されていない拡張機能を読み込む」。入力方法にMeltype-FLASHを追加 |
 | iOS 15以降 | Meltype-flash-iOS-unsigned.ipa / Meltype-flash-iOS-source.zip | 自分の署名を設定して導入。Simulator用ZIPは実機に導入できません |
 
 Windowsは元C#版と異なる専用COM登録IDを使います。配布ZIPを展開するだけではIME登録は行いません。導入済みのFlash版を更新する場合は、同梱の`Manage-Windows.ps1 -Action Update`を管理者PowerShellで実行してください。旧バージョンのファイルと個人データは保持します。設定画面にはOpenGL 2.0以上が必要です。CIではソフトウェアOpenGLで実トレイの終了試験を行い、実Windowsでも設定クリックと更新を確認しています。

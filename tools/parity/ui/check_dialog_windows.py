@@ -48,9 +48,9 @@ for name,title in [('log','ログ / 判定理由'),('report','不具合の報告
                 found=None
                 while time.monotonic()<deadline and process.poll() is None:
                     current=windows(process.pid)
-                    target=next(((caption,hwnd) for caption,hwnd in current.items() if caption=='Meltype-flash '+title),None)
-                    if target and current.get('Meltype-flash 設定'):
-                        found=(target,current.get('Meltype-flash 設定'));break
+                    target=next(((caption,hwnd) for caption,hwnd in current.items() if caption=='Meltype-FLASH '+title),None)
+                    if target and current.get('Meltype-FLASH 設定'):
+                        found=(target,current.get('Meltype-FLASH 設定'));break
                     time.sleep(.025)
                 if found is None: raise AssertionError(f'{name}: no native dialog; {windows(process.pid)}')
                 (caption,child),parent=found

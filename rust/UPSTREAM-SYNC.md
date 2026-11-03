@@ -1,4 +1,4 @@
-# Sync fork と Meltype-flash
+# Sync fork と Meltype-FLASH
 
 Flashの製品ブランチは `rust`。GitHubの既定ブランチも `rust` を使用する。
 `main` にも確認済みのFlashを取り込む。どちらもRustの起動先・ブランド・IME登録IDを維持する。

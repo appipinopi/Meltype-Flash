@@ -1,9 +1,9 @@
 <!-- meltype-flash-platform:start -->
-<p align="center"><img src="../assets/branding/readme/logo.svg" alt="Meltype-flash" width="520"></p>
+<p align="center"><img src="../assets/branding/readme/logo.svg" alt="Meltype-FLASH" width="520"></p>
 <a id="meltype-for-android"></a>
-<p align="center"><img src="../assets/branding/readme/android/hero.svg" alt="Meltype-flash for Android" width="1000"></p>
+<p align="center"><img src="../assets/branding/readme/android/hero.svg" alt="Meltype-FLASH for Android" width="1000"></p>
 <p align="center"><b>稲妻のように、言葉の壁を駆け抜ける日本語入力。</b></p>
-<p align="center"><a href="https://github.com/appipinopi/Meltype-Flash/releases/tag/flash-v1.0.0"><img src="https://img.shields.io/badge/Flash-v1.0.0-ffe34a" alt="Flash v1.0.0"></a> <img src="https://img.shields.io/badge/status-正式版-666973" alt="正式版"></p>
+<p align="center"><a href="https://github.com/appipinopi/Meltype-Flash/releases/tag/flash-v1.0.1"><img src="https://img.shields.io/badge/Flash-v1.0.1-ffe34a" alt="Flash v1.0.1"></a> <img src="https://img.shields.io/badge/status-正式版-666973" alt="正式版"></p>
 <p align="center"><a href="#インストール">ダウンロード・導入</a> · <a href="#使い方">使い方</a> · <a href="#困ったとき">困ったとき</a> · <a href="https://github.com/appipinopi/Meltype-Flash/issues/new/choose">不具合の報告・提案</a></p>
 <p align="center">
   <a href="../rust/WINDOWS-PACKAGE.md"><img src="../assets/branding/readme/cards/os-windows.svg" alt="Windows" width="32%"></a>
@@ -46,7 +46,7 @@ AI変換は搭載しません。デスクトップの設定やバックアップ
 <a id="インストール"></a>
 <h2><img src="../assets/branding/readme/android/headings/4f36b3b314d8.svg" alt="インストール" width="1000"></h2>
 
-1. [Flash 1.0.0](https://github.com/appipinopi/Meltype-Flash/releases/tag/flash-v1.0.0) から `Meltype-flash-Android-debug.apk` を取得します。
+1. [Flash 1.0.1](https://github.com/appipinopi/Meltype-Flash/releases/tag/flash-v1.0.1) から `Meltype-flash-Android-debug.apk` を取得します。
 2. 取得したAPKを開き、Androidの案内に従って導入します。必要な場合は、取得に使ったアプリについてインストールを許可します。
 3. Androidの「設定 → システム → キーボード → 画面キーボード」などからMeltypeを有効にします。
 4. 文字入力欄を開き、キーボードの切替からMeltypeを選びます。

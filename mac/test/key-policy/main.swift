@@ -463,12 +463,12 @@ for action in ModeShortcutAction.allCases {
 }
 precondition(oldServicesTarget.actions.isEmpty)
 for identifier in [nil,"","DIRECT","0","unknown","direct\u{0}"] as [String?] {
-    precondition(invokeNativeService(realServiceProvider,identifier)=="Meltypeの入力モードの指定が不正です。")
+    precondition(invokeNativeService(realServiceProvider,identifier)=="Meltype-FLASHの入力モードの指定が不正です。")
 }
 selectedSource=false
-precondition(invokeNativeService(realServiceProvider,"direct")=="入力ソースでMeltypeを選択してください。")
+precondition(invokeNativeService(realServiceProvider,"direct")=="入力ソースでMeltype-FLASHを選択してください。")
 selectedSource=true;currentServicesTarget.available=false
-precondition(invokeNativeService(realServiceProvider,"code")=="Meltypeの入力欄を取得できませんでした。")
+precondition(invokeNativeService(realServiceProvider,"code")=="Meltype-FLASHの入力欄を取得できませんでした。")
 currentServicesTarget.available=true
 // Reentrant activation/deactivation must not hold a native RefCell borrow.
 currentServicesTarget.duringApply={servicesOwner!.deactivate(currentServicesTarget)}
@@ -485,7 +485,7 @@ precondition(idleServiceActions==[.direct,.cycle])
 let servicesBackgroundDone=DispatchSemaphore(value:0)
 DispatchQueue.global().async {
     autoreleasepool {
-        precondition(invokeNativeService(realServiceProvider,"direct")=="Meltypeの入力モードはメインスレッドで変更してください。")
+        precondition(invokeNativeService(realServiceProvider,"direct")=="Meltype-FLASHの入力モードはメインスレッドで変更してください。")
     }
     servicesBackgroundDone.signal()
 }
@@ -493,7 +493,7 @@ precondition(servicesBackgroundDone.wait(timeout:.now()+5) == .success)
 precondition(serviceBoard.string(forType:.string)=="既存の文字😀","Services modified pasteboard")
 servicesOwner=nil
 precondition(weakServicesOwner==nil,"native service provider retained Swift owner")
-precondition(invokeNativeService(realServiceProvider,"direct")=="Meltypeの入力欄を取得できませんでした。")
+precondition(invokeNativeService(realServiceProvider,"direct")=="Meltype-FLASHの入力欄を取得できませんでした。")
 // A source-query callback may dispose its own Swift owner; native delivery pins
 // it for this invocation and rejects subsequent calls through the retained root.
 var disposeOwner: ModeServices?
@@ -503,14 +503,14 @@ weak var weakDisposeOwner=disposeOwner
 guard let disposeProvider=disposeOwner?.serviceProvider as? NSObject else {fatalError("dispose provider")}
 precondition(invokeNativeService(disposeProvider,"code")==nil)
 precondition(disposeActions==[.code] && weakDisposeOwner==nil)
-precondition(invokeNativeService(disposeProvider,"direct")=="Meltypeの入力欄を取得できませんでした。")
+precondition(invokeNativeService(disposeProvider,"direct")=="Meltype-FLASHの入力欄を取得できませんでした。")
 let backgroundFirstOwner=ModeServices(isMeltypeSelected:{true},selectWithoutInput:{_ in})
 let backgroundFirstDone=DispatchSemaphore(value:0)
 DispatchQueue.global().async {
     autoreleasepool {
         var error: NSString?
         backgroundFirstOwner.changeInputMode(serviceBoard,userData:"direct",error:&error)
-        precondition(error=="Meltypeの入力モードはメインスレッドで変更してください。")
+        precondition(error=="Meltype-FLASHの入力モードはメインスレッドで変更してください。")
     }
     backgroundFirstDone.signal()
 }
@@ -777,7 +777,7 @@ func legacyInputMenu(target:InputMenuProbe,direct:Bool,code:Bool,indicator:Bool)
     let item=menu.addItem(withTitle:"入力モードをミニウィンドウで表示",action:#selector(InputMenuProbe.toggleModeIndicator(_:)),keyEquivalent:"")
     item.target=target;item.state=indicator ? .on : .off
     menu.addItem(withTitle:"macOSのユーザー辞書を取り込む…",action:#selector(InputMenuProbe.importUserDictionary(_:)),keyEquivalent:"").target=target
-    menu.addItem(withTitle:"Meltype のデータフォルダを開く (設定・ユーザー辞書)",action:#selector(InputMenuProbe.openDataFolder(_:)),keyEquivalent:"")
+    menu.addItem(withTitle:"Meltype-FLASH のデータフォルダを開く (設定・ユーザー辞書)",action:#selector(InputMenuProbe.openDataFolder(_:)),keyEquivalent:"")
     menu.addItem(withTitle:"不具合の報告・提案… (Mac 版はプレビュー版です)",action:#selector(InputMenuProbe.openReport(_:)),keyEquivalent:"")
     return menu
 }

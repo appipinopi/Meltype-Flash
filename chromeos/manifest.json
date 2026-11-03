@@ -1,15 +1,53 @@
 {
   "manifest_version": 3,
-  "name": "Meltype-flash for ChromeOS",
+  "name": "Meltype-FLASH for ChromeOS",
   "description": "日本語と英語を自動判定するChromeOS向け日本語入力。",
-  "version": "1.0.0",
-  "version_name": "1.0.0",
+  "version": "1.0.1",
+  "version_name": "1.0.1",
   "minimum_chrome_version": "119",
-  "permissions": ["input", "storage"],
-  "optional_permissions": ["tabs"],
-  "background": {"service_worker": "background.mjs", "type": "module"},
-  "content_security_policy": {"extension_pages": "script-src 'self' 'wasm-unsafe-eval'; object-src 'self'"},
-  "input_components": [{"name": "Meltype-flash", "id": "meltype-rust", "language": ["ja"], "layouts": ["us::eng"], "options_page": "options.html"}],
-  "options_ui": {"page": "options.html", "open_in_tab": true},
-  "action": {"default_title": "Meltype-flashの設定"}
+  "permissions": [
+    "input",
+    "storage"
+  ],
+  "optional_permissions": [
+    "tabs"
+  ],
+  "background": {
+    "service_worker": "background.mjs",
+    "type": "module"
+  },
+  "content_security_policy": {
+    "extension_pages": "script-src 'self' 'wasm-unsafe-eval'; object-src 'self'"
+  },
+  "input_components": [
+    {
+      "name": "Meltype-FLASH（日本語配列）",
+      "id": "meltype-rust",
+      "language": [
+        "ja"
+      ],
+      "layouts": [
+        "jp::jpn"
+      ],
+      "options_page": "options.html"
+    },
+    {
+      "name": "Meltype-FLASH（US配列）",
+      "id": "meltype-rust-us",
+      "language": [
+        "ja"
+      ],
+      "layouts": [
+        "us::eng"
+      ],
+      "options_page": "options.html"
+    }
+  ],
+  "options_ui": {
+    "page": "options.html",
+    "open_in_tab": true
+  },
+  "action": {
+    "default_title": "Meltype-FLASHの設定"
+  }
 }

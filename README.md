@@ -1,7 +1,7 @@
-# Meltype-flash
+# Meltype-FLASH
 
 <!-- meltype-flash-platform:start -->
-![Meltype-flash](assets/branding/readme/logo.svg)
+![Meltype-FLASH](assets/branding/readme/logo.svg)
 
 <!-- meltype-flash-platform:end -->
 
@@ -9,10 +9,10 @@
 
 本家 [Meltype](https://github.com/yksr-melt/Meltype) を参照して開発している、Rust版の日本語入力です。
 Windows・Mac・Linux・Android・ChromeOS・iOSで共通の入力コアを使います。
-**Flash 1.0.0です。環境によって変換エンジン・設定・学習・操作が異なります。本家C#版と全機能・精度が同じことを示す版番号ではありません。**
+**Flash 1.0.1です。環境によって変換エンジン・設定・学習・操作が異なります。本家C#版と全機能・精度が同じことを示す版番号ではありません。**
 
 <p align="center">
-<a href="https://github.com/appipinopi/Meltype-Flash/releases/tag/flash-v1.0.0"><b>ダウンロード</b></a> ·
+<a href="https://github.com/appipinopi/Meltype-Flash/releases/tag/flash-v1.0.1"><b>ダウンロード</b></a> ·
 <a href="#使い始める">使い方</a> ·
 <a href="https://github.com/appipinopi/Meltype-Flash/issues/new/choose">不具合の報告・提案</a> ·
 <a href="rust/README.md">実装・検証の状況</a>
@@ -52,8 +52,8 @@ Windows・Mac・Linux・Android・ChromeOS・iOSで共通の入力コアを使�
 </p>
 <!-- meltype-flash-os-navigation:end -->
 
-このソースに対応するリリースは [v1.0.0](https://github.com/appipinopi/Meltype-Flash/releases/tag/flash-v1.0.0) です。
-版番号は`1.0.0`です。ChromeOSの設定画面を本家に近い配置へ整え、Flashと本家専用Issueの報告先を分けました。半角/全角切替とChromeOS・iOS・AndroidのAI除去も維持しています。[1.0.0の変更と確認範囲](rust/RELEASE-NOTES.md)を参照してください。公開状況と配布物は上のリリースページで確認してください。
+このソースに対応するリリースは [v1.0.1](https://github.com/appipinopi/Meltype-Flash/releases/tag/flash-v1.0.1) です。
+版番号は`1.0.1`です。ChromeOSの日本語／US配列を選択できるようにし、Linux配布にMozc漢字変換を必須同梱します。製品名をMeltype-FLASHへ統一し、Issueの版番号をリリースと同期するプルダウンに変更しました。[1.0.1の変更と確認範囲](rust/RELEASE-NOTES.md)を参照してください。公開状況と配布物は上のリリースページで確認してください。
 [配布ファイルの選び方](rust/DOWNLOADS.md) で、OSとCPUに合うファイルを選んでください。
 ZIP・APK・IPAは互換ではありません。本家のC#版の配布ファイルをFlash用として案内していません。
 
@@ -69,7 +69,7 @@ ZIP・APK・IPAは互換ではありません。本家のC#版の配布ファイ
 <a id="使い始める"></a>
 <h2><img src="assets/branding/readme/overview/headings/f02cecb06ef8.svg" alt="使い始める" width="1000"></h2>
 
-インストール後は、そのOSの入力方法としてMeltype-flashを選びます。設定画面だけを起動しても、IMEの登録やOS側の切替は完了しません。
+インストール後は、そのOSの入力方法としてMeltype-FLASHを選びます。設定画面だけを起動しても、IMEの登録やOS側の切替は完了しません。
 
 - **Space**：変換・候補の選択。
 - **Enter**：確定。

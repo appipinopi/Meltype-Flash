@@ -43,7 +43,7 @@ api.meltype_macos_input_source_matches.restype=c.c_int
 assert not api.meltype_macos_mode_services_create(None,None)
 assert not api.meltype_macos_mode_services_target(None,None,1)
 assert api.meltype_macos_mode_services_dispatch(None,None,0,0)==4
-assert api.meltype_macos_services_error(1).decode("utf-8")=="Meltypeの入力モードはメインスレッドで変更してください。"
+assert api.meltype_macos_services_error(1).decode("utf-8")=="Meltype-FLASHの入力モードはメインスレッドで変更してください。"
 if sys.platform!="darwin":
     assert not api.meltype_macos_input_source_matches(None,0)
 api.meltype_macos_suggestion.argtypes=[P,c.POINTER(c.c_uint16),U,c.c_int,c.POINTER(c.c_double),c.c_int]

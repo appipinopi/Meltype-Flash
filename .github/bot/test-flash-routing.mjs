@@ -20,7 +20,7 @@ function formLabel(id) {
   assert.ok(match, `フォームの項目が見つかりません: ${id}`);
   return match[1];
 }
-const form = [['product', 'Meltype-flash（Rust版）'], ['os', 'Windows 11'],
+const form = [['product', 'Meltype-FLASH（Rust版）'], ['os', 'Windows 11'],
   ['version', '1.0.0'], ['typed', 'nihongowohanasu'], ['actual', 'にほんgo'],
   ['expected', '日本語を話す'], ['key', 'Enter (確定)'], ['kind', '日本語のつもりが英字になった (にほんgo)']]
   .map(([id, value]) => `### ${formLabel(id)}\n\n${value}`).join('\n\n');

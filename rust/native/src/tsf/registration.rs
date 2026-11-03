@@ -95,7 +95,7 @@ impl Backend for Windows {
             let class = Key::create(HKEY_LOCAL_MACHINE, KEY)?;
             class.string(
                 PCWSTR::null(),
-                &"Meltype-flash".encode_utf16().collect::<Vec<_>>(),
+                &"Meltype-FLASH".encode_utf16().collect::<Vec<_>>(),
             )?;
             let server = Key::create(class.0, w!("InprocServer32"))?;
             server.string(PCWSTR::null(), path)?;
@@ -113,7 +113,7 @@ impl Backend for Windows {
                 &CLSID,
                 0x0411,
                 &PROFILE,
-                &"Meltype-flash".encode_utf16().collect::<Vec<_>>(),
+                &"Meltype-FLASH".encode_utf16().collect::<Vec<_>>(),
                 path,
                 0,
                 HKL::default(),

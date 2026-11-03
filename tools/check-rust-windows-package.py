@@ -116,7 +116,7 @@ def inspect(root):
             flash_ids = ['C540BAF6-88B1-5B30-B524-2C8702B034FC', '6D01DE9C-8AB3-5CFC-A5C6-10893CDF8762']
             info['flash_identity'] = all(uuid.UUID(value).bytes_le in payload for value in flash_ids)
             if not info['flash_identity']:
-                errors.append(f'{name}: missing Meltype-flash service/profile identity; rebuild the Rust DLL')
+                errors.append(f'{name}: missing Meltype-FLASH service/profile identity; rebuild the Rust DLL')
             for export in ['DllGetClassObject', 'DllCanUnloadNow', 'DllRegisterServer', 'DllUnregisterServer']:
                 if export not in info['exports']:
                     errors.append(f'{name}: missing TSF export {export}')

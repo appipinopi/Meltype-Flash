@@ -22,13 +22,13 @@ pub fn xml(executable: &Path) -> String {
         r#"<?xml version="1.0" encoding="utf-8"?>
 <component>
  <name>org.freedesktop.IBus.MeltypeFlash</name>
- <description>Meltype-flash 日本語入力</description>
+ <description>Meltype-FLASH 日本語入力</description>
  <exec>{command}</exec>
  <version>{}</version><license>GPL-3.0-or-later</license>
  <author>Yukishiro, appipinopi</author>
  <homepage>https://github.com/appipinopi/Meltype-Flash</homepage>
  <engines><engine>
-  <name>meltype-flash</name><longname>Meltype-flash</longname>
+  <name>meltype-flash</name><longname>Meltype-FLASH</longname>
   <description>日本語と英語を打ち分ける日本語入力</description>
   <language>ja</language><license>GPL-3.0-or-later</license>
   <icon>{icon}</icon><setup>{setup}</setup>
@@ -61,5 +61,5 @@ pub fn desktop(executable: &Path) -> String {
         .replace('\n', "\\n")
         .replace('\r', "\\r")
         .replace('\t', "\\t");
-    format!("[Desktop Entry]\nType=Application\nName=Meltype-flash 設定\nExec=/usr/bin/env -- {command}\nNoDisplay=true\nTerminal=false\nX-Meltype-Flash-IBus=true\n")
+    format!("[Desktop Entry]\nType=Application\nName=Meltype-FLASH 設定\nExec=/usr/bin/env -- {command}\nNoDisplay=true\nTerminal=false\nX-Meltype-Flash-IBus=true\n")
 }

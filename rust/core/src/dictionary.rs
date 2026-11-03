@@ -377,7 +377,7 @@ impl Dictionary {
             chrono::Local::now().naive_local(),
         ));
         if reading == "ばーじょん" {
-            values.push(format!("Meltype-flash {}", env!("CARGO_PKG_VERSION")));
+            values.push(format!("Meltype-FLASH {}", env!("CARGO_PKG_VERSION")));
         }
         for word in words {
             if !values.contains(word) {

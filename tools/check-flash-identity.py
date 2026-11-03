@@ -22,7 +22,7 @@ def inspect(root):
     def require(condition, message):
         if not condition: errors.append(message)
     readme=files['README.md']
-    require(readme.startswith('# Meltype-flash\n'), 'Root README must identify Meltype-flash first')
+    require(readme.startswith('# Meltype-FLASH\n'), 'Root README must identify Meltype-flash first')
     require('cargo run -p meltype-settings' in readme and 'meltype-flash.exe' in readme, 'Root README must launch the Rust Flash executable')
     require('github.com/yksr-melt/Meltype/releases' not in readme, 'Root README must not offer upstream C# releases as Flash downloads')
     require('src/** linguist-vendored=true' in files['.gitattributes'], 'Upstream C# reference sources must be marked as reference/vendor code')

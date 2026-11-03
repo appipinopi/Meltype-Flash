@@ -107,7 +107,7 @@ class EngineTests(unittest.TestCase):
         self.auxiliary = ""
         self.context_requests = 0
         self.selection = None
-        client = "gtk3-im:code" if self._testMethodName == "test_native_application_code_mode" else "Meltype-flash integration"
+        client = "gtk3-im:code" if self._testMethodName == "test_native_application_code_mode" else "Meltype-FLASH integration"
         self.context = self.bus.create_input_context(client)
         self.addCleanup(self.context.destroy)
         self.context.connect("commit-text", self.commit)

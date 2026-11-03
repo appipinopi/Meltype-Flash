@@ -3,6 +3,18 @@ import {test} from "node:test";
 import assert from "node:assert/strict";
 import {ImeController} from "../controller.mjs";
 import {translateKey} from "../keys.mjs";
+import {readFileSync} from "node:fs";
+
+test("日本語配列を既存IDで提供し、US配列を別の入力方法として選択できる", () => {
+  const manifest = JSON.parse(readFileSync(new URL("../manifest.json", import.meta.url), "utf8"));
+  assert.deepEqual(manifest.input_components.map(({id, layouts}) => ({id, layouts})), [
+    {id: "meltype-rust", layouts: ["jp::jpn"]},
+    {id: "meltype-rust-us", layouts: ["us::eng"]},
+  ]);
+  assert.equal(translateKey({key: "ZenkakuHankaku", code: "Backquote"}).mode, "toggle");
+  assert.equal(translateKey({key: "`", code: "Backquote"}).character, 96);
+  assert.equal(translateKey({key: "@", code: "BracketLeft"}).character, 64);
+});
 function fixture(loadOverride) {
   const calls = [], errors = [], saved = [];
   const core = {reset() {}, focusIfNeeded() {}, snapshot: () => "snapshot",

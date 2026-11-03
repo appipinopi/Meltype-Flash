@@ -72,7 +72,7 @@ class PresentationTests(unittest.TestCase):
     def test_body_has_all_os_and_inline_images_without_benchmark_download_links(self):
         benchmark = "# 測定\n\n## 全入力の中央値\n\n|入力|値|\n|---|---|\n|sample|1|\n"
         title, body = publisher.compose_body("flash-v0.1.0-preview.4", "a" * 40, benchmark, "b" * 40, "fix: table\nfix: `quoted` <tag>")
-        self.assertEqual(title, "Meltype-flash v0.1.0 Pre4")
+        self.assertEqual(title, "Meltype-FLASH v0.1.0 Pre4")
         for os_name in ("Windows", "Linux", "macOS", "Android", "ChromeOS", "iOS"):
             self.assertIn(f"|{os_name}|成功|未実施|", body)
         for scope in ("CI専用試験", "隔離IBus", "エミュレーター", "実WASM・模擬IME API", "iOS Simulator"):
@@ -86,7 +86,7 @@ class PresentationTests(unittest.TestCase):
 
     def test_stable_body_uses_release_title_and_retains_signing_limits(self):
         title, body = publisher.compose_body("flash-v1.0.0", "a" * 40, "測定結果", "b" * 40, "fix: release")
-        self.assertEqual(title, "Meltype-flash v1.0.0")
+        self.assertEqual(title, "Meltype-FLASH v1.0.0")
         self.assertIn("共通Rustコアを使う正式版です", body)
         self.assertNotIn("開発プレビュー", body)
         self.assertIn("iOSのIPAは未署名です", body)

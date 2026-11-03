@@ -95,7 +95,7 @@ final class LegacyModeIndicator {
             background.addSubview(row)
         }
         if let captionFrame = layout.caption {
-            let caption = NSTextField(labelWithString: "Meltype")
+            let caption = NSTextField(labelWithString: "Meltype-FLASH")
             caption.font = .systemFont(ofSize: 11)
             caption.textColor = .secondaryLabelColor
             caption.alignment = .center

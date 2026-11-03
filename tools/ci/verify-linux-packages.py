@@ -60,7 +60,7 @@ def verify(bundle, deb, rpm, version, arch):
     assert command('dpkg-deb', '-f', deb, 'Version') == normalized_version
     assert command('dpkg-deb', '-f', deb, 'Architecture') == arch
     depends = command('dpkg-deb', '-f', deb, 'Depends')
-    for required in ('ibus', 'zenity', 'libc6 (>= 2.39)', 'libibus-1.0-5', 'libx11-xcb1', 'libegl1', 'libwayland-egl1'):
+    for required in ('ibus', 'zenity', 'libc6 (>= 2.39)', 'libstdc++6', 'libibus-1.0-5', 'libx11-xcb1', 'libegl1', 'libwayland-egl1'):
         assert required in depends, ('missing Debian runtime dependency', required)
     assert all(line.split()[1] == 'root/root' for line in command('dpkg-deb', '--contents', deb).splitlines())
     rpm_arch = {'amd64': 'x86_64', 'arm64': 'aarch64'}[arch]

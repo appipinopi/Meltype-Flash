@@ -73,34 +73,34 @@ class Art:
         path.write_text(
             f'<svg xmlns="http://www.w3.org/2000/svg" width="{width}" height="{height}" '
             f'viewBox="0 0 {width} {height}" role="img" aria-label="{html.escape(title, quote=True)}">'
-            f'<title>{html.escape(title)}</title><rect width="100%" height="100%" fill="#fff"/>{body}</svg>\n', encoding="utf-8")
+            f'<title>{html.escape(title)}</title><rect width="100%" height="100%" fill="#fff"/>{body}</svg>\n', encoding="utf-8", newline="\n")
 
     def common_logo(self):
-        self.save(OUT / "logo.svg", 1000, 240, "Meltype-flash — Mと稲妻のロゴ",
-                  '<svg x="90" y="16" width="820" height="208" viewBox="140 182 1904 484">'
-                  f'<image width="2172" height="724" href="data:image/png;base64,{self.logo}"/></svg>')
+        self.save(OUT / "logo.svg", 1000, 240, "Meltype-FLASH — Mと稲妻のロゴ",
+                  self.symbol(70, 36, 170)
+                  + self.text("Meltype-FLASH", 270, 150, 76, max_width=660))
 
     def hero(self, key, name, sub, detail, _):
         body = (f'<rect x="1" y="1" width="998" height="298" rx="24" fill="{INK}"/>'
                 f'<path d="M25 1H975Q999 1 999 25V33H1V25Q1 1 25 1Z" fill="{YELLOW}"/>'
                 + self.text("MELTYPE-FLASH / PLATFORM", 48, 79, 16, "#b8bac3")
-                + self.text(f"Meltype-flash for {name}", 48, 153, 48, "#fff", 640)
+                + self.text(f"Meltype-FLASH for {name}", 48, 153, 48, "#fff", 640)
                 + self.text(sub, 48, 203, 22, "#fff", 600)
                 + self.text(detail + " ・ 開発プレビュー", 48, 253, 15, "#b8bac3", 600)
                 + '<rect x="736" y="62" width="210" height="210" rx="28" fill="#fff"/>'
                 + self.symbol(755, 74, 172)
                 + self.bolt(913, 212, .85))
-        self.save(OUT / key / "hero.svg", 1000, 300, f"Meltype-flash for {name}", body)
+        self.save(OUT / key / "hero.svg", 1000, 300, f"Meltype-FLASH for {name}", body)
 
     def document_banner(self):
         motto = "稲妻のように、言葉の壁を駆け抜ける日本語入力。"
         body = (f'<rect x="1" y="1" width="998" height="218" rx="24" fill="{INK}"/>'
                 f'<path d="M25 1H975Q999 1 999 25V29H1V25Q1 1 25 1Z" fill="{YELLOW}"/>'
                 + self.text("MELTYPE-FLASH / README", 40, 65, 16, "#b8bac3")
-                + self.text("Meltype-flash", 40, 127, 48, "#fff", 740)
+                + self.text("Meltype-FLASH", 40, 127, 48, "#fff", 740)
                 + self.text(motto, 40, 178, 23, "#fff", 745)
                 + self.bolt(850, 58, 2.3))
-        self.save(OUT / "documentation.svg", 1000, 220, f"Meltype-flash — {motto}", body)
+        self.save(OUT / "documentation.svg", 1000, 220, f"Meltype-FLASH — {motto}", body)
 
     def card(self, key, name, sub, detail, _, active=False):
         body = (f'<rect x="1.5" y="1.5" width="317" height="187" rx="18" fill="{"#fffbe8" if active else "#fff"}" stroke="{INK if active else "#d9dade"}" stroke-width="{3 if active else 1}"/>'
@@ -145,7 +145,7 @@ def document_banners(write):
         original = document.read_text(encoding='utf-8')
         image = relative(OUT / 'documentation.svg', document)
         block = (f'{start}\n<p align="center"><img src="{image}" '
-                 'alt="Meltype-flash — 稲妻のように、言葉の壁を駆け抜ける日本語入力。" '
+                 'alt="Meltype-FLASH — 稲妻のように、言葉の壁を駆け抜ける日本語入力。" '
                  f'width="1000"></p>\n{end}')
         if start in original:
             text = re.sub(re.escape(start) + r'.*?' + re.escape(end),
@@ -157,7 +157,7 @@ def document_banners(write):
             else:
                 text = block + '\n\n' + original
         if write and text != original:
-            document.write_text(text, encoding='utf-8')
+            document.write_text(text, encoding='utf-8', newline='\n')
         count += 1
     print(f'folder READMEs: {count} banners')
 
@@ -184,9 +184,9 @@ def header(document, key, name):
     label = f"v{match[1]}" + (f" Pre{match[2]}" if preview else "")
     status = "開発プレビュー" if preview else "正式版"
     badge_label = label.replace(" ", "_")
-    return (f'{START}\n<p align="center"><img src="{relative(OUT / "logo.svg", document)}" alt="Meltype-flash" width="520"></p>\n'
+    return (f'{START}\n<p align="center"><img src="{relative(OUT / "logo.svg", document)}" alt="Meltype-FLASH" width="520"></p>\n'
             f'<a id="meltype-for-{key}"></a>\n'
-            f'<p align="center"><img src="{relative(OUT / key / "hero.svg", document)}" alt="Meltype-flash for {name}" width="1000"></p>\n'
+            f'<p align="center"><img src="{relative(OUT / key / "hero.svg", document)}" alt="Meltype-FLASH for {name}" width="1000"></p>\n'
             '<p align="center"><b>稲妻のように、言葉の壁を駆け抜ける日本語入力。</b></p>\n'
             f'<p align="center"><a href="https://github.com/appipinopi/Meltype-Flash/releases/tag/{tag}">'
             f'<img src="https://img.shields.io/badge/Flash-{badge_label}-ffe34a" alt="Flash {label}"></a> '
@@ -239,7 +239,7 @@ def process_readme(art, platform, write):
         parts[pos] = re.sub(r'^(#{2,3}) ([^\n]+)$', replace_markdown, parts[pos], flags=re.M)
     text = ''.join(parts)
     if write and text != original:
-        document.write_text(text, encoding="utf-8")
+        document.write_text(text, encoding="utf-8", newline="\n")
     return index
 
 
@@ -258,7 +258,7 @@ def preview():
         if match:
             sample = (document.parent / match[1]).resolve().relative_to(OUT).as_posix()
             samples.append(f'<img src="{sample}" alt="{title}">')
-    content = ('<!doctype html><html lang="ja"><meta charset="utf-8"><link rel="icon" href="data:,"><title>Meltype-flash — 6環境のREADME画像</title>'
+    content = ('<!doctype html><html lang="ja"><meta charset="utf-8"><link rel="icon" href="data:,"><title>Meltype-FLASH — 6環境のREADME画像</title>'
                '<style>*{box-sizing:border-box}body{margin:0;padding:40px;background:#eeeef0;color:#17181b;font-family:system-ui}'
                'main{max-width:1280px;margin:auto}.logo{display:block;width:520px;max-width:100%;margin:0 auto 24px}'
                'h1{font-size:16px;text-align:center;margin:0 0 24px;color:#8a96ae}h2{font-size:14px;margin:0 0 10px}'
@@ -270,7 +270,7 @@ def preview():
                + ''.join(sections) + '</div><div class="cards">'
                + ''.join(f'<img src="cards/os-{key}.svg" alt="{name}">' for key,name,*_ in PLATFORMS)
                + '</div><div class="headings">' + ''.join(samples) + '</div></main></html>')
-    (OUT / 'preview.html').write_text(content, encoding='utf-8')
+    (OUT / 'preview.html').write_text(content, encoding='utf-8', newline='\n')
 
 
 def main():
@@ -292,11 +292,11 @@ def main():
         text = document.read_text(encoding='utf-8')
         nav_start, nav_end = '<!-- meltype-flash-os-navigation:start -->', '<!-- meltype-flash-os-navigation:end -->'
         separate_navigation = nav_start in text
-        block = START + '\n![Meltype-flash](assets/branding/readme/logo.svg)\n\n' + ('' if separate_navigation else navigation(document) + '\n') + END
+        block = START + '\n![Meltype-FLASH](assets/branding/readme/logo.svg)\n\n' + ('' if separate_navigation else navigation(document) + '\n') + END
         if START in text:
             text = re.sub(re.escape(START) + r'.*?' + re.escape(END), lambda _: block, text, count=1, flags=re.S)
         else:
-            text = text.replace('![Meltype-flash](assets/branding/readme-banner.svg)', block)
+            text = text.replace('![Meltype-FLASH](assets/branding/readme-banner.svg)', block)
         if separate_navigation:
             text = re.sub(re.escape(nav_start) + r'.*?' + re.escape(nav_end),
                           lambda _: nav_start + '\n' + navigation(document) + '\n' + nav_end, text, count=1, flags=re.S)
@@ -312,7 +312,7 @@ def main():
                 return f'<a id="{slug}"></a>\n<h2>{tag}</h2>'
             return tag
         text = re.sub(r'^## (?P<title>[^\n]+)$|<img src="assets/branding/readme/overview/headings/[^\"]+\.svg" alt="(?P<alt>[^"]+)"[^>]*>', root_heading, text, flags=re.M)
-        document.write_text(text, encoding='utf-8')
+        document.write_text(text, encoding='utf-8', newline='\n')
     document_banners(args.write_readmes)
     preview()
 

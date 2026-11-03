@@ -7,7 +7,7 @@ on:
   workflow_dispatch:
     inputs:
       tag:
-        description: 'Meltype-flashの正式版またはプレビュー版タグ'
+        description: 'Meltype-FLASHの正式版またはプレビュー版タグ'
         required: true
       benchmark_baseline:
         description: '比較する以前の公開タグ（auto: 現在版より前の最新タグ）'
@@ -150,7 +150,7 @@ jobs:
   linux:
     needs: validate
     runs-on: ubuntu-24.04
-    timeout-minutes: 40
+    timeout-minutes: 60
     steps:
       - uses: actions/checkout@v5
       - uses: dtolnay/rust-toolchain@stable
@@ -159,7 +159,18 @@ jobs:
           shared-key: rust-release-linux
       - run: sudo apt-get update && sudo apt-get install -y libibus-1.0-dev ibus gir1.2-ibus-1.0 python3-gi dbus-x11 xvfb fonts-noto-cjk libxkbcommon-x11-0 rpm dpkg-dev cpio
       - run: cargo test --workspace --locked
-      - run: bash rust/build-linux.sh
+      - uses: bazel-contrib/setup-bazel@0.15.0
+        with:
+          bazelisk-cache: true
+          disk-cache: linux-mozc
+      - name: Build required Linux kanji converter
+        run: |
+          sudo apt-get install -y clang libglib2.0-dev libgtk-3-dev libxcb-xfixes0-dev libxcb-keysyms1-dev
+          bash native/mozc/build-mozc-helper.sh "$RUNNER_TEMP/mozc"
+      - run: MELTYPE_REQUIRE_MOZC=1 bash rust/build-linux.sh
+      - name: Verify real Mozc conversion through the native ABI
+        run: |
+          MELTYPE_MOZC_HELPER="$PWD/linux/build/Meltype-flash-linux/mozc/meltype_mozc_helper" python3 rust/native/tests/linux_mozc_smoke.py target/release/libmeltype_native.so
       - name: Validate packaged IBus engine
         run: |
           python3 rust/ibus/tests/installation.py target/release/meltype-ibus

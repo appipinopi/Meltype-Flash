@@ -9,7 +9,7 @@ function Installed-Root {
     $machine = [Microsoft.Win32.RegistryKey]::OpenBaseKey([Microsoft.Win32.RegistryHive]::LocalMachine, [Microsoft.Win32.RegistryView]::Registry64)
     try {
         $key = $machine.OpenSubKey('SOFTWARE\Microsoft\Windows\CurrentVersion')
-        try { return (Join-Path ([string]$key.GetValue('ProgramFilesDir')) 'Meltype-flash') } finally { $key.Dispose() }
+        try { return (Join-Path ([string]$key.GetValue('ProgramFilesDir')) 'Meltype-FLASH') } finally { $key.Dispose() }
     } finally { $machine.Dispose() }
 }
 if ($Action -eq 'Apply' -and -not $WhatIfPreference) {
@@ -148,7 +148,7 @@ try {
     $key = $machine.OpenSubKey('SOFTWARE\Microsoft\Windows\CurrentVersion')
     try { $programFiles = [string]$key.GetValue('ProgramFilesDir') } finally { $key.Dispose() }
 } finally { $machine.Dispose() }
-$installRoot = Join-Path $programFiles 'Meltype-flash'
+$installRoot = Join-Path $programFiles 'Meltype-FLASH'
 $state = Get-Content -LiteralPath (Join-Path $installRoot 'installed.json') -Raw | ConvertFrom-Json
 $expected = Join-Path (Join-Path $installRoot 'versions') ((Get-FileHash -LiteralPath (Join-Path $package 'SHA256SUMS.json')).Hash.Substring(0,16))
 if ([IO.Path]::GetFullPath([string]$state.package) -ne [IO.Path]::GetFullPath($expected)) { throw 'Updated installation receipt does not match downloaded package' }

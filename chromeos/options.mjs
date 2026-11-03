@@ -14,7 +14,7 @@ const hints = {
   "panel-settings": "変更した設定を保存して反映します。",
   "panel-sites": "サイト別設定はこの端末だけに保存します。",
   "panel-data": "書き出すファイルには個人の辞書・学習を含みます。",
-  "panel-help": "ChromeOSの入力方法でMeltype-flashを選択してください。",
+  "panel-help": "ChromeOSの入力方法でMeltype-FLASHを選択してください。",
 };
 function selectPage(selected) {
   for (const tab of tabs) {

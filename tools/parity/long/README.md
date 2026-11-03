@@ -1,7 +1,7 @@
 # 長文・英語境界の全打鍵比較
 
 <!-- meltype-flash-document-banner:start -->
-<p align="center"><img src="../../../assets/branding/readme/documentation.svg" alt="Meltype-flash — 稲妻のように、言葉の壁を駆け抜ける日本語入力。" width="1000"></p>
+<p align="center"><img src="../../../assets/branding/readme/documentation.svg" alt="Meltype-FLASH — 稲妻のように、言葉の壁を駆け抜ける日本語入力。" width="1000"></p>
 <!-- meltype-flash-document-banner:end -->
 
 基準は元版 `45e14f86558aa6ea34f2c2ecd038ba95ca8c3c46` の C# NativeAOT。

@@ -1,7 +1,7 @@
 # 選択範囲の再変換と元版の比較
 
 <!-- meltype-flash-document-banner:start -->
-<p align="center"><img src="../../../assets/branding/readme/documentation.svg" alt="Meltype-flash — 稲妻のように、言葉の壁を駆け抜ける日本語入力。" width="1000"></p>
+<p align="center"><img src="../../../assets/branding/readme/documentation.svg" alt="Meltype-FLASH — 稲妻のように、言葉の壁を駆け抜ける日本語入力。" width="1000"></p>
 <!-- meltype-flash-document-banner:end -->
 
 基準コミットは `45e14f86558aa6ea34f2c2ecd038ba95ca8c3c46`。元版の実際の `CaptureGate` と `CompositionController` に選択範囲を持つ試験ホストを接続し、28操作の結果を採取しています。Rustから期待値を生成しません。

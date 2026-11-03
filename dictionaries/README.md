@@ -1,7 +1,7 @@
 # 共同編集する辞書
 
 <!-- meltype-flash-document-banner:start -->
-<p align="center"><img src="../assets/branding/readme/documentation.svg" alt="Meltype-flash — 稲妻のように、言葉の壁を駆け抜ける日本語入力。" width="1000"></p>
+<p align="center"><img src="../assets/branding/readme/documentation.svg" alt="Meltype-FLASH — 稲妻のように、言葉の壁を駆け抜ける日本語入力。" width="1000"></p>
 <!-- meltype-flash-document-banner:end -->
 
 このディレクトリーの **txtが編集元** です。GitHubのPull Requestで変更してください。`cargo build` がビルド時にFST索引と値データを生成し、Rust実行ファイルへ埋め込みます。FSTバイナリーや利用者のSQLiteをPull Requestへ入れる必要はありません。

@@ -1,7 +1,7 @@
 # 旧入力方式の状態・再入力・学習の比較
 
 <!-- meltype-flash-document-banner:start -->
-<p align="center"><img src="../../../assets/branding/readme/documentation.svg" alt="Meltype-flash — 稲妻のように、言葉の壁を駆け抜ける日本語入力。" width="1000"></p>
+<p align="center"><img src="../../../assets/branding/readme/documentation.svg" alt="Meltype-FLASH — 稲妻のように、言葉の壁を駆け抜ける日本語入力。" width="1000"></p>
 <!-- meltype-flash-document-banner:end -->
 
 元版 `InputSession` / `PendingInput` / `UserModel` / `ScoreEngine` を実際に動かす比較ホストです。

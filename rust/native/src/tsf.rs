@@ -55,21 +55,21 @@ struct Spec {
 static SPECS: [Spec; 3] = [
     Spec {
         guid: GUID::from_u128(0x51987acc_d57a_5c81_ad25_5c1e8d83f258),
-        description: "Meltype-flash: 入力中",
+        description: "Meltype-FLASH: 入力中",
         line: TF_LS_DOT,
         bold: false,
         attr: TF_ATTR_INPUT,
     },
     Spec {
         guid: GUID::from_u128(0x52a75cec_c221_5443_bb39_eb8d777c688f),
-        description: "Meltype-flash: 変換した文節",
+        description: "Meltype-FLASH: 変換した文節",
         line: TF_LS_SOLID,
         bold: false,
         attr: TF_ATTR_CONVERTED,
     },
     Spec {
         guid: GUID::from_u128(0x711d8fcb_cfbd_56d2_9a8e_672ee6ed74c1),
-        description: "Meltype-flash: 選んでいる文節",
+        description: "Meltype-FLASH: 選んでいる文節",
         line: TF_LS_SOLID,
         bold: true,
         attr: TF_ATTR_TARGET_CONVERTED,

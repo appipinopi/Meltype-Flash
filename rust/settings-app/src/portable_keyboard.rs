@@ -911,7 +911,7 @@ impl Keyboard {
             let overlay = CreateWindowExW(
                 WS_EX_TOPMOST | WS_EX_TOOLWINDOW | WS_EX_NOACTIVATE,
                 w!("STATIC"),
-                w!("Meltype-flash portable"),
+                w!("Meltype-FLASH portable"),
                 WS_POPUP | WS_BORDER | 0x80 | 0x0c,
                 20,
                 40,

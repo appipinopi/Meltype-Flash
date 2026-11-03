@@ -15,7 +15,7 @@ import zipfile
 TARGET = '/usr/libexec/meltype-flash/ibus'
 EXECUTABLES = ('meltype-ibus', 'meltype-flash', 'meltype-rs', 'install.sh')
 # GUIがdlopenするライブラリはELFの自動依存検出に現れない。
-DEB_DEPENDS = ('ibus, zenity, libc6 (>= 2.39), libgcc-s1, libibus-1.0-5, '
+DEB_DEPENDS = ('ibus, zenity, libc6 (>= 2.39), libgcc-s1, libstdc++6, libibus-1.0-5, '
                'libglib2.0-0t64 | libglib2.0-0, libdbus-1-3, '
                'libx11-6, libx11-xcb1, libxcursor1, libxi6, libxkbcommon0, '
                'libxkbcommon-x11-0, libegl1, libgl1, libwayland-client0, libwayland-egl1')
@@ -42,7 +42,7 @@ def stage_payload(bundle, root):
     desktop = root / 'usr/share/applications'
     desktop.mkdir(parents=True)
     (desktop / 'meltype-flash.desktop').write_text(
-        '[Desktop Entry]\nType=Application\nName=Meltype-flash 設定\n'
+        '[Desktop Entry]\nType=Application\nName=Meltype-FLASH 設定\n'
         f'Exec={TARGET}/meltype-flash\nIcon={TARGET}/icon.png\n'
         'Categories=Settings;Utility;\nTerminal=false\n', encoding='utf-8')
     # GNOMEはIBus名からこの固定名を探す（upstream #489）。
@@ -62,8 +62,8 @@ def make_deb(root, destination, version, arch):
         f'Section: utils\nPriority: optional\nInstalled-Size: {installed_kib}\n'
         f'Depends: {DEB_DEPENDS}\nRecommends: fonts-noto-cjk, xdg-desktop-portal\n'
         'Homepage: https://github.com/appipinopi/Meltype-Flash\n'
-        'Description: Meltype-flash Rust Japanese input method\n'
-        ' Rust IBus engine and settings. Sign out and select Meltype-flash after installation.\n', encoding='utf-8')
+        'Description: Meltype-FLASH Rust Japanese input method\n'
+        ' Rust IBus engine and settings. Sign out and select Meltype-FLASH after installation.\n', encoding='utf-8')
     # プロセス・入力ソース・個人データを変更せず、システムのキャッシュだけを更新する。
     for name in ('postinst', 'postrm'):
         script = control / name
@@ -92,11 +92,11 @@ def make_rpm(root, destination, version, arch, stage):
         '# 公開済みのELFをstrip・書き換えせず、ELF依存の自動抽出は残す。\n'
         '%global __os_install_post %{nil}\n'
         f'Name: meltype-flash\nVersion: {rpm_version}\nRelease: 1\n'
-        'Summary: Meltype-flash Rust Japanese input method\nLicense: GPL-3.0-or-later\n'
+        'Summary: Meltype-FLASH Rust Japanese input method\nLicense: GPL-3.0-or-later\n'
         'URL: https://github.com/appipinopi/Meltype-Flash\n'
         f'Requires: ibus, zenity, glibc >= 2.39, {required}\nRecommends: xdg-desktop-portal\n'
         '\n%description\nRust IBus engine and settings.\n'
-        'Sign out and select Meltype-flash after installation.\n'
+        'Sign out and select Meltype-FLASH after installation.\n'
         '\n%install\nmkdir -p %{buildroot}\n'
         f'cp -a {shlex.quote(str(root))}/. %{{buildroot}}/\n'
         # FedoraのIBusパッケージはcomponentファイルのトリガーでキャッシュを更新する。

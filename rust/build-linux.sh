@@ -9,6 +9,12 @@ if [[ "$(uname -s)" != Linux ]]; then
     echo 'Run this script on Linux.' >&2
     exit 1
 fi
+if [[ "${MELTYPE_REQUIRE_MOZC:-0}" == 1 ]]; then
+    for file in meltype_mozc_helper MOZC-LICENSE.txt MOZC-CREDITS.html; do
+        test -s "$root/native/mozc/bin/linux/$file" || { echo "Missing required Mozc file: $file" >&2; exit 1; }
+    done
+    test -x "$root/native/mozc/bin/linux/meltype_mozc_helper"
+fi
 cargo build --manifest-path "$root/Cargo.toml" --locked --release --workspace --target-dir "$target"
 mkdir -p "$out"
 cp "$target/release/meltype-ibus" "$target/release/meltype-flash" "$target/release/meltype-rs" "$out/"

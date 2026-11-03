@@ -80,9 +80,9 @@ impl Tray {
         fs2::FileExt::try_lock_exclusive(&lock)
             .map_err(|_| "トレイは既に起動しています。設定画面を開きました。".to_owned())?;
         let menu = Menu::new();
-        let status = MenuItem::new("Meltype-flash", false, None);
+        let status = MenuItem::new("Meltype-FLASH", false, None);
         let enabled = CheckMenuItem::new(
-            "Meltype-flash を有効にする",
+            "Meltype-FLASH を有効にする",
             true,
             settings.boolean("Enabled"),
             None,
@@ -93,13 +93,13 @@ impl Tray {
         menu.append(&enabled).map_err(|e| e.to_string())?;
         let mut actions = vec![(enabled.id().clone(), Action::Toggle)];
         let ime_mode = CheckMenuItem::new(
-            "Meltype-flash IME (入力欄に直接入力)",
+            "Meltype-FLASH IME (入力欄に直接入力)",
             true,
             settings.text("Mode") == "Tsf",
             None,
         );
         let keyboard_mode = CheckMenuItem::new(
-            "Meltype-flash キーボード (変換ボックスで入力)",
+            "Meltype-FLASH キーボード (変換ボックスで入力)",
             true,
             settings.text("Mode") == "Keyboard",
             None,
@@ -157,7 +157,7 @@ impl Tray {
         for (label, action) in [
             ("不具合の報告・提案...", Action::Report),
             ("直した誤判定を報告...", Action::Corrections),
-            ("Meltype-flash について...", Action::About),
+            ("Meltype-FLASH について...", Action::About),
             ("学習した語...", Action::Page(3)),
         ] {
             let item = MenuItem::new(label, true, None);
@@ -196,7 +196,7 @@ impl Tray {
         let icon = TrayIconBuilder::new()
             .with_menu(Box::new(menu))
             .with_guid(guid)
-            .with_tooltip("Meltype-flash")
+            .with_tooltip("Meltype-FLASH")
             .with_icon(text_icon(settings.boolean("Enabled"))?)
             .build()
             .map_err(|e| e.to_string())?;
@@ -210,7 +210,7 @@ impl Tray {
         ) {
             Ok(hotkey) => {
                 if let Some(name) = hotkey.name.as_deref() {
-                    enabled.set_text(format!("Meltype-flash を有効にする ({name})"));
+                    enabled.set_text(format!("Meltype-FLASH を有効にする ({name})"));
                 } else {
                     warnings.push("一時停止/再開のホットキーは、候補がすべて使用中のため登録できませんでした。".into());
                 }
@@ -275,7 +275,7 @@ impl Tray {
         if settings.boolean("Enabled") && settings.text("Mode") == "Keyboard" {
             let shortcut = settings.toggle_shortcuts_label();
             self.status.set_text(format!(
-                "Meltype-flash キーボード: 入力{} ({shortcut} で切替)",
+                "Meltype-FLASH キーボード: 入力{} ({shortcut} で切替)",
                 if active { "ON" } else { "OFF" }
             ));
         }
@@ -284,9 +284,9 @@ impl Tray {
         let enabled = settings.boolean("Enabled");
         let message = if enabled != self.last_enabled {
             Some(if enabled {
-                "Meltype-flash を有効にしました".to_owned()
+                "Meltype-FLASH を有効にしました".to_owned()
             } else {
-                "Meltype-flash を一時停止しました".to_owned()
+                "Meltype-FLASH を一時停止しました".to_owned()
             })
         } else if settings.text("ActiveProfile") != self.last_profile {
             Some(format!(
@@ -302,12 +302,12 @@ impl Tray {
         self.keyboard_mode
             .set_checked(settings.text("Mode") == "Keyboard");
         self.status.set_text(if !enabled {
-            "Meltype-flash: 一時停止".to_owned()
+            "Meltype-FLASH: 一時停止".to_owned()
         } else if settings.text("Mode") == "Keyboard" {
             let shortcut = settings.toggle_shortcuts_label();
-            format!("Meltype-flash キーボード ({shortcut} で入力ON/OFF)")
+            format!("Meltype-FLASH キーボード ({shortcut} で入力ON/OFF)")
         } else {
-            "Meltype-flash IME (Win + Space で Meltype-flash を選んで入力)".to_owned()
+            "Meltype-FLASH IME (Win + Space で Meltype-FLASH を選んで入力)".to_owned()
         });
         if enabled != self.last_enabled {
             self.icon
@@ -361,7 +361,7 @@ impl Tray {
                 windows_services::notify(
                     self.icon.window_handle(),
                     self.guid,
-                    "Meltype-flash",
+                    "Meltype-FLASH",
                     &message,
                 )?;
             }
@@ -402,9 +402,9 @@ impl Tray {
                 match result {
                     Ok(enabled) if self.startup_user_request => actions.push(Action::Status(
                         if enabled {
-                            "Windows の起動時に Meltype-flash を起動します。"
+                            "Windows の起動時に Meltype-FLASH を起動します。"
                         } else {
-                            "Windows の起動時に Meltype-flash を起動しません。"
+                            "Windows の起動時に Meltype-FLASH を起動しません。"
                         }
                         .into(),
                     )),

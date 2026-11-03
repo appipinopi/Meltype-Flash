@@ -182,10 +182,10 @@ fn issue_935_slash_dates_and_today_include_weekdays_and_validate_leap_days() {
 fn issues_959_1020_name_current_version_and_requested_numeric_candidate() {
     let d = Dictionary::bundled();
     assert!(d.candidates("めるたいぷ").contains(&"Meltype".into()));
-    assert!(d.candidates("めるたいぷ").contains(&"Meltype-flash".into()));
+    assert!(d.candidates("めるたいぷ").contains(&"Meltype-FLASH".into()));
     assert!(d
         .candidates("ばーじょん")
-        .contains(&format!("Meltype-flash {}", env!("CARGO_PKG_VERSION"))));
+        .contains(&format!("Meltype-FLASH {}", env!("CARGO_PKG_VERSION"))));
     assert!(d.candidates("いいよこいよ").contains(&"114514".into()));
 }
 

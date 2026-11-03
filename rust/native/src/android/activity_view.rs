@@ -65,7 +65,7 @@ fn build(env: &mut JNIEnv, activity: JObject) -> Result<Value> {
     )?;
     add(env, &scroll, &root)?;
     let title = widget(env, "android/widget/TextView", &activity)?;
-    property(env, &title, "setText", "Meltype-flash 設定")?;
+    property(env, &title, "setText", "Meltype-FLASH 設定")?;
     invoke(env, &title, "setTextSize", "(F)V", &[JValue::Float(24.)])?;
     add(env, &root, &title)?;
     let status = widget(env, "android/widget/TextView", &activity)?;

@@ -117,7 +117,7 @@ impl Lifecycle {
         let mut acknowledge = false;
         if self.welcome {
             ctx.send_viewport_cmd(egui::ViewportCommand::Visible(true));
-            egui::Window::new("Meltype-flash へようこそ").collapsible(false).resizable(false).show(ctx, |ui| {
+            egui::Window::new("Meltype-FLASH へようこそ").collapsible(false).resizable(false).show(ctx, |ui| {
                 ui.label(if env!("CARGO_PKG_VERSION").contains('-') {
                     "共通Rust Coreを使う移植プレビューです。"
                 } else {
@@ -127,14 +127,14 @@ impl Lifecycle {
                 #[cfg(windows)]
                 {
                     ui.label("2. IMEの導入は配布フォルダーの Manage-Windows.ps1 で行います。");
-                    ui.label("3. Windowsの言語設定からMeltype-flash IMEを選択してください。");
+                    ui.label("3. Windowsの言語設定からMeltype-FLASH IMEを選択してください。");
                     ui.label("ZIPを展開・起動しただけではIMEは登録されません。");
                     ui.label("登録なしで使う場合は Start-Portable.ps1 を実行します。入力の切替キーは既定で 半角/全角 または Alt+Backquote です。設定画面で複数登録できます。");
                 }
                 #[cfg(target_os = "linux")]
                 {
                     ui.label("2. Linux配布フォルダーの install.sh で、利用するIBusまたはfcitx5の入力エンジンを導入してください。");
-                    ui.label("3. デスクトップの入力ソース設定でMeltype-flashを追加して選択してください。導入直後に見つからなければ、入力メソッドまたはセッションを再起動します。");
+                    ui.label("3. デスクトップの入力ソース設定でMeltype-FLASHを追加して選択してください。導入直後に見つからなければ、入力メソッドまたはセッションを再起動します。");
                     ui.label("この設定画面を起動しただけでは、入力エンジンの導入・選択は行われません。");
                 }
                 #[cfg(target_os = "macos")]
@@ -155,10 +155,10 @@ impl Lifecycle {
             self.about = crate::dialogs::window(
                 ctx,
                 "flash-about",
-                "Meltype-flash について",
+                "Meltype-FLASH について",
                 [480., 280.],
                 |ui| {
-                    ui.heading("Meltype-flash");
+                    ui.heading("Meltype-FLASH");
                     ui.label(format!("バージョン {} (Rust版)", env!("CARGO_PKG_VERSION")));
                     ui.label("雪解けのように、半角/全角の壁を溶かす日本語入力。");
                     ui.add_space(12.);
@@ -180,11 +180,11 @@ impl Lifecycle {
             self.updates = crate::dialogs::window(
                 ctx,
                 "flash-updates",
-                "Meltype-flash 更新",
+                "Meltype-FLASH 更新",
                 [560., 340.],
                 |ui| {
                     ui.label(format!("現在のバージョン: {}", env!("CARGO_PKG_VERSION")));
-                    ui.label("Meltype-flash のWindows配布を確認します。");
+                    ui.label("Meltype-FLASH のWindows配布を確認します。");
                     ui.add_space(12.);
                     if ui
                         .add_enabled(self.update.is_none(), egui::Button::new("今すぐ更新を確認"))

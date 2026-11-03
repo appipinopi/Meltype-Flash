@@ -8,8 +8,8 @@
 // DLL の版は Meltype.exe の版とは別に、DLL を変えたときだけ上げる
 // (同じ DLL なら入れ直したときに登録し直さない (管理者権限の確認を出さない) ため、アプリの版を埋め込まない)
 VS_VERSION_INFO VERSIONINFO
- FILEVERSION 1,0,0,0
- PRODUCTVERSION 1,0,0,0
+ FILEVERSION 1,0,1,0
+ PRODUCTVERSION 1,0,1,0
  FILEOS VOS_NT_WINDOWS32
  FILETYPE VFT_DLL
 BEGIN
@@ -18,11 +18,11 @@ BEGIN
     BLOCK "041104B0"
     BEGIN
       VALUE "CompanyName", "lnkiai"
-      VALUE "FileDescription", "Meltype-flash IME (TSF)"
-      VALUE "FileVersion", "1.0.0"
+      VALUE "FileDescription", "Meltype-FLASH IME (TSF)"
+      VALUE "FileVersion", "1.0.1"
       VALUE "LegalCopyright", "Copyright (C) 2026 lnkiai. GPL-3.0-or-later"
-      VALUE "ProductName", "Meltype-flash"
-      VALUE "ProductVersion", "1.0.0"
+      VALUE "ProductName", "Meltype-FLASH"
+      VALUE "ProductVersion", "1.0.1"
     END
   END
   BLOCK "VarFileInfo"

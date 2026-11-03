@@ -86,7 +86,7 @@ final class SetupViewController: UIViewController, UITextViewDelegate {
         stack.addArrangedSubview(flickDemo)
         let test = AppStyle.column(spacing: 12)
         test.addArrangedSubview(AppStyle.row([AppStyle.symbol("square.and.pencil"), AppStyle.label("さっそく、書いてみよう", .headline)]))
-        test.addArrangedSubview(AppStyle.label("入力欄で🌐を長押しして、Meltype-flashへ。", .footnote, color: .secondaryLabel))
+        test.addArrangedSubview(AppStyle.label("入力欄で🌐を長押しして、Meltype-FLASHへ。", .footnote, color: .secondaryLabel))
         field.font = .preferredFont(forTextStyle: .body); field.adjustsFontForContentSizeCategory = true
         field.backgroundColor = AppStyle.canvas; field.layer.cornerRadius = 14
         field.textContainerInset = UIEdgeInsets(top: 14, left: 10, bottom: 14, right: 10)
@@ -129,7 +129,7 @@ final class SetupViewController: UIViewController, UITextViewDelegate {
     }
     private func showSetupHelp() {
         let message = Self.hasKeyboardExtension()
-            ? "1. 設定 → 一般 → キーボード → キーボード → 新しいキーボードを追加 → Meltype-flash\n\n2. 入力欄で🌐を長押ししてMeltype-flashを選択。\n\n「設定を開く」はアプリの設定を開きます。「キーボード」があれば、そこからも追加できます。フルアクセスは不要です。"
+            ? "1. 設定 → 一般 → キーボード → キーボード → 新しいキーボードを追加 → Meltype-FLASH\n\n2. 入力欄で🌐を長押ししてMeltype-FLASHを選択。\n\n「設定を開く」はアプリの設定を開きます。「キーボード」があれば、そこからも追加できます。フルアクセスは不要です。"
             : "キーボード拡張が削除されているため、設定から追加できません。iPASideなどの導入ツールで拡張を削除せず、本体と拡張（.appex）の両方を署名できる方法で再導入してください。"
         let alert = UIAlertController(title: "キーボードの追加方法", message: message, preferredStyle: .alert)
         alert.addAction(UIAlertAction(title: "閉じる", style: .default)); present(alert, animated: true)

@@ -1,10 +1,10 @@
-# Meltype-flash
+# Meltype-FLASH
 
-このソースは1.0.0です。[変更と確認範囲](RELEASE-NOTES.md)と[本家1.4.0との差への対応](UPGRADE-1.4.0.md)を参照してください。ChromeOS・iOS・AndroidにはAI変換を搭載しません。Windows TSFのZenzai接続は既定オフの試験実装です。
+このソースは1.0.1です。[変更と確認範囲](RELEASE-NOTES.md)と[本家1.4.0との差への対応](UPGRADE-1.4.0.md)を参照してください。ChromeOS・iOS・AndroidにはAI変換を搭載しません。Windows TSFのZenzai接続は既定オフの試験実装です。
 
 ## リリース本文と配布物の自動作成
 
-GitHub Actionsの **リリース** を `rust` ブランチで実行し、`tag` に次の版（例: `flash-v1.0.0`）を指定します。Cargoの版も対応する `1.0.0` に更新しておく必要があります。比較元は既定の `auto` で現在版より前の最新タグを選びます。
+GitHub Actionsの **リリース** を `rust` ブランチで実行し、`tag` に次の版（例: `flash-v1.0.1`）を指定します。Cargoの版も対応する `1.0.1` に更新しておく必要があります。比較元は既定の `auto` で現在版より前の最新タグを選びます。
 
 Windows・Linux・macOS（Apple Silicon / Intel）・Android・ChromeOS・iOSのビルドと検証が全て成功すると、全OSの配布ファイルを添付したリリースの**下書き**を自動作成します。既存の同じタグのリリースは上書きしません。公開は下書きの内容を確認してから行います。
 
@@ -13,7 +13,7 @@ Windows・Linux・macOS（Apple Silicon / Intel）・Android・ChromeOS・iOSの
 画像は `release-media` ブランチへ保存し、変更されないコミットSHAのURLを本文へ埋め込みます。画像・ベンチマークZIP・レポート・生データ・重複ZIP・単独の説明書やビルド記録はリリースのAssetsへ添付しません。処理の受け渡し用CI成果物は1日保持です。
 
 <!-- meltype-flash-document-banner:start -->
-<p align="center"><img src="../assets/branding/readme/documentation.svg" alt="Meltype-flash — 稲妻のように、言葉の壁を駆け抜ける日本語入力。" width="1000"></p>
+<p align="center"><img src="../assets/branding/readme/documentation.svg" alt="Meltype-FLASH — 稲妻のように、言葉の壁を駆け抜ける日本語入力。" width="1000"></p>
 <!-- meltype-flash-document-banner:end -->
 
 Windows の新しい配布は本家と異なる IME 登録 ID・実行ファイル・保存先を使用します。[名称と共存方針](BRANDING.md)を参照してください。
@@ -55,7 +55,7 @@ Linux IBusのRust版は `bash rust/build-linux.sh` で `linux/build/Meltype-flas
 
 入力ソース用アイコンは元版の `linux/icon.png` をそのまま同梱し、登録XMLにインストール先の絶対パスを記録します。日本語・空白・引用符を含む配置先でも、アイコンの内容と登録パスをインストール試験で照合します。
 
-生成フォルダーで `sudo bash install.sh --system` を明示的に実行すると、`/usr/libexec/meltype-rust/ibus` にプログラムを置き、IBusが通常読み込む `/usr/share/ibus/component/meltype-rust.xml` を登録します。既存の上流版の登録やRustの設定・学習データは置き換えません。IBusの再起動や入力ソースの選択は行わず、サインインし直した後に「Meltype-flash」を選びます。`sudo bash /usr/libexec/meltype-rust/ibus/install.sh --system --uninstall` は専用マーカーと登録名を確認して配布ファイルを削除し、設定・学習と未知のファイルは保持します。`--prefix` は別の絶対パスへの配置用です。登録・削除は一時フォルダーだけで検証しています。
+生成フォルダーで `sudo bash install.sh --system` を明示的に実行すると、`/usr/libexec/meltype-rust/ibus` にプログラムを置き、IBusが通常読み込む `/usr/share/ibus/component/meltype-rust.xml` を登録します。既存の上流版の登録やRustの設定・学習データは置き換えません。IBusの再起動や入力ソースの選択は行わず、サインインし直した後に「Meltype-FLASH」を選びます。`sudo bash /usr/libexec/meltype-rust/ibus/install.sh --system --uninstall` は専用マーカーと登録名を確認して配布ファイルを削除し、設定・学習と未知のファイルは保持します。`--prefix` は別の絶対パスへの配置用です。登録・削除は一時フォルダーだけで検証しています。
 
 管理者権限を使わない `bash install.sh` はユーザーのデータフォルダーへ配置します。ただしIBusはこの登録先を通常は自動で読みません。この方式ではIBus起動前に `IBUS_COMPONENT_PATH` へ表示されたフォルダーとシステムの登録フォルダーを設定する必要があります。削除は `bash install.sh --uninstall` です。
 
@@ -65,7 +65,7 @@ Linux IBusのRust版は `bash rust/build-linux.sh` で `linux/build/Meltype-flas
 
 | OS | ビルド | 残っているOS固有コード・制限 |
 |---|---|---|
-| Windows x64/x86 | `./rust/build-windows.ps1 -WithTip` | Rust単体のTSF DLLとRust worker。MSVCリンカー／Windows SDKで元のアイコン・版情報を結合し、製品DLLにC++ソースをリンクしません。出力は `native/tip/bin/rust-x64` と `rust-x86`。自動インストールしません。Meltype-flash専用のCOM／入力プロファイルIDを使用します。旧Rust版の共有登録は自動変更しません。 |
+| Windows x64/x86 | `./rust/build-windows.ps1 -WithTip` | Rust単体のTSF DLLとRust worker。MSVCリンカー／Windows SDKで元のアイコン・版情報を結合し、製品DLLにC++ソースをリンクしません。出力は `native/tip/bin/rust-x64` と `rust-x86`。自動インストールしません。Meltype-FLASH専用のCOM／入力プロファイルIDを使用します。旧Rust版の共有登録は自動変更しません。 |
 | macOS | `bash rust/build-desktop.sh` | Swift InputMethodKitシェルとazooKey変換エンジンを再利用。出力 `mac/build/Meltype.app`。インストールしません。 |
 | Linux | `bash rust/build-desktop.sh` | Rust IBus実行ファイル。出力 `linux/build/Meltype-flash-linux`。漢字変換には別途C++ Mozcヘルパーが必要です。fcitx5は既存C++アダプターを別途ビルドします。 |
 | Android | [android/README.md](../android/README.md) | Java InputMethodServiceとJNI。補助辞書による変換。 |
@@ -154,7 +154,7 @@ Windowsの「再開できれば未確定入力に戻し、できなければ確�
 - 次の語に応じた直前の曖昧な語の訂正。最大4語まで保持し、削除能力と期待文字列を確認します。キャレット移動、手動選択、学習済みの言語選択を尊重します。共通の日本語を英字にする学習は2回目から有効です。
 - バックアップの作成・検査・復元、学習の全消去・期間指定削除。上流のデータファイルを指定したデータフォルダーから取り込む機能。
 
-設定アプリは `cargo run -p meltype-settings` で起動します。データは上流版と分離して `Meltype-flash` に保存します。Androidはアプリ専用のfilesディレクトリに保存し、バックアップは無効にしています。`MELTYPE_FLASH_DATA_DIR`（旧 `MELTYPE_RUST_DATA_DIR` も明示指定時のみ対応） でデスクトップの保存先を指定できます。日本語フォントが見つからない場合は `MELTYPE_FONT` でフォントファイルを指定してください。
+設定アプリは `cargo run -p meltype-settings` で起動します。データは上流版と分離して `Meltype-FLASH` に保存します。Androidはアプリ専用のfilesディレクトリに保存し、バックアップは無効にしています。`MELTYPE_FLASH_DATA_DIR`（旧 `MELTYPE_RUST_DATA_DIR` も明示指定時のみ対応） でデスクトップの保存先を指定できます。日本語フォントが見つからない場合は `MELTYPE_FONT` でフォントファイルを指定してください。
 
 デスクトップの設定変更・プロファイルの編集は「OK」または×で保存し、「キャンセル」で破棄します。開いている間に他のプロセスが変えた項目は、画面で変更していなければ保持します。プロファイルの変更も名前ごとにマージします。判定テストは保存前の設定を使い、テスト入力の学習はディスクへ保存しません。辞書・定型文などの管理操作は各画面の登録・削除操作で保存します。プロファイルの入出力は元版と同じ `meltype-profile` 形式で、OS標準のファイル選択を使います。
 
@@ -282,7 +282,7 @@ Windowsのクラスファクトリーは、Rustが所有するサービスオブ
 
 Windows配布用MeltypeTip.dllはDll.cppと最小のRustDll.cppだけでリンクする構成にしました。RustDll.cppは絶対パスと制限した依存検索でRust DLLを読み、ネイティブのクラスファクトリー・サービス生成・登録APIへ接続し、ログとDLL保持を受け渡します。従来のTextService.cpp／RustPipe.cpp／Json.cppは配布DLLに含めず、互換SDK試験が-CompatibilityObjectsを明示した際だけオブジェクトを作ります。試験はリンクマップを検査し、旧オブジェクトが配布DLLへ入っていないことを確認します。Rust所有者の入力試験も実際の配布DLLをLoadLibraryし、DllGetClassObject／CreateInstanceから生成する経路へ変更しました。x64/x86でUTF-16編集、確定、外部確定／再開、旧入力欄、フォーカス、終了・再起動、DllCanUnloadNowと最終状態数を確認しています。OSのIME登録は実行しません。DLL入口・ロード・ログのC++は残っており、完全なRust単体DLL化、他OS、全UI一致と実アプリ検証は未完了です。
 
-Windowsの配布用TSF DLLは、現在はRustのcdylibをMeltypeTip.dllとして出力します。DllGetClassObject／DllCanUnloadNow／登録・解除入口、workerの絶対パス、任意のUTF-8ログ、DLL保持もRustで実装し、RustDll.cppを削除しました。製品のリンクマップにはC++のDll／TextService／RustPipe／Jsonオブジェクトを含めません。MSVCリンカーとWindows SDKのリソースコンパイラーは、元のアイコン101と版情報1.0.0.0を結合するために使用します。旧C++実装は上流参照と明示的な互換SDK試験用に残しています。
+Windowsの配布用TSF DLLは、現在はRustのcdylibをMeltypeTip.dllとして出力します。DllGetClassObject／DllCanUnloadNow／登録・解除入口、workerの絶対パス、任意のUTF-8ログ、DLL保持もRustで実装し、RustDll.cppを削除しました。製品のリンクマップにはC++のDll／TextService／RustPipe／Jsonオブジェクトを含めません。MSVCリンカーとWindows SDKのリソースコンパイラーは、元のアイコン101と版情報1.0.1.0を結合するために使用します。旧C++実装は上流参照と明示的な互換SDK試験用に残しています。
 
 サービスから取得した表示属性・列挙子、切離し済みの言語バー、遅延編集セッションも、最後のReleaseと捕捉データの後片付けまでDLLを保持します。候補ウィンドウが残る間は解放を拒否し、解放可能になった時点でウィンドウクラスを解除します。後の起動では再登録します。専用のtsf_server_smoke.pyは、COMの生成／同一性／ロック、子オブジェクトの寿命、候補クラスの解除と再登録、元のアイコンと版情報、私用フォルダーだけへのログを確認します。OSのIME登録・有効化は実行しません。実アプリでの操作、他OSの残るSwift／Java／fcitx5連携と全UI一致の確認は未完了です。上の各段落は移植の段階ごとの記録です。
 

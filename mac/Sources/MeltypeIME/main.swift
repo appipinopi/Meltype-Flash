@@ -6,7 +6,8 @@ import InputMethodKit
 
 if CommandLine.arguments.contains("--version") {
     let version = Bundle.main.object(forInfoDictionaryKey: "CFBundleShortVersionString") as? String ?? "?"
-    print("Meltype \(version)")
+    let name = Bundle.main.object(forInfoDictionaryKey: "CFBundleDisplayName") as? String ?? "Meltype"
+    print("\(name) \(version)")
     exit(0)
 }
 

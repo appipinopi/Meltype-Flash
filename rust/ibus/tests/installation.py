@@ -49,7 +49,7 @@ class Installation(unittest.TestCase):
         self.assertIn("X-Meltype-Flash-IBus=true",self.desktop.read_text(encoding="utf-8"))
         self.assertEqual(self.desktop.stat().st_mode & 0o777,0o644)
         version = subprocess.check_output([command[0], "--version"], text=True)
-        self.assertIn("Meltype-flash IBus", version)
+        self.assertIn("Meltype-FLASH IBus", version)
         self.run_script()  # Reinstall from the bundle is idempotent.
         settings = self.data / "Meltype-flash/config.json"
         settings.write_text('{"Enabled":true}', encoding="utf-8")
@@ -206,7 +206,7 @@ class Installation(unittest.TestCase):
         binary = prefix / "libexec/meltype-flash/ibus/meltype-ibus"
         command = shlex.split(ET.parse(component).findtext("exec"))
         self.assertEqual(command, [str(binary), "--ibus"])
-        self.assertIn("Meltype-flash IBus", subprocess.check_output([str(binary), "--version"], text=True))
+        self.assertIn("Meltype-FLASH IBus", subprocess.check_output([str(binary), "--version"], text=True))
         helper = binary.parent / "mozc/meltype_mozc_helper"
         self.assertTrue(os.access(helper, os.X_OK))
         self.assertEqual((helper.parent / "MOZC-LICENSE.txt").read_text(), "test license")
