@@ -47,7 +47,7 @@ AI変換は搭載しません。デスクトップの設定を読み込んでも
 <a id="インストール"></a>
 <h2><img src="../assets/branding/readme/chromeos/headings/4f36b3b314d8.svg" alt="インストール" width="1000"></h2>
 
-1. [Flash 1.0.0](https://github.com/appipinopi/Meltype-Flash/releases/tag/flash-v1.0.0) から `Meltype-flash-ChromeOS.zip` を取得し、フォルダーへ全体展開します。
+1. [Flash 1.0.1](https://github.com/appipinopi/Meltype-Flash/releases/tag/flash-v1.0.1) から `Meltype-flash-ChromeOS.zip` を取得し、フォルダーへ全体展開します。
 2. ChromeOSの `chrome://extensions` を開き、拡張機能の「デベロッパーモード」を有効にします。
 3. 「パッケージ化されていない拡張機能を読み込む」で、`manifest.json` のあるフォルダーを選びます。
 4. ChromeOSの言語・入力方法の設定からMeltypeを追加し、入力方法として選びます。

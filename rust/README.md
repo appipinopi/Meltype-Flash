@@ -1,10 +1,10 @@
 # Meltype-FLASH
 
-このソースは1.0.0です。[変更と確認範囲](RELEASE-NOTES.md)と[本家1.4.0との差への対応](UPGRADE-1.4.0.md)を参照してください。ChromeOS・iOS・AndroidにはAI変換を搭載しません。Windows TSFのZenzai接続は既定オフの試験実装です。
+このソースは1.0.1です。[変更と確認範囲](RELEASE-NOTES.md)と[本家1.4.0との差への対応](UPGRADE-1.4.0.md)を参照してください。ChromeOS・iOS・AndroidにはAI変換を搭載しません。Windows TSFのZenzai接続は既定オフの試験実装です。
 
 ## リリース本文と配布物の自動作成
 
-GitHub Actionsの **リリース** を `rust` ブランチで実行し、`tag` に次の版（例: `flash-v1.0.0`）を指定します。Cargoの版も対応する `1.0.0` に更新しておく必要があります。比較元は既定の `auto` で現在版より前の最新タグを選びます。
+GitHub Actionsの **リリース** を `rust` ブランチで実行し、`tag` に次の版（例: `flash-v1.0.1`）を指定します。Cargoの版も対応する `1.0.1` に更新しておく必要があります。比較元は既定の `auto` で現在版より前の最新タグを選びます。
 
 Windows・Linux・macOS（Apple Silicon / Intel）・Android・ChromeOS・iOSのビルドと検証が全て成功すると、全OSの配布ファイルを添付したリリースの**下書き**を自動作成します。既存の同じタグのリリースは上書きしません。公開は下書きの内容を確認してから行います。
 
@@ -282,7 +282,7 @@ Windowsのクラスファクトリーは、Rustが所有するサービスオブ
 
 Windows配布用MeltypeTip.dllはDll.cppと最小のRustDll.cppだけでリンクする構成にしました。RustDll.cppは絶対パスと制限した依存検索でRust DLLを読み、ネイティブのクラスファクトリー・サービス生成・登録APIへ接続し、ログとDLL保持を受け渡します。従来のTextService.cpp／RustPipe.cpp／Json.cppは配布DLLに含めず、互換SDK試験が-CompatibilityObjectsを明示した際だけオブジェクトを作ります。試験はリンクマップを検査し、旧オブジェクトが配布DLLへ入っていないことを確認します。Rust所有者の入力試験も実際の配布DLLをLoadLibraryし、DllGetClassObject／CreateInstanceから生成する経路へ変更しました。x64/x86でUTF-16編集、確定、外部確定／再開、旧入力欄、フォーカス、終了・再起動、DllCanUnloadNowと最終状態数を確認しています。OSのIME登録は実行しません。DLL入口・ロード・ログのC++は残っており、完全なRust単体DLL化、他OS、全UI一致と実アプリ検証は未完了です。
 
-Windowsの配布用TSF DLLは、現在はRustのcdylibをMeltypeTip.dllとして出力します。DllGetClassObject／DllCanUnloadNow／登録・解除入口、workerの絶対パス、任意のUTF-8ログ、DLL保持もRustで実装し、RustDll.cppを削除しました。製品のリンクマップにはC++のDll／TextService／RustPipe／Jsonオブジェクトを含めません。MSVCリンカーとWindows SDKのリソースコンパイラーは、元のアイコン101と版情報1.0.0.0を結合するために使用します。旧C++実装は上流参照と明示的な互換SDK試験用に残しています。
+Windowsの配布用TSF DLLは、現在はRustのcdylibをMeltypeTip.dllとして出力します。DllGetClassObject／DllCanUnloadNow／登録・解除入口、workerの絶対パス、任意のUTF-8ログ、DLL保持もRustで実装し、RustDll.cppを削除しました。製品のリンクマップにはC++のDll／TextService／RustPipe／Jsonオブジェクトを含めません。MSVCリンカーとWindows SDKのリソースコンパイラーは、元のアイコン101と版情報1.0.1.0を結合するために使用します。旧C++実装は上流参照と明示的な互換SDK試験用に残しています。
 
 サービスから取得した表示属性・列挙子、切離し済みの言語バー、遅延編集セッションも、最後のReleaseと捕捉データの後片付けまでDLLを保持します。候補ウィンドウが残る間は解放を拒否し、解放可能になった時点でウィンドウクラスを解除します。後の起動では再登録します。専用のtsf_server_smoke.pyは、COMの生成／同一性／ロック、子オブジェクトの寿命、候補クラスの解除と再登録、元のアイコンと版情報、私用フォルダーだけへのログを確認します。OSのIME登録・有効化は実行しません。実アプリでの操作、他OSの残るSwift／Java／fcitx5連携と全UI一致の確認は未完了です。上の各段落は移植の段階ごとの記録です。
 

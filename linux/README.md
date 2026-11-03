@@ -32,7 +32,7 @@ fcitx5アダプターのソースと試験はありますが、公開IBusパッ�
 <a id="動く環境"></a>
 <h2><img src="../assets/branding/readme/linux/headings/f378dd1f4672.svg" alt="動く環境" width="1000"></h2>
 
-- x64向けのdeb・rpm・tar.gz。ARM64版は1.0.0に添付していません。
+- x64向けのdeb・rpm・tar.gz。ARM64版は1.0.1に添付していません。
 - debはUbuntu 24.04以降向け、rpmはglibc 2.39以降のRPM系環境向けです。
 - IBusを使用するデスクトップ環境。GNOMEの「日本語入力」などへ追加します。
 - システムのIBus / GLibと、設定画面を動かすGUI環境。
@@ -46,7 +46,7 @@ fcitx5を使う環境は、下記のソースビルドと開発状況を参照�
 <a id="ubuntu向けdeb"></a>
 <h3><img src="../assets/branding/readme/linux/headings/a3beabf6efc7.svg" alt="Ubuntu向けdeb" width="1000"></h3>
 
-[1.0.0](https://github.com/appipinopi/Meltype-Flash/releases/tag/flash-v1.0.0)のAssetsから、環境に合う形式を1つ選びます。同じ1.0.0のLinuxバイナリを収めています。
+[1.0.1](https://github.com/appipinopi/Meltype-Flash/releases/tag/flash-v1.0.1)のAssetsから、環境に合う形式を1つ選びます。同じ1.0.1のLinuxバイナリを収めています。
 
 **Ubuntu 24.04以降（deb）**
 

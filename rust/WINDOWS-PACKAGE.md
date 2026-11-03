@@ -49,7 +49,7 @@ Windows ARM64向けのネイティブ配布を案内するものではありま�
 <a id="セットアップ版"></a>
 <h3><img src="../assets/branding/readme/windows/headings/f361bd6b29a2.svg" alt="セットアップ版" width="1000"></h3>
 
-[1.0.0](https://github.com/appipinopi/Meltype-Flash/releases/tag/flash-v1.0.0)の`Meltype-flash-Windows-x64-setup.exe`を実行し、管理者権限の確認後に導入します。公開済みZIPと同じ1.0.0バイナリを収めています。
+[1.0.1](https://github.com/appipinopi/Meltype-Flash/releases/tag/flash-v1.0.1)の`Meltype-flash-Windows-x64-setup.exe`を実行し、管理者権限の確認後に導入します。公開済みZIPと同じ1.0.1バイナリを収めています。
 
 この追加セットアップのインストール動作テストとベンチマーク再測定は未実施です。導入後はOSの入力ソースからMeltype-FLASHを選び、開いていたアプリを起動し直してください。
 
@@ -58,7 +58,7 @@ Windows ARM64向けのネイティブ配布を案内するものではありま�
 <a id="zipから登録する"></a>
 <h3><img src="../assets/branding/readme/windows/headings/b7962eec4c15.svg" alt="ZIPから登録する" width="1000"></h3>
 
-[1.0.0](https://github.com/appipinopi/Meltype-Flash/releases/tag/flash-v1.0.0)の`Meltype-flash-Windows-x64.zip`を全体展開します。
+[1.0.1](https://github.com/appipinopi/Meltype-Flash/releases/tag/flash-v1.0.1)の`Meltype-flash-Windows-x64.zip`を全体展開します。
 管理者PowerShellで、そのフォルダーから実行します。
 
 ```powershell

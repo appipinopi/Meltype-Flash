@@ -41,7 +41,7 @@ macOSの入力ソースとして動く、Rust版Meltype-FLASHです。共通Core
 <a id="インストール"></a>
 <h2><img src="../assets/branding/readme/mac/headings/4f36b3b314d8.svg" alt="インストール" width="1000"></h2>
 
-1. [Flash 1.0.0](https://github.com/appipinopi/Meltype-Flash/releases/tag/flash-v1.0.0) から、CPUに合うmacOS ZIPを取得します。
+1. [Flash 1.0.1](https://github.com/appipinopi/Meltype-Flash/releases/tag/flash-v1.0.1) から、CPUに合うmacOS ZIPを取得します。
 2. **ZIP全体を展開**します。`Meltype.app` だけでなく、インストール用のcommand・shellスクリプトも同じフォルダーに必要です。
 3. `Install Meltype.command` を実行します。macOSが許可を求める場合は、システム設定の「プライバシーとセキュリティ」で取得元を確認して操作してください。
 4. インストーラーの終了後、入力メニューでMeltypeを選びます。初回に出てこなければログアウト・ログインして確認します。

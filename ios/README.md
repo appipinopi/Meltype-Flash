@@ -43,7 +43,7 @@ iOS側が標準キーボードへ切り替えるパスワード欄や、外部�
 <a id="インストール"></a>
 <h2><img src="../assets/branding/readme/ios/headings/4f36b3b314d8.svg" alt="インストール" width="1000"></h2>
 
-[Flash 1.0.0](https://github.com/appipinopi/Meltype-Flash/releases/tag/flash-v1.0.0) の配布から、目的に合うものを選びます。
+[Flash 1.0.1](https://github.com/appipinopi/Meltype-Flash/releases/tag/flash-v1.0.1) の配布から、目的に合うものを選びます。
 
 | ファイル | 用途 |
 | --- | --- |
