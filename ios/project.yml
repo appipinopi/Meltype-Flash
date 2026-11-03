@@ -83,7 +83,7 @@ targets:
   KeyboardTests:
     type: bundle.unit-test
     platform: iOS
-    sources: [KeyboardViewController.swift, KeyboardEditing.swift, FlickKey.swift, KeyboardAppearance.swift, KeyboardTests.swift]
+    sources: [KeyboardViewController.swift, KeyboardEditing.swift, FlickKey.swift, KeyboardAppearance.swift, MeltypeTextView.swift, KeyboardTests.swift]
     settings:
       base:
         GENERATE_INFOPLIST_FILE: YES

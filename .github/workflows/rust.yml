@@ -603,7 +603,7 @@ jobs:
           if-no-files-found: ignore
   macos-sdk:
     if: ${{ !inputs.packages_only && inputs.platform != 'ios' }}
-    runs-on: macos-15
+    runs-on: macos-26
     timeout-minutes: 15
     steps:
       - uses: actions/checkout@v5
@@ -647,7 +647,7 @@ jobs:
           if-no-files-found: ignore
   production-swift:
     if: ${{ !inputs.packages_only && inputs.platform != 'ios' }}
-    runs-on: macos-15
+    runs-on: macos-26
     timeout-minutes: 30
     steps:
       - uses: actions/checkout@v5
@@ -682,7 +682,7 @@ jobs:
           if-no-files-found: ignore
   ios:
     if: ${{ !inputs.packages_only }}
-    runs-on: macos-15
+    runs-on: macos-26
     timeout-minutes: 45
     steps:
       - uses: actions/checkout@v5

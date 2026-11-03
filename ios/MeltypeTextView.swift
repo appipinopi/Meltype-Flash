@@ -10,10 +10,12 @@ final class MeltypeTextView: UITextView {
     var hasPendingInput: (() -> Bool)?
     private var previousLegacyItems: [UIMenuItem]?
 
-    func selectionMenu(suggestedActions: [UIMenuElement]) -> UIMenu {
+    func selectionMenu(for range: NSRange, suggestedActions: [UIMenuElement]) -> UIMenu {
         var actions: [UIMenuElement] = []
         let enabled = markedTextRange == nil && canConvertSelection?() != false
-        if selectedRange.length > 0 {
+        // メニュー要求時は、UITextViewの選択状態より先に範囲が渡されることがある。
+        let length = (text ?? "").utf16.count
+        if range.location >= 0, range.location <= length, range.length > 0, range.length <= length - range.location {
             actions.append(UIAction(title: "Meltypeで変換", image: UIImage(systemName: "character.cursor.ibeam"), attributes: enabled ? [] : .disabled) { [weak self] _ in self?.meltypeConvertSelection() })
             actions.append(UIAction(title: "選択範囲を削除", image: UIImage(systemName: "delete.left"), attributes: enabled ? .destructive : [.destructive, .disabled]) { [weak self] _ in self?.meltypeDeleteSelection() })
         }

@@ -45,6 +45,24 @@ final class TestKeyboard: KeyboardViewController {
 }
 final class KeyboardTests: XCTestCase {
     @MainActor
+    func testSelectionMenuUsesRequestedRangeBeforeSelectionIsUpdated() {
+        let field = MeltypeTextView()
+        field.text = "nihongo"
+        field.selectedRange = NSRange(location: 0, length: 0)
+        let copy = UIAction(title: "Copy") { _ in }
+        let requested = NSRange(location: 0, length: 7)
+        let menu = field.selectionMenu(for: requested, suggestedActions: [copy])
+        XCTAssertEqual(menu.children.compactMap { ($0 as? UIAction)?.title }, ["Meltypeで変換", "選択範囲を削除", "Copy"])
+        XCTAssertEqual(field.selectedRange, NSRange(location: 0, length: 0))
+        XCTAssertEqual(field.text, "nihongo")
+        for range in [NSRange(location: 0, length: 0), NSRange(location: NSNotFound, length: 1), NSRange(location: 6, length: 2)] {
+            XCTAssertEqual(field.selectionMenu(for: range, suggestedActions: [copy]).children.count, 1)
+        }
+        field.canConvertSelection = { false }
+        let disabled = field.selectionMenu(for: requested, suggestedActions: [copy])
+        XCTAssertTrue((disabled.children[0] as? UIAction)?.attributes.contains(.disabled) == true)
+    }
+    @MainActor
     func testSelectionDeleteCopyCutAndExplicitPaste() {
         let keyboard = TestKeyboard(); keyboard.loadViewIfNeeded()
         XCTAssertEqual(keyboard.clipboardReads, 0)
