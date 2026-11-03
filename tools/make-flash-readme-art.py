@@ -77,8 +77,8 @@ class Art:
 
     def common_logo(self):
         self.save(OUT / "logo.svg", 1000, 240, "Meltype-FLASH — Mと稲妻のロゴ",
-                  '<svg x="90" y="16" width="820" height="208" viewBox="140 182 1904 484">'
-                  f'<image width="2172" height="724" href="data:image/png;base64,{self.logo}"/></svg>')
+                  self.symbol(70, 36, 170)
+                  + self.text("Meltype-FLASH", 270, 150, 76, max_width=660))
 
     def hero(self, key, name, sub, detail, _):
         body = (f'<rect x="1" y="1" width="998" height="298" rx="24" fill="{INK}"/>'
