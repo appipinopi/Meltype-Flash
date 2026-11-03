@@ -124,13 +124,13 @@ class ServerTests(unittest.TestCase):
             self.assertIn('Activate (',text);self.assertIn('無効: セキュリティ保護された画面',text)
             self.assertRegex(text,r'\d{2}:\d{2}:\d{2}\.\d{3} \[')
         finally:release(root)
-    def test_version_resource_preserves_original_dll_version(self):
+    def test_version_resource_matches_flash_1_0_1_dll_version(self):
         version=c.WinDLL('version');version.GetFileVersionInfoSizeW.argtypes=[c.c_wchar_p,c.POINTER(U32)];version.GetFileVersionInfoSizeW.restype=U32
         version.GetFileVersionInfoW.argtypes=[c.c_wchar_p,U32,U32,P];version.VerQueryValueW.argtypes=[P,c.c_wchar_p,c.POINTER(P),c.POINTER(U32)]
         unused=U32();size=version.GetFileVersionInfoSizeW(str(self.path),c.byref(unused));self.assertGreater(size,0)
         buffer=c.create_string_buffer(size);self.assertTrue(version.GetFileVersionInfoW(str(self.path),0,size,buffer))
         info=P();count=U32();self.assertTrue(version.VerQueryValueW(buffer,'\\',c.byref(info),c.byref(count)));self.assertGreaterEqual(count.value,52)
-        fields=c.cast(info,c.POINTER(U32));self.assertEqual(fields[0],0xfeef04bd);self.assertEqual((fields[2],fields[3]),(0x10000,0))
+        fields=c.cast(info,c.POINTER(U32));self.assertEqual(fields[0],0xfeef04bd);self.assertEqual((fields[2],fields[3]),(0x10000,0x10000))
     def test_transport_supervisor_prevents_unload_until_os_thread_exit(self):
         api=self.native
         api.meltype_tip_transport_create.argtypes=[c.c_char_p];api.meltype_tip_transport_create.restype=P
