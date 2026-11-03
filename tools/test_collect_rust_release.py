@@ -1,3 +1,5 @@
+# SPDX-License-Identifier: GPL-3.0-or-later
+# Copyright (C) 2026 appipinopi
 import importlib.util
 from pathlib import Path
 import tempfile
@@ -13,6 +15,8 @@ class CollectionTests(unittest.TestCase):
         paths = [
             'release-windows/Meltype-flash-Windows-x64.zip',
             'release-linux/Meltype-flash-Linux-x64.tar.gz',
+            'release-linux/Meltype-flash-Linux-x64.deb',
+            'release-linux/Meltype-flash-Linux-x64.rpm',
             'release-macos-arm64/Meltype-flash-macOS-arm64.zip',
             'release-macos-x64/Meltype-flash-macOS-x64.zip',
             'Meltype-ChromeOS-preview/chromeos-preview.zip',
@@ -35,8 +39,8 @@ class CollectionTests(unittest.TestCase):
             output = Path(directory) / 'output'
             self.fixture(source)
             release.collect(source, output)
-            self.assertEqual(len(list(output.iterdir())), 10)
-            self.assertEqual(len((output / 'SHA256SUMS.txt').read_text().splitlines()), 9)
+            self.assertEqual(len(list(output.iterdir())), 12)
+            self.assertEqual(len((output / 'SHA256SUMS.txt').read_text().splitlines()), 11)
             self.assertEqual((output / 'Meltype-flash-Android-debug.apk').read_bytes(), b'fixture')
             self.assertFalse((output / 'README-iOS.md').exists())
 
@@ -66,6 +70,16 @@ class CollectionTests(unittest.TestCase):
             with self.assertRaises(ValueError):
                 release.collect(source, output)
             self.assertFalse(output.exists())
+
+    def test_missing_linux_format_prevents_staging(self):
+        for name in ('Meltype-flash-Linux-x64.deb', 'Meltype-flash-Linux-x64.rpm'):
+            with self.subTest(name=name), tempfile.TemporaryDirectory() as directory:
+                source, output = Path(directory) / 'inputs', Path(directory) / 'output'
+                self.fixture(source)
+                (source / 'release-linux' / name).unlink()
+                with self.assertRaises(ValueError):
+                    release.collect(source, output)
+                self.assertFalse(output.exists())
 
     def test_benchmark_images_are_not_collected(self):
         with tempfile.TemporaryDirectory() as directory:

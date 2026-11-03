@@ -32,7 +32,8 @@ fcitx5アダプターのソースと試験はありますが、公開IBusパッ�
 <a id="動く環境"></a>
 <h2><img src="../assets/branding/readme/linux/headings/f378dd1f4672.svg" alt="動く環境" width="1000"></h2>
 
-- Ubuntu 24.04以降向けに作成したx64 / ARM64パッケージ。
+- x64向けのdeb・rpm・tar.gz。ARM64版は1.0.0に添付していません。
+- debはUbuntu 24.04以降向け、rpmはglibc 2.39以降のRPM系環境向けです。
 - IBusを使用するデスクトップ環境。GNOMEの「日本語入力」などへ追加します。
 - システムのIBus / GLibと、設定画面を動かすGUI環境。
 
@@ -45,9 +46,27 @@ fcitx5を使う環境は、下記のソースビルドと開発状況を参照�
 <a id="ubuntu向けdeb"></a>
 <h3><img src="../assets/branding/readme/linux/headings/a3beabf6efc7.svg" alt="Ubuntu向けdeb" width="1000"></h3>
 
-1.0.0ではdebとARM64版を添付していません。次のx64向けtar.gzを使ってください。
+[1.0.0](https://github.com/appipinopi/Meltype-Flash/releases/tag/flash-v1.0.0)のAssetsから、環境に合う形式を1つ選びます。同じ1.0.0のLinuxバイナリを収めています。
 
-[1.0.0](https://github.com/appipinopi/Meltype-Flash/releases/tag/flash-v1.0.0)の`Meltype-flash-Linux-x64.tar.gz`を全体展開し、`Meltype-flash-linux`フォルダーで実行します。
+**Ubuntu 24.04以降（deb）**
+
+`Meltype-flash-Linux-x64.deb`をダウンロードしたフォルダーで実行します。依存パッケージはaptが解決します。
+
+```sh
+sudo apt install ./Meltype-flash-Linux-x64.deb
+```
+
+**RPM系環境（glibc 2.39以降）**
+
+`Meltype-flash-Linux-x64.rpm`をダウンロードしたフォルダーで実行します。依存パッケージはdnfが解決します。
+
+```sh
+sudo dnf install ./Meltype-flash-Linux-x64.rpm
+```
+
+**tar.gzから導入する場合**
+
+`Meltype-flash-Linux-x64.tar.gz`を全体展開し、`Meltype-flash-linux`フォルダーで実行します。
 
 ```sh
 bash install.sh
@@ -111,7 +130,13 @@ debで導入した場合:
 sudo apt remove meltype-flash
 ```
 
-ZIPの `--system` で導入した場合:
+rpmで導入した場合:
+
+```sh
+sudo dnf remove meltype-flash
+```
+
+tar.gzの `--system` で導入した場合:
 
 ```sh
 sudo bash /usr/libexec/meltype-flash/ibus/install.sh --system --uninstall

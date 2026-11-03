@@ -22,6 +22,7 @@ PACKAGES = (
     "Meltype-flash-Android-debug.apk", "Meltype-flash-ChromeOS.zip",
     "Meltype-flash-iOS-unsigned.ipa", "Meltype-flash-iOS-Simulator-arm64.zip",
     "Meltype-flash-iOS-source.zip",
+    "Meltype-flash-Linux-x64.deb", "Meltype-flash-Linux-x64.rpm",
 )
 DOCUMENTS = ("LICENSE", "THIRD-PARTY-NOTICES.md", "SHA256SUMS.txt")
 
@@ -53,6 +54,24 @@ def normalize_markdown(text):
     text = text.replace("\r", "")
     text = re.sub(r"(?m)^(\|[^\n]*\|)\n+(?=\|)", r"\1\n", text)
     return re.sub(r"\n{3,}", "\n\n", text).strip() + "\n"
+
+
+def collapse_details(body):
+    """変更一覧と測定結果を閉じ、配布先と確認範囲を先に表示する。"""
+    for heading, following, summary in (
+        ("## 変更内容", "## ビルドと確認範囲", "▶ 詳細な変更内容"),
+        ("## ベンチマーク", None, "▶ ベンチマーク"),
+    ):
+        before, content = body.split(heading + "\n", 1)
+        if following:
+            content, after = content.split(following + "\n", 1)
+            after = following + "\n" + after
+        else:
+            after = ""
+        if not content.lstrip().startswith("<details>"):
+            content = f"\n<details>\n<summary>{summary}</summary>\n\n{content.strip()}\n\n</details>\n\n"
+        body = before + heading + "\n" + content + after
+    return normalize_markdown(body)
 
 
 def validate_assets(directory):
@@ -115,7 +134,7 @@ def compose_body(tag, sha, benchmark, media_sha, changes):
              "", "## 配布と導入", "", "|OS|配布ファイル|使い方|", "|---|---|---|"]
     platforms = [
         ("Windows x64", PACKAGES[0:1], "rust/WINDOWS-PACKAGE.md"),
-        ("Linux x64", PACKAGES[1:2], "linux/README.md"),
+        ("Linux x64", PACKAGES[1:2] + PACKAGES[9:11], "linux/README.md"),
         ("macOS Apple Silicon / Intel", PACKAGES[2:4], "mac/README.md"),
         ("Android", PACKAGES[4:5], "android/README.md"),
         ("ChromeOS", PACKAGES[5:6], "chromeos/README.md"),
@@ -126,6 +145,7 @@ def compose_body(tag, sha, benchmark, media_sha, changes):
         rows.append(f"|{os_name}|{links}|[導入手順](https://github.com/{REPO}/blob/{sha}/{guide})|")
     rows += ["", "iOSのIPAは未署名です。実機へ入れるには自分のApple IDでの署名が必要です。Simulator ZIPとソースZIPは開発用です。",
              "Androidはdebug署名、macOSはアドホック署名です。ChromeOSは通常のデスクトップChrome用IMEではありません。",
+             "LinuxのdebはUbuntu 24.04以降向け、rpmはglibc 2.39以降のRPM系環境向けです。apt・dnfでの導入手順はLinuxの案内を参照してください。",
              "各配布ファイルのSHA256は添付のSHA256SUMS.txtで確認できます。", "", "## ベンチマーク", ""]
     rows += [re.sub(r"(?m)^(#+) ", r"\1# ", benchmark),
              "GitHub共有Windowsランナー上の共通Coreの測定です。全OSの入力遅延や常駐IME全体の性能を示すものではありません。", "",
@@ -136,7 +156,7 @@ def compose_body(tag, sha, benchmark, media_sha, changes):
         for name in names:
             rows += [f"![{name}](https://raw.githubusercontent.com/{REPO}/{media_sha}/{tag}/{name})", ""]
     rows += ["測定レポート・画像・生データのダウンロード用アセットは添付していません。", ""]
-    body = normalize_markdown("\n".join(rows))
+    body = collapse_details(normalize_markdown("\n".join(rows)))
     if re.search(r"\]\((?!https://)[^)]+\)", body):
         raise ValueError("本文にローカルファイルへのリンクがあります")
     return title, body

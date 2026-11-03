@@ -133,7 +133,7 @@ jobs:
       - uses: Swatinem/rust-cache@v2
         with:
           shared-key: rust-release-linux
-      - run: sudo apt-get update && sudo apt-get install -y libibus-1.0-dev ibus gir1.2-ibus-1.0 python3-gi dbus-x11 xvfb fonts-noto-cjk libxkbcommon-x11-0
+      - run: sudo apt-get update && sudo apt-get install -y libibus-1.0-dev ibus gir1.2-ibus-1.0 python3-gi dbus-x11 xvfb fonts-noto-cjk libxkbcommon-x11-0 rpm dpkg-dev cpio
       - run: cargo test --workspace --locked
       - run: bash rust/build-linux.sh
       - name: Validate packaged IBus engine
@@ -141,10 +141,20 @@ jobs:
           python3 rust/ibus/tests/installation.py target/release/meltype-ibus
           MELTYPE_IBUS_TEST_INSTALLED=1 xvfb-run -a dbus-run-session -- /usr/bin/python3 rust/ibus/tests/integration.py target/release/meltype-ibus
           cp linux/build/Meltype-flash-linux.tar.gz Meltype-flash-Linux-x64.tar.gz
+      - name: Assemble Debian and RPM packages from the same Linux payload
+        run: |
+          VERSION=$(python3 -c 'import tomllib; print(tomllib.load(open("Cargo.toml", "rb"))["workspace"]["package"]["version"])')
+          python3 rust/package-linux.py linux/build/Meltype-flash-linux linux/build --version "$VERSION" --arch amd64 --formats deb rpm
+          cp linux/build/meltype-flash_*_amd64.deb Meltype-flash-Linux-x64.deb
+          cp linux/build/meltype-flash-*-1.x86_64.rpm Meltype-flash-Linux-x64.rpm
+          python3 tools/ci/verify-linux-packages.py --bundle linux/build/Meltype-flash-linux --deb Meltype-flash-Linux-x64.deb --rpm Meltype-flash-Linux-x64.rpm --version "$VERSION" --arch amd64
       - uses: actions/upload-artifact@v4
         with:
           name: release-linux
-          path: Meltype-flash-Linux-x64.tar.gz
+          path: |
+            Meltype-flash-Linux-x64.tar.gz
+            Meltype-flash-Linux-x64.deb
+            Meltype-flash-Linux-x64.rpm
           if-no-files-found: error
   macos:
     needs: validate
