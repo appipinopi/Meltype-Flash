@@ -93,10 +93,34 @@ jobs:
           if (-not $redist) { throw 'Redistributable CRT directory missing' }
           python rust/package-windows.py --settings target/x86_64-pc-windows-msvc/release/meltype-flash.exe --cli target/x86_64-pc-windows-msvc/release/meltype-rs.exe --worker-x64 target/x86_64-pc-windows-msvc/release/meltype-tip-worker.exe --worker-x86 target/i686-pc-windows-msvc/release/meltype-tip-worker.exe --redist-root $redist.FullName --output dist/Meltype-flash-Windows-x64
           if ($LASTEXITCODE -ne 0) { throw 'Package audit failed' }
+      - name: Assemble Windows setup with preinstalled Inno Setup
+        shell: pwsh
+        env:
+          RELEASE_TAG: ${{ inputs.tag }}
+        run: |
+          $ErrorActionPreference = 'Stop'
+          if ($env:RELEASE_TAG -notmatch '^flash-v(?<core>\d+\.\d+\.\d+)(?:-preview\.(?<preview>\d+))?$') { throw 'Flashのタグを指定してください。' }
+          $version = $Matches.core
+          if ($Matches.preview) { $version += '-pre.' + $Matches.preview }
+          $candidates = @(
+            (Join-Path ${env:ProgramFiles(x86)} 'Inno Setup 6/ISCC.exe'),
+            (Join-Path ${env:ProgramFiles(x86)} 'Inno Setup 7/ISCC.exe'),
+            (Join-Path $env:ProgramFiles 'Inno Setup 6/ISCC.exe'),
+            (Join-Path $env:ProgramFiles 'Inno Setup 7/ISCC.exe')
+          ) + @(Get-Command ISCC.exe -ErrorAction SilentlyContinue | Select-Object -ExpandProperty Source)
+          $compiler = $candidates | Where-Object { Test-Path -LiteralPath $_ -PathType Leaf } | Select-Object -First 1
+          if (-not $compiler) { throw 'プリインストール済みInno Setupがありません。追加インストールは行いません。' }
+          $source = (Resolve-Path -LiteralPath dist/Meltype-flash-Windows-x64).Path
+          $output = (Resolve-Path -LiteralPath dist).Path
+          & $compiler "/DAppVersion=$version" "/DSourceDir=$source" "/DOutputDir=$output" packaging/Meltype-flash.iss
+          if ($LASTEXITCODE -ne 0) { throw 'セットアップEXEのコンパイルに失敗しました。' }
+          Copy-Item -LiteralPath "dist/Meltype-flash-$version-setup.exe" -Destination dist/Meltype-flash-Windows-x64-setup.exe
       - uses: actions/upload-artifact@v4
         with:
           name: release-windows
-          path: dist/Meltype-flash-Windows-x64.zip
+          path: |
+            dist/Meltype-flash-Windows-x64.zip
+            dist/Meltype-flash-Windows-x64-setup.exe
           if-no-files-found: error
       - name: Compare upstream 1.4.0, previous and current Rust on the same Windows runner
         timeout-minutes: 40
