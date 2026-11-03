@@ -136,7 +136,7 @@ final class SetupViewController: UIViewController, UITextViewDelegate {
     }
     @available(iOS 16.0, *)
     func textView(_ textView: UITextView, editMenuForTextIn range: NSRange, suggestedActions: [UIMenuElement]) -> UIMenu? {
-        (textView as? MeltypeTextView)?.selectionMenu(suggestedActions: suggestedActions)
+        (textView as? MeltypeTextView)?.selectionMenu(for: range, suggestedActions: suggestedActions)
     }
     func textViewDidChange(_ textView: UITextView) { placeholder.isHidden = !textView.text.isEmpty }
     @objc private func openAppearance() { navigationController?.pushViewController(AppearanceViewController(), animated: true) }

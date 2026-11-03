@@ -15,9 +15,11 @@ final class AppUITests: XCTestCase {
         XCTAssertTrue(demo.waitForExistence(timeout: 10)); demo.tap()
         let ka = app.buttons["flick-か"]
         XCTAssertTrue(ka.waitForExistence(timeout: 5))
-        for offset in [CGVector(dx: -30, dy: 0), CGVector(dx: 0, dy: -30), CGVector(dx: 30, dy: 0), CGVector(dx: 0, dy: 30)] {
+        for (offset, expected) in [(CGVector(dx: -30, dy: 0), "き"), (CGVector(dx: 0, dy: -30), "きく"), (CGVector(dx: 30, dy: 0), "きくけ"), (CGVector(dx: 0, dy: 30), "きくけこ")] {
             let start = ka.coordinate(withNormalizedOffset: CGVector(dx: 0.5, dy: 0.5))
             start.press(forDuration: 0.05, thenDragTo: start.withOffset(offset))
+            XCTAssertEqual(app.staticTexts["preedit"].label, expected)
+            XCTAssertTrue(app.navigationBars["フリックを試す"].exists)
         }
         ka.tap()
         app.buttons["flick-は"].tap()
@@ -31,6 +33,31 @@ final class AppUITests: XCTestCase {
         XCTAssertTrue(app.buttons["q"].exists)
         app.buttons["かなフリックに切替"].tap()
         XCTAssertTrue(app.buttons["flick-あ"].exists)
+        app.navigationBars.buttons.element(boundBy: 0).tap()
+        XCTAssertTrue(app.buttons["open-flick-demo"].waitForExistence(timeout: 5))
+    }
+    func testDemoAllowsBackGestureOutsideFlickKeys() {
+        let app = XCUIApplication()
+        app.launch(); app.swipeUp()
+        app.buttons["open-flick-demo"].tap()
+        let heading = app.staticTexts["タップで「あ」、左へ「い」。"]
+        XCTAssertTrue(heading.waitForExistence(timeout: 5))
+        let start: XCUICoordinate
+        let end: XCUICoordinate
+        if #available(iOS 26.0, *) {
+            start = heading.coordinate(withNormalizedOffset: CGVector(dx: 0.05, dy: 0.5))
+            end = heading.coordinate(withNormalizedOffset: CGVector(dx: 0.95, dy: 0.5))
+        } else {
+            start = app.coordinate(withNormalizedOffset: CGVector(dx: 0.001, dy: 0.35))
+            end = app.coordinate(withNormalizedOffset: CGVector(dx: 0.95, dy: 0.35))
+        }
+        start.press(forDuration: 0.05, thenDragTo: end)
+        XCTAssertTrue(app.buttons["open-flick-demo"].waitForExistence(timeout: 5))
+        app.navigationBars.buttons["背景・テーマ"].tap()
+        XCTAssertTrue(app.buttons["choose-background"].waitForExistence(timeout: 5))
+        let edge = app.coordinate(withNormalizedOffset: CGVector(dx: 0.001, dy: 0.35))
+        edge.press(forDuration: 0.05, thenDragTo: app.coordinate(withNormalizedOffset: CGVector(dx: 0.95, dy: 0.35)))
+        XCTAssertTrue(app.buttons["open-settings"].waitForExistence(timeout: 5))
     }
     private func nativeMenuAction(_ names: [String], in app: XCUIApplication) {
         for _ in 0..<8 {

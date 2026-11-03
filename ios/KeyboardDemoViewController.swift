@@ -42,8 +42,9 @@ private final class DemoKeyboard: KeyboardViewController {
     override var initialFlickLayout: Bool? { true }
     override var allowsSystemKeyboardSwitch: Bool { false }
 }
-final class KeyboardDemoViewController: UIViewController, UITextViewDelegate {
+final class KeyboardDemoViewController: UIViewController, UITextViewDelegate, UIGestureRecognizerDelegate {
     private let keyboard = DemoKeyboard()
+    private let flickPan = UIPanGestureRecognizer()
     override func viewDidLoad() {
         super.viewDidLoad(); title = "フリックを試す"
         let column = AppStyle.scrollColumn(in: self)
@@ -68,9 +69,50 @@ final class KeyboardDemoViewController: UIViewController, UITextViewDelegate {
         column.addArrangedSubview(keyboard.view); keyboard.didMove(toParent: self)
         column.addArrangedSubview(AppStyle.label("アプリ内のお試し入力です。ほかのアプリで使うには、設定からキーボードを追加してください。", .footnote, color: .secondaryLabel))
     }
+    override func viewWillAppear(_ animated: Bool) {
+        super.viewWillAppear(animated)
+        configureFlickPriority()
+    }
+    override func viewDidAppear(_ animated: Bool) {
+        super.viewDidAppear(animated)
+        configureFlickPriority()
+    }
+    private func configureFlickPriority() {
+        if #available(iOS 26.0, *), navigationController?.interactiveContentPopGestureRecognizer != nil {
+            if flickPan.view == nil {
+                flickPan.delegate = self
+                flickPan.cancelsTouchesInView = false
+                flickPan.delaysTouchesBegan = false
+                flickPan.delaysTouchesEnded = false
+                keyboard.view.addGestureRecognizer(flickPan)
+            }
+            flickPan.isEnabled = true
+        }
+    }
+    override func viewDidDisappear(_ animated: Bool) {
+        super.viewDidDisappear(animated)
+        flickPan.isEnabled = false
+    }
+    func gestureRecognizer(_ gestureRecognizer: UIGestureRecognizer, shouldReceive touch: UITouch) -> Bool {
+        var target = touch.view
+        while let current = target, current !== keyboard.view {
+            if current is FlickKey { return true }
+            target = current.superview
+        }
+        return false
+    }
+    func gestureRecognizer(_ gestureRecognizer: UIGestureRecognizer, shouldRecognizeSimultaneouslyWith other: UIGestureRecognizer) -> Bool {
+        if #available(iOS 26.0, *), other === navigationController?.interactiveContentPopGestureRecognizer { return false }
+        return true
+    }
+    func gestureRecognizer(_ gestureRecognizer: UIGestureRecognizer, shouldBeRequiredToFailBy other: UIGestureRecognizer) -> Bool {
+        // キー上のフリックを優先し、画面全体の「戻る」操作とは競合させない。
+        if #available(iOS 26.0, *) { return other === navigationController?.interactiveContentPopGestureRecognizer }
+        return false
+    }
     @available(iOS 16.0, *)
     func textView(_ textView: UITextView, editMenuForTextIn range: NSRange, suggestedActions: [UIMenuElement]) -> UIMenu? {
-        (textView as? MeltypeTextView)?.selectionMenu(suggestedActions: suggestedActions)
+        (textView as? MeltypeTextView)?.selectionMenu(for: range, suggestedActions: suggestedActions)
     }
     func textViewDidChangeSelection(_ textView: UITextView) {
         keyboard.selectionWillChange(nil); keyboard.selectionDidChange(nil)
