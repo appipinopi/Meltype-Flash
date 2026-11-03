@@ -116,8 +116,14 @@ final class AppUITests: XCTestCase {
         let input = app.textViews["input-test"]
         input.tap(); input.typeText("nihongo")
         XCTAssertEqual(input.value as? String, "nihongo")
+        // キーボード表示後に親をスクロールし、隠れた入力欄への座標タップを防ぐ。
+        let scroll = app.scrollViews.firstMatch
+        scroll.swipeUp()
         // 入力欄の中央は空白の場合があるため、先頭行の文字を選ぶ。
-        input.coordinate(withNormalizedOffset: .zero).withOffset(CGVector(dx: 30, dy: 24)).doubleTap()
+        let word = input.coordinate(withNormalizedOffset: .zero).withOffset(CGVector(dx: 30, dy: 24))
+        XCTAssertTrue(scroll.frame.contains(word.screenPoint))
+        word.doubleTap()
+        XCTAssertEqual(input.value as? String, "nihongo")
         nativeMenuAction(["Meltypeで変換"], in: app)
         XCTAssertTrue(app.sheets.buttons["ニホンゴ"].waitForExistence(timeout: 5))
         app.sheets.buttons["ニホンゴ"].tap()
