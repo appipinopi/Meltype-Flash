@@ -115,7 +115,9 @@ final class AppUITests: XCTestCase {
         let app = XCUIApplication(); app.launch(); app.swipeUp()
         let input = app.textViews["input-test"]
         input.tap(); input.typeText("nihongo")
-        input.doubleTap()
+        XCTAssertEqual(input.value as? String, "nihongo")
+        // 入力欄の中央は空白の場合があるため、先頭行の文字を選ぶ。
+        input.coordinate(withNormalizedOffset: .zero).withOffset(CGVector(dx: 30, dy: 24)).doubleTap()
         nativeMenuAction(["Meltypeで変換"], in: app)
         XCTAssertTrue(app.sheets.buttons["ニホンゴ"].waitForExistence(timeout: 5))
         app.sheets.buttons["ニホンゴ"].tap()
