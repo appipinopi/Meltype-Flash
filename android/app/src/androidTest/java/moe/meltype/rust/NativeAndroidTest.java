@@ -496,7 +496,7 @@ public final class NativeAndroidTest {
             assertTrue(frame.content instanceof ScrollView);LinearLayout root=(LinearLayout)((ScrollView)frame.content).getChildAt(0);
             assertEquals(4,root.getChildCount());assertEquals(LinearLayout.VERTICAL,root.getOrientation());
             int padding=(int)(16*frame.getResources().getDisplayMetrics().density);assertEquals(padding,root.getPaddingLeft());assertEquals(padding,root.getPaddingBottom());
-            assertEquals("Meltype-flash 設定",((TextView)root.getChildAt(0)).getText().toString());assertSame(frame.status,root.getChildAt(1));assertSame(frame.body,root.getChildAt(3));
+            assertEquals("Meltype-FLASH 設定",((TextView)root.getChildAt(0)).getText().toString());assertSame(frame.status,root.getChildAt(1));assertSame(frame.body,root.getChildAt(3));
             Spinner navigation=(Spinner)root.getChildAt(2);assertEquals(6,navigation.getAdapter().getCount());
             String[] labels={"入力設定","ユーザー辞書","定型文","学習","プロファイル","バックアップ・診断"};
             for(int page=0;page<6;page++) {
