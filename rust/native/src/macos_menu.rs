@@ -86,7 +86,7 @@ mod native {
                 true,
             ),
             (
-                "Meltype のデータフォルダを開く (設定・ユーザー辞書)",
+                "Meltype-FLASH のデータフォルダを開く (設定・ユーザー辞書)",
                 sel!(openDataFolder:),
                 false,
                 false,
