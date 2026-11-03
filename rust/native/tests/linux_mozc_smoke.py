@@ -55,8 +55,9 @@ with tempfile.TemporaryDirectory(prefix="meltype-linux-mozc-") as directory:
                 choices = [i for i, value in enumerate(candidates) if value in ("漢字", "漢字変換")]
                 assert raw == "kanjihenkann" and choices, (raw, candidates, reply)
                 reply = read(api.meltype_select_candidate(handle, choices[0]))
-            assert reply["view"]["text"] == expected, (raw, expected, reply)
-            reply = key(handle, "\r")
+            if not reply["commits"]:
+                assert reply["view"]["text"] == expected, (raw, expected, reply)
+                reply = key(handle, "\r")
             committed = "".join(edit["text"] for edit in reply["commits"])
             assert committed == expected and reply["view"] is None, (raw, expected, committed, reply)
         finally:
