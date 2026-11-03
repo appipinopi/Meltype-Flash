@@ -101,17 +101,17 @@ body:
     id: version
     attributes:
       label: Meltype-FLASH の版
-      description: "使用中の版をリリースタグから選択してください。開発版はそのほかを選び、詳細に記入してください。"
+      description: "使用中の版を公開リリースの版番号から選択してください。開発版はそのほかを選び、詳細に記入してください。"
       options:
-        - "flash-v1.0.1"
-        - "flash-v1.0.0"
-        - "flash-v0.1.0-preview.7"
-        - "flash-v0.1.0-preview.6"
-        - "flash-v0.1.0-preview.5"
-        - "flash-v0.1.0-preview.4"
-        - "flash-v0.1.0-preview.3"
-        - "flash-v0.1.0-preview.2"
-        - "rust-v0.1.0-preview.1"
+        - "1.0.1"
+        - "1.0.0"
+        - "0.1.0-pre.7"
+        - "0.1.0-pre.6"
+        - "0.1.0-pre.5"
+        - "0.1.0-pre.4"
+        - "0.1.0-pre.3"
+        - "0.1.0-pre.2"
+        - "0.1.0-pre.1"
         - "そのほか / 開発版"
         - "分からない"
     validations:

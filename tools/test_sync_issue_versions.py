@@ -18,9 +18,16 @@ class VersionFormTests(unittest.TestCase):
             updated = versions.update(text, ["flash-v1.0.1", "flash-v1.0.0"])
             self.assertTrue(updated.startswith(before))
             self.assertTrue(updated.endswith(after))
-            self.assertIn('        - "flash-v1.0.1"\n        - "flash-v1.0.0"', updated)
+            self.assertIn('        - "1.0.1"\n        - "1.0.0"', updated)
             self.assertIn('        - "そのほか / 開発版"', updated)
             self.assertEqual(updated, versions.update(updated, ["flash-v1.0.1", "flash-v1.0.0"]))
+
+    def test_preview_values_match_versions_prefilled_by_the_app(self):
+        form = (versions.ROOT / ".github/ISSUE_TEMPLATE" / versions.FORMS[0]).read_text(encoding="utf-8")
+        updated = versions.update(form, ["flash-v0.1.0-preview.7", "rust-v0.1.0-preview.1"])
+        self.assertIn('        - "0.1.0-pre.7"', updated)
+        self.assertIn('        - "0.1.0-pre.1"', updated)
+        self.assertNotIn('"flash-v', updated)
 
     def test_missing_version_does_not_silently_modify_a_different_field(self):
         with self.assertRaises(ValueError):

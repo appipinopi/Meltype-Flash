@@ -13,12 +13,16 @@ FORMS = ("1-bug.yml", "2-misdetection.yml")
 
 
 def update(text, tags):
+    # アプリの報告URLはCargoの版番号をversionへ渡す。選択肢も同じ値にする。
+    values = list(dict.fromkeys(
+        re.sub(r"^(?:flash|rust)-v", "", tag).replace("-preview.", "-pre.") for tag in tags
+    ))
     block = (
         "  - type: dropdown\n    id: version\n    attributes:\n"
         "      label: Meltype-FLASH の版\n"
-        '      description: "使用中の版をリリースタグから選択してください。開発版はそのほかを選び、詳細に記入してください。"\n'
+        '      description: "使用中の版を公開リリースの版番号から選択してください。開発版はそのほかを選び、詳細に記入してください。"\n'
         "      options:\n"
-        + "".join("        - " + json.dumps(tag, ensure_ascii=False) + "\n" for tag in tags)
+        + "".join("        - " + json.dumps(tag, ensure_ascii=False) + "\n" for tag in values)
         + '        - "そのほか / 開発版"\n        - "分からない"\n'
         "    validations:\n      required: true\n\n"
     )
