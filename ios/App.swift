@@ -41,7 +41,7 @@ final class SetupViewController: UIViewController, UITextViewDelegate {
 
     override func viewDidLoad() {
         super.viewDidLoad()
-        let brand = AppStyle.label("Meltype", .headline)
+        let brand = AppStyle.label("Meltype-FLASH", .headline)
         navigationItem.leftBarButtonItem = UIBarButtonItem(customView: brand)
         navigationItem.backButtonDisplayMode = .minimal
         navigationItem.rightBarButtonItem = UIBarButtonItem(image: UIImage(systemName: "slider.horizontal.3"), style: .plain, target: self, action: #selector(openAppearance))
@@ -87,6 +87,8 @@ final class SetupViewController: UIViewController, UITextViewDelegate {
         let test = AppStyle.column(spacing: 12)
         test.addArrangedSubview(AppStyle.row([AppStyle.symbol("square.and.pencil"), AppStyle.label("さっそく、書いてみよう", .headline)]))
         test.addArrangedSubview(AppStyle.label("入力欄で🌐を長押しして、Meltype-FLASHへ。", .footnote, color: .secondaryLabel))
+        // 入力テストはOSのスペル修正候補で選択メニューを置き換えない。
+        field.autocorrectionType = .no; field.spellCheckingType = .no
         field.font = .preferredFont(forTextStyle: .body); field.adjustsFontForContentSizeCategory = true
         field.backgroundColor = AppStyle.canvas; field.layer.cornerRadius = 14
         field.textContainerInset = UIEdgeInsets(top: 14, left: 10, bottom: 14, right: 10)

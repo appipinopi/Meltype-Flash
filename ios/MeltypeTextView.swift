@@ -16,7 +16,7 @@ final class MeltypeTextView: UITextView {
         // メニュー要求時は、UITextViewの選択状態より先に範囲が渡されることがある。
         let length = (text ?? "").utf16.count
         if range.location >= 0, range.location <= length, range.length > 0, range.length <= length - range.location {
-            actions.append(UIAction(title: "Meltypeで変換", image: UIImage(systemName: "character.cursor.ibeam"), attributes: enabled ? [] : .disabled) { [weak self] _ in self?.meltypeConvertSelection() })
+            actions.append(UIAction(title: "Meltype-FLASHで変換", image: UIImage(systemName: "character.cursor.ibeam"), attributes: enabled ? [] : .disabled) { [weak self] _ in self?.meltypeConvertSelection() })
             actions.append(UIAction(title: "選択範囲を削除", image: UIImage(systemName: "delete.left"), attributes: enabled ? .destructive : [.destructive, .disabled]) { [weak self] _ in self?.meltypeDeleteSelection() })
         }
         if hasPendingInput?() == true {
@@ -32,7 +32,7 @@ final class MeltypeTextView: UITextView {
             if #available(iOS 16.0, *) { } else {
                 previousLegacyItems = UIMenuController.shared.menuItems
                 UIMenuController.shared.menuItems = [
-                    UIMenuItem(title: "Meltypeで変換", action: #selector(meltypeConvertSelection)),
+                    UIMenuItem(title: "Meltype-FLASHで変換", action: #selector(meltypeConvertSelection)),
                     UIMenuItem(title: "選択範囲を削除", action: #selector(meltypeDeleteSelection)),
                     UIMenuItem(title: "未確定を取り消す", action: #selector(meltypeCancelComposition))
                 ]
@@ -67,7 +67,7 @@ final class MeltypeTextView: UITextView {
             notice.addAction(UIAlertAction(title: "閉じる", style: .default)); owner.present(notice, animated: true)
             return
         }
-        let menu = UIAlertController(title: "Meltypeで変換", message: "候補を選ぶと選択範囲だけを置き換えます。", preferredStyle: .actionSheet)
+        let menu = UIAlertController(title: "Meltype-FLASHで変換", message: "候補を選ぶと選択範囲だけを置き換えます。", preferredStyle: .actionSheet)
         for (index, candidate) in conversion.candidates.prefix(20).enumerated() {
             menu.addAction(UIAlertAction(title: candidate, style: .default) { _ in conversion.commit(index: index) })
         }
