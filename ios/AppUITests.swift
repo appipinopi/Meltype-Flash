@@ -89,9 +89,9 @@ final class AppUITests: XCTestCase {
         let output = app.textViews["flick-demo-output"]
         XCTAssertEqual(output.value as? String, "にほんご")
         output.doubleTap()
-        XCTAssertTrue(app.menuItems["Meltypeで変換"].waitForExistence(timeout: 5))
+        XCTAssertTrue(app.menuItems["Meltype-FLASHで変換"].waitForExistence(timeout: 5))
         capture("native-selection-menu")
-        nativeMenuAction(["Meltypeで変換"], in: app)
+        nativeMenuAction(["Meltype-FLASHで変換"], in: app)
         // UIKit selects 「にほん」 within 「にほんご」: preserve the unselected suffix.
         XCTAssertTrue(app.sheets.buttons["ニホン"].waitForExistence(timeout: 5))
         XCTAssertEqual(output.value as? String, "にほんご")
@@ -124,7 +124,7 @@ final class AppUITests: XCTestCase {
         XCTAssertTrue(scroll.frame.contains(word.screenPoint))
         word.doubleTap()
         XCTAssertEqual(input.value as? String, "nihongo")
-        nativeMenuAction(["Meltypeで変換"], in: app)
+        nativeMenuAction(["Meltype-FLASHで変換"], in: app)
         XCTAssertTrue(app.sheets.buttons["ニホンゴ"].waitForExistence(timeout: 5))
         app.sheets.buttons["ニホンゴ"].tap()
         XCTAssertEqual(input.value as? String, "ニホンゴ")
