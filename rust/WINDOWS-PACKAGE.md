@@ -49,7 +49,9 @@ Windows ARM64向けのネイティブ配布を案内するものではありま�
 <a id="セットアップ版"></a>
 <h3><img src="../assets/branding/readme/windows/headings/f361bd6b29a2.svg" alt="セットアップ版" width="1000"></h3>
 
-1.0.0ではセットアップEXEは添付していません。次のZIPからの導入手順を使ってください。
+[1.0.0](https://github.com/appipinopi/Meltype-Flash/releases/tag/flash-v1.0.0)の`Meltype-flash-Windows-x64-setup.exe`を実行し、管理者権限の確認後に導入します。公開済みZIPと同じ1.0.0バイナリを収めています。
+
+この追加セットアップのインストール動作テストとベンチマーク再測定は未実施です。導入後はOSの入力ソースからMeltype-flashを選び、開いていたアプリを起動し直してください。
 
 警告やセキュリティ製品の検出が出た場合は、配布元・ファイル名・チェックサムを確認し、保護機能の無効化を前提に進めないでください。
 

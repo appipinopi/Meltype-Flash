@@ -23,6 +23,7 @@ PACKAGES = (
     "Meltype-flash-iOS-unsigned.ipa", "Meltype-flash-iOS-Simulator-arm64.zip",
     "Meltype-flash-iOS-source.zip",
     "Meltype-flash-Linux-x64.deb", "Meltype-flash-Linux-x64.rpm",
+    "Meltype-flash-Windows-x64-setup.exe",
 )
 DOCUMENTS = ("LICENSE", "THIRD-PARTY-NOTICES.md", "SHA256SUMS.txt")
 
@@ -133,7 +134,7 @@ def compose_body(tag, sha, benchmark, media_sha, changes):
     rows += ["", "Windows・macOSはCI専用試験、Linuxは隔離IBus、Androidはエミュレーター、ChromeOSは実WASM・模擬IME API、iOSはiOS Simulatorで検証しています。通常アプリ・物理端末でのIME入力確認とは別です。",
              "", "## 配布と導入", "", "|OS|配布ファイル|使い方|", "|---|---|---|"]
     platforms = [
-        ("Windows x64", PACKAGES[0:1], "rust/WINDOWS-PACKAGE.md"),
+        ("Windows x64", PACKAGES[0:1] + PACKAGES[11:12], "rust/WINDOWS-PACKAGE.md"),
         ("Linux x64", PACKAGES[1:2] + PACKAGES[9:11], "linux/README.md"),
         ("macOS Apple Silicon / Intel", PACKAGES[2:4], "mac/README.md"),
         ("Android", PACKAGES[4:5], "android/README.md"),

@@ -11,6 +11,7 @@ import sys
 def collect(source: Path, output: Path):
     assets = {
         'Meltype-flash-Windows-x64.zip': 'release-windows/Meltype-flash-Windows-x64.zip',
+        'Meltype-flash-Windows-x64-setup.exe': 'release-windows/Meltype-flash-Windows-x64-setup.exe',
         'Meltype-flash-Linux-x64.tar.gz': 'release-linux/Meltype-flash-Linux-x64.tar.gz',
         'Meltype-flash-Linux-x64.deb': 'release-linux/Meltype-flash-Linux-x64.deb',
         'Meltype-flash-Linux-x64.rpm': 'release-linux/Meltype-flash-Linux-x64.rpm',
