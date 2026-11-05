@@ -14,12 +14,18 @@ pub fn label(key: &str) -> &str {
     field(key).and_then(|f| f["label"].as_str()).unwrap_or(key)
 }
 pub fn description(key: &str) -> &str {
+    if cfg!(target_os = "linux") && key == "ConversionEngine" {
+        return "LinuxではMozcでかな漢字変換します。";
+    }
     field(key)
         .and_then(|f| f["description"].as_str())
         .filter(|text| !text.is_empty())
         .unwrap_or_else(|| label(key))
 }
 pub fn choice<'a>(key: &str, value: &'a str) -> &'a str {
+    if cfg!(target_os = "linux") && key == "ConversionEngine" {
+        return "Mozc";
+    }
     field(key)
         .and_then(|f| f["type"].as_str())
         .and_then(|typ| data()["enums"][typ][value].as_str())

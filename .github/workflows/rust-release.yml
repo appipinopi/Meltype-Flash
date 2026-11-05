@@ -122,36 +122,17 @@ jobs:
             dist/Meltype-flash-Windows-x64.zip
             dist/Meltype-flash-Windows-x64-setup.exe
           if-no-files-found: error
-      - name: Compare upstream 1.4.0, previous and current Rust on the same Windows runner
-        timeout-minutes: 40
-        shell: pwsh
-        env:
-          PYTHONUTF8: '1'
-          BENCHMARK_BASELINE: ${{ inputs.benchmark_baseline }}
-        run: |
-          git fetch --no-tags https://github.com/yksr-melt/Meltype.git 46db6ca2f941eb9580f4d5ed103ee0bee71111c7
-          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
-          python tools/compare-rust-benchmarks.py --build --with-csharp --csharp-ref 46db6ca2f941eb9580f4d5ed103ee0bee71111c7 --fetch-tags --baseline-ref "$env:BENCHMARK_BASELINE" --output dist/release-benchmark --samples 3 --warmups 1 --rounds 9
-          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
-          python -m pip install --disable-pip-version-check matplotlib==3.10.8 numpy==2.4.2
-          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
-          python tools/plot-windows-benchmark.py dist/release-benchmark/report.json --output dist/release-benchmark/charts
-          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
-      - uses: actions/upload-artifact@v4
-        with:
-          name: release-benchmark
-          retention-days: 1
-          if-no-files-found: error
-          path: |
-            dist/release-benchmark/report.json
-            dist/release-benchmark/charts/*.png
-            dist/release-benchmark/charts/README.md
-            dist/release-benchmark/charts/summary.json
   linux:
     needs: validate
     runs-on: ubuntu-24.04
     timeout-minutes: 60
     steps:
+      - uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: '10.0.x'
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
       - uses: actions/checkout@v5
       - uses: dtolnay/rust-toolchain@stable
       - uses: Swatinem/rust-cache@v2
@@ -176,6 +157,7 @@ jobs:
           python3 rust/ibus/tests/installation.py target/release/meltype-ibus
           MELTYPE_IBUS_TEST_INSTALLED=1 xvfb-run -a dbus-run-session -- /usr/bin/python3 rust/ibus/tests/integration.py target/release/meltype-ibus
           cp linux/build/Meltype-flash-linux.tar.gz Meltype-flash-Linux-x64.tar.gz
+      - run: python3 tools/test_linux_update.py
       - name: Assemble Debian and RPM packages from the same Linux payload
         run: |
           VERSION=$(python3 -c 'import tomllib; print(tomllib.load(open("Cargo.toml", "rb"))["workspace"]["package"]["version"])')
@@ -191,6 +173,27 @@ jobs:
             Meltype-flash-Linux-x64.deb
             Meltype-flash-Linux-x64.rpm
           if-no-files-found: error
+      - name: Compare upstream 1.4.0, previous and current Rust on the same Linux runner
+        timeout-minutes: 40
+        shell: bash
+        env:
+          PYTHONUTF8: '1'
+          BENCHMARK_BASELINE: ${{ inputs.benchmark_baseline }}
+        run: |
+          git fetch --no-tags https://github.com/yksr-melt/Meltype.git 46db6ca2f941eb9580f4d5ed103ee0bee71111c7
+          python tools/compare-rust-benchmarks.py --build --with-csharp --csharp-ref 46db6ca2f941eb9580f4d5ed103ee0bee71111c7 --fetch-tags --baseline-ref "$BENCHMARK_BASELINE" --output dist/release-benchmark --samples 3 --warmups 1 --rounds 9
+          python -m pip install --disable-pip-version-check matplotlib==3.10.8 numpy==2.4.2
+          python tools/plot-windows-benchmark.py dist/release-benchmark/report.json --output dist/release-benchmark/charts
+      - uses: actions/upload-artifact@v4
+        with:
+          name: release-benchmark
+          retention-days: 1
+          if-no-files-found: error
+          path: |
+            dist/release-benchmark/report.json
+            dist/release-benchmark/charts/*.png
+            dist/release-benchmark/charts/README.md
+            dist/release-benchmark/charts/summary.json
   macos:
     needs: validate
     strategy:

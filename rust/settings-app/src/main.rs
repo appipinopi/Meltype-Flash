@@ -1486,6 +1486,7 @@ fn choices(key: &str) -> Option<&'static [&'static str]> {
             "ToutenFullWidthPeriod",
         ],
         "Mode" => &["Keyboard", "Tsf"],
+        "ConversionEngine" if cfg!(target_os = "linux") => &["Mozc"],
         "ConversionEngine" => &["Hybrid", "Mozc", "System"],
         "CompositionPlacement" => &["Overlay", "BelowCaret", "AboveCaret"],
         "CompositionSize" => &["Auto", "Small", "Medium", "Large", "ExtraLarge", "Huge"],
