@@ -9,7 +9,45 @@ pub fn editor(ui: &mut egui::Ui, key: &str, value: &mut Value, settings: &Settin
         return false;
     };
     let old = rows.clone();
+    if cfg!(target_os = "linux") && key == "AppRules" {
+        ui.label("LinuxのアプリID（例: code、org.gnome.Terminal）を指定してください。Windows用ルールは非表示です。");
+    }
     let kinds = key == "AppKinds";
+    if cfg!(target_os = "linux") && !kinds && ui.button("Linuxの標準アプリを追加").clicked()
+    {
+        for name in [
+            "code",
+            "code-oss",
+            "codium",
+            "code-insiders",
+            "cursor",
+            "windsurf",
+            "zed",
+            "sublime_text",
+            "gnome-terminal",
+            "konsole",
+            "kitty",
+            "foot",
+            "wezterm",
+            "alacritty",
+        ] {
+            if rows.iter().any(|row| row["Process"] == name) {
+                continue;
+            }
+            let legacy = meltype_core::app_identity::legacy_rule(
+                name,
+                meltype_core::app_identity::Platform::Linux,
+            );
+            let mut rule = rows
+                .iter()
+                .rev()
+                .find(|row| Some(row["Process"].as_str().unwrap_or("")) == legacy)
+                .cloned()
+                .unwrap_or_else(|| json!({"Enabled":true,"Profile":"Code"}));
+            rule["Process"] = json!(name);
+            rows.push(rule);
+        }
+    }
     let mut remove = None;
     let mut names = vec![
         ("General".to_owned(), "一般".to_owned()),
@@ -46,6 +84,14 @@ pub fn editor(ui: &mut egui::Ui, key: &str, value: &mut Value, settings: &Settin
             }
             ui.end_row();
             for (index, row) in rows.iter_mut().enumerate() {
+                if cfg!(target_os = "linux")
+                    && !kinds
+                    && row["Process"]
+                        .as_str()
+                        .is_some_and(|n| n.to_ascii_lowercase().ends_with(".exe"))
+                {
+                    continue;
+                }
                 ui.push_id(index, |ui| {
                     let mut name = row[if kinds { "Name" } else { "Process" }]
                         .as_str()

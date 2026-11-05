@@ -31,6 +31,7 @@ def check_payload(root, bundle, version):
                 for path in bundle.rglob('*') if path.is_file()}
     expected = {TARGET + '/' + name for name in original}
     expected.add('usr/share/ibus/component/meltype-flash.xml')
+    expected.add('usr/share/metainfo/meltype-flash.metainfo.xml')
     expected.update('usr/share/applications/' + name for name in DESKTOPS)
     actual = {path.relative_to(root).as_posix() for path in root.rglob('*') if path.is_file()}
     assert actual == expected, ('unexpected owned files', actual ^ expected)

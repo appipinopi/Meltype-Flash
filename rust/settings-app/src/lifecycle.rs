@@ -74,21 +74,27 @@ impl Lifecycle {
                 ),
                 None => "配布一覧を取得できませんでした。ブラウザーから確認できます。".into(),
             };
-            #[cfg(not(windows))]
+            #[cfg(target_os = "linux")]
+            let message = linux_update(false);
+            #[cfg(not(any(windows, target_os = "linux")))]
             let message = "このOSではブラウザーから配布一覧を確認してください。".to_owned();
             let _ = sender.send(message);
         });
     }
-    #[cfg(windows)]
+    #[cfg(any(windows, target_os = "linux"))]
     fn apply_update(&mut self) {
         if self.update.is_some() {
             return;
         }
         let (sender, receiver) = std::sync::mpsc::channel();
         self.update = Some(receiver);
-        self.update_status = "更新を実行しています。Windowsの管理者確認が表示されます。".into();
+        self.update_status = "更新を準備しています。インストール画面で確認してください。".into();
         std::thread::spawn(move || {
-            let _ = sender.send(run_updater("Apply"));
+            #[cfg(windows)]
+            let message = run_updater("Apply");
+            #[cfg(target_os = "linux")]
+            let message = linux_update(true);
+            let _ = sender.send(message);
         });
     }
     pub fn show(&mut self, ctx: &egui::Context, store: &Store) -> bool {
@@ -112,7 +118,7 @@ impl Lifecycle {
             }
         }
         let mut check_updates = false;
-        #[cfg(windows)]
+        #[cfg(any(windows, target_os = "linux"))]
         let mut apply_update = false;
         let mut acknowledge = false;
         if self.welcome {
@@ -184,7 +190,11 @@ impl Lifecycle {
                 [560., 340.],
                 |ui| {
                     ui.label(format!("現在のバージョン: {}", env!("CARGO_PKG_VERSION")));
-                    ui.label("Meltype-FLASH のWindows配布を確認します。");
+                    ui.label(if cfg!(target_os = "linux") {
+                        "Linux用パッケージを確認し、システムのインストール画面で更新します。"
+                    } else {
+                        "Windows配布を確認します。"
+                    });
                     ui.add_space(12.);
                     if ui
                         .add_enabled(self.update.is_none(), egui::Button::new("今すぐ更新を確認"))
@@ -196,7 +206,7 @@ impl Lifecycle {
                         ui.label(&self.update_status);
                     }
                     ui.hyperlink_to("配布一覧を開く", RELEASES);
-                    #[cfg(windows)]
+                    #[cfg(any(windows, target_os = "linux"))]
                     if ui
                         .add_enabled(
                             self.update.is_none(),
@@ -206,7 +216,9 @@ impl Lifecycle {
                     {
                         apply_update = true;
                     }
-                    ui.weak("インストールを実行するとWindowsの管理者確認が表示されます。");
+                    ui.weak("インストール時はシステムによる確認が表示されます。");
+                    #[cfg(target_os = "linux")]
+                    ui.label("削除はアプリセンターのインストール済み一覧から行えます。ZIP版はdeb / rpm版を導入してください。");
                     ui.add_space(12.);
                     ui.with_layout(egui::Layout::right_to_left(egui::Align::Center), |ui| {
                         ui.button("閉じる").clicked()
@@ -218,7 +230,7 @@ impl Lifecycle {
         if check_updates {
             self.check_updates();
         }
-        #[cfg(windows)]
+        #[cfg(any(windows, target_os = "linux"))]
         if apply_update {
             self.apply_update();
         }
@@ -329,5 +341,27 @@ mod tests {
             lifecycle.update.is_none(),
             "AutoUpdate=false must not start a request"
         );
+    }
+}
+
+#[cfg(target_os = "linux")]
+fn linux_update(apply: bool) -> String {
+    match std::process::Command::new("python3")
+        .args([
+            "-c",
+            include_str!("../../update-linux.py"),
+            if apply { "apply" } else { "check" },
+            env!("CARGO_PKG_VERSION"),
+        ])
+        .output()
+    {
+        Ok(output) if output.status.success() => {
+            String::from_utf8_lossy(&output.stdout).trim().to_owned()
+        }
+        Ok(output) => format!(
+            "更新できませんでした: {}",
+            String::from_utf8_lossy(&output.stderr).trim()
+        ),
+        Err(error) => format!("更新を起動できませんでした: {error}"),
     }
 }

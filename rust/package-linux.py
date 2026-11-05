@@ -15,7 +15,7 @@ import zipfile
 TARGET = '/usr/libexec/meltype-flash/ibus'
 EXECUTABLES = ('meltype-ibus', 'meltype-flash', 'meltype-rs', 'install.sh')
 # GUIがdlopenするライブラリはELFの自動依存検出に現れない。
-DEB_DEPENDS = ('ibus, zenity, libc6 (>= 2.39), libgcc-s1, libstdc++6, libibus-1.0-5, '
+DEB_DEPENDS = ('ibus, zenity, python3, xdg-utils, libc6 (>= 2.39), libgcc-s1, libstdc++6, libibus-1.0-5, '
                'libglib2.0-0t64 | libglib2.0-0, libdbus-1-3, '
                'libx11-6, libx11-xcb1, libxcursor1, libxi6, libxkbcommon0, '
                'libxkbcommon-x11-0, libegl1, libgl1, libwayland-client0, libwayland-egl1')
@@ -45,6 +45,22 @@ def stage_payload(bundle, root):
         '[Desktop Entry]\nType=Application\nName=Meltype-FLASH 設定\n'
         f'Exec={TARGET}/meltype-flash\nIcon={TARGET}/icon.png\n'
         'Categories=Settings;Utility;\nTerminal=false\n', encoding='utf-8')
+    metainfo = root / 'usr/share/metainfo'
+    metainfo.mkdir(parents=True, exist_ok=True)
+    (metainfo / 'meltype-flash.metainfo.xml').write_text(
+        '<?xml version="1.0" encoding="UTF-8"?>\n'
+        '<component type="desktop-application">\n'
+        '<id>io.github.appipinopi.MeltypeFlash</id>\n'
+        '<pkgname>meltype-flash</pkgname>\n'
+        '<metadata_license>CC0-1.0</metadata_license>\n'
+        '<project_license>GPL-3.0-or-later</project_license>\n'
+        '<name>Meltype-FLASH</name>\n'
+        '<summary>Japanese input method and settings</summary>\n'
+        '<description><p>Japanese input with automatic language detection and Mozc conversion.</p></description>\n'
+        '<launchable type="desktop-id">meltype-flash.desktop</launchable>\n'
+        '<url type="homepage">https://github.com/appipinopi/Meltype-Flash</url>\n'
+        '<provides><binary>meltype-flash</binary></provides>\n'
+        '</component>\n', encoding='utf-8')
     # GNOMEはIBus名からこの固定名を探す（upstream #489）。
     (desktop / 'ibus-setup-meltype-flash.desktop').write_text(
         (desktop / 'meltype-flash.desktop').read_text(encoding='utf-8')
@@ -94,7 +110,7 @@ def make_rpm(root, destination, version, arch, stage):
         f'Name: meltype-flash\nVersion: {rpm_version}\nRelease: 1\n'
         'Summary: Meltype-FLASH Rust Japanese input method\nLicense: GPL-3.0-or-later\n'
         'URL: https://github.com/appipinopi/Meltype-Flash\n'
-        f'Requires: ibus, zenity, glibc >= 2.39, {required}\nRecommends: xdg-desktop-portal\n'
+        f'Requires: ibus, zenity, python3, xdg-utils, glibc >= 2.39, {required}\nRecommends: xdg-desktop-portal\n'
         '\n%description\nRust IBus engine and settings.\n'
         'Sign out and select Meltype-FLASH after installation.\n'
         '\n%install\nmkdir -p %{buildroot}\n'
