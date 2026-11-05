@@ -338,6 +338,28 @@ fn run_updater(action: &str) -> String {
     })();
     result.unwrap_or_else(|error| error)
 }
+#[cfg(target_os = "linux")]
+fn linux_update(apply: bool) -> String {
+    match std::process::Command::new("python3")
+        .args([
+            "-c",
+            include_str!("../../update-linux.py"),
+            if apply { "apply" } else { "check" },
+            env!("CARGO_PKG_VERSION"),
+        ])
+        .output()
+    {
+        Ok(output) if output.status.success() => {
+            String::from_utf8_lossy(&output.stdout).trim().to_owned()
+        }
+        Ok(output) => format!(
+            "更新できませんでした: {}",
+            String::from_utf8_lossy(&output.stderr).trim()
+        ),
+        Err(error) => format!("更新を起動できませんでした: {error}"),
+    }
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -372,27 +394,5 @@ mod tests {
             lifecycle.update.is_none(),
             "AutoUpdate=false must not start a request"
         );
-    }
-}
-
-#[cfg(target_os = "linux")]
-fn linux_update(apply: bool) -> String {
-    match std::process::Command::new("python3")
-        .args([
-            "-c",
-            include_str!("../../update-linux.py"),
-            if apply { "apply" } else { "check" },
-            env!("CARGO_PKG_VERSION"),
-        ])
-        .output()
-    {
-        Ok(output) if output.status.success() => {
-            String::from_utf8_lossy(&output.stdout).trim().to_owned()
-        }
-        Ok(output) => format!(
-            "更新できませんでした: {}",
-            String::from_utf8_lossy(&output.stderr).trim()
-        ),
-        Err(error) => format!("更新を起動できませんでした: {error}"),
     }
 }
