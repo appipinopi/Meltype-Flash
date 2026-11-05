@@ -154,7 +154,7 @@ jobs:
           MELTYPE_MOZC_HELPER="$PWD/linux/build/Meltype-flash-linux/mozc/meltype_mozc_helper" python3 rust/native/tests/linux_mozc_smoke.py target/release/libmeltype_native.so
       - name: Validate packaged IBus engine
         run: |
-          python3 rust/ibus/tests/installation.py target/release/meltype-ibus
+          /usr/bin/python3 rust/ibus/tests/installation.py target/release/meltype-ibus
           MELTYPE_IBUS_TEST_INSTALLED=1 xvfb-run -a dbus-run-session -- /usr/bin/python3 rust/ibus/tests/integration.py target/release/meltype-ibus
           cp linux/build/Meltype-flash-linux.tar.gz Meltype-flash-Linux-x64.tar.gz
       - run: python3 tools/test_linux_update.py
