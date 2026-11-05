@@ -17,8 +17,11 @@ pub fn label(key: &str) -> &str {
     field(key).and_then(|f| f["label"].as_str()).unwrap_or(key)
 }
 pub fn description(key: &str) -> &str {
-    if key == "UseZenzai" && cfg!(target_os = "linux") {
-        return "別途ダウンロードしたllama-serverとZenzaiモデルをローカルで使用します。未導入・起動中・応答失敗の場合はMozcで変換します。";
+    if key == "UseZenzai" && cfg!(any(windows, target_os = "linux")) {
+        return "有効にすると確認画面を開きます。「はい」でAI専用のCPU実行環境とモデルを別にダウンロードします。完了後に設定を保存してください。起動中や応答失敗時は通常の変換を使います。";
+    }
+    if key == "AutoUpdate" && cfg!(windows) {
+        return "自動は起動時に新しい版を確認してダウンロードし、導入は更新ボタンから行います。手動では確認ボタンを押したときだけ公開版を確認します。";
     }
     if key == "AutoUpdate" && cfg!(target_os = "linux") {
         return "自動を選ぶと起動時に更新を確認し、新しいパッケージを取得してインストール画面を開きます。手動ではボタンを押した時だけ確認します。導入時の確認はシステムで行います。";

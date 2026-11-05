@@ -4,6 +4,7 @@
 use eframe::egui;
 use meltype_core::{control, settings::Settings, storage::Store, Session};
 use serde_json::{json, Value};
+mod ai_setup;
 mod branding;
 mod dialogs;
 mod lifecycle;
@@ -99,6 +100,7 @@ fn main() -> eframe::Result {
 struct App {
     store: Store,
     lifecycle: lifecycle::Lifecycle,
+    ai_setup: ai_setup::AiSetup,
     dialogs: dialogs::Dialogs,
     settings: Settings,
     opened: Settings,
@@ -183,6 +185,7 @@ impl App {
         test_session.settings = settings.clone();
         Self {
             lifecycle: lifecycle::Lifecycle::new(&settings),
+            ai_setup: ai_setup::AiSetup::default(),
             dialogs: dialogs::Dialogs::default(),
             store,
             opened: settings.clone(),
@@ -691,17 +694,27 @@ impl App {
                                     return;
                                 }
                                 if key == "UseZenzai" && cfg!(any(windows, target_os = "linux")) {
-                                    ui.label("AI追加パッケージは本体に含まれません。別にダウンロード・展開し、下の実行ファイルとモデルの場所を指定してください。");
-                                    ui.hyperlink_to("AI実行環境 (llama.cpp) をダウンロード", branding::ai_runtime_url());
-                                    ui.hyperlink_to("Zenzaiモデル (GGUF) をダウンロード", branding::AI_MODEL_URL);
+                                    let mut enabled = value.as_bool().unwrap_or(false);
+                                    let prior = enabled;
+                                    if ui.add_enabled(!self.ai_setup.busy(), egui::Checkbox::new(&mut enabled, metadata::label(key))).changed() {
+                                        if enabled && !prior { self.ai_setup.request(); }
+                                        else { self.action(json!({"op":"settings_set", "name":key, "value":false})); }
+                                    }
+                                    ui.weak("有効にすると、専用のAI実行環境とモデルを作成するか確認します。");
+                                    if self.ai_setup.busy() { ui.spinner(); ui.label("AI環境を作成しています…"); }
+                                    return;
                                 }
                                 if key == "AutoUpdate" {
                                     let mut automatic = value.as_bool().unwrap_or(false);
                                     let prior = automatic;
                                     ui.horizontal(|ui| {
                                         ui.label("アップデート方法");
-                                        ui.radio_value(&mut automatic, false, "手動");
-                                        ui.radio_value(&mut automatic, true, "自動");
+                                        egui::ComboBox::from_id_salt("update-method")
+                                            .selected_text(if automatic { "自動" } else { "手動" })
+                                            .show_ui(ui, |ui| {
+                                                ui.selectable_value(&mut automatic, false, "手動");
+                                                ui.selectable_value(&mut automatic, true, "自動");
+                                            });
                                         if ui.button("今アップデートを確認").clicked() {
                                             self.lifecycle.updates = true;
                                             self.lifecycle.check_updates();
@@ -1582,6 +1595,21 @@ impl eframe::App for App {
                     self.closing = true;
                     ctx.send_viewport_cmd(egui::ViewportCommand::Close);
                 }
+            }
+        }
+        if let Some(result) = self.ai_setup.show(ctx, &self.store.directory) {
+            match result {
+                Ok(paths) => {
+                    self.settings
+                        .set("ZenzaiServerPath", paths["server"].clone())
+                        .unwrap();
+                    self.settings
+                        .set("ZenzaiModelPath", paths["model"].clone())
+                        .unwrap();
+                    self.settings.set("UseZenzai", json!(true)).unwrap();
+                    self.status = "AI環境を作成し、Zenzaiを有効にしました。設定を保存すると入力に反映されます。".into();
+                }
+                Err(error) => self.status = format!("AI環境を作成できませんでした: {error}"),
             }
         }
         if self.lifecycle.show(ctx, &self.store) {
