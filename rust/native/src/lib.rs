@@ -8,6 +8,9 @@ mod fcitx;
 mod fcitx_dispatch;
 mod fcitx_view;
 pub mod json_bridge;
+#[cfg(target_os = "linux")]
+#[path = "windows_converter/zenzai.rs"]
+mod linux_zenzai;
 mod macos_application;
 mod macos_apply;
 mod macos_candidates;
@@ -36,6 +39,11 @@ pub mod windows_converter;
 #[cfg(windows)]
 mod windows_github;
 mod word_checker;
+#[cfg(target_os = "linux")]
+fn linux_ai() -> &'static Mutex<linux_zenzai::Zenzai> {
+    static AI: OnceLock<Mutex<linux_zenzai::Zenzai>> = OnceLock::new();
+    AI.get_or_init(|| Mutex::new(linux_zenzai::Zenzai::default()))
+}
 use std::{
     collections::HashMap,
     ffi::{c_char, c_void, CStr, CString},
@@ -360,6 +368,31 @@ unsafe fn external_conversion_unprotected(
             }
         }
     }
+    #[cfg(target_os = "linux")]
+    if let Ok(mut ai) = linux_ai().lock() {
+        if let Some(text) = ai.convert(reading, &read(before).unwrap_or_default()) {
+            let mozc_segments: Vec<_> = segments
+                .iter()
+                .map(|clause| meltype_core::mozc::Segment {
+                    reading: clause.reading.clone(),
+                    candidates: clause.candidates.clone(),
+                })
+                .collect();
+            let aligned = linux_zenzai::align(&mozc_segments, &text)
+                .unwrap_or_else(|| vec![(reading.to_owned(), text)]);
+            segments = aligned
+                .into_iter()
+                .map(|(reading, text)| {
+                    let mut candidates = vec![text.clone()];
+                    if let Some(ordinary) = mozc_segments.iter().find(|s| s.reading == reading) {
+                        candidates
+                            .extend(ordinary.candidates.iter().filter(|s| **s != text).cloned());
+                    }
+                    Clause::new(reading, candidates)
+                })
+                .collect();
+        }
+    }
     let callbacks = CALLBACKS.lock().map(|c| *c).unwrap_or_default();
     let input = CString::new(reading).unwrap();
     if let Some(callback) = callbacks.clauses {
@@ -573,6 +606,20 @@ pub unsafe extern "C" fn meltype_handle_key(
     after: *const c_char,
 ) -> *mut c_char {
     catch_unwind(AssertUnwindSafe(|| {
+        #[cfg(target_os = "linux")]
+        {
+            let settings = sessions()
+                .lock()
+                .ok()
+                .and_then(|all| all.get(&(handle as usize)).map(|s| s.settings.clone()));
+            if let Some(settings) = settings {
+                if let Ok(mut ai) = linux_ai().lock() {
+                    ai.configure(&settings);
+                    ai.begin_request();
+                }
+            }
+        }
+
         let Ok(_spelling) =
             word_checker::prepare(handle as usize, vk, ch, modifiers, before, after)
         else {

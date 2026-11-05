@@ -1,14 +1,15 @@
 // SPDX-License-Identifier: GPL-3.0-or-later
 // Copyright (C) 2026 appipinopi
-//! Optional Windows zenz/llama-server conversion. Startup never blocks input;
+//! Optional desktop zenz/llama-server conversion. Startup never blocks input;
 //! only an already healthy loopback server may receive bounded requests.
 use meltype_core::{mozc::Segment, settings::Settings};
 use serde_json::{json, Value};
+#[cfg(windows)]
+use std::os::windows::{io::AsRawHandle, process::CommandExt};
 use std::{
     collections::{HashMap, HashSet},
     io::{self, Read, Write},
     net::{Ipv4Addr, SocketAddr, SocketAddrV4, TcpListener, TcpStream},
-    os::windows::{io::AsRawHandle, process::CommandExt},
     path::PathBuf,
     process::{Child, Command, Stdio},
     sync::{
@@ -17,6 +18,7 @@ use std::{
     },
     time::{Duration, Instant},
 };
+#[cfg(windows)]
 use windows::{
     core::PCWSTR,
     Win32::{
@@ -31,11 +33,14 @@ const MAX_RESPONSE: usize = 64 * 1024;
 const MAX_CACHE: usize = 256;
 type Cache = HashMap<(String, String), Option<String>>;
 
+#[cfg(windows)]
 struct Process {
     child: Child,
     job: HANDLE,
 }
+#[cfg(windows)]
 unsafe impl Send for Process {}
+#[cfg(windows)]
 impl Process {
     fn start(command: &mut Command) -> io::Result<Self> {
         let mut child = command.creation_flags(0x08000000).spawn()?;
@@ -73,12 +78,47 @@ impl Process {
         }
     }
 }
+#[cfg(windows)]
 impl Drop for Process {
     fn drop(&mut self) {
         unsafe {
             let _ = TerminateJobObject(self.job, 1);
             let _ = CloseHandle(self.job);
         }
+        let _ = self.child.kill();
+        let _ = self.child.wait();
+    }
+}
+
+#[cfg(target_os = "linux")]
+struct Process {
+    child: Child,
+}
+#[cfg(target_os = "linux")]
+impl Process {
+    fn start(command: &mut Command) -> io::Result<Self> {
+        use std::os::unix::process::CommandExt;
+        let parent = unsafe { libc::getpid() };
+        // The model server must also end if IBus is killed without running Drop.
+        unsafe {
+            command.pre_exec(move || {
+                if libc::prctl(libc::PR_SET_PDEATHSIG, libc::SIGKILL) != 0 {
+                    return Err(io::Error::last_os_error());
+                }
+                if libc::getppid() != parent {
+                    return Err(io::Error::other("AI owner exited"));
+                }
+                Ok(())
+            });
+        }
+        Ok(Self {
+            child: command.spawn()?,
+        })
+    }
+}
+#[cfg(target_os = "linux")]
+impl Drop for Process {
+    fn drop(&mut self) {
         let _ = self.child.kill();
         let _ = self.child.wait();
     }
@@ -168,6 +208,21 @@ impl Server {
                     process.lock().unwrap_or_else(|e| e.into_inner()).take();
                     state.store(2, Ordering::Release);
                 }
+                // Linux parent-death ownership follows the spawning thread.
+                // Keep it alive for the complete server lifetime, and detect exits.
+                #[cfg(target_os = "linux")]
+                while outcome.is_ok() && !cancelled.load(Ordering::Acquire) {
+                    let alive = process
+                        .lock()
+                        .unwrap_or_else(|e| e.into_inner())
+                        .as_mut()
+                        .is_some_and(|p| p.child.try_wait().ok() == Some(None));
+                    if !alive {
+                        state.store(2, Ordering::Release);
+                        break;
+                    }
+                    std::thread::sleep(Duration::from_millis(200));
+                }
             })?;
         Ok(result)
     }
@@ -183,7 +238,7 @@ impl Drop for Server {
 }
 
 #[derive(Default)]
-pub(super) struct Zenzai {
+pub(crate) struct Zenzai {
     paths: Option<(PathBuf, PathBuf)>,
     server: Option<Server>,
     cache: Cache,
@@ -196,10 +251,10 @@ pub(super) struct Zenzai {
 impl Zenzai {
     /// All Japanese gaps and registered-phrase pieces in one input request
     /// share a deadline. Several short readings must not each wait 400ms.
-    pub(super) fn begin_request(&mut self) {
+    pub(crate) fn begin_request(&mut self) {
         self.request_deadline = Some(Instant::now() + TIMEOUT);
     }
-    pub(super) fn configure(&mut self, settings: &Settings) {
+    pub(crate) fn configure(&mut self, settings: &Settings) {
         let paths = (settings.boolean("Enabled") && settings.boolean("UseZenzai"))
             .then(|| {
                 (
@@ -253,7 +308,7 @@ impl Zenzai {
                 + Duration::from_secs((300u64 << self.failures.min(5).saturating_sub(1)).min(3600)),
         );
     }
-    pub(super) fn convert(&mut self, reading: &str, before: &str) -> Option<String> {
+    pub(crate) fn convert(&mut self, reading: &str, before: &str) -> Option<String> {
         if reading.is_empty()
             || reading.encode_utf16().count() > 80
             || reading
@@ -513,7 +568,7 @@ fn chunks(mut bytes: &[u8]) -> io::Result<Vec<u8>> {
 
 /// Match the neural text with one existing candidate per Mozc clause. Failed
 /// states are memoized, preserving clause controls without repeated engine IPC.
-pub(super) fn align(segments: &[Segment], text: &str) -> Option<Vec<(String, String)>> {
+pub(crate) fn align(segments: &[Segment], text: &str) -> Option<Vec<(String, String)>> {
     fn normalize(text: &str, reading: &str) -> String {
         let digits = reading.chars().any(|c| c.is_ascii_digit());
         let letters = reading.chars().any(|c| c.is_ascii_alphabetic());
@@ -891,6 +946,73 @@ mod tests {
         );
     }
 
+    #[cfg(target_os = "linux")]
+    #[test]
+    fn linux_server_remains_alive_after_health_check() {
+        use std::os::unix::fs::PermissionsExt;
+        let directory = tempfile::tempdir().unwrap();
+        let script = directory.path().join("server");
+        std::fs::write(&script, r#"#!/usr/bin/python3
+# SPDX-License-Identifier: GPL-3.0-or-later
+# Copyright (C) 2026 appipinopi
+import http.server, sys
+class Handler(http.server.BaseHTTPRequestHandler):
+    def do_GET(self):
+        data = b'{}'
+        self.send_response(200)
+        self.send_header('Content-Length', str(len(data)))
+        self.end_headers()
+        self.wfile.write(data)
+http.server.HTTPServer(('127.0.0.1', int(sys.argv[sys.argv.index('--port') + 1])), Handler).serve_forever()
+"#).unwrap();
+        std::fs::set_permissions(&script, std::fs::Permissions::from_mode(0o755)).unwrap();
+        let server = Server::start(script, directory.path().join("model")).unwrap();
+        let deadline = Instant::now() + Duration::from_secs(5);
+        while server.state.load(Ordering::Acquire) == 0 {
+            assert!(Instant::now() < deadline);
+            thread::sleep(Duration::from_millis(20));
+        }
+        assert_eq!(server.state.load(Ordering::Acquire), 1);
+        thread::sleep(Duration::from_millis(500));
+        assert!(server
+            .process
+            .lock()
+            .unwrap()
+            .as_mut()
+            .unwrap()
+            .child
+            .try_wait()
+            .unwrap()
+            .is_none());
+        assert!(http(server.endpoint, "GET", "/health", "", TIMEOUT).is_ok());
+    }
+
+    #[cfg(target_os = "linux")]
+    #[test]
+    fn disabling_linux_ai_terminates_and_reaps_the_server() {
+        let mut command = Command::new("/bin/sleep");
+        command.arg("60");
+        let process = Process::start(&mut command).unwrap();
+        let pid = process.child.id();
+        let mut ai = Zenzai {
+            paths: Some(("server".into(), "model".into())),
+            server: Some(Server {
+                endpoint: SocketAddrV4::new(Ipv4Addr::LOCALHOST, 1),
+                state: Arc::new(AtomicU8::new(1)),
+                cancelled: Arc::new(AtomicBool::new(false)),
+                process: Arc::new(Mutex::new(Some(process))),
+            }),
+            ..Zenzai::default()
+        };
+        let mut settings = Settings::default();
+        settings.set("UseZenzai", json!(false)).unwrap();
+        ai.configure(&settings);
+        assert!(ai.server.is_none());
+        assert_eq!(unsafe { libc::kill(pid as i32, 0) }, -1);
+        assert_eq!(io::Error::last_os_error().raw_os_error(), Some(libc::ESRCH));
+    }
+
+    #[cfg(windows)]
     fn child_process() -> (Process, tempfile::TempDir) {
         let directory = tempfile::tempdir().unwrap();
         let ready = directory.path().join("ready");
@@ -922,6 +1044,7 @@ mod tests {
     }
     #[test]
     #[ignore = "child fixture invoked only by the owned process lifecycle test"]
+    #[cfg(windows)]
     fn child_process_fixture() {
         let Some(ready) = std::env::var_os("MELTYPE_ZENZAI_TEST_READY") else {
             return;
@@ -933,6 +1056,7 @@ mod tests {
     }
     #[test]
     #[ignore = "parent fixture invoked only by the forced shutdown lifecycle test"]
+    #[cfg(windows)]
     fn parent_process_fixture() {
         let Some(ready) = std::env::var_os("MELTYPE_ZENZAI_PARENT_READY") else {
             return;
@@ -945,6 +1069,7 @@ mod tests {
     }
 
     #[test]
+    #[cfg(windows)]
     fn killing_the_owner_process_closes_its_job_and_ends_the_model_server() {
         use windows::Win32::{
             Foundation::WAIT_OBJECT_0,
@@ -998,6 +1123,7 @@ mod tests {
     }
 
     #[test]
+    #[cfg(windows)]
     fn turning_off_or_changing_paths_terminates_the_owned_server() {
         use windows::Win32::{
             Foundation::WAIT_OBJECT_0,
