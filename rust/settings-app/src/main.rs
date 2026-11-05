@@ -191,7 +191,8 @@ impl App {
             closing: false,
             help: "Meltype-FLASH を有効にする".into(),
             #[cfg(windows)]
-            resident: std::env::args().any(|a| matches!(a.as_str(), "--tray" | "--portable-keyboard")),
+            resident: std::env::args()
+                .any(|a| matches!(a.as_str(), "--tray" | "--portable-keyboard")),
             #[cfg(windows)]
             keyboard: None,
             #[cfg(windows)]
@@ -1456,7 +1457,8 @@ fn supported(key: &str) -> bool {
         "SlashAsMiddleDot",
     ]
     .contains(&key)
-        || cfg!(target_os = "linux") && ["UseZenzai", "ZenzaiServerPath", "ZenzaiModelPath"].contains(&key)
+        || cfg!(target_os = "linux")
+            && ["UseZenzai", "ZenzaiServerPath", "ZenzaiModelPath"].contains(&key)
         || cfg!(windows)
             && [
                 "TextInputApps",
