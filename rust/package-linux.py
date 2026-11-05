@@ -43,8 +43,11 @@ def stage_payload(bundle, root):
     desktop.mkdir(parents=True)
     (desktop / 'meltype-flash.desktop').write_text(
         '[Desktop Entry]\nType=Application\nName=Meltype-FLASH 設定\n'
-        f'Exec={TARGET}/meltype-flash\nIcon={TARGET}/icon.png\n'
+        f'Exec={TARGET}/meltype-flash\nIcon=meltype-flash\nStartupWMClass=meltype-flash\n'
         'Categories=Settings;Utility;\nTerminal=false\n', encoding='utf-8')
+    icons = root / 'usr/share/icons/hicolor/256x256/apps'
+    icons.mkdir(parents=True, exist_ok=True)
+    shutil.copy2(app / 'icon.png', icons / 'meltype-flash.png')
     metainfo = root / 'usr/share/metainfo'
     metainfo.mkdir(parents=True, exist_ok=True)
     (metainfo / 'meltype-flash.metainfo.xml').write_text(

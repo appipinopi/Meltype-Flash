@@ -1,6 +1,6 @@
 ﻿# SPDX-License-Identifier: GPL-3.0-or-later
 # Isolated real tray and cooperative shutdown. Never registers an IME or changes startup.
-param([Parameter(Mandatory=$true)][string]$Binary, [switch]$Portable)
+param([Parameter(Mandatory=$true)][string]$Binary, [switch]$Portable, [switch]$SettingsLaunch)
 $ErrorActionPreference = 'Stop'
 $exe = (Resolve-Path -LiteralPath $Binary).Path
 $root = Join-Path ([IO.Path]::GetTempPath()) ('meltype tray stop 日本語-' + [Guid]::NewGuid().ToString('N'))
@@ -27,7 +27,9 @@ try {
         if ($prepared.Mode -ne 'Keyboard' -or $prepared.Enabled -ne $true) { throw 'Invalid portable fixture' }
     }
     $trayArguments = if ($Portable) { @('--tray','--portable-keyboard') } else { @('--tray') }
-    $tray = Start-Process -FilePath $exe -ArgumentList $trayArguments -WindowStyle Hidden -PassThru -RedirectStandardError (Join-Path $root 'tray.log')
+    $start = @{FilePath=$exe;WindowStyle='Hidden';PassThru=$true;RedirectStandardError=(Join-Path $root 'tray.log')}
+    if (-not $SettingsLaunch) { $start.ArgumentList = $trayArguments }
+    $tray = Start-Process @start
     $deadline = [DateTime]::UtcNow.AddSeconds(20)
     $ready = $false
     while ([DateTime]::UtcNow -lt $deadline) {

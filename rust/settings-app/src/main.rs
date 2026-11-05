@@ -31,6 +31,7 @@ fn main() -> eframe::Result {
     let options = eframe::NativeOptions {
         viewport: egui::ViewportBuilder::default()
             .with_icon(branding::icon())
+            .with_app_id("meltype-flash")
             .with_inner_size([720., 700.])
             .with_min_inner_size([480., 400.]),
         ..Default::default()
@@ -146,6 +147,7 @@ impl App {
         #[cfg(windows)]
         {
             let mut app = Self::with_store(store.clone());
+            app.resident = true;
             if std::env::args().any(|a| a == "--portable-keyboard") {
                 if let Err(error) = store.change_settings(|s| s.set("Mode", json!("Keyboard"))) {
                     app.status = error.to_string();
@@ -688,8 +690,31 @@ impl App {
                                     }
                                     return;
                                 }
+                                if key == "UseZenzai" && cfg!(any(windows, target_os = "linux")) {
+                                    ui.label("AI追加パッケージは本体に含まれません。別にダウンロード・展開し、下の実行ファイルとモデルの場所を指定してください。");
+                                    ui.hyperlink_to("AI実行環境 (llama.cpp) をダウンロード", branding::ai_runtime_url());
+                                    ui.hyperlink_to("Zenzaiモデル (GGUF) をダウンロード", branding::AI_MODEL_URL);
+                                }
+                                if key == "AutoUpdate" {
+                                    let mut automatic = value.as_bool().unwrap_or(false);
+                                    let prior = automatic;
+                                    ui.horizontal(|ui| {
+                                        ui.label("アップデート方法");
+                                        ui.radio_value(&mut automatic, false, "手動");
+                                        ui.radio_value(&mut automatic, true, "自動");
+                                        if ui.button("今アップデートを確認").clicked() {
+                                            self.lifecycle.updates = true;
+                                            self.lifecycle.check_updates();
+                                        }
+                                    });
+                                    ui.weak(metadata::description(key));
+                                    if automatic != prior {
+                                        self.action(json!({"op":"settings_set", "name":key, "value":automatic}));
+                                    }
+                                    return;
+                                }
                                 let limitation =
-                                    if !cfg!(windows) && ["UseZenzai", "ZenzaiServerPath", "ZenzaiModelPath"].contains(&key.as_str()) {
+                                    if !cfg!(any(windows, target_os = "linux")) && ["UseZenzai", "ZenzaiServerPath", "ZenzaiModelPath"].contains(&key.as_str()) {
                                         Some("ZenzaiはWindowsのIME方式で使用できます。")
                                     } else if cfg!(windows) && self.settings.text("Mode") == "Keyboard" {
                                         keyboard_limitation(key)
@@ -1374,6 +1399,7 @@ fn visible_by_default(key: &str) -> bool {
 }
 fn supported(key: &str) -> bool {
     [
+        "AutoUpdate",
         "GitHubIssueCandidates",
         "GitHubRepository",
         "ClipboardCandidates",
@@ -1431,6 +1457,8 @@ fn supported(key: &str) -> bool {
         "SlashAsMiddleDot",
     ]
     .contains(&key)
+        || cfg!(target_os = "linux")
+            && ["UseZenzai", "ZenzaiServerPath", "ZenzaiModelPath"].contains(&key)
         || cfg!(windows)
             && [
                 "TextInputApps",

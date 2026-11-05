@@ -12,6 +12,9 @@ pub struct Lifecycle {
     update: Option<std::sync::mpsc::Receiver<String>>,
     update_status: String,
     auto_check_pending: bool,
+    auto_enabled: bool,
+    #[cfg(target_os = "linux")]
+    next_auto_check: Option<std::time::Instant>,
     #[cfg(windows)]
     auto_download: bool,
 }
@@ -40,6 +43,7 @@ impl Lifecycle {
             welcome: !settings.boolean("WelcomeShown")
                 || settings.text("Mode") == "Tsf" && !settings.boolean("TsfIntroduced"),
             auto_check_pending: settings.boolean("AutoUpdate"),
+            auto_enabled: settings.boolean("AutoUpdate"),
             #[cfg(windows)]
             auto_download: settings.boolean("AutoUpdate"),
             ..Default::default()
@@ -98,6 +102,33 @@ impl Lifecycle {
         });
     }
     pub fn show(&mut self, ctx: &egui::Context, store: &Store) -> bool {
+        if store.directory.join("config.json").is_file() {
+            if let Ok(settings) = store.settings() {
+                self.auto_enabled = settings.boolean("AutoUpdate");
+            }
+        }
+        #[cfg(windows)]
+        {
+            self.auto_download = self.auto_enabled;
+        }
+        #[cfg(target_os = "linux")]
+        {
+            if !self.auto_enabled {
+                self.auto_check_pending = false;
+                self.next_auto_check = None;
+            } else if self.update.is_none()
+                && (self.auto_check_pending
+                    || self
+                        .next_auto_check
+                        .is_none_or(|at| std::time::Instant::now() >= at))
+            {
+                self.auto_check_pending = false;
+                self.next_auto_check =
+                    Some(std::time::Instant::now() + std::time::Duration::from_secs(86400));
+                self.apply_update();
+            }
+        }
+        #[cfg(not(target_os = "linux"))]
         if self.auto_check_pending {
             self.auto_check_pending = false;
             self.check_updates();
@@ -169,7 +200,7 @@ impl Lifecycle {
                     ui.label("雪解けのように、半角/全角の壁を溶かす日本語入力。");
                     ui.add_space(12.);
                     ui.label("参照元: Meltype 1.3.0 / Yukishiro・lnkiai ほか");
-                    ui.label("Rust移植: appipinopi / GPL-3.0-or-later");
+                    ui.label("Rust移植: appipinopi / GNU GPLv3（バージョン3以降）");
                     ui.hyperlink_to(
                         "ソースコードとライセンス",
                         "https://github.com/appipinopi/Meltype-Flash",

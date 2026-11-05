@@ -72,6 +72,7 @@ jobs:
         shell: pwsh
         run: |
           ./rust/Test-TrayStop.ps1 -Binary target/x86_64-pc-windows-msvc/release/meltype-flash.exe
+          ./rust/Test-TrayStop.ps1 -Binary target/x86_64-pc-windows-msvc/release/meltype-flash.exe -SettingsLaunch
           ./rust/Test-TrayStop.ps1 -Binary target/x86_64-pc-windows-msvc/release/meltype-flash.exe -Portable
       - name: Inspect native server and package lifecycle
         shell: pwsh
