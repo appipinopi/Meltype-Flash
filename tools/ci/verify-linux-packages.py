@@ -32,6 +32,7 @@ def check_payload(root, bundle, version):
     expected = {TARGET + '/' + name for name in original}
     expected.add('usr/share/ibus/component/meltype-flash.xml')
     expected.add('usr/share/metainfo/meltype-flash.metainfo.xml')
+    expected.add('usr/share/swcatalog/xml/meltype-flash.xml')
     expected.add('usr/share/icons/hicolor/256x256/apps/meltype-flash.png')
     expected.update('usr/share/applications/' + name for name in DESKTOPS)
     actual = {path.relative_to(root).as_posix() for path in root.rglob('*') if path.is_file()}
@@ -53,6 +54,15 @@ def check_payload(root, bundle, version):
     assert sha256(root / 'usr/share/icons/hicolor/256x256/apps/meltype-flash.png') == original['icon.png']
     setup = (root / 'usr/share/applications/ibus-setup-meltype-flash.desktop').read_text(encoding='utf-8')
     assert '\nNoDisplay=true\n' in setup and '\nX-Meltype-Flash-IBus=true\n' in setup
+    metadata = ET.parse(root / 'usr/share/metainfo/meltype-flash.metainfo.xml').getroot()
+    catalog = ET.parse(root / 'usr/share/swcatalog/xml/meltype-flash.xml').getroot()
+    component = catalog.find('component')
+    assert component is not None
+    for tag in ('id', 'pkgname', 'launchable', 'icon', 'project_license'):
+        assert component.findtext(tag) == metadata.findtext(tag), tag
+    assert component.findtext('pkgname') == 'meltype-flash'
+    assert component.findtext('launchable') == DESKTOPS[0]
+    assert component.findtext('icon') == 'meltype-flash'
     return {'payload_files': len(original), 'binaries': {name: original[name] for name in BINARIES}}
 
 
@@ -88,6 +98,7 @@ def verify(bundle, deb, rpm, version, arch):
         for name in ('postinst', 'postrm'):
             script = (base / 'control' / name).read_text(encoding='utf-8')
             assert 'ibus write-cache --system' in script
+            assert 'appstreamcli refresh-cache --force' in script
             assert not any(text in script for text in ('pkill', 'killall', 'rm ', '$HOME', '.local/share'))
         archive = subprocess.Popen(['rpm2cpio', str(rpm)], stdout=subprocess.PIPE)
         try:
