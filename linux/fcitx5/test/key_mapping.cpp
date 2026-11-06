@@ -17,8 +17,12 @@ int main(int argc,char **argv) {
         size_t count=0;
         auto compare=[&](uint32_t symbol) {
             auto expected=meltype_fcitx::virtualKey(static_cast<fcitx::KeySym>(symbol));
-            // ISO_Left_Tab は Shift+Tab として扱う修正。ほかは旧実装と比較する。
+            // 追加したショートカットと Shift+Tab は新しい仕様、ほかは旧実装と比較する。
             if(symbol==0xfe20)expected={9,0};
+            if(symbol>=FcitxKey_F1 && symbol<=FcitxKey_F12)
+                expected={static_cast<int>(0x70+symbol-FcitxKey_F1),0};
+            if(symbol==FcitxKey_Caps_Lock)expected={0x14,0};
+            if(fcitx::Key::keySymToUnicode(static_cast<fcitx::KeySym>(symbol))=='`')expected={0xc0,'`'};
             const auto actual=key(symbol,fcitx::Key::keySymToUnicode(static_cast<fcitx::KeySym>(symbol)));
             if(static_cast<int>(actual&0xffffffffu)!=expected.first || static_cast<uint32_t>(actual>>32)!=expected.second)
                 throw std::runtime_error("key mapping mismatch: "+std::to_string(symbol));

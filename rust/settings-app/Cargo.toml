@@ -23,6 +23,7 @@ tempfile = "3"
 roxmltree = "0.20"
 
 [target.'cfg(windows)'.dependencies]
+roxmltree = "0.20"
 raw-window-handle = "0.6"
 tray-icon = { version = "=0.26.1", default-features = false }
 ab_glyph = "0.2"

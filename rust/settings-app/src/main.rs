@@ -4,6 +4,7 @@
 use eframe::egui;
 use meltype_core::{control, settings::Settings, storage::Store, Session};
 use serde_json::{json, Value};
+mod ai_setup;
 mod branding;
 mod dialogs;
 mod lifecycle;
@@ -99,6 +100,7 @@ fn main() -> eframe::Result {
 struct App {
     store: Store,
     lifecycle: lifecycle::Lifecycle,
+    ai_setup: ai_setup::AiSetup,
     dialogs: dialogs::Dialogs,
     settings: Settings,
     opened: Settings,
@@ -132,6 +134,8 @@ struct App {
     result: Value,
     complex: BTreeEditor,
     show_all: bool,
+    #[cfg(target_os = "linux")]
+    runtime_services: bool,
     #[cfg(feature = "visual-test")]
     capture_frames: usize,
 }
@@ -142,7 +146,15 @@ impl App {
         let store = Store::new(Store::default_directory());
         #[cfg(not(windows))]
         {
-            Self::with_store(store)
+            let app = Self::with_store(store);
+            #[cfg(target_os = "linux")]
+            let app = {
+                let mut app = app;
+                app.runtime_services = std::env::var_os("MELTYPE_FLASH_DATA_DIR").is_none()
+                    && std::env::var_os("MELTYPE_RUST_DATA_DIR").is_none();
+                app
+            };
+            app
         }
         #[cfg(windows)]
         {
@@ -183,6 +195,7 @@ impl App {
         test_session.settings = settings.clone();
         Self {
             lifecycle: lifecycle::Lifecycle::new(&settings),
+            ai_setup: ai_setup::AiSetup::default(),
             dialogs: dialogs::Dialogs::default(),
             store,
             opened: settings.clone(),
@@ -218,6 +231,8 @@ impl App {
             result: Value::Null,
             complex: BTreeEditor::default(),
             show_all: false,
+            #[cfg(target_os = "linux")]
+            runtime_services: false,
             #[cfg(feature = "visual-test")]
             capture_frames: 0,
         }
@@ -294,7 +309,7 @@ impl App {
             }
         }
         if self.settings.0 == self.opened.0 {
-            return true;
+            return self.sync_platform_updates();
         }
         match control::execute(
             &self.store,
@@ -302,13 +317,60 @@ impl App {
         ) {
             Ok(_) => {
                 self.opened = self.settings.clone();
-                true
+                self.sync_platform_updates()
             }
             Err(error) => {
                 self.status = format!("保存できません: {error}");
                 false
             }
         }
+    }
+    fn sync_platform_updates(&mut self) -> bool {
+        #[cfg(target_os = "linux")]
+        if self.runtime_services {
+            let result = (|| -> Result<(), String> {
+                self.store
+                    .change_settings(|s| {
+                        s.set("AutoUpdate", json!(self.settings.boolean("AutoUpdate")))
+                    })
+                    .map_err(|e| e.to_string())?;
+                let root = &self.store.directory;
+                let service = root.join("background-updates.py");
+                meltype_core::storage::atomic_write(
+                    &service,
+                    include_bytes!("../../linux-background-updates.py"),
+                )
+                .map_err(|e| e.to_string())?;
+                meltype_core::storage::atomic_write(
+                    &root.join("update-linux.py"),
+                    include_bytes!("../../update-linux.py"),
+                )
+                .map_err(|e| e.to_string())?;
+                let exe = std::env::current_exe().map_err(|e| e.to_string())?;
+                let output = std::process::Command::new("python3")
+                    .arg(service)
+                    .arg(if self.settings.boolean("AutoUpdate") {
+                        "enable"
+                    } else {
+                        "disable"
+                    })
+                    .arg(root)
+                    .arg(exe.parent().ok_or("アプリの場所が不明です")?)
+                    .arg(env!("CARGO_PKG_VERSION"))
+                    .output()
+                    .map_err(|e| e.to_string())?;
+                if !output.status.success() {
+                    return Err(String::from_utf8_lossy(&output.stderr).trim().to_owned());
+                }
+                Ok(())
+            })();
+            if let Err(error) = result {
+                self.status =
+                    format!("設定は保存しましたが、自動更新の登録に失敗しました: {error}");
+                return false;
+            }
+        }
+        true
     }
     fn finish(&mut self, ctx: &egui::Context, discard: bool) {
         if !discard && !self.save() {
@@ -678,9 +740,9 @@ impl App {
                                 }
                                 if key == "ToggleShortcuts" {
                                     ui.label(metadata::label(key)).on_hover_text(metadata::description(key));
-                                    if !cfg!(windows) { ui.weak("この切替キーはWindowsのキーボード方式に対応しています。"); }
+                                    if cfg!(target_os = "linux") { ui.weak("IBusが選択されている入力欄で有効です。システム全体の切替はデスクトップ設定を使います。"); } else if !cfg!(windows) { ui.weak("この切替キーはこのOSでは編集できません。"); }
                                     let draft = self.complex.0.entry("toggle-shortcut-new".into()).or_default();
-                                    let edit = ui.add_enabled_ui(cfg!(windows), |ui| {
+                                    let edit = ui.add_enabled_ui(cfg!(any(windows, target_os = "linux")), |ui| {
                                         toggle_shortcuts_editor(ui, &mut value, &self.settings, draft)
                                     }).inner;
                                     match edit {
@@ -691,17 +753,32 @@ impl App {
                                     return;
                                 }
                                 if key == "UseZenzai" && cfg!(any(windows, target_os = "linux")) {
-                                    ui.label("AI追加パッケージは本体に含まれません。別にダウンロード・展開し、下の実行ファイルとモデルの場所を指定してください。");
-                                    ui.hyperlink_to("AI実行環境 (llama.cpp) をダウンロード", branding::ai_runtime_url());
-                                    ui.hyperlink_to("Zenzaiモデル (GGUF) をダウンロード", branding::AI_MODEL_URL);
+                                    let mut enabled = value.as_bool().unwrap_or(false);
+                                    let prior = enabled;
+                                    if ui.add_enabled(!self.ai_setup.busy(), egui::Checkbox::new(&mut enabled, metadata::label(key))).changed() {
+                                        if enabled && !prior { self.ai_setup.request(); }
+                                        else { self.action(json!({"op":"settings_set", "name":key, "value":false})); }
+                                    }
+                                    ui.weak("有効にすると、専用のAI実行環境とモデルを作成するか確認します。");
+                                    if self.ai_setup.busy() { ui.spinner(); ui.label("AI環境を作成しています…"); }
+                                    return;
+                                }
+                                if key == "Mode" && cfg!(target_os = "linux") {
+                                    ui.label("入力方式: Linux IBus");
+                                    ui.weak("入力ソースはデスクトップの日本語入力設定で切り替えます。");
+                                    return;
                                 }
                                 if key == "AutoUpdate" {
                                     let mut automatic = value.as_bool().unwrap_or(false);
                                     let prior = automatic;
                                     ui.horizontal(|ui| {
                                         ui.label("アップデート方法");
-                                        ui.radio_value(&mut automatic, false, "手動");
-                                        ui.radio_value(&mut automatic, true, "自動");
+                                        egui::ComboBox::from_id_salt("update-method")
+                                            .selected_text(if automatic { "自動" } else { "手動" })
+                                            .show_ui(ui, |ui| {
+                                                ui.selectable_value(&mut automatic, false, "手動");
+                                                ui.selectable_value(&mut automatic, true, "自動");
+                                            });
                                         if ui.button("今アップデートを確認").clicked() {
                                             self.lifecycle.updates = true;
                                             self.lifecycle.check_updates();
@@ -1376,7 +1453,11 @@ fn toggle_shortcuts_editor(
             changed = true;
         }
     });
-    ui.weak("複数のキーを登録できます。CapsLock・英数にはCtrl・Alt・Winを組み合わせます。");
+    ui.weak(if cfg!(target_os = "linux") {
+        "複数のキーを登録できます。Superはデスクトップ側で使われる場合があります。"
+    } else {
+        "複数のキーを登録できます。CapsLock・英数にはCtrl・Alt・Winを組み合わせます。"
+    });
     if add {
         let shortcut = ToggleShortcut::parse(draft)
             .ok_or("切替キーを確認してください。例: Ctrl+Alt+J、Ctrl+CapsLock、Alt+英数")?;
@@ -1458,7 +1539,13 @@ fn supported(key: &str) -> bool {
     ]
     .contains(&key)
         || cfg!(target_os = "linux")
-            && ["UseZenzai", "ZenzaiServerPath", "ZenzaiModelPath"].contains(&key)
+            && [
+                "ConversionEngine",
+                "UseZenzai",
+                "ZenzaiServerPath",
+                "ZenzaiModelPath",
+            ]
+            .contains(&key)
         || cfg!(windows)
             && [
                 "TextInputApps",
@@ -1534,10 +1621,17 @@ impl eframe::App for App {
         if let Ok(path) = std::env::var("MELTYPE_UI_CAPTURE") {
             self.capture_frames += 1;
             if self.capture_frames == 1 {
+                if let Ok(filter) = std::env::var("MELTYPE_UI_FILTER") {
+                    self.show_all = true;
+                    self.filter = filter;
+                }
                 if let Ok(screen) = std::env::var("MELTYPE_UI_LIFECYCLE") {
                     self.lifecycle.welcome = screen == "welcome";
                     self.lifecycle.about = screen == "about";
                     self.lifecycle.updates = screen == "updates";
+                    if screen == "ai-setup" {
+                        self.ai_setup.request();
+                    }
                     self.dialogs.report = screen == "report";
                     self.dialogs.log = screen == "log";
                     self.dialogs.corrections = screen == "corrections";
@@ -1582,6 +1676,21 @@ impl eframe::App for App {
                     self.closing = true;
                     ctx.send_viewport_cmd(egui::ViewportCommand::Close);
                 }
+            }
+        }
+        if let Some(result) = self.ai_setup.show(ctx, &self.store.directory) {
+            match result {
+                Ok(paths) => {
+                    self.settings
+                        .set("ZenzaiServerPath", paths["server"].clone())
+                        .unwrap();
+                    self.settings
+                        .set("ZenzaiModelPath", paths["model"].clone())
+                        .unwrap();
+                    self.settings.set("UseZenzai", json!(true)).unwrap();
+                    self.status = "AI環境を作成し、Zenzaiを有効にしました。設定を保存すると入力に反映されます。".into();
+                }
+                Err(error) => self.status = format!("AI環境を作成できませんでした: {error}"),
             }
         }
         if self.lifecycle.show(ctx, &self.store) {

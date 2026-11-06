@@ -15,8 +15,21 @@ pub struct Lifecycle {
     auto_enabled: bool,
     #[cfg(target_os = "linux")]
     next_auto_check: Option<std::time::Instant>,
-    #[cfg(windows)]
-    auto_download: bool,
+}
+#[cfg(any(windows, test))]
+fn newer_release(tag: &str, current: &str) -> bool {
+    fn version(text: &str) -> Option<Vec<u32>> {
+        text.trim_start_matches("flash-v")
+            .split('.')
+            .map(str::parse)
+            .collect::<Result<Vec<_>, _>>()
+            .ok()
+            .filter(|v| v.len() == 3)
+    }
+    match (version(tag), version(current)) {
+        (Some(next), Some(now)) => next > now,
+        _ => false,
+    }
 }
 #[cfg(any(windows, test))]
 fn rust_release(body: &serde_json::Value) -> Option<String> {
@@ -44,12 +57,15 @@ impl Lifecycle {
                 || settings.text("Mode") == "Tsf" && !settings.boolean("TsfIntroduced"),
             auto_check_pending: settings.boolean("AutoUpdate"),
             auto_enabled: settings.boolean("AutoUpdate"),
-            #[cfg(windows)]
-            auto_download: settings.boolean("AutoUpdate"),
             ..Default::default()
         }
     }
     pub fn check_updates(&mut self) {
+        self.start_check(false);
+    }
+    fn start_check(&mut self, automatic: bool) {
+        #[cfg(not(windows))]
+        let _ = automatic;
         if self.update.is_some() {
             return;
         }
@@ -57,7 +73,7 @@ impl Lifecycle {
         self.update = Some(receiver);
         self.update_status = "Rust版の配布を確認しています…".into();
         #[cfg(windows)]
-        let auto_download = self.auto_download;
+        let auto_download = automatic;
         std::thread::spawn(move || {
             #[cfg(windows)]
             let message = match meltype_core::windows_http::get_api_json(
@@ -67,6 +83,9 @@ impl Lifecycle {
                 Some(body) => rust_release(&body).map_or_else(
                     || "最近の配布一覧にRust Windows版のZIPはありません。".into(),
                     |tag| {
+                        if !newer_release(&tag, env!("CARGO_PKG_VERSION")) {
+                            return "現在のバージョンは最新です。".into();
+                        }
                         if auto_download {
                             run_updater("Stage")
                         } else {
@@ -107,10 +126,6 @@ impl Lifecycle {
                 self.auto_enabled = settings.boolean("AutoUpdate");
             }
         }
-        #[cfg(windows)]
-        {
-            self.auto_download = self.auto_enabled;
-        }
         #[cfg(target_os = "linux")]
         {
             if !self.auto_enabled {
@@ -131,7 +146,7 @@ impl Lifecycle {
         #[cfg(not(target_os = "linux"))]
         if self.auto_check_pending {
             self.auto_check_pending = false;
-            self.check_updates();
+            self.start_check(self.auto_enabled);
         }
         if let Some(receiver) = &self.update {
             ctx.request_repaint_after(std::time::Duration::from_millis(500));
@@ -272,6 +287,17 @@ impl Lifecycle {
 fn run_updater(action: &str) -> String {
     use std::os::windows::{ffi::OsStringExt, process::CommandExt};
     let result = (|| -> Result<String, String> {
+        if action == "Apply" {
+            let release = meltype_core::windows_http::get_api_json(
+                "/repos/appipinopi/Meltype-Flash/releases?per_page=20",
+                None,
+            )
+            .and_then(|body| rust_release(&body))
+            .ok_or("公開版を確認できませんでした。時間をおいて再度お試しください。")?;
+            if !newer_release(&release, env!("CARGO_PKG_VERSION")) {
+                return Ok("現在のバージョンは最新です。".into());
+            }
+        }
         let exe = std::env::current_exe().map_err(|e| e.to_string())?;
         let script = exe
             .parent()
@@ -305,6 +331,7 @@ fn run_updater(action: &str) -> String {
             let errors = log.as_file().try_clone().map_err(|e| e.to_string())?;
             log.into_temp_path().keep().map_err(|e| e.to_string())?;
             std::process::Command::new(&shell)
+                .env_remove("PSModulePath")
                 .args(["-NoProfile", "-ExecutionPolicy", "Bypass", "-File"])
                 .arg(&script)
                 .args(["-Action", action])
@@ -320,6 +347,7 @@ fn run_updater(action: &str) -> String {
             ));
         }
         let output = std::process::Command::new(shell)
+            .env_remove("PSModulePath")
             .args(["-NoProfile", "-ExecutionPolicy", "Bypass", "-File"])
             .arg(script)
             .args(["-Action", action])
@@ -327,7 +355,20 @@ fn run_updater(action: &str) -> String {
             .output()
             .map_err(|e| e.to_string())?;
         if !output.status.success() {
-            return Err(format!("更新処理が失敗またはキャンセルされました（終了コード {:?}）。配布フォルダーからUpdate-Windows.ps1を実行すると詳細を確認できます。", output.status.code()));
+            let detail = String::from_utf8_lossy(&output.stderr);
+            let detail = detail.trim();
+            return Err(format!(
+                "更新できませんでした（終了コード {}）。{}",
+                output
+                    .status
+                    .code()
+                    .map_or_else(|| "不明".into(), |c| c.to_string()),
+                if detail.is_empty() {
+                    "更新ログを確認してください。"
+                } else {
+                    detail
+                }
+            ));
         }
         Ok(if action == "Stage" {
             "公開Rust版ZIPの取得・検査が完了しました。更新ボタンでインストールできます。"
@@ -366,6 +407,9 @@ mod tests {
     use serde_json::json;
     #[test]
     fn updater_selects_only_rust_windows_packages_and_skips_drafts() {
+        assert!(newer_release("flash-v1.0.5", "1.0.4"));
+        assert!(!newer_release("flash-v1.0.4", "1.0.4"));
+        assert!(!newer_release("flash-v1.0.3", "1.0.4"));
         let mut releases = json!([
             {"tag_name":"v1.3.1","assets":[{"name":"Meltype-Windows.zip"}]},
             {"tag_name":"legacy-rust","assets":[{"name":"Meltype-Rust-Windows-x64.zip"}]},

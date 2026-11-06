@@ -7,6 +7,20 @@ $source = Get-Content -LiteralPath (Join-Path $PSScriptRoot 'Update-Windows.ps1'
 $tokens = $null; $errors = $null
 $ast = [Management.Automation.Language.Parser]::ParseInput($source,[ref]$tokens,[ref]$errors)
 if ($errors.Count) { throw $errors[0] }
+# Invoke-RestMethod emits a JSON array as one pipeline object. Test the real
+# Get-Releases function before replacing the network boundary below.
+$releaseFunction = $ast.FindAll({param($node) $node -is [Management.Automation.Language.FunctionDefinitionAst] -and $node.Name -eq 'Get-Releases'},$true)[0]
+& {
+    param($Definition)
+    . ([scriptblock]::Create($Definition))
+    function Invoke-RestMethod {
+        Write-Output -NoEnumerate @(@{tag_name='first'},@{tag_name='second'})
+    }
+    $items = @(Get-Releases)
+    if ($items.Count -ne 2 -or $items[0].tag_name -ne 'first' -or $items[1].tag_name -ne 'second') {
+        throw 'Release API array was not enumerated into individual releases'
+    }
+} $releaseFunction.Extent.Text
 $global:MeltypeUpdateTest = @{ releases = @(); archive = ''; downloads = 0 }
 $replacements = @{
     'Get-Releases' = 'function Get-Releases { return $global:MeltypeUpdateTest.releases }'

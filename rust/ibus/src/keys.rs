@@ -4,6 +4,8 @@
 pub fn mode_key(keyval: u32, scalar: u32) -> Option<i32> {
     Some(match keyval {
         0xff28..=0xff2a => 0x19,
+        0xffe5 => 0x14,
+        0xffbe..=0xffc9 => 0x70 + (keyval - 0xffbe) as i32,
         0xff30 | 0xff22 => 0x1a,
         0xff23 => 0x1c,
         0xff27 => 0x15,
@@ -39,6 +41,7 @@ pub fn translate(keyval: u32, scalar: u32) -> Option<(i32, i32)> {
         c as i32
     } else {
         match c {
+            '`' => 0xc0,
             ',' => 0xbc,
             '.' => 0xbe,
             '-' => 0xbd,
@@ -75,6 +78,10 @@ mod tests {
     #[test]
     fn mode_keys_include_builtins_and_configurable_space() {
         assert_eq!(mode_key(0xff2a, 0), Some(0x19));
+        assert_eq!(mode_key(0xffe5, 0), Some(0x14));
+        assert_eq!(mode_key(0xffbe, 0), Some(0x70));
+        assert_eq!(mode_key(0xffc9, 0), Some(0x7b));
+        assert_eq!(mode_key(0x60, 0x60), Some(0xc0));
         assert_eq!(mode_key(0xff22, 0), Some(0x1a));
         assert_eq!(mode_key(0xff23, 0), Some(0x1c));
         assert_eq!(mode_key(32, 32), Some(32));

@@ -35,7 +35,7 @@ if ($Action -eq 'Apply' -and -not $WhatIfPreference) {
     Start-Transcript -LiteralPath (Join-Path $logRoot (([Guid]::NewGuid().ToString('N'))+'.log')) | Out-Null
 }
 function Get-Releases {
-    Invoke-RestMethod -Uri "https://api.github.com/repos/$repository/releases?per_page=20" -Headers @{ 'User-Agent' = 'Meltype-flash-Updater'; Accept = 'application/vnd.github+json' } -TimeoutSec 20
+    foreach ($release in (Invoke-RestMethod -Uri "https://api.github.com/repos/$repository/releases?per_page=20" -Headers @{ 'User-Agent' = 'Meltype-flash-Updater'; Accept = 'application/vnd.github+json' } -TimeoutSec 20)) { $release }
 }
 function Select-Release($Releases) {
     foreach ($release in $Releases) {

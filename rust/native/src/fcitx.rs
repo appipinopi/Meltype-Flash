@@ -108,7 +108,8 @@ fn translate(symbol: u32, scalar: u32) -> (u32, u32) {
         0xff57 => 0x23,
         0xff55 => 0x21,
         0xff56 => 0x22,
-        0xffc3..=0xffc7 => 0x75 + symbol - 0xffc3,
+        0xffbe..=0xffc9 => 0x70 + symbol - 0xffbe,
+        0xffe5 => 0x14,
         _ => 0,
     };
     if special != 0 {
@@ -120,6 +121,7 @@ fn translate(symbol: u32, scalar: u32) -> (u32, u32) {
     let key = match character {
         'a'..='z' => scalar - 32,
         'A'..='Z' | '0'..='9' => scalar,
+        '`' => 0xc0,
         ',' => 0xbc,
         '.' => 0xbe,
         '-' => 0xbd,
@@ -294,6 +296,9 @@ mod tests {
             (0xff56, 34),
             (0xffc3, 117),
             (0xffc7, 121),
+            (0xffbe, 112),
+            (0xffc9, 123),
+            (0xffe5, 20),
         ] {
             assert_eq!(
                 translate(symbol, 'x' as u32),
@@ -308,6 +313,7 @@ mod tests {
             assert_eq!((packed >> 32) as u32, character as u32);
         }
         assert_eq!(translate(0, 'a' as u32), (65, 97));
+        assert_eq!(translate(0, '`' as u32), (0xc0, 96));
         assert_eq!(translate(0, 'İ' as u32), (7, 'İ' as u32));
         for invalid in [0, 31, 0xd800, 0x110000] {
             assert_eq!(meltype_fcitx_key(0, invalid), 0);
