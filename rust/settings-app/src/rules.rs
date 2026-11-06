@@ -13,10 +13,16 @@ pub fn editor(ui: &mut egui::Ui, key: &str, value: &mut Value, settings: &Settin
         ui.label("LinuxのアプリID（例: code、org.gnome.Terminal）を指定してください。Windows用ルールは非表示です。");
     }
     let kinds = key == "AppKinds";
+    if cfg!(target_os = "linux") && !kinds {
+        ui.label("例: VS Code → code / com.visualstudio.code、ターミナル → org.gnome.Terminal / org.kde.konsole");
+        ui.weak("IBusへアプリIDを通知する入力先で使用できます。下のボタンで標準例を追加できます。");
+    }
     if cfg!(target_os = "linux") && !kinds && ui.button("Linuxの標準アプリを追加").clicked()
     {
         for name in [
             "code",
+            "com.visualstudio.code",
+            "com.vscodium.codium",
             "code-oss",
             "codium",
             "code-insiders",
@@ -25,6 +31,9 @@ pub fn editor(ui: &mut egui::Ui, key: &str, value: &mut Value, settings: &Settin
             "zed",
             "sublime_text",
             "gnome-terminal",
+            "org.gnome.Terminal",
+            "org.gnome.TextEditor",
+            "org.kde.konsole",
             "konsole",
             "kitty",
             "foot",

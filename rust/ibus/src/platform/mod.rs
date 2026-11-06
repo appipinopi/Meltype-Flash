@@ -611,6 +611,49 @@ unsafe extern "C" fn disconnected(_bus: Obj, loop_: Obj) {
 }
 
 pub fn run() -> Result<(), String> {
+    // Also check on IME service startup when there is no user systemd session.
+    // The worker reads AutoUpdate, serializes checks, and limits them to daily.
+    let root = meltype_core::storage::Store::default_directory();
+    let worker = root.join("background-updates.py");
+    let normal_profile = std::env::var_os("MELTYPE_FLASH_DATA_DIR").is_none()
+        && std::env::var_os("MELTYPE_RUST_DATA_DIR").is_none();
+    if (!worker.is_file() || !root.join("update-linux.py").is_file())
+        && normal_profile
+        && meltype_core::storage::Store::new(&root)
+            .settings()
+            .is_ok_and(|settings| settings.boolean("AutoUpdate"))
+    {
+        let _ = meltype_core::storage::atomic_write(
+            &worker,
+            include_bytes!("../../../linux-background-updates.py"),
+        );
+        let _ = meltype_core::storage::atomic_write(
+            &root.join("update-linux.py"),
+            include_bytes!("../../../update-linux.py"),
+        );
+    }
+    if worker.is_file() {
+        if let Ok(exe) = std::env::current_exe() {
+            if let Some(directory) = exe.parent() {
+                if let Ok(mut child) = std::process::Command::new("python3")
+                    .arg(worker)
+                    .arg("run")
+                    .arg(&root)
+                    .arg(directory)
+                    .arg(env!("CARGO_PKG_VERSION"))
+                    .stdin(std::process::Stdio::null())
+                    .stdout(std::process::Stdio::null())
+                    .stderr(std::process::Stdio::null())
+                    .spawn()
+                {
+                    std::thread::spawn(move || {
+                        let _ = child.wait();
+                    });
+                }
+            }
+        }
+    }
+
     unsafe {
         ibus_init();
         let bus = ibus_bus_new();

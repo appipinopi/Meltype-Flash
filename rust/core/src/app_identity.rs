@@ -20,7 +20,10 @@ impl Platform {
 }
 pub fn legacy_rule(identity: &str, platform: Platform) -> Option<&'static str> {
     match (platform, identity) {
-        (Platform::Linux, "code" | "code-oss" | "codium")
+        (
+            Platform::Linux,
+            "code" | "code-oss" | "codium" | "com.visualstudio.code" | "com.vscodium.codium",
+        )
         | (Platform::Mac, "com.microsoft.VSCode" | "com.vscodium") => Some("Code.exe"),
         (Platform::Linux, "code-insiders") | (Platform::Mac, "com.microsoft.VSCodeInsiders") => {
             Some("Code - Insiders.exe")
@@ -37,6 +40,8 @@ pub fn legacy_rule(identity: &str, platform: Platform) -> Option<&'static str> {
         (
             Platform::Linux,
             "gnome-terminal"
+            | "org.gnome.Terminal"
+            | "org.kde.konsole"
             | "gnome-terminal-server"
             | "konsole"
             | "kitty"
@@ -64,4 +69,28 @@ pub fn ibus_application(client: &str) -> &str {
         .iter()
         .find_map(|prefix| client.strip_prefix(prefix))
         .unwrap_or("")
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    #[test]
+    fn linux_desktop_ids_resolve_to_existing_profiles() {
+        assert_eq!(
+            legacy_rule("com.visualstudio.code", Platform::Linux),
+            Some("Code.exe")
+        );
+        assert_eq!(
+            legacy_rule("org.gnome.Terminal", Platform::Linux),
+            Some("WindowsTerminal.exe")
+        );
+        assert_eq!(
+            legacy_rule("org.kde.konsole", Platform::Linux),
+            Some("WindowsTerminal.exe")
+        );
+        assert_eq!(
+            legacy_rule("com.visualstudio.code", Platform::Windows),
+            None
+        );
+    }
 }

@@ -70,9 +70,9 @@ impl Spec {
             r#"<?xml version="1.0" encoding="UTF-16"?>
 <Task version="1.2" xmlns="http://schemas.microsoft.com/windows/2004/02/mit/task">
 <RegistrationInfo><Description>Meltype-FLASH をサインインしたらすぐ起動する</Description></RegistrationInfo>
-<Triggers><LogonTrigger><Enabled>true</Enabled><UserId>{user}</UserId></LogonTrigger></Triggers>
+<Triggers><LogonTrigger><Enabled>true</Enabled><UserId>{user}</UserId><Delay>PT5S</Delay></LogonTrigger></Triggers>
 <Principals><Principal id="Author"><UserId>{user}</UserId><LogonType>InteractiveToken</LogonType><RunLevel>LeastPrivilege</RunLevel></Principal></Principals>
-<Settings><MultipleInstancesPolicy>IgnoreNew</MultipleInstancesPolicy><DisallowStartIfOnBatteries>false</DisallowStartIfOnBatteries><StopIfGoingOnBatteries>false</StopIfGoingOnBatteries><ExecutionTimeLimit>PT0S</ExecutionTimeLimit><Priority>5</Priority></Settings>
+<Settings><MultipleInstancesPolicy>IgnoreNew</MultipleInstancesPolicy><DisallowStartIfOnBatteries>false</DisallowStartIfOnBatteries><StopIfGoingOnBatteries>false</StopIfGoingOnBatteries><StartWhenAvailable>true</StartWhenAvailable><ExecutionTimeLimit>PT0S</ExecutionTimeLimit><RestartOnFailure><Interval>PT1M</Interval><Count>3</Count></RestartOnFailure><Priority>5</Priority></Settings>
 <Actions Context="Author"><Exec><Command>{exe}</Command><Arguments>--tray</Arguments><WorkingDirectory>{directory}</WorkingDirectory></Exec></Actions></Task>"#
         )
     }
@@ -100,12 +100,14 @@ impl Spec {
             file.write_all(&bytes)
                 .and_then(|()| file.flush())
                 .map_err(|e| e.to_string())?;
+            // schtasks must be able to reopen the XML on Windows.
+            let xml_path = file.into_temp_path();
             run(&[
                 "/Create".into(),
                 "/TN".into(),
                 self.task.clone().into(),
                 "/XML".into(),
-                file.path().into(),
+                xml_path.as_os_str().into(),
                 "/F".into(),
             ])?
         } else if self.query(run)? {
@@ -256,6 +258,30 @@ fn escape(s: &str) -> String {
         .replace('"', "&quot;")
         .replace('\'', "&apos;")
 }
+fn scheduled_enabled(bytes: &[u8]) -> Result<bool, String> {
+    let text = if bytes.starts_with(&[0xff, 0xfe]) {
+        let units: Vec<_> = bytes[2..]
+            .as_chunks::<2>()
+            .0
+            .iter()
+            .map(|pair| u16::from_le_bytes([pair[0], pair[1]]))
+            .collect();
+        String::from_utf16_lossy(&units)
+    } else {
+        String::from_utf8_lossy(bytes).into_owned()
+    };
+    let document = roxmltree::Document::parse(&text)
+        .map_err(|e| format!("起動設定XMLを読み取れません: {e}"))?;
+    let settings = document
+        .descendants()
+        .find(|node| node.has_tag_name("Settings"))
+        .ok_or("起動設定の状態がありません")?;
+    Ok(!settings
+        .children()
+        .find(|node| node.has_tag_name("Enabled"))
+        .and_then(|node| node.text())
+        .is_some_and(|text| text.trim() == "false"))
+}
 fn run(args: &[OsString]) -> Result<i32, String> {
     // The installer can call this process elevated. Do not trust an inherited
     // SystemRoot when selecting the executable that manages scheduled tasks.
@@ -270,17 +296,41 @@ fn run(args: &[OsString]) -> Result<i32, String> {
         return Err("Windowsのシステムフォルダーを取得できません".into());
     }
     let system = PathBuf::from(OsString::from_wide(&system[..count]));
-    let mut child = std::process::Command::new(system.join("schtasks.exe"))
-        .args(args)
+    let query = args.first().is_some_and(|arg| arg == "/Query");
+    let mut command = std::process::Command::new(system.join("schtasks.exe"));
+    command.args(args);
+    if query {
+        command.arg("/XML");
+    }
+    let mut child = command
         .creation_flags(0x08000000)
         .stdin(std::process::Stdio::null())
-        .stdout(std::process::Stdio::null())
+        .stdout(std::process::Stdio::piped())
         .stderr(std::process::Stdio::null())
         .spawn()
         .map_err(|e| e.to_string())?;
+    let stdout = child
+        .stdout
+        .take()
+        .ok_or("起動設定の応答を取得できません")?;
+    let reader = std::thread::spawn(move || {
+        use std::io::Read;
+        let mut bytes = Vec::new();
+        stdout
+            .take(1024 * 1024)
+            .read_to_end(&mut bytes)
+            .map(|_| bytes)
+    });
     let deadline = Instant::now() + Duration::from_secs(10);
     loop {
         if let Some(status) = child.try_wait().map_err(|e| e.to_string())? {
+            let bytes = reader
+                .join()
+                .map_err(|_| "起動設定の読み取りが終了しました")?
+                .map_err(|e| e.to_string())?;
+            if query && status.success() {
+                return scheduled_enabled(&bytes).map(|enabled| if enabled { 0 } else { 1 });
+            }
             return Ok(status.code().unwrap_or(-1));
         }
         if Instant::now() >= deadline {
@@ -466,6 +516,14 @@ impl Startup {
 mod tests {
     use super::*;
     #[test]
+    fn disabled_task_is_not_reported_as_enabled() {
+        assert!(
+            !scheduled_enabled(b"<Task><Settings><Enabled>false</Enabled></Settings></Task>")
+                .unwrap()
+        );
+        assert!(scheduled_enabled(b"<Task><Triggers><Enabled>false</Enabled></Triggers><Settings><Enabled>true</Enabled></Settings></Task>").unwrap());
+    }
+    #[test]
     fn maintenance_arguments_are_explicit_and_never_fall_through_to_gui() {
         let args = |s: &[&str]| s.iter().map(OsString::from).collect::<Vec<_>>();
         assert!(arguments(&args(&["--tray"])).unwrap().is_none());
@@ -640,7 +698,14 @@ mod tests {
         assert!(spec
             .set(true, &mut |args| {
                 calls.push(args.to_vec());
-                let file = std::fs::read(&args[4]).unwrap();
+                use std::{io::Read, os::windows::fs::OpenOptionsExt};
+                let mut input = std::fs::OpenOptions::new()
+                    .read(true)
+                    .share_mode(1 | 4)
+                    .open(&args[4])
+                    .unwrap();
+                let mut file = Vec::new();
+                input.read_to_end(&mut file).unwrap();
                 assert_eq!(&file[..2], &[0xff, 0xfe]);
                 let units: Vec<u16> = file[2..]
                     .as_chunks::<2>()

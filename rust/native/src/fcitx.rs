@@ -108,7 +108,8 @@ fn translate(symbol: u32, scalar: u32) -> (u32, u32) {
         0xff57 => 0x23,
         0xff55 => 0x21,
         0xff56 => 0x22,
-        0xffc3..=0xffc7 => 0x75 + symbol - 0xffc3,
+        0xffbe..=0xffc9 => 0x70 + symbol - 0xffbe,
+        0xffe5 => 0x14,
         _ => 0,
     };
     if special != 0 {
@@ -120,6 +121,7 @@ fn translate(symbol: u32, scalar: u32) -> (u32, u32) {
     let key = match character {
         'a'..='z' => scalar - 32,
         'A'..='Z' | '0'..='9' => scalar,
+        '`' => 0xc0,
         ',' => 0xbc,
         '.' => 0xbe,
         '-' => 0xbd,
