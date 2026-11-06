@@ -10,6 +10,30 @@ pub(crate) struct Shunti {
     backend: Option<Mozc>,
 }
 
+impl Shunti {
+    pub(crate) fn configure(&mut self, settings: &Settings) {
+        let path = if settings.boolean("Enabled") && settings.boolean("UseShunti") {
+            settings.text("ShuntiHelperPath").to_owned()
+        } else {
+            String::new()
+        };
+        if path != self.path {
+            self.backend = None;
+            self.path = path;
+            if Path::new(&self.path).is_absolute() {
+                self.backend = Mozc::start(Path::new(&self.path), None).ok();
+            }
+        }
+    }
+    pub(crate) fn convert(&mut self, reading: &str, context: &str) -> Option<Vec<Clause>> {
+        let result = self.backend.as_mut()?.clauses(reading, context);
+        if result.is_err() {
+            self.backend = None;
+        }
+        result.ok()
+    }
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -34,28 +58,5 @@ mod tests {
         settings.set("UseShunti", serde_json::json!(false)).unwrap();
         ai.configure(&settings);
         assert!(ai.convert("きょうはいいてんきです", "").is_none());
-    }
-}
-impl Shunti {
-    pub(crate) fn configure(&mut self, settings: &Settings) {
-        let path = if settings.boolean("Enabled") && settings.boolean("UseShunti") {
-            settings.text("ShuntiHelperPath").to_owned()
-        } else {
-            String::new()
-        };
-        if path != self.path {
-            self.backend = None;
-            self.path = path;
-            if Path::new(&self.path).is_absolute() {
-                self.backend = Mozc::start(Path::new(&self.path), None).ok();
-            }
-        }
-    }
-    pub(crate) fn convert(&mut self, reading: &str, context: &str) -> Option<Vec<Clause>> {
-        let result = self.backend.as_mut()?.clauses(reading, context);
-        if result.is_err() {
-            self.backend = None;
-        }
-        result.ok()
     }
 }
