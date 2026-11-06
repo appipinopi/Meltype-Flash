@@ -8,6 +8,7 @@ import plistlib
 import unittest
 from unittest.mock import patch
 import zipfile
+import xml.etree.ElementTree as ET
 
 ROOT = Path(__file__).resolve().parent.parent
 
@@ -66,6 +67,15 @@ class DistributionTests(unittest.TestCase):
                 self.assertIn('Exec=/usr/libexec/meltype-flash/ibus/meltype-flash\n', setup)
                 self.assertIn('NoDisplay=true\n', setup)
                 self.assertIn('X-Meltype-Flash-IBus=true\n', setup)
+                catalog = ET.parse(root / 'usr/share/swcatalog/xml/meltype-flash.xml').getroot()
+                entry = catalog.find('component')
+                self.assertEqual(entry.findtext('id'), 'io.github.appipinopi.MeltypeFlash')
+                self.assertEqual(entry.findtext('pkgname'), 'meltype-flash')
+                self.assertEqual(entry.findtext('launchable'), 'meltype-flash.desktop')
+                self.assertTrue((root / 'usr/share/icons/hicolor/256x256/apps' / (entry.findtext('icon') + '.png')).is_file())
+                self.assertIsNotNone(entry.find("description[@{http://www.w3.org/XML/1998/namespace}lang='ja']/p"))
+                for hook in ('postinst', 'postrm'):
+                    self.assertIn('appstreamcli refresh-cache --force', (root / 'DEBIAN' / hook).read_text())
                 Path(command[-1]).write_bytes(b'deb fixture')
             def component_command(command, text):
                 self.assertEqual(command[1:], ['--print-component', '--component-executable', '/usr/libexec/meltype-flash/ibus/meltype-ibus'])

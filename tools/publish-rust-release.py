@@ -156,24 +156,28 @@ def compose_body(tag, sha, benchmark, media_sha, changes):
              "Androidはdebug署名、macOSはアドホック署名です。ChromeOSは通常のデスクトップChrome用IMEではありません。",
              "LinuxのdebはUbuntu 24.04以降向け、rpmはglibc 2.39以降のRPM系環境向けです。apt・dnfでの導入手順はLinuxの案内を参照してください。",
              "各配布ファイルのSHA256は添付のSHA256SUMS.txtで確認できます。", "", "## ベンチマーク", ""]
-    rows += [re.sub(r"(?m)^(#+) ", r"\1# ", benchmark),
-             "GitHub共有Windowsランナー上の共通Coreの測定です。全OSの入力遅延や常駐IME全体の性能を示すものではありません。", "",
-             "### 箱ひげ図", ""]
-    for heading, names in [("Rust前版・現在版（2者比較）", RUST_IMAGES),
-                           ("C#・Rust前版・現在版（3者比較）", COMBINED_IMAGES)]:
-        rows += ["#### " + heading, ""]
-        for name in names:
-            rows += [f"![{name}](https://raw.githubusercontent.com/{REPO}/{media_sha}/{tag}/{name})", ""]
-    rows += ["測定レポート・画像・生データのダウンロード用アセットは添付していません。", ""]
+    if benchmark is None:
+        rows += ["今回は依頼者の指定によりベンチマークを実施していません。", ""]
+    else:
+        rows += [re.sub(r"(?m)^(#+) ", r"\1# ", benchmark),
+                 "GitHub共有Linuxランナー上の共通Coreの測定です。全OSの入力遅延や常駐IME全体の性能を示すものではありません。", "",
+                 "### 箱ひげ図", ""]
+        for heading, names in [("Rust前版・現在版（2者比較）", RUST_IMAGES),
+                               ("C#・Rust前版・現在版（3者比較）", COMBINED_IMAGES)]:
+            rows += ["#### " + heading, ""]
+            for name in names:
+                rows += [f"![{name}](https://raw.githubusercontent.com/{REPO}/{media_sha}/{tag}/{name})", ""]
+        rows += ["測定レポート・画像・生データのダウンロード用アセットは添付していません。", ""]
     body = collapse_details(normalize_markdown("\n".join(rows)))
     if re.search(r"\]\((?!https://)[^)]+\)", body):
         raise ValueError("本文にローカルファイルへのリンクがあります")
     return title, body
 
 
-def validate_rendered(body):
+def validate_rendered(body, expected_images=len(IMAGES)):
     html = gh("api", "markdown", payload={"text": body, "mode": "gfm", "context": REPO})
-    if len(re.findall(r"<table\b", html)) < 3 or len(re.findall(r"<img\b", html)) != len(IMAGES):
+    minimum_tables = 3 if expected_images else 2
+    if len(re.findall(r"<table\b", html)) < minimum_tables or len(re.findall(r"<img\b", html)) != expected_images:
         raise ValueError("GitHubで表または箱ひげ図を描画できません")
 
 
@@ -203,7 +207,9 @@ def main():
     parser.add_argument("--tag", required=True)
     parser.add_argument("--sha", required=True)
     parser.add_argument("--assets", type=Path, required=True)
-    parser.add_argument("--benchmark", type=Path, required=True)
+    measurement = parser.add_mutually_exclusive_group(required=True)
+    measurement.add_argument("--benchmark", type=Path)
+    measurement.add_argument("--skip-benchmark", action="store_true")
     parser.add_argument("--output", type=Path, required=True)
     parser.add_argument("--publish", action="store_true", help="検証後、画像と下書きをGitHubへ保存する")
     args = parser.parse_args()
@@ -217,17 +223,24 @@ def main():
         if head != args.sha or args.tag != "flash-v" + version.replace("-pre.", "-preview."):
             raise ValueError("タグ・ソースの版・実行元コミットが一致しません")
     validate_assets(args.assets)
-    report, benchmark = validate_benchmark(args.benchmark, args.sha)
-    changes = subprocess.check_output(["git", "log", "--format=%s", f"{report['old_commit']}..{args.sha}"], encoding="utf-8")
+    benchmark = None
+    if args.skip_benchmark:
+        baseline = subprocess.check_output(["git", "describe", "--tags", "--match", "flash-v*", "--abbrev=0", args.sha + "^"], encoding="utf-8").strip()
+    else:
+        report, benchmark = validate_benchmark(args.benchmark, args.sha)
+        baseline = report['old_commit']
+    changes = subprocess.check_output(["git", "log", "--format=%s", f"{baseline}..{args.sha}"], encoding="utf-8")
     title, body = compose_body(args.tag, args.sha, benchmark, args.sha, changes)
-    validate_rendered(body)
+    expected_images = 0 if args.skip_benchmark else len(IMAGES)
+    validate_rendered(body, expected_images=expected_images)
     if args.publish:
         # 再実行で公開済みリリースや配布ファイルを上書きしない。
         if find_release(args.tag) is not None:
             raise ValueError("同じタグのリリースが既にあります。上書きしません")
-        media_sha = publish_images(args.tag, args.benchmark / "charts")
-        title, body = compose_body(args.tag, args.sha, benchmark, media_sha, changes)
-        validate_rendered(body)
+        if not args.skip_benchmark:
+            media_sha = publish_images(args.tag, args.benchmark / "charts")
+            title, body = compose_body(args.tag, args.sha, benchmark, media_sha, changes)
+            validate_rendered(body, expected_images=expected_images)
     args.output.write_text(body, encoding="utf-8", newline="\n")
     # アプリだけでなくライセンスのハッシュも最終一覧へ含める。
     hashes = "".join(f"{hashlib.sha256((args.assets / name).read_bytes()).hexdigest()}  {name}\n"

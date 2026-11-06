@@ -10,6 +10,7 @@ import shutil
 import subprocess
 import tempfile
 import zipfile
+import xml.etree.ElementTree as ET
 
 
 TARGET = '/usr/libexec/meltype-flash/ibus'
@@ -50,7 +51,7 @@ def stage_payload(bundle, root):
     shutil.copy2(app / 'icon.png', icons / 'meltype-flash.png')
     metainfo = root / 'usr/share/metainfo'
     metainfo.mkdir(parents=True, exist_ok=True)
-    (metainfo / 'meltype-flash.metainfo.xml').write_text(
+    metadata = (
         '<?xml version="1.0" encoding="UTF-8"?>\n'
         '<component type="desktop-application">\n'
         '<id>io.github.appipinopi.MeltypeFlash</id>\n'
@@ -58,12 +59,33 @@ def stage_payload(bundle, root):
         '<metadata_license>CC0-1.0</metadata_license>\n'
         '<project_license>GPL-3.0-or-later</project_license>\n'
         '<name>Meltype-FLASH</name>\n'
+        '<name xml:lang="ja">Meltype-FLASH</name>\n'
         '<summary>Japanese input method and settings</summary>\n'
-        '<description><p>Japanese input with automatic language detection and Mozc conversion.</p></description>\n'
+        '<summary xml:lang="ja">日本語入力とアプリごとの入力設定</summary>\n'
+        '<description><p>Japanese input with automatic language detection and Mozc conversion.</p>'
+        '<p xml:lang="ja">入力言語の自動判定とMozc変換を備えた日本語入力です。アプリごとの設定や更新方法を選べます。</p></description>\n'
+        '<icon type="stock">meltype-flash</icon>\n'
+        '<categories><category>Settings</category><category>Utility</category></categories>\n'
         '<launchable type="desktop-id">meltype-flash.desktop</launchable>\n'
         '<url type="homepage">https://github.com/appipinopi/Meltype-Flash</url>\n'
-        '<provides><binary>meltype-flash</binary></provides>\n'
-        '</component>\n', encoding='utf-8')
+        '</component>\n')
+    (metainfo / 'meltype-flash.metainfo.xml').write_text(metadata, encoding='utf-8')
+    # ローカルdebには配布リポジトリーのDEP-11一覧がないため、同じ情報を
+    # OS用カタログにも収める。App Centerの導入済み一覧はpkgnameで照合する。
+    catalog = ET.Element('components', {'version': '1.0', 'origin': 'meltype-flash'})
+    entry = ET.fromstring(metadata)
+    # MetaInfoでは段落ごと、カタログではdescription全体へ言語を付ける。
+    description = entry.find('description')
+    for paragraph in list(description):
+        language = paragraph.attrib.pop('{http://www.w3.org/XML/1998/namespace}lang', None)
+        if language:
+            description.remove(paragraph)
+            translated = ET.SubElement(entry, 'description', {'{http://www.w3.org/XML/1998/namespace}lang': language})
+            translated.append(paragraph)
+    catalog.append(entry)
+    catalog_dir = root / 'usr/share/swcatalog/xml'
+    catalog_dir.mkdir(parents=True)
+    ET.ElementTree(catalog).write(catalog_dir / 'meltype-flash.xml', encoding='utf-8', xml_declaration=True)
     # GNOMEはIBus名からこの固定名を探す（upstream #489）。
     (desktop / 'ibus-setup-meltype-flash.desktop').write_text(
         (desktop / 'meltype-flash.desktop').read_text(encoding='utf-8')
@@ -87,7 +109,9 @@ def make_deb(root, destination, version, arch):
     for name in ('postinst', 'postrm'):
         script = control / name
         script.write_text('#!/bin/sh\nset -e\nif command -v ibus >/dev/null 2>&1; then\n'
-                          '  ibus write-cache --system >/dev/null 2>&1 || true\nfi\nexit 0\n', encoding='utf-8')
+                          '  ibus write-cache --system >/dev/null 2>&1 || true\nfi\n'
+                          'if command -v appstreamcli >/dev/null 2>&1; then\n'
+                          '  appstreamcli refresh-cache --force >/dev/null 2>&1 || true\nfi\nexit 0\n', encoding='utf-8')
         script.chmod(0o755)
     subprocess.run(['dpkg-deb', '--root-owner-group', '-Zxz', '--build', str(root), str(destination)], check=True)
 
