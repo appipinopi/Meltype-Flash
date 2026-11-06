@@ -61,7 +61,7 @@ impl AiSetup {
                 .collapsible(false).resizable(false).show(ctx, |ui| {
                     ui.set_max_width(460.);
                     ui.label(if self.shunti { "shuntiのCPU実行環境、辞書（CC BY-SA 4.0）とモデル（CC BY 4.0）を個人領域へ別ダウンロードします。コードはMITです。" } else { "AI用のCPU実行環境（llama.cpp）とZenzaiモデルを、Meltypeのユーザーフォルダーへダウンロードします。" });
-                    ui.label("本体とは別に取得し、管理者権限なしで準備します。完了後にZenzaiを有効にします。");
+                    ui.label(if self.shunti { "本体とは別に取得し、管理者権限なしで準備します。完了後にshuntiを有効にします。" } else { "本体とは別に取得し、管理者権限なしで準備します。完了後にZenzaiを有効にします。" });
                     ui.horizontal(|ui| {
                         if ui.button("はい、作成する").clicked() { answer = Some(true); }
                         if ui.button("いいえ").clicked() { answer = Some(false); }
