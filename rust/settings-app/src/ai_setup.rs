@@ -164,8 +164,8 @@ mod tests {
         .unwrap();
         let paths = install(root.path()).unwrap();
         assert_eq!(
-            std::path::PathBuf::from(paths["server"].as_str().unwrap()),
-            environment.join(server)
+            std::fs::canonicalize(paths["server"].as_str().unwrap()).unwrap(),
+            std::fs::canonicalize(environment.join(server)).unwrap()
         );
         std::fs::write(environment.join("model.gguf"), b"changed").unwrap();
         assert!(install(root.path()).is_err());
