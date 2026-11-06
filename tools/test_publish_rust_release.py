@@ -103,7 +103,7 @@ class PresentationTests(unittest.TestCase):
             with self.subTest(tag=tag), self.assertRaises(ValueError):
                 publisher.parse_tag(tag)
 
-    def publish_fixture(self, root, tag, version, release_override=None):
+    def publish_fixture(self, root, tag, version, release_override=None, skip_benchmark=False):
         assets = root / "assets"
         assets.mkdir()
         self.assets(assets)
@@ -122,18 +122,40 @@ class PresentationTests(unittest.TestCase):
             return release
 
         arguments = ["publish-rust-release.py", "--tag", tag, "--sha", "a" * 40, "--assets", str(assets),
-                     "--benchmark", str(root / "benchmark"), "--output", str(output), "--publish"]
+                     "--output", str(output), "--publish"]
+        arguments += ["--skip-benchmark"] if skip_benchmark else ["--benchmark", str(root / "benchmark")]
+        source_outputs = ["a" * 40] + (["flash-v1.0.4"] if skip_benchmark else []) + ["fix: release"]
         with patch.object(sys, "argv", arguments), \
-             patch.object(publisher.subprocess, "check_output", side_effect=["a" * 40, "fix: release"]), \
+             patch.object(publisher.subprocess, "check_output", side_effect=source_outputs), \
              patch.object(publisher.tomllib, "loads", return_value={"workspace": {"package": {"version": version}}}), \
-             patch.object(publisher, "validate_benchmark", return_value=({"old_commit": "c" * 40}, "測定結果")), \
+             patch.object(publisher, "validate_benchmark", return_value=({"old_commit": "c" * 40}, "測定結果")) as measurement, \
              patch.object(publisher, "validate_rendered"), \
              patch.object(publisher, "find_release", side_effect=find_release), \
-             patch.object(publisher, "publish_images", return_value="b" * 40), \
+             patch.object(publisher, "publish_images", return_value="b" * 40) as images, \
              patch.object(publisher, "gh") as command, patch("builtins.print"):
             publisher.main()
+        if skip_benchmark:
+            measurement.assert_not_called()
+            images.assert_not_called()
+            body = output.read_text(encoding="utf-8")
+            self.assertIn("ベンチマークを実施していません", body)
+            self.assertNotIn("raw.githubusercontent.com", body)
         self.assertEqual(lookups, [tag, tag])
         return command
+
+    def test_explicit_skip_publishes_all_assets_without_measurements_or_images(self):
+        with tempfile.TemporaryDirectory() as temporary:
+            command = self.publish_fixture(Path(temporary), "flash-v1.0.5", "1.0.5", skip_benchmark=True)
+            self.assertIn("--draft", command.call_args.args)
+            for name in publisher.PACKAGES:
+                self.assertTrue(any(argument.endswith(name) for argument in command.call_args.args))
+
+    def test_skipped_benchmark_rendering_requires_both_tables_and_no_images(self):
+        with patch.object(publisher, "gh", return_value='<table></table>' * 2):
+            publisher.validate_rendered("body", expected_images=0)
+        for html in ('<table></table>', '<table></table>' * 2 + '<img src="stale">'):
+            with patch.object(publisher, "gh", return_value=html), self.assertRaises(ValueError):
+                publisher.validate_rendered("body", expected_images=0)
 
     def test_publish_keeps_stable_and_preview_releases_as_drafts(self):
         for tag, version, flag in (("flash-v1.0.0", "1.0.0", "--prerelease=false"),
