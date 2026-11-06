@@ -3,6 +3,7 @@
 # Copyright (C) 2026 appipinopi
 """ユーザー領域の更新タイマー。systemd非対応ではデスクトップのログイン時に確認する。"""
 import json
+import datetime
 import os
 from pathlib import Path
 import re
@@ -75,10 +76,11 @@ def run(root, binary, fallback):
             return
         stamp = root / '.last-update-check'
         try:
-            elapsed = time.time() - float(stamp.read_text())
-            if 0 <= elapsed < 86400:
+            now = time.time()
+            previous = float(stamp.read_text())
+            if previous <= now and datetime.date.fromtimestamp(previous) == datetime.date.fromtimestamp(now):
                 return
-        except (OSError, ValueError):
+        except (OSError, ValueError, OverflowError):
             pass
         version = fallback
         choices = [binary / 'meltype-rs', Path('/usr/libexec/meltype-flash/ibus/meltype-rs'), Path(os.environ.get('XDG_DATA_HOME', Path.home() / '.local/share')) / 'Meltype-flash/ibus/meltype-rs']

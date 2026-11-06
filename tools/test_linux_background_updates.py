@@ -54,6 +54,17 @@ class BackgroundUpdates(unittest.TestCase):
             self.module['run'](self.root, self.root, '1.0.4')
             launch.assert_not_called()
 
+    def test_previous_day_does_not_block_the_daily_check(self):
+        import time
+        import types
+        import sys
+        (self.root / 'config.json').write_text(json.dumps({'AutoUpdate': True}))
+        (self.root / '.last-update-check').write_text(str(time.time() - 86400))
+        fake = types.SimpleNamespace(LOCK_EX=1, LOCK_NB=2, flock=lambda *args: None)
+        with patch.dict(sys.modules, fcntl=fake), patch('subprocess.run') as launch, patch('subprocess.check_output', return_value='Meltype-FLASH 1.0.4'):
+            self.module['run'](self.root, self.root, '1.0.4')
+            launch.assert_called_once()
+
     def test_manual_mode_never_starts_a_download(self):
         (self.root / 'config.json').write_text(json.dumps({'AutoUpdate': False}))
         with patch('subprocess.run') as launch:
