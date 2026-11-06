@@ -9,6 +9,8 @@ mod fcitx_dispatch;
 mod fcitx_view;
 pub mod json_bridge;
 #[cfg(target_os = "linux")]
+mod linux_shunti;
+#[cfg(target_os = "linux")]
 #[path = "windows_converter/zenzai.rs"]
 mod linux_zenzai;
 mod macos_application;
@@ -43,6 +45,11 @@ mod word_checker;
 fn linux_ai() -> &'static Mutex<linux_zenzai::Zenzai> {
     static AI: OnceLock<Mutex<linux_zenzai::Zenzai>> = OnceLock::new();
     AI.get_or_init(|| Mutex::new(linux_zenzai::Zenzai::default()))
+}
+#[cfg(target_os = "linux")]
+fn shunti_ai() -> &'static Mutex<linux_shunti::Shunti> {
+    static AI: OnceLock<Mutex<linux_shunti::Shunti>> = OnceLock::new();
+    AI.get_or_init(|| Mutex::new(linux_shunti::Shunti::default()))
 }
 use std::{
     collections::HashMap,
@@ -357,6 +364,12 @@ unsafe fn external_conversion_unprotected(
     before: *const c_char,
     expand_candidates: bool,
 ) -> (Vec<Clause>, Vec<String>) {
+    #[cfg(target_os = "linux")]
+    if let Ok(mut ai) = shunti_ai().lock() {
+        if let Some(segments) = ai.convert(reading, &read(before).unwrap_or_default()) {
+            return (segments, Vec::new());
+        }
+    }
     let mut external = Vec::new();
     let mut segments = Vec::new();
     if let Ok(mut mozc) = MOZC.lock() {
@@ -613,6 +626,9 @@ pub unsafe extern "C" fn meltype_handle_key(
                 .ok()
                 .and_then(|all| all.get(&(handle as usize)).map(|s| s.settings.clone()));
             if let Some(settings) = settings {
+                if let Ok(mut ai) = shunti_ai().lock() {
+                    ai.configure(&settings);
+                }
                 if let Ok(mut ai) = linux_ai().lock() {
                     ai.configure(&settings);
                     ai.begin_request();

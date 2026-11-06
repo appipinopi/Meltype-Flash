@@ -162,7 +162,9 @@ jobs:
           /usr/bin/python3 rust/ibus/tests/installation.py target/release/meltype-ibus
           MELTYPE_IBUS_TEST_INSTALLED=1 xvfb-run -a dbus-run-session -- /usr/bin/python3 rust/ibus/tests/integration.py target/release/meltype-ibus
           cp linux/build/Meltype-flash-linux.tar.gz Meltype-flash-Linux-x64.tar.gz
-      - run: python3 tools/test_linux_update.py
+      - run: python3 -m unittest tools.test_linux_update tools.test_ai_setup tools.test_shunti_setup tools.test_linux_background_updates -v
+      - name: Build optional shunti runtime without model weights
+        run: python3 rust/build-shunti.py Meltype-flash-Shunti-Linux-x64.tar.gz
       - name: Assemble Debian and RPM packages from the same Linux payload
         run: |
           VERSION=$(python3 -c 'import tomllib; print(tomllib.load(open("Cargo.toml", "rb"))["workspace"]["package"]["version"])')
@@ -177,6 +179,7 @@ jobs:
             Meltype-flash-Linux-x64.tar.gz
             Meltype-flash-Linux-x64.deb
             Meltype-flash-Linux-x64.rpm
+            Meltype-flash-Shunti-Linux-x64.tar.gz
           if-no-files-found: error
       - name: Compare upstream 1.4.0, previous and current Rust on the same Linux runner
         if: ${{ !inputs.skip_benchmark }}

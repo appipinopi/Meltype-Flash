@@ -68,6 +68,7 @@ class DistributionTests(unittest.TestCase):
                 self.assertIn('NoDisplay=true\n', setup)
                 self.assertIn('X-Meltype-Flash-IBus=true\n', setup)
                 catalog = ET.parse(root / 'usr/share/swcatalog/xml/meltype-flash.xml').getroot()
+                self.assertEqual((root / 'usr/share/swcatalog/xml/meltype-flash.xml').read_bytes(), (root / 'usr/share/swcatalog/meltype-flash.xml').read_bytes())
                 entry = catalog.find('component')
                 self.assertEqual(entry.findtext('id'), 'io.github.appipinopi.MeltypeFlash')
                 self.assertEqual(entry.findtext('pkgname'), 'meltype-flash')

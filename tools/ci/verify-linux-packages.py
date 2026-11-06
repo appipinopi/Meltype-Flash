@@ -5,6 +5,7 @@
 import argparse
 import hashlib
 import json
+import re
 from pathlib import Path
 import stat
 import subprocess
@@ -26,15 +27,18 @@ def sha256(path):
         return hashlib.file_digest(stream, 'sha256').hexdigest()
 
 
-def check_payload(root, bundle, version):
+def check_payload(root, bundle, version, kind, arch):
     original = {path.relative_to(bundle).as_posix(): sha256(path)
                 for path in bundle.rglob('*') if path.is_file()}
     expected = {TARGET + '/' + name for name in original}
     expected.add('usr/share/ibus/component/meltype-flash.xml')
     expected.add('usr/share/metainfo/meltype-flash.metainfo.xml')
     expected.add('usr/share/swcatalog/xml/meltype-flash.xml')
+    expected.add('usr/share/swcatalog/meltype-flash.xml')
     expected.add('usr/share/icons/hicolor/256x256/apps/meltype-flash.png')
     expected.update('usr/share/applications/' + name for name in DESKTOPS)
+    if kind == 'deb' and arch == 'amd64':
+        expected.update(('etc/apt/sources.list.d/meltype-flash.sources', 'usr/share/keyrings/meltype-flash-archive-key.asc'))
     actual = {path.relative_to(root).as_posix() for path in root.rglob('*') if path.is_file()}
     assert actual == expected, ('unexpected owned files', actual ^ expected)
     assert not any(path.is_symlink() for path in root.rglob('*')), 'symlink in package'
@@ -42,6 +46,8 @@ def check_payload(root, bundle, version):
         assert sha256(root / TARGET / name) == digest, ('payload changed', name)
     for name in BINARIES:
         assert stat.S_IMODE((root / TARGET / name).stat().st_mode) == 0o755, name
+        versions = re.findall(r'GLIBC_(\d+)\.(\d+)', command('readelf', '--version-info', '--wide', root / TARGET / name))
+        assert all((int(major), int(minor)) <= (2, 39) for major, minor in versions), ('Ubuntu 24.04で使えないGLIBC依存', name, versions)
     xml = ET.parse(root / 'usr/share/ibus/component/meltype-flash.xml').getroot()
     assert xml.findtext('name') == 'org.freedesktop.IBus.MeltypeFlash'
     assert xml.findtext('version') == version
@@ -56,6 +62,7 @@ def check_payload(root, bundle, version):
     assert '\nNoDisplay=true\n' in setup and '\nX-Meltype-Flash-IBus=true\n' in setup
     metadata = ET.parse(root / 'usr/share/metainfo/meltype-flash.metainfo.xml').getroot()
     catalog = ET.parse(root / 'usr/share/swcatalog/xml/meltype-flash.xml').getroot()
+    assert sha256(root/'usr/share/swcatalog/xml/meltype-flash.xml') == sha256(root/'usr/share/swcatalog/meltype-flash.xml')
     component = catalog.find('component')
     assert component is not None
     for tag in ('id', 'pkgname', 'launchable', 'icon', 'project_license'):
@@ -108,7 +115,7 @@ def verify(bundle, deb, rpm, version, arch):
             archive.stdout.close()
             archive_status = archive.wait()
         assert archive_status == 0
-        result = {kind: check_payload(root, bundle, version) for kind, root in (('deb', deb_root), ('rpm', rpm_root))}
+        result = {kind: check_payload(root, bundle, version, kind, arch) for kind, root in (('deb', deb_root), ('rpm', rpm_root))}
     result.update(version=version, arch=arch, assets={path.name: sha256(path) for path in (deb, rpm)})
     return result
 
