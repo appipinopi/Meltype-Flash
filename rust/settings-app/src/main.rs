@@ -680,6 +680,29 @@ impl App {
             });
         }
         ui.add_space(8.);
+        #[cfg(target_os = "linux")]
+        ui.group(|ui| {
+            ui.label("任意導入の変換パッケージ");
+            let mut enabled = self.settings.boolean("UseShunti");
+            if ui
+                .add_enabled(
+                    !self.ai_setup.busy(),
+                    egui::Checkbox::new(&mut enabled, "shunti AI変換を使う"),
+                )
+                .changed()
+            {
+                if enabled {
+                    self.ai_setup.request_shunti();
+                } else {
+                    self.settings.set("UseShunti", json!(false)).unwrap();
+                }
+            }
+            ui.weak("本体とは別に取得します。Zenzaiとは選択して使用し、未導入時はMozcを使います。");
+            ui.hyperlink_to(
+                "shuntiの説明・ライセンス",
+                "https://github.com/shuntilettuce/Japanese-IME-for-HarmonyOS-next",
+            );
+        });
         let mut fields: Vec<_> = metadata::fields()
             .iter()
             .filter_map(|f| {
@@ -1681,14 +1704,25 @@ impl eframe::App for App {
         if let Some(result) = self.ai_setup.show(ctx, &self.store.directory) {
             match result {
                 Ok(paths) => {
-                    self.settings
-                        .set("ZenzaiServerPath", paths["server"].clone())
-                        .unwrap();
-                    self.settings
-                        .set("ZenzaiModelPath", paths["model"].clone())
-                        .unwrap();
-                    self.settings.set("UseZenzai", json!(true)).unwrap();
-                    self.status = "AI環境を作成し、Zenzaiを有効にしました。設定を保存すると入力に反映されます。".into();
+                    if paths["engine"] == "shunti" {
+                        self.settings
+                            .set("ShuntiHelperPath", paths["helper"].clone())
+                            .unwrap();
+                        self.settings.set("UseShunti", json!(true)).unwrap();
+                        self.settings.set("UseZenzai", json!(false)).unwrap();
+                        self.status =
+                            "shunti環境を作成しました。「OK」で保存すると入力へ反映します。".into();
+                    } else {
+                        self.settings.set("UseShunti", json!(false)).unwrap();
+                        self.settings
+                            .set("ZenzaiServerPath", paths["server"].clone())
+                            .unwrap();
+                        self.settings
+                            .set("ZenzaiModelPath", paths["model"].clone())
+                            .unwrap();
+                        self.settings.set("UseZenzai", json!(true)).unwrap();
+                        self.status = "AI環境を作成し、Zenzaiを有効にしました。設定を保存すると入力に反映されます。".into();
+                    }
                 }
                 Err(error) => self.status = format!("AI環境を作成できませんでした: {error}"),
             }
@@ -1725,6 +1759,16 @@ impl eframe::App for App {
                     .inner_margin(egui::Margin::symmetric(8, 10)),
             )
             .show(ctx, |ui| {
+                #[cfg(target_os = "linux")]
+                ui.horizontal_wrapped(|ui| {
+                    ui.label(format!("Meltype-FLASH {}", env!("CARGO_PKG_VERSION")));
+                    if ui.button("アップデート").clicked() {
+                        self.lifecycle.updates = true;
+                    }
+                    if ui.button("バージョン情報").clicked() {
+                        self.lifecycle.about = true;
+                    }
+                });
                 ui.with_layout(egui::Layout::right_to_left(egui::Align::Center), |ui| {
                     if ui
                         .add_sized([92., 32.], egui::Button::new("キャンセル"))

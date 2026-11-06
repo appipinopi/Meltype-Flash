@@ -3,7 +3,7 @@
 <a id="meltype-for-linux"></a>
 <p align="center"><img src="../assets/branding/readme/linux/hero.svg" alt="Meltype-FLASH for Linux" width="1000"></p>
 <p align="center"><b>稲妻のように、言葉の壁を駆け抜ける日本語入力。</b></p>
-<p align="center"><a href="https://github.com/appipinopi/Meltype-Flash/releases/tag/flash-v1.0.1"><img src="https://img.shields.io/badge/Flash-v1.0.1-ffe34a" alt="Flash v1.0.1"></a> <img src="https://img.shields.io/badge/status-正式版-666973" alt="正式版"></p>
+<p align="center"><a href="https://github.com/appipinopi/Meltype-Flash/releases/tag/flash-v1.0.6"><img src="https://img.shields.io/badge/Flash-v1.0.6-ffe34a" alt="Flash v1.0.6"></a> <img src="https://img.shields.io/badge/status-正式版-666973" alt="正式版"></p>
 <p align="center"><a href="#インストール">ダウンロード・導入</a> · <a href="#使い方">使い方</a> · <a href="#困ったとき">困ったとき</a> · <a href="https://github.com/appipinopi/Meltype-Flash/issues/new/choose">不具合の報告・提案</a></p>
 <p align="center">
   <a href="../rust/WINDOWS-PACKAGE.md"><img src="../assets/branding/readme/cards/os-windows.svg" alt="Windows" width="32%"></a>
@@ -25,14 +25,14 @@ fcitx5アダプターのソースと試験はありますが、公開IBusパッ�
 <h2><img src="../assets/branding/readme/linux/headings/df8764ebcf5d.svg" alt="内容" width="1000"></h2>
 
 ローマ字・かな入力、英語・日本語の判定、補助辞書による漢字候補、確定、設定・学習・辞書保存を共通Coreへ接続しています。
-公開版にはMozcヘルパーを同梱していないため、辞書の規模や変換結果には制限があります。
+公開版はMozcヘルパーを同梱しています。Zenzai・shuntiのAI変換は任意導入で、標準では無効です。
 
 [動く環境](#動く環境) · [インストール](#インストール) · [使い方](#使い方) · [困ったとき](#困ったとき) · [アンインストール](#アンインストール) · [開発者向け](#開発者向け)
 
 <a id="動く環境"></a>
 <h2><img src="../assets/branding/readme/linux/headings/f378dd1f4672.svg" alt="動く環境" width="1000"></h2>
 
-- x64向けのdeb・rpm・tar.gz。ARM64版は1.0.1に添付していません。
+- x64向けのdeb・rpm・tar.gz。ARM64版は1.0.6に添付していません。
 - debはUbuntu 24.04以降向け、rpmはglibc 2.39以降のRPM系環境向けです。
 - IBusを使用するデスクトップ環境。GNOMEの「日本語入力」などへ追加します。
 - システムのIBus / GLibと、設定画面を動かすGUI環境。
@@ -46,7 +46,7 @@ fcitx5を使う環境は、下記のソースビルドと開発状況を参照�
 <a id="ubuntu向けdeb"></a>
 <h3><img src="../assets/branding/readme/linux/headings/a3beabf6efc7.svg" alt="Ubuntu向けdeb" width="1000"></h3>
 
-[1.0.1](https://github.com/appipinopi/Meltype-Flash/releases/tag/flash-v1.0.1)のAssetsから、環境に合う形式を1つ選びます。同じ1.0.1のLinuxバイナリを収めています。
+[1.0.6](https://github.com/appipinopi/Meltype-Flash/releases/tag/flash-v1.0.6)のAssetsから、環境に合う形式を1つ選びます。同じ1.0.6のLinuxバイナリを収めています。
 
 **Ubuntu 24.04以降（deb）**
 
@@ -114,7 +114,7 @@ GNOMEの入力ソースにある「設定」からも設定画面を開けます
 <details>
 <summary>変換の候補が少ない・アプリによって入力できない</summary>
 
-公開IBus版は補助辞書による制限があります。OS・デスクトップ・Wayland/X11・アプリ名・入力例を [Issues](https://github.com/appipinopi/Meltype-Flash/issues/new/choose) に添えてください。
+Mozcヘルパーが起動できない場合は補助辞書へ戻ります。OS・デスクトップ・Wayland/X11・アプリ名・入力例を [Issues](https://github.com/appipinopi/Meltype-Flash/issues/new/choose) に添えてください。
 端末や入力方式の違いを確かめるため、別の一般的なテキスト欄でも結果を比較してください。
 
 </details>
@@ -181,6 +181,23 @@ IBusはWSLの隔離したXvfb・D-Bus環境でも検証しています。通常�
 [GPL-3.0-or-later](../LICENSE)。辞書と依存ライブラリのライセンスは [THIRD-PARTY-NOTICES.md](../THIRD-PARTY-NOTICES.md) を参照してください。
 
 <a id="101の漢字変換"></a>
-<h2><img src="../assets/branding/readme/linux/headings/b9a45e8335c2.svg" alt="1.0.1の漢字変換" width="1000"></h2>
+<h2><img src="../assets/branding/readme/linux/headings/b9a45e8335c2.svg" alt="1.0.6の漢字変換" width="1000"></h2>
 
-正式配布にはMozc変換ヘルパーとライセンスを同梱します。1.0.0でひらがなのまま変換できなかった場合は、1.0.1のパッケージ全体を更新し、サインアウト・サインイン後にMeltype-FLASHを選び直してください。ソースビルドでは先に `bash native/mozc/build-mozc-helper.sh` を実行し、`MELTYPE_REQUIRE_MOZC=1 bash rust/build-linux.sh` で同梱を確認できます。
+正式配布にはMozc変換ヘルパーとライセンスを同梱します。1.0.0でひらがなのまま変換できなかった場合は、1.0.6のパッケージ全体を更新し、サインアウト・サインイン後にMeltype-FLASHを選び直してください。ソースビルドでは先に `bash native/mozc/build-mozc-helper.sh` を実行し、`MELTYPE_REQUIRE_MOZC=1 bash rust/build-linux.sh` で同梱を確認できます。
+
+## 1.0.6のLinux機能
+
+設定画面の下部に現在の版と「アップデート」「バージョン情報」を表示します。「アップデート」で確認し、「ダウンロード・更新」でOSの認証後に導入します。パッケージ管理が成功した場合だけ完了を表示します。
+
+Ubuntu x64のdebは署名付きAPT更新元 `https://appipinopi.github.io/Meltype-Flash/apt` と、この更新元だけに使う公開鍵を登録します。以後はUbuntuの更新確認からも新しい版を取得できます。debを削除すると、このパッケージが所有する更新元・公開鍵も削除されます。Meltypeの手動／自動設定はMeltype自身の更新確認に適用され、Ubuntu側の更新設定はUbuntuで管理します。
+
+Ubuntu App Centerのカタログ読み込み先に合わせた互換用データも同梱します。導入後にアプリセンターを開き直し、「管理」のdeb一覧でMeltype-FLASHを検索してください。
+
+### 任意導入のAI変換
+
+- Zenzaiは「Zenzaiを使う」を選び、確認画面で許可した場合だけ、CPU実行環境とGGUFモデルを個人領域へ取得します。
+- shuntiは「shunti AI変換を使う」を選び、確認後に別配布の `Meltype-flash-Shunti-Linux-x64.tar.gz` と上流の辞書・モデルを取得します。Linux x64専用です。コードはMIT、辞書はCC BY-SA 4.0、モデルはCC BY 4.0で、追加パッケージ内の文書に出典・詳細を同梱します。上流は [shunti IME](https://github.com/shuntilettuce/Japanese-IME-for-HarmonyOS-next) です。
+- どちらも本体にはAIの重みを含めません。Ollama・Docker・Python仮想環境や、利用者側でのコンパイラー導入は不要です。Zenzaiとshuntiは選択して使用します。「OK」で設定を保存すると入力へ反映します。
+- AI変換の取得失敗・応答失敗時は標準のMozc変換を維持します。環境作成時はSHA-256を検査し、shuntiは実変換も検査します。作成済みファイルが変更されている場合は再利用しません。
+
+1.0.6のベンチマークは、AI・外部変換・IBus・GUIを含まない共通CoreをLinuxで測定します。AIの速度・精度を示すものではありません。

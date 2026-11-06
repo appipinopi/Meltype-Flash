@@ -18,6 +18,7 @@ class CollectionTests(unittest.TestCase):
             'release-linux/Meltype-flash-Linux-x64.tar.gz',
             'release-linux/Meltype-flash-Linux-x64.deb',
             'release-linux/Meltype-flash-Linux-x64.rpm',
+            'release-linux/Meltype-flash-Shunti-Linux-x64.tar.gz',
             'release-macos-arm64/Meltype-flash-macOS-arm64.zip',
             'release-macos-x64/Meltype-flash-macOS-x64.zip',
             'Meltype-ChromeOS-preview/chromeos-preview.zip',
@@ -40,8 +41,8 @@ class CollectionTests(unittest.TestCase):
             output = Path(directory) / 'output'
             self.fixture(source)
             release.collect(source, output)
-            self.assertEqual(len(list(output.iterdir())), 13)
-            self.assertEqual(len((output / 'SHA256SUMS.txt').read_text().splitlines()), 12)
+            self.assertEqual(len(list(output.iterdir())), 14)
+            self.assertEqual(len((output / 'SHA256SUMS.txt').read_text().splitlines()), 13)
             self.assertEqual((output / 'Meltype-flash-Android-debug.apk').read_bytes(), b'fixture')
             self.assertFalse((output / 'README-iOS.md').exists())
 

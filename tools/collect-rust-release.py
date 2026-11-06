@@ -14,6 +14,7 @@ def collect(source: Path, output: Path):
         'Meltype-flash-Windows-x64-setup.exe': 'release-windows/Meltype-flash-Windows-x64-setup.exe',
         'Meltype-flash-Linux-x64.tar.gz': 'release-linux/Meltype-flash-Linux-x64.tar.gz',
         'Meltype-flash-Linux-x64.deb': 'release-linux/Meltype-flash-Linux-x64.deb',
+        'Meltype-flash-Shunti-Linux-x64.tar.gz': 'release-linux/Meltype-flash-Shunti-Linux-x64.tar.gz',
         'Meltype-flash-Linux-x64.rpm': 'release-linux/Meltype-flash-Linux-x64.rpm',
         'Meltype-flash-macOS-arm64.zip': 'release-macos-arm64/Meltype-flash-macOS-arm64.zip',
         'Meltype-flash-macOS-x64.zip': 'release-macos-x64/Meltype-flash-macOS-x64.zip',

@@ -22,6 +22,19 @@ def fetch(url):
     }), timeout=30)
 
 
+def install_package(package, deb):
+    manager = shutil.which('apt-get' if deb else 'dnf')
+    authority = shutil.which('pkexec')
+    if not manager or not authority:
+        raise ValueError('更新にはPolicyKitとapt-get / dnfが必要です。配布パッケージをアプリセンターで開いてください。')
+    result = subprocess.run([authority, manager, 'install', '-y', str(package)],
+                            capture_output=True, text=True, timeout=600)
+    if result.returncode in (126, 127):
+        raise ValueError('更新の認証がキャンセルされたか、許可されませんでした。')
+    if result.returncode:
+        raise ValueError('パッケージ更新に失敗しました: ' + (result.stderr or result.stdout)[-4000:])
+
+
 def main():
     arch = {'x86_64': 'amd64', 'aarch64': 'arm64'}.get(platform.machine())
     if arch is None:
@@ -67,11 +80,10 @@ def main():
                     actual = hashlib.file_digest(stream, 'sha256').hexdigest()
                 if actual.lower() != digest[7:].lower():
                     raise ValueError('配布ファイルのSHA-256が一致しません')
-                subprocess.run(['xdg-open', str(package)], check=True, timeout=30)
-            except Exception:
+                install_package(package, deb)
+            finally:
                 shutil.rmtree(directory)
-                raise
-            print(f'{tag} のインストール画面を開きました。画面で更新を完了してください。再ログイン後に反映されます。')
+            print(f'{tag} へ更新しました。設定画面を閉じて開き直してください。入力メソッドは再ログイン後に反映されます。')
             return
     raise ValueError('この環境用の検証可能な公開パッケージがありません')
 

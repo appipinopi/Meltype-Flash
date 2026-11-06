@@ -7,11 +7,20 @@ use std::{path::Path, sync::mpsc};
 #[derive(Default)]
 pub struct AiSetup {
     confirm: bool,
+    shunti: bool,
     pending: Option<mpsc::Receiver<Result<Value, String>>>,
 }
 impl AiSetup {
     pub fn request(&mut self) {
         if !self.busy() {
+            self.shunti = false;
+            self.confirm = true;
+        }
+    }
+    #[cfg(target_os = "linux")]
+    pub fn request_shunti(&mut self) {
+        if !self.busy() {
+            self.shunti = true;
             self.confirm = true;
         }
     }
@@ -22,17 +31,36 @@ impl AiSetup {
         let root = root.to_owned();
         let (sender, receiver) = mpsc::channel();
         self.pending = Some(receiver);
+        #[cfg(target_os = "linux")]
+        let shunti = self.shunti;
         std::thread::spawn(move || {
+            #[cfg(target_os = "linux")]
+            if shunti {
+                let result = std::process::Command::new("python3")
+                    .args(["-c", include_str!("../../setup-shunti-linux.py")])
+                    .arg(&root)
+                    .output()
+                    .map_err(|e| e.to_string())
+                    .and_then(|output| {
+                        if output.status.success() {
+                            serde_json::from_slice(&output.stdout).map_err(|e| e.to_string())
+                        } else {
+                            Err(String::from_utf8_lossy(&output.stderr).into_owned())
+                        }
+                    });
+                let _ = sender.send(result);
+                return;
+            }
             let _ = sender.send(install(&root));
         });
     }
     pub fn show(&mut self, ctx: &egui::Context, root: &Path) -> Option<Result<Value, String>> {
         let mut answer = None;
         if self.confirm {
-            egui::Window::new("Zenzaiの環境を作成してよいですか？")
+            egui::Window::new(if self.shunti { "shuntiの追加パッケージを導入してよいですか？" } else { "Zenzaiの環境を作成してよいですか？" })
                 .collapsible(false).resizable(false).show(ctx, |ui| {
                     ui.set_max_width(460.);
-                    ui.label("AI用のCPU実行環境（llama.cpp）とZenzaiモデルを、Meltypeのユーザーフォルダーへダウンロードします。");
+                    ui.label(if self.shunti { "shuntiのCPU実行環境、辞書（CC BY-SA 4.0）とモデル（CC BY 4.0）を個人領域へ別ダウンロードします。コードはMITです。" } else { "AI用のCPU実行環境（llama.cpp）とZenzaiモデルを、Meltypeのユーザーフォルダーへダウンロードします。" });
                     ui.label("本体とは別に取得し、管理者権限なしで準備します。完了後にZenzaiを有効にします。");
                     ui.horizontal(|ui| {
                         if ui.button("はい、作成する").clicked() { answer = Some(true); }

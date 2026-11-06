@@ -269,7 +269,13 @@ impl Settings {
     pub fn remove_neural_settings(&mut self) -> bool {
         fn remove(values: &mut Map<String, Value>) -> bool {
             let mut removed = false;
-            for key in ["UseZenzai", "ZenzaiServerPath", "ZenzaiModelPath"] {
+            for key in [
+                "UseZenzai",
+                "ZenzaiServerPath",
+                "ZenzaiModelPath",
+                "UseShunti",
+                "ShuntiHelperPath",
+            ] {
                 removed |= values.remove(key).is_some();
             }
             removed

@@ -6,6 +6,7 @@ import json
 from pathlib import Path
 import runpy
 import unittest
+from types import SimpleNamespace
 from unittest.mock import patch
 
 
@@ -43,6 +44,22 @@ class LinuxUpdateTests(unittest.TestCase):
             with self.assertRaisesRegex(ValueError, 'SHA-256'):
                 self.run_update(action='apply')
             launch.assert_not_called()
+
+    def test_install_waits_for_package_manager_and_reports_cancellation(self):
+        install = self.main.__globals__['install_package']
+        with patch('shutil.which', side_effect=lambda name: '/usr/bin/' + name), patch('subprocess.run', return_value=SimpleNamespace(returncode=0)) as launch:
+            install(Path('/tmp/package.deb'), True)
+            self.assertEqual(launch.call_args.args[0], ['/usr/bin/pkexec', '/usr/bin/apt-get', 'install', '-y', str(Path('/tmp/package.deb'))])
+            self.assertEqual(launch.call_args.kwargs['timeout'], 600)
+        with patch('shutil.which', return_value='/usr/bin/tool'), patch('subprocess.run', return_value=SimpleNamespace(returncode=126)):
+            with self.assertRaisesRegex(ValueError, 'キャンセル'):
+                install(Path('/tmp/package.deb'), True)
+
+    def test_package_manager_failure_is_not_reported_as_success(self):
+        install = self.main.__globals__['install_package']
+        with patch('shutil.which', return_value='/usr/bin/tool'), patch('subprocess.run', return_value=SimpleNamespace(returncode=1, stderr='dependency failure', stdout='')):
+            with self.assertRaisesRegex(ValueError, 'dependency failure'):
+                install(Path('/tmp/package.deb'), True)
 
 
 if __name__ == '__main__':

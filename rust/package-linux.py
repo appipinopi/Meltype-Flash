@@ -74,6 +74,9 @@ def stage_payload(bundle, root):
     # OS用カタログにも収める。App Centerの導入済み一覧はpkgnameで照合する。
     catalog = ET.Element('components', {'version': '1.0', 'origin': 'meltype-flash'})
     entry = ET.fromstring(metadata)
+    ET.SubElement(entry, 'icon', {'type': 'remote', 'width': '256', 'height': '256'}).text = (
+        'https://raw.githubusercontent.com/appipinopi/Meltype-Flash/'
+        '541ec617ecefe569730b9f26d43b1f22eb0b3833/assets/branding/meltype-flash-256.png')
     # MetaInfoでは段落ごと、カタログではdescription全体へ言語を付ける。
     description = entry.find('description')
     for paragraph in list(description):
@@ -86,6 +89,9 @@ def stage_payload(bundle, root):
     catalog_dir = root / 'usr/share/swcatalog/xml'
     catalog_dir.mkdir(parents=True)
     ET.ElementTree(catalog).write(catalog_dir / 'meltype-flash.xml', encoding='utf-8', xml_declaration=True)
+    # Ubuntu App CenterのDartローダーはxml/配下ではなく直下を読む。
+    # 標準配置も維持し、両方のソフトウェアセンターへ同じ情報を渡す。
+    shutil.copyfile(catalog_dir/'meltype-flash.xml', catalog_dir.parent/'meltype-flash.xml')
     # GNOMEはIBus名からこの固定名を探す（upstream #489）。
     (desktop / 'ibus-setup-meltype-flash.desktop').write_text(
         (desktop / 'meltype-flash.desktop').read_text(encoding='utf-8')
@@ -93,6 +99,16 @@ def stage_payload(bundle, root):
 
 
 def make_deb(root, destination, version, arch):
+    if arch == 'amd64':
+        keys = root / 'usr/share/keyrings'
+        keys.mkdir(parents=True, exist_ok=True)
+        shutil.copyfile(Path(__file__).with_name('meltype-flash-archive-key.asc'), keys/'meltype-flash-archive-key.asc')
+        sources = root / 'etc/apt/sources.list.d'
+        sources.mkdir(parents=True, exist_ok=True)
+        (sources/'meltype-flash.sources').write_text(
+            'Types: deb\nURIs: https://appipinopi.github.io/Meltype-Flash/apt\n'
+            'Suites: stable\nComponents: main\nArchitectures: amd64\n'
+            'Signed-By: /usr/share/keyrings/meltype-flash-archive-key.asc\n', encoding='utf-8')
     control = root / 'DEBIAN'
     control.mkdir()
     deb_version = version.replace('-pre.', '~pre.')
