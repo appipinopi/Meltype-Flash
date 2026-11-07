@@ -1,7 +1,7 @@
 ﻿# SPDX-License-Identifier: GPL-3.0-or-later
 # Copyright (C) 2026 appipinopi
 # Windows用shuntiの実行環境・辞書・モデルだけを個人領域へ導入する。
-param([string]$Root, [switch]$FunctionsOnly)
+param([string]$Root, [switch]$FunctionsOnly, [string]$ModelSpec)
 $ErrorActionPreference = 'Stop'
 $ProgressPreference = 'SilentlyContinue'
 [Console]::OutputEncoding = New-Object Text.UTF8Encoding($false)
@@ -84,8 +84,14 @@ function Install-Shunti([string]$DataRoot) {
     $parent = Join-Path ([IO.Path]::GetFullPath($DataRoot)) 'ai'
     New-Item -ItemType Directory -Path $parent -Force | Out-Null
     if ((Get-Item -LiteralPath $parent -Force).Attributes -band [IO.FileAttributes]::ReparsePoint) { throw 'Shunti parent cannot be a link' }
-    $target = Shunti-Child $parent 'shunti-14801bff-s8-windows-x64'
-    if (Test-Path -LiteralPath $target) { return Shunti-Installed $target }
+    $spec = if ($ModelSpec) { Get-Content -LiteralPath $ModelSpec -Raw -Encoding UTF8 | ConvertFrom-Json } else { $null }
+    $directory = if ($spec) { $spec.directory } else { 'shunti-14801bff-s8' }
+    $target = Shunti-Child $parent ($directory+'-windows-x64')
+    if (Test-Path -LiteralPath $target) {
+        $result = Shunti-Installed $target
+        if ($spec) { foreach ($file in $spec.files) { if ((Shunti-Hash (Shunti-Child $target $file.name)) -ne $file.sha256) { throw 'Selected model mismatch' } } }
+        return $result
+    }
     $stage = Shunti-Child $parent ('setup-shunti-'+[Guid]::NewGuid().ToString('N'))
     New-Item -ItemType Directory -Path $stage | Out-Null
     try {
@@ -102,8 +108,16 @@ function Install-Shunti([string]$DataRoot) {
         Shunti-Extract $archive $stage
         Remove-Item -LiteralPath $archive
         $base = 'https://github.com/shuntilettuce/Japanese-IME-for-HarmonyOS-next/releases/download/shuntelligence-v7/'
+        if ($spec) {
+            if (-not $spec.available -or $spec.family -cne 'Shunti' -or $spec.files.Count -ne 2) { throw 'Invalid shunti model specification' }
+            foreach ($file in $spec.files) {
+                if ($file.name -notin @('kkc_lex.bin','kkc_model.bin')) { throw 'Invalid shunti data file' }
+                Shunti-Download $file.url (Shunti-Child $stage $file.name) $file.sha256
+            }
+        } else {
         Shunti-Download ($base+'kkc_lex_v5.bin') (Join-Path $stage 'kkc_lex.bin') '209a151603339a533810a5692037a02dc89725cd4a461b7ecc730e7ade207c75'
         Shunti-Download ($base+'kkc_model_s8pv5.bin') (Join-Path $stage 'kkc_model.bin') '8f802b7c1659a56d00c5566dd03ea1c280fda58eb139cbf55393575e8cc84a41'
+        }
         Shunti-Probe $stage
         $files = @{}
         foreach ($file in Get-ChildItem -LiteralPath $stage -File) { $files[$file.Name] = Shunti-Hash $file.FullName }

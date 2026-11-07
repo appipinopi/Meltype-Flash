@@ -15,7 +15,7 @@ targets:
   MeltypeFlash:
     type: application
     platform: iOS
-    sources: [AISettings.swift, AISettingsViewController.swift, ../rust/ai/packages.json, App.swift, AppStyle.swift, MeltypeTextView.swift, KeyboardAppearance.swift, AppearanceViewController.swift, KeyboardDemoViewController.swift, KeyboardViewController.swift, KeyboardEditing.swift, FlickKey.swift, Assets.xcassets]
+    sources: [AISettings.swift, AISettingsViewController.swift, ../rust/ai/packages.json, ../rust/ai/model-catalog.json, App.swift, AppStyle.swift, MeltypeTextView.swift, KeyboardAppearance.swift, AppearanceViewController.swift, KeyboardDemoViewController.swift, KeyboardViewController.swift, KeyboardEditing.swift, FlickKey.swift, Assets.xcassets]
     entitlements:
       path: generated/App.entitlements
       properties:
@@ -42,7 +42,7 @@ targets:
   MeltypeFlashKeyboard:
     type: app-extension
     platform: iOS
-    sources: [AISettings.swift, KeyboardViewController.swift, KeyboardEditing.swift, FlickKey.swift, KeyboardAppearance.swift]
+    sources: [AISettings.swift, ../rust/ai/model-catalog.json, KeyboardViewController.swift, KeyboardEditing.swift, FlickKey.swift, KeyboardAppearance.swift]
     entitlements:
       path: generated/Keyboard.entitlements
       properties:
@@ -83,7 +83,7 @@ targets:
   KeyboardTests:
     type: bundle.unit-test
     platform: iOS
-    sources: [AISettings.swift, AISettingsTests.swift, KeyboardViewController.swift, KeyboardEditing.swift, FlickKey.swift, KeyboardAppearance.swift, MeltypeTextView.swift, KeyboardTests.swift]
+    sources: [AISettings.swift, AISettingsTests.swift, ../rust/ai/model-catalog.json, KeyboardViewController.swift, KeyboardEditing.swift, FlickKey.swift, KeyboardAppearance.swift, MeltypeTextView.swift, KeyboardTests.swift]
     settings:
       base:
         GENERATE_INFOPLIST_FILE: YES

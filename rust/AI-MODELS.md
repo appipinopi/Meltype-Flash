@@ -2,8 +2,27 @@
 
 |OS|選択肢|
 |---|---|
-|Windows・macOS・Linux|使用しない / Zenz / shunti|
-|Android・ChromeOS・iOS|使用しない / shunti|
+|Windows・macOS・Linux|使用しない / Zenz / Jinen / kanakanji-edge / shuntelligence|
+|Android・ChromeOS・iOS|使用しない / shuntelligence|
+
+## バージョンとモデルサイズの選択
+
+モデル系列を選び、「バージョン・モデルサイズ・量子化」で使う配布版を選びます。モデルはそれぞれ別のフォルダーへ導入するため、切り替えても以前のモデルを保持します。導入と検証が終わるとボタンが「インストール済み」に変わります。設定を閉じて開き直した場合も導入状態を読み取り、再ダウンロードせず選択できます。バージョンの選択だけでは未導入のモデルを起動しません。
+
+|系列|選択できる配布版|対象OS|
+|---|---|---|
+|Zenz|v1 Q8_0、v2 Q5_K_M、v3 small Q5_K_M、v3.1/v3.2 small・xsmall Q5_K_M|Windows・macOS・Linux|
+|Jinen|v1 small・xsmall Q5_K_M/F16、v2 small・xsmall Q4_K_M/Q5_K_M/Q8_0/F16|Windows・macOS・Linux|
+|kanakanji-edge|33m Q8_0/F16|Windows・macOS・Linux|
+|shuntelligence|v5 S7/XS5、v6 S8P/XS5、v7 S8P/XS5|Windows・macOS・Linux・Android・ChromeOS・iOS|
+
+Jinen v1.1 betaの4形式は一覧で確認できますが、配布元のライセンス表記を確認できないためインストールを無効にしています。Zenz v2.5などGGUFを配布していないモデルの自動変換や、未確認の実行コードの導入は行いません。
+
+配布元・固定リビジョン・SHA-256・サイズ・ライセンスは [`ai/model-catalog.json`](ai/model-catalog.json) にまとめています。Zenz v1/v2/v3の制御文字の順序を区別し、JinenはNFKC正規化、kanakanji-edgeは特殊トークンの解析に対応します。GGUF実行器のトークナイザー互換指定はZenzにだけ適用します。
+
+モデルの重みやトークナイザーのライセンスはアプリ本体のGPLv3とは別です。Zenzは各配布元のCC BY-SA 4.0またはApache-2.0、JinenはCC BY-SA 4.0、kanakanji-edgeの重みはApache-2.0・埋め込みトークナイザーは京都大学黒橋研究室由来のCC BY-SA 4.0です。作者はそれぞれKeita Miwa、Hitoshi Togasaki、yuuki14202028です。Jinen v2は国立国会図書館の書誌データを加工したコーパスを含み、国立国会図書館がモデルを提供・保証するものではありません。shuntelligenceのデータ出典と条件は後述の文書を参照してください。
+
+配布元: [Zenz](https://huggingface.co/Miwa-Keita)、[Jinen](https://huggingface.co/togatogah)、[kanakanji-edge](https://huggingface.co/yuuki14202028/kanakanji-edge-33m)、[shuntelligence](https://github.com/shuntilettuce/Japanese-IME-for-HarmonyOS-next/releases)。配布形式やライセンスが変わった場合は、確認した配布版を一覧へ追加します。
 
 最初はAIを使用しません。モデルを選ぶと、そのモデルの導入・パス設定だけを表示します。「インストール」を押して環境作成に同意すると、専用ランタイムとモデルデータを取得します。OllamaやDockerは導入しません。導入済みの環境は再利用します。「使用しない」へ戻してもモデルやパスを削除しません。
 

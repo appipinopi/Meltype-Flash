@@ -138,7 +138,7 @@ struct Server {
     process: Arc<Mutex<Option<Process>>>,
 }
 impl Server {
-    fn start(server: PathBuf, model: PathBuf) -> io::Result<Self> {
+    fn start(server: PathBuf, model: PathBuf, zenz_tokenizer: bool) -> io::Result<Self> {
         let port = TcpListener::bind((Ipv4Addr::LOCALHOST, 0))?
             .local_addr()?
             .port();
@@ -176,12 +176,13 @@ impl Server {
                             "0",
                             "--parallel",
                             "1",
-                            "--override-kv",
-                            "tokenizer.ggml.pre=str:gpt-2",
                         ])
                         .stdin(Stdio::null())
                         .stdout(Stdio::null())
                         .stderr(Stdio::null());
+                    if zenz_tokenizer {
+                        command.args(["--override-kv", "tokenizer.ggml.pre=str:gpt-2"]);
+                    }
                     let child = Process::start(&mut command)?;
                     {
                         let mut slot = process.lock().unwrap_or_else(|e| e.into_inner());
@@ -247,6 +248,9 @@ impl Drop for Server {
 #[derive(Default)]
 pub(crate) struct Zenzai {
     paths: Option<(PathBuf, PathBuf)>,
+    variant: String,
+    protocol: String,
+    zenz_tokenizer: bool,
     server: Option<Server>,
     cache: Cache,
     paused_until: Option<Instant>,
@@ -264,19 +268,27 @@ impl Zenzai {
     pub(crate) fn configure(&mut self, settings: &Settings) {
         let paths = (settings.boolean("Enabled")
             && settings.boolean("UseZenzai")
-            && meltype_core::ai_model::AiModel::selected(settings)
-                == meltype_core::ai_model::AiModel::Zenz)
-            .then(|| {
-                (
-                    settings.text("ZenzaiServerPath").trim(),
-                    settings.text("ZenzaiModelPath").trim(),
-                )
-            })
-            .filter(|(server, model)| !server.is_empty() && !model.is_empty())
-            .map(|(server, model)| (PathBuf::from(server), PathBuf::from(model)));
-        if self.paths != paths {
+            && meltype_core::ai_model::AiModel::selected(settings).is_gguf())
+        .then(|| {
+            (
+                settings.text("ZenzaiServerPath").trim(),
+                settings.text("ZenzaiModelPath").trim(),
+            )
+        })
+        .filter(|(server, model)| !server.is_empty() && !model.is_empty())
+        .map(|(server, model)| (PathBuf::from(server), PathBuf::from(model)));
+        let spec = meltype_core::ai_catalog::selected(
+            settings,
+            meltype_core::ai_model::AiModel::selected(settings),
+        );
+        let variant = spec.map(|m| m.id.clone()).unwrap_or_default();
+        let protocol = spec.map(|m| m.protocol.clone()).unwrap_or_default();
+        if self.paths != paths || self.variant != variant {
             *self = Self {
                 paths,
+                variant,
+                protocol,
+                zenz_tokenizer: spec.is_some_and(|m| m.family == "Zenz"),
                 ..Self::default()
             };
         }
@@ -297,7 +309,7 @@ impl Zenzai {
             return;
         };
         let result = if server.is_file() && model.is_file() {
-            Server::start(server.clone(), model.clone())
+            Server::start(server.clone(), model.clone(), self.zenz_tokenizer)
         } else {
             Err(io::Error::new(
                 io::ErrorKind::NotFound,
@@ -353,7 +365,7 @@ impl Zenzai {
             .server
             .as_ref()
             .filter(|server| server.state.load(Ordering::Acquire) == 1)?;
-        let body = json!({"prompt":prompt(reading, &key.0), "n_predict":96, "temperature":0,
+        let body = json!({"prompt":meltype_core::ai_catalog::prompt(&self.protocol, reading, &key.0), "n_predict":96, "temperature":0,
             "top_k":1, "cache_prompt":true, "parse_special":true})
         .to_string();
         let started = Instant::now();
@@ -413,6 +425,7 @@ fn context(before: &str) -> String {
         .rev()
         .collect()
 }
+#[cfg(test)]
 fn prompt(reading: &str, context: &str) -> String {
     format!(
         "\u{ee02}{context}\u{ee00}{}\u{ee01}",
@@ -981,7 +994,7 @@ class Handler(http.server.BaseHTTPRequestHandler):
 http.server.HTTPServer(('127.0.0.1', int(sys.argv[sys.argv.index('--port') + 1])), Handler).serve_forever()
 "#).unwrap();
         std::fs::set_permissions(&script, std::fs::Permissions::from_mode(0o755)).unwrap();
-        let server = Server::start(script, directory.path().join("model")).unwrap();
+        let server = Server::start(script, directory.path().join("model"), true).unwrap();
         let deadline = Instant::now() + Duration::from_secs(5);
         while server.state.load(Ordering::Acquire) == 0 {
             assert!(Instant::now() < deadline);

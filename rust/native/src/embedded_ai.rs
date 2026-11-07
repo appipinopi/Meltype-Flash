@@ -3,12 +3,15 @@
 //! Androidのshunti。ネットワークは設定画面の同意後だけ、入力は端末内だけで処理する。
 use super::*;
 use std::path::{Path, PathBuf};
-pub(crate) fn directory(root: &Path) -> PathBuf {
-    root.join("ai/shunti-14801bff-s8-data")
+pub(crate) fn directory(root: &Path, settings: &meltype_core::settings::Settings) -> PathBuf {
+    let model =
+        meltype_core::ai_catalog::selected(settings, meltype_core::ai_model::AiModel::Shunti)
+            .unwrap();
+    root.join("ai").join(format!("{}-data", model.directory))
 }
 pub(crate) fn profile(session: &Session) -> Option<PathBuf> {
     let root = session.data_directory()?;
-    let path = directory(root);
+    let path = directory(root, &session.settings);
     (session.settings.boolean("Enabled")
         && session.settings.boolean("UseShunti")
         && !session.private

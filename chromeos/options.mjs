@@ -2,7 +2,33 @@
 // Copyright (C) 2026 appipinopi
 import {validatePreferences} from "./site-profiles.mjs";
 import {ShuntiPackages,modelOrigins} from "./shunti.mjs";
-const aiPackages = new ShuntiPackages();
+let aiPackages = new ShuntiPackages();
+const aiVersion = document.querySelector("#ai-version");
+let aiVersions, aiCatalogPromise, aiRefreshEpoch = 0;
+async function refreshAI(value) {
+  const variant = value.ShuntiModelVariant ?? "shunti-v7-s8p", epoch = ++aiRefreshEpoch;
+  if (!aiVersions) {
+    aiVersions = await (aiCatalogPromise ??= fetch(new URL("./ai/model-catalog.json",import.meta.url)).then(response => response.json()).then(document => document.models.filter(m => m.family === "Shunti")));
+    if (epoch !== aiRefreshEpoch) return;
+    if (!aiVersion.options.length) for (const model of aiVersions) { const option = document.createElement("option"); option.value = model.id; option.textContent = model.label; aiVersion.append(option); }
+  }
+  if (epoch !== aiRefreshEpoch) return;
+  aiVersion.value = variant;
+  const packages = new ShuntiPackages({variant}); aiPackages = packages;
+  const installed = await packages.installed();
+  if (packages !== aiPackages) return;
+  aiInstall.textContent = installed ? "インストール済み" : "このモデルをインストール";
+  aiInstall.disabled = installed;
+  aiStatus.textContent = installed ? "インストール済みです。保存すると反映します。" : "未導入です。インストールを押してください。";
+  return installed;
+}
+aiVersion.addEventListener("change", async () => {
+  try {
+    const value = parseSettings(); value.ShuntiModelVariant = aiVersion.value; value.UseShunti = false; settings.value = JSON.stringify(value,null,2);
+    const installed = await refreshAI(value); const latest = parseSettings();
+    if (latest.ShuntiModelVariant === value.ShuntiModelVariant && latest.AiModel === "Shunti") { latest.UseShunti = installed; settings.value = JSON.stringify(latest,null,2); }
+  } catch (error) { aiStatus.textContent = String(error); }
+});
 const aiChoice = document.querySelector("#ai-model"), aiDetails = document.querySelector("#ai-details");
 const aiStatus = document.querySelector("#ai-status"), aiInstall = document.querySelector("#ai-install");
 function aiDetailsFor(value) { aiDetails.hidden = value.AiModel !== "Shunti" && !(value.AiModel == null && value.UseShunti === true); }
@@ -59,7 +85,7 @@ const desktopOnly = new Set(["AppRules", "AppKinds", "AppProfile", "StopInGames"
 const neuralSettings = ["UseZenzai", "ZenzaiServerPath", "ZenzaiModelPath", "ShuntiHelperPath"];
 function withoutNeuralSettings(value) {
   for (const key of neuralSettings) delete value[key];
-  if (value.AiModel === "Zenz") value.AiModel = "None";
+  if (["Zenz","Jinen","Kanakanji"].includes(value.AiModel)) value.AiModel = "None";
   if (Array.isArray(value.Profiles)) for (const profile of value.Profiles) {
     if (profile?.Values && typeof profile.Values === "object") {
       for (const key of neuralSettings) delete profile.Values[key];
@@ -103,7 +129,7 @@ for (const field of fields) field.addEventListener("change", async () => {
     }
     settings.value = JSON.stringify(value, null, 2);
     if (field.dataset.setting === "AiModel" && value.AiModel === "Shunti") {
-      const installed = await aiPackages.installed();
+      const installed = await refreshAI(value);
       const latest = parseSettings();
       if (latest.AiModel === "Shunti") { latest.UseShunti = installed; settings.value = JSON.stringify(latest,null,2); }
       aiStatus.textContent = installed ? "導入済みです。保存すると反映します。" : "未導入です。インストールを押してください。";
@@ -122,6 +148,7 @@ async function loadSettings() {
   savedSettings = withoutNeuralSettings(JSON.parse(snapshot).settings);
   settings.value = JSON.stringify(Object.fromEntries(Object.entries(savedSettings).filter(([key]) => !desktopOnly.has(key))), null, 2);
   displayFields(savedSettings);
+  if (savedSettings.AiModel === "Shunti" || savedSettings.UseShunti === true) await refreshAI(savedSettings);
   disableCore(false);
 }
 function addRule(rule = {host: "", mode: "code"}) {
@@ -223,15 +250,17 @@ show(reload);
 aiInstall.addEventListener("click", async () => {
   if (!globalThis.confirm("shuntiの環境を作成してよいですか？ 辞書（CC BY-SA 4.0）・モデル（CC BY 4.0）を別ダウンロードします。入力内容は送信しません。")) return;
   // Request optional host access while the user's button gesture is active.
+  const variant = parseSettings().ShuntiModelVariant ?? "shunti-v7-s8p";
+  const packages = new ShuntiPackages({variant});
   const permission = chrome.permissions.request({origins:modelOrigins,permissions:["unlimitedStorage"]});
-  disableCore(true); aiInstall.disabled = true;
+  disableCore(true); aiInstall.disabled = true; aiVersion.disabled = true;
   try {
     if (!await permission) throw new Error("ダウンロードが許可されませんでした");
     aiStatus.textContent = "AI環境を準備しています…";
-    await aiPackages.install();
-    const value = parseSettings(); value.AiModel = "Shunti"; value.UseShunti = true;
+    await packages.install();
+    const value = parseSettings(); value.AiModel = "Shunti"; value.ShuntiModelVariant = variant; value.UseShunti = true;
     settings.value = JSON.stringify(value,null,2); displayFields(value);
     aiStatus.textContent = "インストールしました。「入力設定を保存」で反映します。";
   } catch (error) { aiStatus.textContent = String(error); }
-  finally { disableCore(false); aiInstall.disabled = false; }
+  finally { disableCore(false); aiVersion.disabled = false; await refreshAI(parseSettings()); }
 });

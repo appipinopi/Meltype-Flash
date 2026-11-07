@@ -41,6 +41,31 @@ const TOGGLES: &[(&str, &str)] = &[
     ("ContinueAfterConversion", "変換後も入力を続ける"),
     ("SeparateKeyRoles", "変換キーの役割を分ける"),
 ];
+fn ai_installed(handle: jlong, id: &str) -> bool {
+    let Some(model) = meltype_core::ai_catalog::find(id).filter(|m| m.family == "Shunti") else {
+        return false;
+    };
+    sessions().lock().ok().is_some_and(|sessions| {
+        sessions
+            .get(&(handle as usize))
+            .and_then(|s| s.data_directory())
+            .is_some_and(|root| {
+                let directory = root.join("ai").join(format!("{}-data", model.directory));
+                let receipt = std::fs::read(directory.join("receipt.json"))
+                    .ok()
+                    .and_then(|bytes| serde_json::from_slice::<Value>(&bytes).ok());
+                receipt.is_some_and(|r| {
+                    model.files.iter().all(|f| {
+                        r["files"][&f.name] == f.sha256
+                            && directory
+                                .join(&f.name)
+                                .metadata()
+                                .is_ok_and(|m| m.len() == f.size)
+                    })
+                })
+            })
+    })
+}
 pub(super) fn page(handle: jlong, page: jint) -> Result<Value> {
     let mut nodes = Vec::new();
     match page {
@@ -55,15 +80,20 @@ pub(super) fn page(handle: jlong, page: jint) -> Result<Value> {
                     &mut nodes,
                     "shuntiの辞書・モデルは任意ダウンロードです。パス入力は不要です。",
                 );
-                button(
-                    &mut nodes,
-                    "shuntiをインストール",
-                    json!({"action":"ai_install"}),
-                );
+                let variants: Vec<_> = meltype_core::ai_catalog::models()
+                    .iter()
+                    .filter(|m| m.family == "Shunti")
+                    .collect();
+                let id = settings["ShuntiModelVariant"]
+                    .as_str()
+                    .unwrap_or("shunti-v7-s8p");
+                nodes.push(json!({"type":"select","text":"バージョン・モデルサイズ","choices":variants.iter().map(|m| &m.label).collect::<Vec<_>>(),"selected":variants.iter().position(|m| m.id == id).unwrap_or(0),"action":{"action":"ai_variant"},"enabled":!ai_ui::busy(handle)}));
+                let ready = ai_installed(handle, id);
+                nodes.push(json!({"type":"button","text":if ready {"インストール済み"} else {"このモデルをインストール"},"action":{"action":"ai_install"},"enabled":!ready && !ai_ui::busy(handle)}));
                 label(
                     &mut nodes,
-                    if settings["UseShunti"] == true {
-                        "導入済み"
+                    if ready {
+                        "インストール済み"
                     } else {
                         "未導入。インストール後に有効になります。"
                     },
@@ -281,27 +311,46 @@ pub(super) fn action(handle: jlong, action: Value, fields: Value) -> Result<Valu
                 json!({"op":"settings_set","name":"AiModel","value":model}),
             )?;
             if model == "Shunti" {
-                let ready = sessions()
-                    .lock()
-                    .ok()
-                    .and_then(|sessions| {
-                        sessions
-                            .get(&(handle as usize))
-                            .and_then(|s| s.data_directory())
-                            .map(|root| {
-                                let root = root.join("ai/shunti-14801bff-s8-data");
-                                ["receipt.json", "kkc_lex.bin", "kkc_model.bin"]
-                                    .iter()
-                                    .all(|name| root.join(name).is_file())
-                            })
-                    })
-                    .unwrap_or(false);
+                let id = current["ShuntiModelVariant"]
+                    .as_str()
+                    .unwrap_or("shunti-v7-s8p");
+                let ready = ai_installed(handle, id);
                 // The runtime verifies the fixed hashes again before inference.
                 request(
                     handle,
                     json!({"op":"settings_set","name":"UseShunti","value":ready}),
                 )?;
             }
+            return Ok(json!({"page":0}));
+        }
+        "ai_variant" => {
+            if ai_ui::busy(handle) {
+                return Ok(json!({}));
+            }
+            let variants: Vec<_> = meltype_core::ai_catalog::models()
+                .iter()
+                .filter(|m| m.family == "Shunti")
+                .collect();
+            let model = action["value"]
+                .as_u64()
+                .and_then(|i| variants.get(i as usize))
+                .ok_or("AIモデルが正しくありません")?;
+            let current = request(handle, json!({"op":"settings_get"}))?;
+            if current["ShuntiModelVariant"]
+                .as_str()
+                .unwrap_or("shunti-v7-s8p")
+                == model.id
+            {
+                return Ok(json!({}));
+            }
+            request(
+                handle,
+                json!({"op":"settings_set","name":"ShuntiModelVariant","value":model.id}),
+            )?;
+            request(
+                handle,
+                json!({"op":"settings_set","name":"UseShunti","value":ai_installed(handle,&model.id)}),
+            )?;
             return Ok(json!({"page":0}));
         }
         "ai_install" => {
