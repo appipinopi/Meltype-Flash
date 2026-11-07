@@ -6,3 +6,5 @@ pub const PACKAGES: &str = include_str!("../packages.json");
 pub mod packages;
 #[cfg(feature = "engine")]
 pub mod shunti;
+
+pub const MODEL_CATALOG: &str = include_str!("../model-catalog.json");

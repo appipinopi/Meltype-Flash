@@ -277,7 +277,12 @@ impl Settings {
             ] {
                 removed |= values.remove(key).is_some();
             }
-            if values.get("AiModel") == Some(&json!("Zenz")) {
+            if values
+                .get("AiModel")
+                .and_then(Value::as_str)
+                .and_then(crate::ai_model::AiModel::parse)
+                .is_some_and(|m| m.is_gguf())
+            {
                 values.insert("AiModel".into(), json!("None"));
                 removed = true;
             }
@@ -294,13 +299,30 @@ impl Settings {
         removed
     }
     pub fn set(&mut self, name: &str, value: Value) -> Result<(), String> {
+        if [
+            "ZenzModelVariant",
+            "JinenModelVariant",
+            "KanakanjiModelVariant",
+            "ShuntiModelVariant",
+        ]
+        .contains(&name)
+            && !value
+                .as_str()
+                .and_then(crate::ai_catalog::find)
+                .is_some_and(|m| {
+                    crate::ai_model::AiModel::parse(&m.family)
+                        .is_some_and(|f| crate::ai_catalog::key(f) == name)
+                })
+        {
+            return Err("モデルのバージョンが一覧にありません".into());
+        }
         if name == "AiModel"
             && value
                 .as_str()
                 .and_then(crate::ai_model::AiModel::parse)
                 .is_none()
         {
-            return Err("AIモデルは使用しない・Zenz・shuntiから選択してください".into());
+            return Err("AIモデルは使用しない・Zenz・Jinen・kanakanji-edge・shuntelligenceから選択してください".into());
         }
         if name == "ToggleKeyboardShortcuts" && !value.is_string()
             || name == "HankakuTogglesKeyboard" && !value.is_boolean()
@@ -341,7 +363,7 @@ impl Settings {
                 .and_then(crate::ai_model::AiModel::parse)
                 .unwrap_or(crate::ai_model::AiModel::None);
             self.0.insert("AiModel".into(), json!(model.value()));
-            if model != crate::ai_model::AiModel::Zenz {
+            if !model.is_gguf() {
                 self.0.insert("UseZenzai".into(), json!(false));
             }
             if model != crate::ai_model::AiModel::Shunti {

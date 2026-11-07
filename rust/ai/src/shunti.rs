@@ -55,9 +55,10 @@ impl Engine {
         // mapped dictionary would inflate a keyboard extension's resident memory.
         use sha2::{Digest, Sha256};
         use std::io::Read;
-        let package: serde_json::Value = serde_json::from_str(crate::PACKAGES).unwrap();
-        for spec in package["shunti"]["files"].as_array().unwrap() {
-            let mut file = File::open(directory.join(spec["name"].as_str().unwrap()))?;
+        let catalog: serde_json::Value = serde_json::from_str(crate::MODEL_CATALOG).unwrap();
+        let mut hashes = std::collections::HashMap::new();
+        for name in ["kkc_lex.bin", "kkc_model.bin"] {
+            let mut file = File::open(directory.join(name))?;
             let mut hash = Sha256::new();
             let mut buffer = [0; 65536];
             loop {
@@ -67,9 +68,21 @@ impl Engine {
                 }
                 hash.update(&buffer[..n]);
             }
-            if format!("{:x}", hash.finalize()) != spec["sha256"].as_str().unwrap() {
-                return Err(io::Error::other("shunti data SHA-256 mismatch"));
-            }
+            hashes.insert(name, format!("{:x}", hash.finalize()));
+        }
+        if !catalog["models"]
+            .as_array()
+            .unwrap()
+            .iter()
+            .filter(|m| m["family"] == "Shunti")
+            .any(|m| {
+                m["files"].as_array().unwrap().iter().all(|f| {
+                    hashes.get(f["name"].as_str().unwrap()).map(String::as_str)
+                        == f["sha256"].as_str()
+                })
+            })
+        {
+            return Err(io::Error::other("shunti data SHA-256 mismatch"));
         }
         let lex = map(&directory.join("kkc_lex.bin"))?;
         let model = map(&directory.join("kkc_model.bin"))?;

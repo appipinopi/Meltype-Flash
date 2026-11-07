@@ -3,6 +3,7 @@
 import {test} from "node:test";
 import assert from "node:assert/strict";
 import {readFileSync} from "node:fs";
+import {ShuntiPackages} from "../shunti.mjs";
 
 // 設定画面の実モジュールを、DOMとChrome通信の最小限の代替で動かす。
 class Element {
@@ -213,4 +214,31 @@ test("AI変換の設定は詳細JSONから除き、通常の予測と未知の�
   }
   assert.equal(p.saved().Profiles[0].Values.PredictiveCandidates, false);
   assert.deepEqual(p.saved().FutureOption, {keep: true});
+});
+
+
+test("モデルの導入後はインストール済みへ変わり、別の版は未導入として選択できる",async t=>{
+  const fetcher=globalThis.fetch, confirm=globalThis.confirm;
+  const installed=ShuntiPackages.prototype.installed, install=ShuntiPackages.prototype.install;
+  const versions=new Set();
+  t.after(()=>{globalThis.fetch=fetcher;globalThis.confirm=confirm;ShuntiPackages.prototype.installed=installed;ShuntiPackages.prototype.install=install;});
+  globalThis.fetch=async()=>new Response(readFileSync(new URL("../../rust/ai/model-catalog.json",import.meta.url)));
+  globalThis.confirm=()=>true;
+  ShuntiPackages.prototype.installed=async function(){return versions.has(this.variant);};
+  ShuntiPackages.prototype.install=async function(){versions.add(this.variant);};
+  const p=await page(t), get=id=>p.elements.get(id);
+  chrome.permissions={request:async()=>true};
+  p.fields.AiModel.value="Shunti"; await p.fields.AiModel.fire("change");
+  assert.equal(get("#ai-version").options.length,6);
+  assert.equal(get("#ai-install").disabled,false);
+  await get("#ai-install").fire("click");
+  assert.equal(get("#ai-install").textContent,"インストール済み");
+  assert.equal(get("#ai-install").disabled,true);
+  get("#ai-version").value="shunti-v6-xs5";await get("#ai-version").fire("change");
+  assert.equal(get("#ai-install").disabled,false);
+  assert.equal(JSON.parse(get("#settings").value).UseShunti,false);
+  get("#ai-version").value="shunti-v7-s8p";await get("#ai-version").fire("change");
+  assert.equal(get("#ai-install").textContent,"インストール済み");
+  assert.equal(JSON.parse(get("#settings").value).UseShunti,true);
+  assert.equal(versions.size,1);
 });

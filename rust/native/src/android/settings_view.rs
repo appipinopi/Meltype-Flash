@@ -31,6 +31,8 @@ enum Node {
     Button {
         text: String,
         action: Value,
+        #[serde(default)]
+        enabled: Option<bool>,
     },
     Select {
         text: String,
@@ -242,7 +244,18 @@ fn node(
                 &[JValue::Object(&listener)],
             )?;
         }
-        Node::Button { text, action } => {
+        Node::Button {
+            text,
+            action,
+            enabled,
+        } => {
+            invoke(
+                env,
+                &view,
+                "setEnabled",
+                "(Z)V",
+                &[JValue::Bool(u8::from(enabled.unwrap_or(true)))],
+            )?;
             property(env, &view, "setText", text)?;
             let serialized = env
                 .new_string(action.to_string())

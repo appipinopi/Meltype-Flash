@@ -1,0 +1,598 @@
+{
+  "models": [
+    {
+      "id": "zenz-v1-q8_0",
+      "family": "Zenz",
+      "label": "zenz-v1 / Q8_0",
+      "directory": "zenz-v1-q8_0",
+      "protocol": "zenz-v1",
+      "license": "cc-by-sa-4.0",
+      "source": "https://huggingface.co/Miwa-Keita/zenz-v1",
+      "available": true,
+      "files": [
+        {
+          "name": "model.gguf",
+          "url": "https://huggingface.co/Miwa-Keita/zenz-v1/resolve/b818595733d1d0e74ec79df9422182835a18ba6e/ggml-model-Q8_0.gguf",
+          "sha256": "e11c68203e20bd28e155b9d8751def7e3a52bcee079e52df1145f5ce5265fd14",
+          "size": 102293152
+        }
+      ]
+    },
+    {
+      "id": "zenz-v2-q5_k_m",
+      "family": "Zenz",
+      "label": "zenz-v2 / Q5_K_M",
+      "directory": "zenz-v2-q5_k_m",
+      "protocol": "zenz-v2",
+      "license": "cc-by-sa-4.0",
+      "source": "https://huggingface.co/Miwa-Keita/zenz-v2-gguf",
+      "available": true,
+      "files": [
+        {
+          "name": "model.gguf",
+          "url": "https://huggingface.co/Miwa-Keita/zenz-v2-gguf/resolve/a4b653da54904aa8a5dfbf9e7428b1f0c6b2e50e/zenz-v2-Q5_K_M.gguf",
+          "sha256": "22b8d8190bba8c9fec075ffb5b323b0f0d65c7c5f5ff82011799a0c3049d9662",
+          "size": 72298816
+        }
+      ]
+    },
+    {
+      "id": "zenz-v3-small-q5_k_m",
+      "family": "Zenz",
+      "label": "zenz-v3-small / Q5_K_M",
+      "directory": "zenz-v3-small-q5_k_m",
+      "protocol": "zenz-v3",
+      "license": "cc-by-sa-4.0",
+      "source": "https://huggingface.co/Miwa-Keita/zenz-v3-small-gguf",
+      "available": true,
+      "files": [
+        {
+          "name": "model.gguf",
+          "url": "https://huggingface.co/Miwa-Keita/zenz-v3-small-gguf/resolve/d48369e21adb9f49903eb7c54be1a1d9723eb805/ggml-model-Q5_K_M.gguf",
+          "sha256": "501f605d088f5b988791a00ae19ed46985ed7c48144f364b2f3f1f951c9b2083",
+          "size": 72298816
+        }
+      ]
+    },
+    {
+      "id": "zenz-v3.1-small-q5_k_m",
+      "family": "Zenz",
+      "label": "zenz-v3.1-small / Q5_K_M",
+      "directory": "zenz-v3.1",
+      "protocol": "zenz-v3",
+      "license": "cc-by-sa-4.0",
+      "source": "https://huggingface.co/Miwa-Keita/zenz-v3.1-small-gguf",
+      "available": true,
+      "files": [
+        {
+          "name": "model.gguf",
+          "url": "https://huggingface.co/Miwa-Keita/zenz-v3.1-small-gguf/resolve/ddf6e44b2e05ab7ea9a3e31559c5e7948761365c/ggml-model-Q5_K_M.gguf",
+          "sha256": "4de930c06bef8c263aa1aa40684af206db4ce1b96375b3b8ed0ea508e0b14f6c",
+          "size": 73871968
+        }
+      ]
+    },
+    {
+      "id": "zenz-v3.1-xsmall-q5_k_m",
+      "family": "Zenz",
+      "label": "zenz-v3.1-xsmall / Q5_K_M",
+      "directory": "zenz-v3.1-xsmall-q5_k_m",
+      "protocol": "zenz-v3",
+      "license": "cc-by-sa-4.0",
+      "source": "https://huggingface.co/Miwa-Keita/zenz-v3.1-xsmall-gguf",
+      "available": true,
+      "files": [
+        {
+          "name": "model.gguf",
+          "url": "https://huggingface.co/Miwa-Keita/zenz-v3.1-xsmall-gguf/resolve/5c0c4db8c8cc66a6ef01520475bebd56b41f6236/ggml-model-Q5_K_M.gguf",
+          "sha256": "189638370c43292fd54ba5e83854b24887ddd57e8914e19095514e663f60c7f5",
+          "size": 20970304
+        }
+      ]
+    },
+    {
+      "id": "zenz-v3.2-small-q5_k_m",
+      "family": "Zenz",
+      "label": "zenz-v3.2-small / Q5_K_M",
+      "directory": "zenz-v3.2-small-q5_k_m",
+      "protocol": "zenz-v3",
+      "license": "apache-2.0",
+      "source": "https://huggingface.co/Miwa-Keita/zenz-v3.2-small-gguf",
+      "available": true,
+      "files": [
+        {
+          "name": "model.gguf",
+          "url": "https://huggingface.co/Miwa-Keita/zenz-v3.2-small-gguf/resolve/c67e03e07d215c869f591b274c1631170d3e11fe/ggml-model-Q5_K_M.gguf",
+          "sha256": "29c223d4c23327b80fd13ebb5ab2555057a46317997d5da391584ffbef0db673",
+          "size": 73871936
+        }
+      ]
+    },
+    {
+      "id": "zenz-v3.2-xsmall-q5_k_m",
+      "family": "Zenz",
+      "label": "zenz-v3.2-xsmall / Q5_K_M",
+      "directory": "zenz-v3.2-xsmall-q5_k_m",
+      "protocol": "zenz-v3",
+      "license": "apache-2.0",
+      "source": "https://huggingface.co/Miwa-Keita/zenz-v3.2-xsmall-gguf",
+      "available": true,
+      "files": [
+        {
+          "name": "model.gguf",
+          "url": "https://huggingface.co/Miwa-Keita/zenz-v3.2-xsmall-gguf/resolve/4f5423f0fad41a73b1242eb96fe5c12ae4fdca83/ggml-model-Q5_K_M.gguf",
+          "sha256": "00c64b3d318045a708d0cad5434faccab10f5481a49e6362864551fd0995fa58",
+          "size": 20970304
+        }
+      ]
+    },
+    {
+      "id": "jinen-v1-small-q5_k_m",
+      "family": "Jinen",
+      "label": "jinen-v1-small / Q5_K_M",
+      "directory": "jinen-v1-small-q5_k_m",
+      "protocol": "jinen",
+      "license": "cc-by-sa-4.0",
+      "source": "https://huggingface.co/togatogah/jinen-v1-small.gguf",
+      "available": true,
+      "files": [
+        {
+          "name": "model.gguf",
+          "url": "https://huggingface.co/togatogah/jinen-v1-small.gguf/resolve/514e71f64b5f0fda750f2bffc284b008213c64ab/jinen-v1-small-Q5_K_M.gguf",
+          "sha256": "9bbe15b5832291712b4d77ee7909c9ddcb9a6587891e932379480b4e99f13b52",
+          "size": 88484544
+        }
+      ]
+    },
+    {
+      "id": "jinen-v1-small-f16",
+      "family": "Jinen",
+      "label": "jinen-v1-small / f16",
+      "directory": "jinen-v1-small-f16",
+      "protocol": "jinen",
+      "license": "cc-by-sa-4.0",
+      "source": "https://huggingface.co/togatogah/jinen-v1-small.gguf",
+      "available": true,
+      "files": [
+        {
+          "name": "model.gguf",
+          "url": "https://huggingface.co/togatogah/jinen-v1-small.gguf/resolve/514e71f64b5f0fda750f2bffc284b008213c64ab/jinen-v1-small-f16.gguf",
+          "sha256": "00064860f50229c4dc98b22d581a79c0ead1235f1aa9b68ed13adde46d450be8",
+          "size": 443281664
+        }
+      ]
+    },
+    {
+      "id": "jinen-v1-xsmall-q5_k_m",
+      "family": "Jinen",
+      "label": "jinen-v1-xsmall / Q5_K_M",
+      "directory": "jinen-v1-xsmall-q5_k_m",
+      "protocol": "jinen",
+      "license": "cc-by-sa-4.0",
+      "source": "https://huggingface.co/togatogah/jinen-v1-xsmall.gguf",
+      "available": true,
+      "files": [
+        {
+          "name": "model.gguf",
+          "url": "https://huggingface.co/togatogah/jinen-v1-xsmall.gguf/resolve/ec3d27722d73c12362df6de3939e27aedda50590/jinen-v1-xsmall-Q5_K_M.gguf",
+          "sha256": "bb3110f06e539bf8596756df85a48b3946f1378e6cb912322b9c368be06d79aa",
+          "size": 31178432
+        }
+      ]
+    },
+    {
+      "id": "jinen-v1-xsmall-f16",
+      "family": "Jinen",
+      "label": "jinen-v1-xsmall / f16",
+      "directory": "jinen-v1-xsmall-f16",
+      "protocol": "jinen",
+      "license": "cc-by-sa-4.0",
+      "source": "https://huggingface.co/togatogah/jinen-v1-xsmall.gguf",
+      "available": true,
+      "files": [
+        {
+          "name": "model.gguf",
+          "url": "https://huggingface.co/togatogah/jinen-v1-xsmall.gguf/resolve/ec3d27722d73c12362df6de3939e27aedda50590/jinen-v1-xsmall-f16.gguf",
+          "sha256": "f911bd16c78e600fbd293bd7a4bc36d4641338c0097468f32152d296d6269e88",
+          "size": 144895328
+        }
+      ]
+    },
+    {
+      "id": "jinen-v1.1-beta-q4_k_m",
+      "family": "Jinen",
+      "label": "jinen-v1.1-beta / Q4_K_M",
+      "directory": "jinen-v1.1-beta-q4_k_m",
+      "protocol": "jinen",
+      "license": "配布元モデルカードにライセンス表記なし",
+      "source": "https://huggingface.co/togatogah/jinen-v1.1-beta.gguf",
+      "available": true,
+      "files": [
+        {
+          "name": "model.gguf",
+          "url": "https://huggingface.co/togatogah/jinen-v1.1-beta.gguf/resolve/9bfe6c0553ba8bb69cd8dfd5b79ce77cb0de05c8/jinen-v1.1-beta-Q4_K_M.gguf",
+          "sha256": "835ad9c6d8f76216d29798196df394752f0b2d6fc2bde79c645a003920521068",
+          "size": 72123072
+        }
+      ]
+    },
+    {
+      "id": "jinen-v1.1-beta-q5_k_m",
+      "family": "Jinen",
+      "label": "jinen-v1.1-beta / Q5_K_M",
+      "directory": "jinen-v1.1-beta-q5_k_m",
+      "protocol": "jinen",
+      "license": "配布元モデルカードにライセンス表記なし",
+      "source": "https://huggingface.co/togatogah/jinen-v1.1-beta.gguf",
+      "available": true,
+      "files": [
+        {
+          "name": "model.gguf",
+          "url": "https://huggingface.co/togatogah/jinen-v1.1-beta.gguf/resolve/9bfe6c0553ba8bb69cd8dfd5b79ce77cb0de05c8/jinen-v1.1-beta-Q5_K_M.gguf",
+          "sha256": "e32e8be68d989f85b0e0ccd523bdee7fc530b15b17612ed18c29f7a6723f833b",
+          "size": 81117888
+        }
+      ]
+    },
+    {
+      "id": "jinen-v1.1-beta-q8_0",
+      "family": "Jinen",
+      "label": "jinen-v1.1-beta / Q8_0",
+      "directory": "jinen-v1.1-beta-q8_0",
+      "protocol": "jinen",
+      "license": "配布元モデルカードにライセンス表記なし",
+      "source": "https://huggingface.co/togatogah/jinen-v1.1-beta.gguf",
+      "available": true,
+      "files": [
+        {
+          "name": "model.gguf",
+          "url": "https://huggingface.co/togatogah/jinen-v1.1-beta.gguf/resolve/9bfe6c0553ba8bb69cd8dfd5b79ce77cb0de05c8/jinen-v1.1-beta-Q8_0.gguf",
+          "sha256": "ba9a294c7fa446e68b8c83c279155bccdc5c3580f5a959a17d690e69570b9dbf",
+          "size": 117197536
+        }
+      ]
+    },
+    {
+      "id": "jinen-v1.1-beta-f16",
+      "family": "Jinen",
+      "label": "jinen-v1.1-beta / f16",
+      "directory": "jinen-v1.1-beta-f16",
+      "protocol": "jinen",
+      "license": "配布元モデルカードにライセンス表記なし",
+      "source": "https://huggingface.co/togatogah/jinen-v1.1-beta.gguf",
+      "available": true,
+      "files": [
+        {
+          "name": "model.gguf",
+          "url": "https://huggingface.co/togatogah/jinen-v1.1-beta.gguf/resolve/9bfe6c0553ba8bb69cd8dfd5b79ce77cb0de05c8/jinen-v1.1-beta-f16.gguf",
+          "sha256": "e3e8bd0bb7ef1c9399aa0324b281fa9d9bb92918d483e832017e2559ac05d24b",
+          "size": 219865920
+        }
+      ]
+    },
+    {
+      "id": "jinen-v2-small-q4_k_m",
+      "family": "Jinen",
+      "label": "jinen-v2-small / Q4_K_M",
+      "directory": "jinen-v2-small-q4_k_m",
+      "protocol": "jinen",
+      "license": "cc-by-sa-4.0",
+      "source": "https://huggingface.co/togatogah/jinen-v2-small.gguf",
+      "available": true,
+      "files": [
+        {
+          "name": "model.gguf",
+          "url": "https://huggingface.co/togatogah/jinen-v2-small.gguf/resolve/3461d0573ab447985badde3174165b967d06076c/jinen-v2-small-Q4_K_M.gguf",
+          "sha256": "26a6a71020a8d12908615d6ed2541ad6d6d9b73fc179d8d5472eb1c709bb1300",
+          "size": 72123008
+        }
+      ]
+    },
+    {
+      "id": "jinen-v2-small-q5_k_m",
+      "family": "Jinen",
+      "label": "jinen-v2-small / Q5_K_M",
+      "directory": "jinen-v2-small-q5_k_m",
+      "protocol": "jinen",
+      "license": "cc-by-sa-4.0",
+      "source": "https://huggingface.co/togatogah/jinen-v2-small.gguf",
+      "available": true,
+      "files": [
+        {
+          "name": "model.gguf",
+          "url": "https://huggingface.co/togatogah/jinen-v2-small.gguf/resolve/3461d0573ab447985badde3174165b967d06076c/jinen-v2-small-Q5_K_M.gguf",
+          "sha256": "80482707513d6b67dafc31774371cf95d765542abf8d74eebf5f32f92d788bd3",
+          "size": 81117824
+        }
+      ]
+    },
+    {
+      "id": "jinen-v2-small-q8_0",
+      "family": "Jinen",
+      "label": "jinen-v2-small / Q8_0",
+      "directory": "jinen-v2-small-q8_0",
+      "protocol": "jinen",
+      "license": "cc-by-sa-4.0",
+      "source": "https://huggingface.co/togatogah/jinen-v2-small.gguf",
+      "available": true,
+      "files": [
+        {
+          "name": "model.gguf",
+          "url": "https://huggingface.co/togatogah/jinen-v2-small.gguf/resolve/3461d0573ab447985badde3174165b967d06076c/jinen-v2-small-Q8_0.gguf",
+          "sha256": "215fe5a513fffdc7c9570a8bf1ad45439d80dc7db2b2f43a1c55f28ffc9fba99",
+          "size": 117197472
+        }
+      ]
+    },
+    {
+      "id": "jinen-v2-small-f16",
+      "family": "Jinen",
+      "label": "jinen-v2-small / f16",
+      "directory": "jinen-v2-small-f16",
+      "protocol": "jinen",
+      "license": "cc-by-sa-4.0",
+      "source": "https://huggingface.co/togatogah/jinen-v2-small.gguf",
+      "available": true,
+      "files": [
+        {
+          "name": "model.gguf",
+          "url": "https://huggingface.co/togatogah/jinen-v2-small.gguf/resolve/3461d0573ab447985badde3174165b967d06076c/jinen-v2-small-f16.gguf",
+          "sha256": "904c40debcf04e6189d63c046425051bfa4c999ca22962c50dd01a7776af6820",
+          "size": 219865856
+        }
+      ]
+    },
+    {
+      "id": "jinen-v2-xsmall-q4_k_m",
+      "family": "Jinen",
+      "label": "jinen-v2-xsmall / Q4_K_M",
+      "directory": "jinen-v2-xsmall-q4_k_m",
+      "protocol": "jinen",
+      "license": "cc-by-sa-4.0",
+      "source": "https://huggingface.co/togatogah/jinen-v2-xsmall.gguf",
+      "available": true,
+      "files": [
+        {
+          "name": "model.gguf",
+          "url": "https://huggingface.co/togatogah/jinen-v2-xsmall.gguf/resolve/3910fd01bf4ba86eca89617f18db9b0c1c5b2283/jinen-v2-xsmall-Q4_K_M.gguf",
+          "sha256": "1783be74e4bf0eaadcd6f217ec6dea06cecb0833b94c24b417b93d93fbe01d4e",
+          "size": 26278592
+        }
+      ]
+    },
+    {
+      "id": "jinen-v2-xsmall-q5_k_m",
+      "family": "Jinen",
+      "label": "jinen-v2-xsmall / Q5_K_M",
+      "directory": "jinen-v2-xsmall-q5_k_m",
+      "protocol": "jinen",
+      "license": "cc-by-sa-4.0",
+      "source": "https://huggingface.co/togatogah/jinen-v2-xsmall.gguf",
+      "available": true,
+      "files": [
+        {
+          "name": "model.gguf",
+          "url": "https://huggingface.co/togatogah/jinen-v2-xsmall.gguf/resolve/3910fd01bf4ba86eca89617f18db9b0c1c5b2283/jinen-v2-xsmall-Q5_K_M.gguf",
+          "sha256": "24ff3af5db712fbbb4aa9254ee28ec4d731207134471ab68b06c1828726284c2",
+          "size": 28261056
+        }
+      ]
+    },
+    {
+      "id": "jinen-v2-xsmall-q8_0",
+      "family": "Jinen",
+      "label": "jinen-v2-xsmall / Q8_0",
+      "directory": "jinen-v2-xsmall-q8_0",
+      "protocol": "jinen",
+      "license": "cc-by-sa-4.0",
+      "source": "https://huggingface.co/togatogah/jinen-v2-xsmall.gguf",
+      "available": true,
+      "files": [
+        {
+          "name": "model.gguf",
+          "url": "https://huggingface.co/togatogah/jinen-v2-xsmall.gguf/resolve/3910fd01bf4ba86eca89617f18db9b0c1c5b2283/jinen-v2-xsmall-Q8_0.gguf",
+          "sha256": "bc75a02512bdbb2a4786fec281a57d4d58ac3c2f118c3a29c2a9b41f2a4898b7",
+          "size": 38664224
+        }
+      ]
+    },
+    {
+      "id": "jinen-v2-xsmall-f16",
+      "family": "Jinen",
+      "label": "jinen-v2-xsmall / f16",
+      "directory": "jinen-v2-xsmall-f16",
+      "protocol": "jinen",
+      "license": "cc-by-sa-4.0",
+      "source": "https://huggingface.co/togatogah/jinen-v2-xsmall.gguf",
+      "available": true,
+      "files": [
+        {
+          "name": "model.gguf",
+          "url": "https://huggingface.co/togatogah/jinen-v2-xsmall.gguf/resolve/3910fd01bf4ba86eca89617f18db9b0c1c5b2283/jinen-v2-xsmall-f16.gguf",
+          "sha256": "1010735eed3794d116d572edc51080abb0e1a59c94bc6f6865429637f4d6f7f3",
+          "size": 72089024
+        }
+      ]
+    },
+    {
+      "id": "kanakanji-edge-33m-q8_0",
+      "family": "Kanakanji",
+      "label": "kanakanji-edge-33m / Q8_0",
+      "directory": "kanakanji-edge-33m-q8_0",
+      "protocol": "zenz-v3",
+      "license": "apache-2.0",
+      "source": "https://huggingface.co/yuuki14202028/kanakanji-edge-33m",
+      "available": true,
+      "files": [
+        {
+          "name": "model.gguf",
+          "url": "https://huggingface.co/yuuki14202028/kanakanji-edge-33m/resolve/da588df2db17e5ab69316986823806ec5f911450/kanakanji-edge-33m-Q8_0.gguf",
+          "sha256": "924b1a0e2b95a17208366048071b9fd259364f24fbc6090f0e4fd680f8bdb146",
+          "size": 35806592
+        }
+      ]
+    },
+    {
+      "id": "kanakanji-edge-33m-f16",
+      "family": "Kanakanji",
+      "label": "kanakanji-edge-33m / f16",
+      "directory": "kanakanji-edge-33m-f16",
+      "protocol": "zenz-v3",
+      "license": "apache-2.0",
+      "source": "https://huggingface.co/yuuki14202028/kanakanji-edge-33m",
+      "available": true,
+      "files": [
+        {
+          "name": "model.gguf",
+          "url": "https://huggingface.co/yuuki14202028/kanakanji-edge-33m/resolve/da588df2db17e5ab69316986823806ec5f911450/kanakanji-edge-33m-f16.gguf",
+          "sha256": "0de195adaba8a32c0b71175c98003c326c9d918ba6f8b0618317e58359bd1f8b",
+          "size": 67196192
+        }
+      ]
+    },
+    {
+      "id": "shunti-v7-s8p",
+      "family": "Shunti",
+      "label": "shuntelligence v7 / S8P",
+      "directory": "shunti-14801bff-s8",
+      "protocol": "shunti",
+      "license": "モデル CC BY 4.0 / 辞書 CC BY-SA 4.0（複数ライセンスを含む）",
+      "source": "https://github.com/shuntilettuce/Japanese-IME-for-HarmonyOS-next/releases/tag/shuntelligence-v7",
+      "available": true,
+      "files": [
+        {
+          "name": "kkc_lex.bin",
+          "url": "https://github.com/shuntilettuce/Japanese-IME-for-HarmonyOS-next/releases/download/shuntelligence-v7/kkc_lex_v5.bin",
+          "sha256": "209a151603339a533810a5692037a02dc89725cd4a461b7ecc730e7ade207c75",
+          "size": 97629574
+        },
+        {
+          "name": "kkc_model.bin",
+          "url": "https://github.com/shuntilettuce/Japanese-IME-for-HarmonyOS-next/releases/download/shuntelligence-v7/kkc_model_s8pv5.bin",
+          "sha256": "8f802b7c1659a56d00c5566dd03ea1c280fda58eb139cbf55393575e8cc84a41",
+          "size": 8231312
+        }
+      ]
+    },
+    {
+      "id": "shunti-v7-xs5",
+      "family": "Shunti",
+      "label": "shuntelligence v7 / XS5",
+      "directory": "shunti-v7-xs5",
+      "protocol": "shunti",
+      "license": "モデル CC BY 4.0 / 辞書 CC BY-SA 4.0（複数ライセンスを含む）",
+      "source": "https://github.com/shuntilettuce/Japanese-IME-for-HarmonyOS-next/releases/tag/shuntelligence-v7",
+      "available": true,
+      "files": [
+        {
+          "name": "kkc_lex.bin",
+          "url": "https://github.com/shuntilettuce/Japanese-IME-for-HarmonyOS-next/releases/download/shuntelligence-v7/kkc_lex_v5.bin",
+          "sha256": "209a151603339a533810a5692037a02dc89725cd4a461b7ecc730e7ade207c75",
+          "size": 97629574
+        },
+        {
+          "name": "kkc_model.bin",
+          "url": "https://github.com/shuntilettuce/Japanese-IME-for-HarmonyOS-next/releases/download/shuntelligence-v7/kkc_model_xs5v5.bin",
+          "sha256": "33060dc533988f2043fda22be0330b97a453d5817bf47b9fe15f8c9002a6f0a2",
+          "size": 2653840
+        }
+      ]
+    },
+    {
+      "id": "shunti-v6-s8p",
+      "family": "Shunti",
+      "label": "shuntelligence v6 / S8P",
+      "directory": "shunti-v6-s8p",
+      "protocol": "shunti",
+      "license": "モデル CC BY 4.0 / 辞書 CC BY-SA 4.0（複数ライセンスを含む）",
+      "source": "https://github.com/shuntilettuce/Japanese-IME-for-HarmonyOS-next/releases/tag/shuntelligence-v6",
+      "available": true,
+      "files": [
+        {
+          "name": "kkc_lex.bin",
+          "url": "https://github.com/shuntilettuce/Japanese-IME-for-HarmonyOS-next/releases/download/shuntelligence-v6/kkc_lex_v4.bin",
+          "sha256": "93dff2a320912f5ed4557ef17211c5cde81e11d3f244868acbd97eafa845e956",
+          "size": 95348410
+        },
+        {
+          "name": "kkc_model.bin",
+          "url": "https://github.com/shuntilettuce/Japanese-IME-for-HarmonyOS-next/releases/download/shuntelligence-v6/kkc_model_s8pv5.bin",
+          "sha256": "8f802b7c1659a56d00c5566dd03ea1c280fda58eb139cbf55393575e8cc84a41",
+          "size": 8231312
+        }
+      ]
+    },
+    {
+      "id": "shunti-v6-xs5",
+      "family": "Shunti",
+      "label": "shuntelligence v6 / XS5",
+      "directory": "shunti-v6-xs5",
+      "protocol": "shunti",
+      "license": "モデル CC BY 4.0 / 辞書 CC BY-SA 4.0（複数ライセンスを含む）",
+      "source": "https://github.com/shuntilettuce/Japanese-IME-for-HarmonyOS-next/releases/tag/shuntelligence-v6",
+      "available": true,
+      "files": [
+        {
+          "name": "kkc_lex.bin",
+          "url": "https://github.com/shuntilettuce/Japanese-IME-for-HarmonyOS-next/releases/download/shuntelligence-v6/kkc_lex_v4.bin",
+          "sha256": "93dff2a320912f5ed4557ef17211c5cde81e11d3f244868acbd97eafa845e956",
+          "size": 95348410
+        },
+        {
+          "name": "kkc_model.bin",
+          "url": "https://github.com/shuntilettuce/Japanese-IME-for-HarmonyOS-next/releases/download/shuntelligence-v6/kkc_model_xs5v5.bin",
+          "sha256": "33060dc533988f2043fda22be0330b97a453d5817bf47b9fe15f8c9002a6f0a2",
+          "size": 2653840
+        }
+      ]
+    },
+    {
+      "id": "shunti-v5-s7",
+      "family": "Shunti",
+      "label": "shuntelligence v5 / S7",
+      "directory": "shunti-v5-s7",
+      "protocol": "shunti",
+      "license": "モデル CC BY 4.0 / 辞書 CC BY-SA 4.0（複数ライセンスを含む）",
+      "source": "https://github.com/shuntilettuce/Japanese-IME-for-HarmonyOS-next/releases/tag/shuntelligence-v5",
+      "available": true,
+      "files": [
+        {
+          "name": "kkc_lex.bin",
+          "url": "https://github.com/shuntilettuce/Japanese-IME-for-HarmonyOS-next/releases/download/shuntelligence-v5/kkc_lex_v4.bin",
+          "sha256": "93dff2a320912f5ed4557ef17211c5cde81e11d3f244868acbd97eafa845e956",
+          "size": 95348410
+        },
+        {
+          "name": "kkc_model.bin",
+          "url": "https://github.com/shuntilettuce/Japanese-IME-for-HarmonyOS-next/releases/download/shuntelligence-v5/kkc_model_s7v5.bin",
+          "sha256": "40b636802ce260c5ae455cebb7054efed1dceca7024ed1dbbee1457127d9eaa6",
+          "size": 8163728
+        }
+      ]
+    },
+    {
+      "id": "shunti-v5-xs5",
+      "family": "Shunti",
+      "label": "shuntelligence v5 / XS5",
+      "directory": "shunti-v5-xs5",
+      "protocol": "shunti",
+      "license": "モデル CC BY 4.0 / 辞書 CC BY-SA 4.0（複数ライセンスを含む）",
+      "source": "https://github.com/shuntilettuce/Japanese-IME-for-HarmonyOS-next/releases/tag/shuntelligence-v5",
+      "available": true,
+      "files": [
+        {
+          "name": "kkc_lex.bin",
+          "url": "https://github.com/shuntilettuce/Japanese-IME-for-HarmonyOS-next/releases/download/shuntelligence-v5/kkc_lex_v4.bin",
+          "sha256": "93dff2a320912f5ed4557ef17211c5cde81e11d3f244868acbd97eafa845e956",
+          "size": 95348410
+        },
+        {
+          "name": "kkc_model.bin",
+          "url": "https://github.com/shuntilettuce/Japanese-IME-for-HarmonyOS-next/releases/download/shuntelligence-v5/kkc_model_xs5v5.bin",
+          "sha256": "33060dc533988f2043fda22be0330b97a453d5817bf47b9fe15f8c9002a6f0a2",
+          "size": 2653840
+        }
+      ]
+    }
+  ]
+}

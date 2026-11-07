@@ -55,10 +55,19 @@ pub(super) fn dispatch(
                 .and_then(|s| s.data_directory())
                 .ok_or("設定が閉じられました")?
                 .to_path_buf();
-            meltype_ai::packages::install_shunti_data(&root.join("ai"))
+            let settings = settings::request(handle, json!({"op":"settings_get"}))?;
+            let variant = settings["ShuntiModelVariant"]
+                .as_str()
+                .unwrap_or("shunti-v7-s8p");
+            meltype_ai::packages::install_shunti_variant(&root.join("ai"), variant)
                 .map_err(|e| e.to_string())?;
             let settings = settings::request(handle, json!({"op":"settings_get"}))?;
-            if settings["AiModel"] == "Shunti" {
+            if settings["AiModel"] == "Shunti"
+                && settings["ShuntiModelVariant"]
+                    .as_str()
+                    .unwrap_or("shunti-v7-s8p")
+                    == variant
+            {
                 settings::request(
                     handle,
                     json!({"op":"settings_set","name":"UseShunti","value":true}),

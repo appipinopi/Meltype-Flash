@@ -22,6 +22,8 @@ public final class SettingsViewHost {
         Path profile=Files.createTempDirectory("meltype-jni-settings-view-");long session=Native.create(profile.toString());
         try {
             SettingsViewHost host=new SettingsViewHost();
+            ok(Native.renderSettingsPage(host,"{\"nodes\":[{\"type\":\"button\",\"text\":\"インストール済み\",\"enabled\":false,\"action\":{}},{\"type\":\"button\",\"text\":\"導入する\",\"action\":{}}]}"));
+            check(!host.body.children.get(0).enabled&&host.body.children.get(1).enabled,"installed button disabled; legacy buttons remain enabled");
             for(int page=0;page<6;page++)ok(Native.renderSettingsPage(host,Native.settingsPage(session,page)));
             ok(Native.renderSettingsPage(host,Native.settingsPage(session,0)));check(host.actions.isEmpty(),"initial state cannot mutate settings");
             int toggles=0;for(View view:host.body.children)if(view instanceof Switch toggle){toggles++;toggle.performClick();}

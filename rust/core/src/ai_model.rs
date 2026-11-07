@@ -9,14 +9,24 @@ pub enum AiModel {
     None,
     Zenz,
     Shunti,
+    Jinen,
+    Kanakanji,
 }
 impl AiModel {
-    pub const ALL: [Self; 3] = [Self::None, Self::Zenz, Self::Shunti];
+    pub const ALL: [Self; 5] = [
+        Self::None,
+        Self::Zenz,
+        Self::Jinen,
+        Self::Kanakanji,
+        Self::Shunti,
+    ];
     pub fn parse(value: &str) -> Option<Self> {
         match value {
             "None" => Some(Self::None),
             "Zenz" => Some(Self::Zenz),
             "Shunti" => Some(Self::Shunti),
+            "Jinen" => Some(Self::Jinen),
+            "Kanakanji" => Some(Self::Kanakanji),
             _ => None,
         }
     }
@@ -25,14 +35,21 @@ impl AiModel {
             Self::None => "None",
             Self::Zenz => "Zenz",
             Self::Shunti => "Shunti",
+            Self::Jinen => "Jinen",
+            Self::Kanakanji => "Kanakanji",
         }
     }
     pub fn label(self) -> &'static str {
         match self {
             Self::None => "使用しない",
             Self::Zenz => "Zenz",
-            Self::Shunti => "shunti",
+            Self::Shunti => "shuntelligence",
+            Self::Jinen => "Jinen",
+            Self::Kanakanji => "kanakanji-edge",
         }
+    }
+    pub fn is_gguf(self) -> bool {
+        matches!(self, Self::Zenz | Self::Jinen | Self::Kanakanji)
     }
     pub fn selected(settings: &Settings) -> Self {
         Self::parse(settings.text("AiModel")).unwrap_or_else(|| {
@@ -49,7 +66,7 @@ impl AiModel {
     pub fn select(self, settings: &mut Settings, ready: bool) {
         settings.set("AiModel", json!(self.value())).unwrap();
         settings
-            .set("UseZenzai", json!(ready && self == Self::Zenz))
+            .set("UseZenzai", json!(ready && self.is_gguf()))
             .unwrap();
         settings
             .set("UseShunti", json!(ready && self == Self::Shunti))

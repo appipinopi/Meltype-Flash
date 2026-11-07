@@ -1,7 +1,7 @@
 ﻿# SPDX-License-Identifier: GPL-3.0-or-later
 # Copyright (C) 2026 appipinopi
 # AI用CPUランタイムとモデルのみをユーザー領域へ導入する。
-param([Parameter(Mandatory=$true)][string]$Root)
+param([Parameter(Mandatory=$true)][string]$Root, [string]$ModelSpec)
 $ErrorActionPreference = 'Stop'
 $ProgressPreference = 'SilentlyContinue'
 [Console]::OutputEncoding = New-Object Text.UTF8Encoding($false)
@@ -30,14 +30,24 @@ function Installed([string]$Directory) {
     }
     return @{server=(Child-Path $Directory $receipt.server);model=(Child-Path $Directory $receipt.model)}
 }
+$spec = if ($ModelSpec) { Get-Content -LiteralPath $ModelSpec -Raw -Encoding UTF8 | ConvertFrom-Json } else { $null }
+$directory = 'zenz-v3.1'
+if ($spec) {
+    if (-not $spec.available -or $spec.directory -notmatch '^[a-zA-Z0-9_.-]+$' -or $spec.files.Count -ne 1 -or $spec.files[0].name -cne 'model.gguf') { throw 'Invalid model specification' }
+    $directory = $spec.directory; $modelSha = $spec.files[0].sha256; $modelUrl = $spec.files[0].url
+}
 $stage = $null
 try {
     $architecture = [Runtime.InteropServices.RuntimeInformation]::ProcessArchitecture.ToString().ToLowerInvariant()
     if ($architecture -notin @('x64','arm64')) { throw 'Unsupported CPU architecture' }
     $parent = Join-Path ([IO.Path]::GetFullPath($Root)) 'ai'
     New-Item -ItemType Directory -Path $parent -Force | Out-Null
-    $target = Child-Path $parent "zenz-v3.1-$tag-$architecture"
-    if (Test-Path -LiteralPath $target) { Installed $target | ConvertTo-Json -Compress; return }
+    $target = Child-Path $parent "$directory-$tag-$architecture"
+    if (Test-Path -LiteralPath $target) {
+        $result = Installed $target
+        if ($spec -and (Get-FileHash -LiteralPath $result.model -Algorithm SHA256).Hash -ne $modelSha) { throw 'Selected model mismatch' }
+        $result | ConvertTo-Json -Compress; return
+    }
     $release = Invoke-RestMethod -Uri "https://api.github.com/repos/ggml-org/llama.cpp/releases/tags/$tag" -Headers @{'User-Agent'='Meltype-AI-Setup'} -TimeoutSec 30
     $name = "llama-$tag-bin-win-cpu-$architecture.zip"
     $asset = @($release.assets | Where-Object name -EQ $name)[0]

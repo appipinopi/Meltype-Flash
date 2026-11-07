@@ -35,8 +35,8 @@ pub fn metadata() -> &'static Value {
                 }));
             }
         }
-        data["enums"]["AiModel"] = json!({"None":"使用しない","Zenz":"Zenz","Shunti":"shunti"});
-        data["fields"].as_array_mut().unwrap().push(json!({"key":"AiModel","type":"AiModel","category":"1a. AI","label":"AIモデル","description":"使用しない・Zenz・shuntiから選択します。導入とパスは選択したモデルだけ表示します。"}));
+        data["enums"]["AiModel"] = json!({"None":"使用しない","Zenz":"Zenz","Shunti":"shuntelligence","Jinen":"Jinen","Kanakanji":"kanakanji-edge"});
+        data["fields"].as_array_mut().unwrap().push(json!({"key":"AiModel","type":"AiModel","category":"1a. AI","label":"AIモデル","description":"使用しない・Zenz・Jinen・kanakanji-edge・shuntelligenceから選択します。導入とパスは選択したモデルだけ表示します。"}));
         data
     })
 }
@@ -85,6 +85,12 @@ pub fn schema() -> Value {
     );
     properties.insert("ShuntiHelperPath".into(), json!({"type":"string"}));
     properties.insert("$schema".into(), json!({"type":"string"}));
+    for family in crate::ai_model::AiModel::ALL
+        .into_iter()
+        .filter(|m| *m != crate::ai_model::AiModel::None)
+    {
+        properties.insert(crate::ai_catalog::key(family).into(), json!({"type":"string", "enum":crate::ai_catalog::models().iter().filter(|m| m.family == family.value()).map(|m| &m.id).collect::<Vec<_>>()}));
+    }
     json!({
         "$schema":"https://json-schema.org/draft/2020-12/schema",
         "title":"Meltype-FLASH config.json",

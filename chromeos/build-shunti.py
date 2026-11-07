@@ -21,6 +21,7 @@ def build(destination):
     for name in ['LICENSE','THIRD_PARTY_NOTICES.md','DATA_SOURCES.md','UPSTREAM.json']:
         shutil.copyfile(source/name,destination/name)
     shutil.copyfile(ROOT/'rust/ai/packages.json',destination/'packages.json')
+    shutil.copyfile(ROOT/'rust/ai/model-catalog.json',destination/'model-catalog.json')
 
 if __name__ == '__main__':
     build(sys.argv[1])
