@@ -9,10 +9,10 @@
 
 本家 [Meltype](https://github.com/yksr-melt/Meltype) を参照して開発している、Rust版の日本語入力です。
 Windows・Mac・Linux・Android・ChromeOS・iOSで共通の入力コアを使います。
-**Flash 1.0.1です。環境によって変換エンジン・設定・学習・操作が異なります。本家C#版と全機能・精度が同じことを示す版番号ではありません。**
+**Flash 1.0.7です。環境によって変換エンジン・設定・学習・操作が異なります。本家C#版と全機能・精度が同じことを示す版番号ではありません。**
 
 <p align="center">
-<a href="https://github.com/appipinopi/Meltype-Flash/releases/tag/flash-v1.0.1"><b>ダウンロード</b></a> ·
+<a href="https://github.com/appipinopi/Meltype-Flash/releases/latest"><b>ダウンロード</b></a> ·
 <a href="#使い始める">使い方</a> ·
 <a href="https://github.com/appipinopi/Meltype-Flash/issues/new/choose">不具合の報告・提案</a> ·
 <a href="rust/README.md">実装・検証の状況</a>
@@ -52,8 +52,8 @@ Windows・Mac・Linux・Android・ChromeOS・iOSで共通の入力コアを使�
 </p>
 <!-- meltype-flash-os-navigation:end -->
 
-このソースに対応するリリースは [v1.0.1](https://github.com/appipinopi/Meltype-Flash/releases/tag/flash-v1.0.1) です。
-版番号は`1.0.1`です。ChromeOSの日本語／US配列を選択できるようにし、Linux配布にMozc漢字変換を必須同梱します。製品名をMeltype-FLASHへ統一し、Issueの版番号をリリースと同期するプルダウンに変更しました。[1.0.1の変更と確認範囲](rust/RELEASE-NOTES.md)を参照してください。公開状況と配布物は上のリリースページで確認してください。
+このソースに対応するリリースは [v1.0.7](https://github.com/appipinopi/Meltype-Flash/releases/tag/flash-v1.0.7) です。
+版番号は`1.0.7`です。AIモデルを選択してから環境を任意導入でき、ZenzはWindows・macOS・Linux、shuntiは6種類のOSに対応します。モデルは本体と別ダウンロードです。[AIの導入と対応範囲](rust/AI-MODELS.md)と[変更と確認範囲](rust/RELEASE-NOTES.md)を参照してください。iOSの実機導入には署名が必要です。上流1.4.1系の修正は[取り込み状況](docs/UPSTREAM-1.4.1-AUDIT.md)に記録しています。公開状況と配布物は上のリリースページで確認してください。
 [配布ファイルの選び方](rust/DOWNLOADS.md) で、OSとCPUに合うファイルを選んでください。
 ZIP・APK・IPAは互換ではありません。本家のC#版の配布ファイルをFlash用として案内していません。
 
