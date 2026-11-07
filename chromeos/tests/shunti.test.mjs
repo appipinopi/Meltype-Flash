@@ -44,3 +44,20 @@ test("slow AI releases the IME event after its deadline and does not queue more 
   complete({candidates:["日本語"]}); await new Promise(resolve=>setImmediate(resolve));
   assert.equal(proxy.inFlight,false);
 });
+
+// 複数版を同じ保存領域へ導入しても、選択版だけをロードして既存版を保持する。
+test("model variants install separately and switch offline without overwriting the previous version",async()=>{
+  const data=[new Uint8Array([1]),new Uint8Array([2]),new Uint8Array([3])], values=new Map(); let requests=0;
+  const file=(name,index)=>({name,url:`https://github.com/shuntilettuce/Japanese-IME-for-HarmonyOS-next/releases/download/shuntelligence-v6/${index}`,sha256:createHash("sha256").update(data[index]).digest("hex")});
+  const metadata={models:[{id:"shunti-v6-s8p",family:"Shunti",available:true,files:[file("kkc_lex.bin",0),file("kkc_model.bin",1)]},{id:"shunti-v6-xs5",family:"Shunti",available:true,files:[file("kkc_lex.bin",0),file("kkc_model.bin",2)]}]};
+  const storage={read:async key=>values.get(key),write:async(value,key)=>values.set(key,value)};
+  const create=variant=>new ShuntiPackages({variant,metadata,storage,fetcher:async url=>{requests++;return new Response(data[Number(url.split("/").at(-1))]);}});
+  const standard=create("shunti-v6-s8p"), small=create("shunti-v6-xs5");
+  await standard.install(); assert.equal(await small.installed(),false);
+  await small.install(); assert.equal(values.size,2); assert.equal(requests,4);
+  assert.equal(await standard.installed(),true); await standard.install(); assert.equal(requests,4);
+  assert.equal(new Uint8Array((await small.load()).files["kkc_model.bin"])[0],3);
+  new Uint8Array(values.get("shunti-v6-xs5").files["kkc_model.bin"])[0]=9;
+  assert.equal(await small.installed(),false); assert.equal(await standard.installed(),true);
+  await assert.rejects(create("unknown").install(),/不正/);
+});

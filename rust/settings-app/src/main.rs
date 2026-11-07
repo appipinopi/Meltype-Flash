@@ -957,10 +957,10 @@ impl App {
     }
     #[cfg(any(windows, target_os = "linux", target_os = "macos"))]
     fn ai_settings(&mut self, ui: &mut egui::Ui) {
-        use meltype_core::ai_model::AiModel;
+        use meltype_core::{ai_catalog, ai_model::AiModel};
         let mut selected = AiModel::selected(&self.settings);
         let previous = selected;
-        ui.add_enabled_ui(!self.ai_setup.busy(), |ui| {
+        ui.add_enabled_ui(!self.ai_setup.locked(), |ui| {
             ui.horizontal(|ui| {
                 ui.label("AIモデル");
                 egui::ComboBox::from_id_salt("ai-model")
@@ -972,54 +972,78 @@ impl App {
                     });
             });
         });
-        let ready = match selected {
-            AiModel::None => false,
-            AiModel::Shunti => {
-                std::path::Path::new(self.settings.text("ShuntiHelperPath")).is_file()
-            }
-            AiModel::Zenz => ["ZenzaiServerPath", "ZenzaiModelPath"]
-                .iter()
-                .all(|key| std::path::Path::new(self.settings.text(key)).is_file()),
-        };
         if selected != previous {
-            selected.select(&mut self.settings, ready);
-            self.test_session.settings = self.settings.clone();
+            self.ai_setup.reset_status();
+            selected.select(&mut self.settings, false);
         }
-        if selected == AiModel::None {
-            ui.weak("AI変換を使用しません。導入済みの環境とパスは保持します。");
+        let Some(spec) = ai_catalog::selected(&self.settings, selected) else {
+            ui.weak("AI変換を使用しません。導入済みのモデルは保持します。");
             return;
+        };
+        let mut variant = spec.id.clone();
+        ui.add_enabled_ui(!self.ai_setup.locked(), |ui| {
+            ui.horizontal(|ui| {
+                ui.label("バージョン・モデルサイズ・量子化");
+                egui::ComboBox::from_id_salt("ai-variant")
+                    .selected_text(&spec.label)
+                    .show_ui(ui, |ui| {
+                        for m in ai_catalog::models()
+                            .iter()
+                            .filter(|m| m.family == selected.value())
+                        {
+                            ui.selectable_value(&mut variant, m.id.clone(), &m.label);
+                        }
+                    });
+            });
+        });
+        if variant != spec.id {
+            self.settings
+                .set(ai_catalog::key(selected), json!(variant))
+                .unwrap();
+            selected.select(&mut self.settings, false);
         }
-        ui.weak("専用環境とモデルを取得します。パス入力は不要です。");
+        let spec = ai_catalog::selected(&self.settings, selected).unwrap();
+        let ready = self.ai_setup.status(&self.store.directory, spec);
+        ui.label(format!(
+            "モデルデータ {:.1} MB",
+            spec.files.iter().map(|f| f.size).sum::<u64>() as f64 / 1_000_000.
+        ));
+        ui.weak(&spec.license);
+        ui.hyperlink_to("モデルの説明・配布元", &spec.source);
+        if !spec.available {
+            ui.label("この配布版はライセンスを確認中のため、インストールできません。");
+        }
+        let checking = self.ai_setup.checking();
         if ui
             .add_enabled(
-                !self.ai_setup.busy(),
-                egui::Button::new(format!("{}をインストール", selected.label())),
+                !self.ai_setup.locked() && !ready && !checking && spec.available,
+                egui::Button::new(if ready {
+                    "インストール済み"
+                } else if checking {
+                    "インストール状態を確認中…"
+                } else {
+                    "このモデルをインストール"
+                }),
             )
             .clicked()
         {
-            if selected == AiModel::Shunti {
-                self.ai_setup.request_shunti();
-            } else {
-                self.ai_setup.request();
-            }
+            self.ai_setup.request_model(spec);
         }
         if self.ai_setup.busy() {
             ui.spinner();
-            ui.label("AI環境を準備しています…");
+            ui.label("選択したAI環境を準備しています…");
+        } else if ready {
+            ui.weak("インストール済みです。「OK」で選択を保存します。");
         } else {
-            ui.weak(if ready {
-                "導入済みです。「OK」で選択を保存します。"
-            } else {
-                "未導入です。インストールを押し、確認画面で「はい」を選んでください。"
-            });
+            ui.weak("専用の実行環境と選択したモデルを別ダウンロードします。パス入力は不要です。");
         }
         ui.collapsing("手動でパスを指定（任意）", |ui| {
             let paths: &[(&str, &str)] = if selected == AiModel::Shunti {
                 &[("ShuntiHelperPath", "shuntiの実行ファイル")]
             } else {
                 &[
-                    ("ZenzaiServerPath", "Zenzの実行ファイル"),
-                    ("ZenzaiModelPath", "ZenzのGGUFモデル"),
+                    ("ZenzaiServerPath", "llama-serverの実行ファイル"),
+                    ("ZenzaiModelPath", "選択した版のGGUFモデル"),
                 ]
             };
             for (key, label) in paths {
@@ -1029,11 +1053,11 @@ impl App {
                     self.action(json!({"op":"settings_set","name":key,"value":text}));
                 }
             }
-            if !self.ai_setup.busy() && ui.button("指定したパスを使う").clicked() {
-                let valid = paths
+            if !self.ai_setup.locked() && ui.button("指定したパスを使う").clicked() {
+                if paths
                     .iter()
-                    .all(|(key, _)| std::path::Path::new(self.settings.text(key)).is_file());
-                if valid {
+                    .all(|(key, _)| std::path::Path::new(self.settings.text(key)).is_file())
+                {
                     selected.select(&mut self.settings, true);
                 } else {
                     self.status =
@@ -1042,12 +1066,7 @@ impl App {
                 }
             }
         });
-        if selected == AiModel::Shunti {
-            ui.hyperlink_to(
-                "shuntiの説明・ライセンス",
-                "https://github.com/shuntilettuce/Japanese-IME-for-HarmonyOS-next",
-            );
-        }
+        self.test_session.settings = self.settings.clone();
     }
     fn dictionary(&mut self, ui: &mut egui::Ui) {
         ui.heading("Meltype-FLASH ユーザー辞書");
@@ -1748,7 +1767,9 @@ impl eframe::App for App {
                     self.lifecycle.about = screen == "about";
                     self.lifecycle.updates = screen == "updates";
                     if screen == "ai-setup" {
-                        self.ai_setup.request();
+                        self.ai_setup.request_model(
+                            meltype_core::ai_catalog::find("zenz-v3.1-small-q5_k_m").unwrap(),
+                        );
                     }
                     self.dialogs.report = screen == "report";
                     self.dialogs.log = screen == "log";
@@ -1775,6 +1796,7 @@ impl eframe::App for App {
             let ready = self.tray.as_ref().is_none_or(|t| !t.startup_status().1);
             #[cfg(not(windows))]
             let ready = true;
+            let ready = ready && !self.ai_setup.checking();
             if self.capture_frames >= 20 && ready {
                 ctx.send_viewport_cmd(egui::ViewportCommand::Screenshot(egui::UserData::default()));
             }
@@ -1799,23 +1821,38 @@ impl eframe::App for App {
         if let Some(result) = self.ai_setup.show(ctx, &self.store.directory) {
             match result {
                 Ok(paths) => {
-                    if paths["engine"] == "shunti" {
-                        self.settings
-                            .set("ShuntiHelperPath", paths["helper"].clone())
-                            .unwrap();
-                        meltype_core::ai_model::AiModel::Shunti.select(&mut self.settings, true);
+                    use meltype_core::{ai_catalog, ai_model::AiModel};
+                    let family = paths["family"].as_str().and_then(AiModel::parse).unwrap_or(
+                        if paths["engine"] == "shunti" {
+                            AiModel::Shunti
+                        } else {
+                            AiModel::Zenz
+                        },
+                    );
+                    // A background verification must not undo a newer selection.
+                    let current = AiModel::selected(&self.settings);
+                    if current == family
+                        && paths["variant"].as_str().is_none_or(|id| {
+                            ai_catalog::selected(&self.settings, current)
+                                .is_some_and(|m| m.id == id)
+                        })
+                    {
+                        if family == AiModel::Shunti {
+                            self.settings
+                                .set("ShuntiHelperPath", paths["helper"].clone())
+                                .unwrap();
+                        } else {
+                            self.settings
+                                .set("ZenzaiServerPath", paths["server"].clone())
+                                .unwrap();
+                            self.settings
+                                .set("ZenzaiModelPath", paths["model"].clone())
+                                .unwrap();
+                        }
+                        family.select(&mut self.settings, true);
                         self.status =
-                            "shunti環境を作成しました。「OK」で保存すると入力へ反映します。".into();
-                    } else {
-                        self.settings.set("UseShunti", json!(false)).unwrap();
-                        self.settings
-                            .set("ZenzaiServerPath", paths["server"].clone())
-                            .unwrap();
-                        self.settings
-                            .set("ZenzaiModelPath", paths["model"].clone())
-                            .unwrap();
-                        meltype_core::ai_model::AiModel::Zenz.select(&mut self.settings, true);
-                        self.status = "AI環境を作成し、Zenzaiを有効にしました。設定を保存すると入力に反映されます。".into();
+                            "選択したモデルを使用できます。「OK」で保存すると入力へ反映します。"
+                                .into();
                     }
                 }
                 Err(error) => self.status = format!("AI環境を作成できませんでした: {error}"),

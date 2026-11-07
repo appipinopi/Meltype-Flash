@@ -6,6 +6,7 @@ final class AISettingsViewController: UIViewController {
     private let store = AISettingsStore()
     private let choice = UIButton(type: .system)
     private let install = UIButton(type: .system)
+    private let version = UIButton(type: .system)
     private let status = UILabel()
     private let details = UIStackView()
     private var busy = false
@@ -15,6 +16,8 @@ final class AISettingsViewController: UIViewController {
         choice.showsMenuAsPrimaryAction = true; choice.accessibilityIdentifier = "ai-model"
         column.addArrangedSubview(AppStyle.row([AppStyle.label("AIモデル", .headline), choice]))
         details.axis = .vertical; details.spacing = 12
+        version.showsMenuAsPrimaryAction = true; version.accessibilityIdentifier = "ai-version"
+        details.addArrangedSubview(AppStyle.row([AppStyle.label("バージョン・モデルサイズ", .headline),version]))
         details.addArrangedSubview(AppStyle.label("辞書・モデルを別ダウンロードして、端末内で変換します。パス入力は不要です。", .body))
         details.addArrangedSubview(AppStyle.label("共有モデルをキーボードから読むには、iOSの設定でフルアクセスを許可してください。変換時のネットワーク送信はありません。", .footnote, color: .secondaryLabel))
         install.setTitle("shuntiをインストール", for: .normal); install.accessibilityIdentifier = "ai-install"
@@ -33,8 +36,18 @@ final class AISettingsViewController: UIViewController {
             }
         })
         details.isHidden = selected != "Shunti"
-        choice.isEnabled = !busy; install.isEnabled = !busy
-        status.text = selected == "Shunti" ? (store.installed ? "導入済みです。キーボードを開き直すと反映します。" : "未導入です。インストールを押してください。") : "AI変換は使用しません。導入済みのデータは保持します。"
+        let variant = store.variant(), installed = store.installed
+        version.setTitle(AISettingsStore.variants.first(where: { $0.id == variant })?.label ?? "shuntelligence v7 / S8P", for: .normal)
+        version.menu = UIMenu(children: AISettingsStore.variants.map { model in
+            UIAction(title: model.label, state: variant == model.id ? .on : .off) { [weak self] _ in
+                guard let self = self else { return }
+                do { try self.store.selectVariant(model.id); self.refresh() } catch { self.status.text = "モデルの選択を保存できませんでした。" }
+            }
+        })
+        version.isEnabled = !busy
+        install.setTitle(installed ? "インストール済み" : "このモデルをインストール", for: .normal)
+        choice.isEnabled = !busy; install.isEnabled = !busy && !installed
+        status.text = selected == "Shunti" ? (store.installed ? "インストール済みです。キーボードを開き直すと反映します。" : "未導入です。インストールを押してください。") : "AI変換は使用しません。導入済みのデータは保持します。"
     }
     @objc private func confirm() {
         let alert = UIAlertController(title: "shuntiの環境を作成してよいですか？", message: "辞書（CC BY-SA 4.0）・モデル（CC BY 4.0）を任意ダウンロードします。入力内容は送信しません。", preferredStyle: .alert)

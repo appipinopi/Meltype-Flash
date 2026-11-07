@@ -46,7 +46,7 @@ def installed(root):
     return {key: str(root / receipt[key]) for key in ('server', 'model')}
 
 
-def setup(data_root):
+def setup(data_root, model=None):
     if platform.system() != 'Linux':
         raise ValueError('Linux専用のセットアップです')
     arch = {'x86_64': 'x64', 'aarch64': 'arm64'}.get(platform.machine())
@@ -54,9 +54,15 @@ def setup(data_root):
         raise ValueError('このCPUは未対応です')
     parent = Path(data_root).resolve() / 'ai'
     parent.mkdir(parents=True, exist_ok=True)
-    target = parent / f'zenz-v3.1-{TAG}-{arch}'
+    directory = model['directory'] if model else 'zenz-v3.1'
+    if not re.fullmatch('[a-zA-Z0-9][a-zA-Z0-9_.-]*', directory):
+        raise ValueError('不正なモデルIDです')
+    target = parent / f'{directory}-{TAG}-{arch}'
     if target.exists():
-        return installed(target)
+        result = installed(target)
+        if model and digest(Path(result['model'])) != model['files'][0]['sha256']:
+            raise ValueError('選択したモデルと一致しません')
+        return result
     with urllib.request.urlopen(urllib.request.Request(f'https://api.github.com/repos/ggml-org/llama.cpp/releases/tags/{TAG}', headers={'User-Agent': 'Meltype-AI-Setup'}), timeout=30) as response:
         release = json.load(response)
     name = f'llama-{TAG}-bin-ubuntu-{arch}.tar.gz'
@@ -78,7 +84,8 @@ def setup(data_root):
         server = next(runtime.rglob('llama-server'))
         server.chmod(server.stat().st_mode | 0o100)
         subprocess.run([str(server), '--version'], check=True, capture_output=True, timeout=15)
-        download(MODEL_URL, stage / 'model.gguf', MODEL_SHA)
+        spec = model['files'][0] if model else {'url': MODEL_URL, 'sha256': MODEL_SHA}
+        download(spec['url'], stage / 'model.gguf', spec['sha256'])
         files = {path.relative_to(stage).as_posix(): digest(path) for path in stage.rglob('*') if path.is_file()}
         receipt = {'server': server.relative_to(stage).as_posix(), 'model': 'model.gguf', 'files': files}
         (stage / 'receipt.json').write_text(json.dumps(receipt))
@@ -88,7 +95,8 @@ def setup(data_root):
 
 if __name__ == '__main__':
     try:
-        print(json.dumps(setup(sys.argv[1])))
+        spec = json.loads(Path(sys.argv[2]).read_text(encoding='utf-8')) if len(sys.argv) > 2 else None
+        print(json.dumps(setup(sys.argv[1], spec)))
     except Exception as error:
         print(str(error), file=sys.stderr)
         sys.exit(1)

@@ -16,21 +16,21 @@ class IndexedData {
       open.onsuccess = () => resolve(open.result); open.onerror = () => reject(open.error);
     });
   }
-  async read() {
+  async read(key = revision) {
     const db = await this.database();
     try {
       return await new Promise((resolve, reject) => {
-        const request = db.transaction("packages").objectStore("packages").get(revision);
+        const request = db.transaction("packages").objectStore("packages").get(key);
         request.onsuccess = () => resolve(request.result); request.onerror = () => reject(request.error);
       });
     } finally { db.close(); }
   }
-  async write(value) {
+  async write(value, key = revision) {
     const db = await this.database();
     try {
       await new Promise((resolve, reject) => {
         const transaction = db.transaction("packages", "readwrite");
-        transaction.objectStore("packages").put(value, revision);
+        transaction.objectStore("packages").put(value, key);
         transaction.oncomplete = resolve; transaction.onerror = () => reject(transaction.error);
         transaction.onabort = () => reject(transaction.error ?? new Error("モデル保存が中断されました"));
       });
@@ -38,21 +38,23 @@ class IndexedData {
   }
 }
 export class ShuntiPackages {
-  constructor({storage = new IndexedData(), fetcher = (...args) => fetch(...args), metadata} = {}) {
-    Object.assign(this, {storage, fetcher, metadata});
+  constructor({storage = new IndexedData(), fetcher = (...args) => fetch(...args), metadata, variant = "shunti-v7-s8p"} = {}) {
+    Object.assign(this, {storage, fetcher, metadata, variant});
+    this.revision = variant === "shunti-v7-s8p" ? revision : variant;
   }
   async manifest() {
-    const document = this.metadata ?? await (await this.fetcher(new URL("./ai/packages.json",import.meta.url))).json();
-    const packageData = document.shunti;
-    if (packageData?.revision !== revision || packageData.files?.length !== 2 ||
+    const document = this.metadata ?? await (await this.fetcher(new URL(this.variant === "shunti-v7-s8p" ? "./ai/packages.json" : "./ai/model-catalog.json",import.meta.url))).json();
+    const selected = document.models?.find(m => m.id === this.variant && m.family === "Shunti" && m.available);
+    const packageData = selected ? {revision:this.revision, files:selected.files} : this.variant === "shunti-v7-s8p" ? document.shunti : null;
+    if (packageData?.revision !== this.revision || packageData.files?.length !== 2 ||
         !names.every(name => packageData.files.some(file => file.name === name)) ||
-        packageData.files.some(file => !/^[0-9a-f]{64}$/.test(file.sha256) || !file.url.startsWith("https://github.com/shuntilettuce/Japanese-IME-for-HarmonyOS-next/releases/download/shuntelligence-v7/"))) {
+        packageData.files.some(file => !/^[0-9a-f]{64}$/.test(file.sha256) || !/^https:\/\/github\.com\/shuntilettuce\/Japanese-IME-for-HarmonyOS-next\/releases\/download\/shuntelligence-v[5-7]\//.test(file.url))) {
       throw new Error("shuntiパッケージの記録が不正です");
     }
     return packageData;
   }
   async verified(value) {
-    if (value?.revision !== revision) throw new Error("shunti環境が見つかりません");
+    if (value?.revision !== this.revision) throw new Error("shunti環境が見つかりません");
     const manifest = await this.manifest();
     for (const spec of manifest.files) {
       const data = value.files?.[spec.name];
@@ -63,13 +65,12 @@ export class ShuntiPackages {
     return value;
   }
   async installed() {
-    const value = await this.storage.read();
-    return value?.revision === revision && names.every(name => value.files?.[name] instanceof ArrayBuffer);
+    try { await this.verified(await this.storage.read(this.revision)); return true; } catch { return false; }
   }
-  async load() { return this.verified(await this.storage.read()); }
+  async load() { return this.verified(await this.storage.read(this.revision)); }
   // Caller must obtain consent and download permissions before invoking this method.
   async install() {
-    const previous = await this.storage.read();
+    const previous = await this.storage.read(this.revision);
     if (previous) return this.verified(previous);
     const manifest = await this.manifest(), files = {};
     for (const spec of manifest.files) {
@@ -92,9 +93,9 @@ export class ShuntiPackages {
       if (await sha(bytes) !== spec.sha256) throw new Error("AIファイルのSHA-256が一致しません");
       files[spec.name] = bytes.buffer;
     }
-    const value = await this.verified({revision, files});
+    const value = await this.verified({revision:this.revision, files});
     // Publish the entire environment in one transaction; failures leave no partial package.
-    await this.storage.write(value);
+    await this.storage.write(value, this.revision);
     return value;
   }
 }
@@ -149,11 +150,12 @@ export class ShuntiClient {
 }
 
 export class ShuntiProxy {
+  constructor(variant = "shunti-v7-s8p") { this.variant = variant; }
   async prepare() {
     if (!await chrome.offscreen.hasDocument()) {
       await chrome.offscreen.createDocument({url:"ai-offscreen.html",reasons:["WORKERS"],justification:"端末内のshunti変換を入力イベントから分離して処理するため"});
     }
-    const result = await chrome.runtime.sendMessage({channel:"meltype-shunti",action:"prepare"});
+    const result = await chrome.runtime.sendMessage({channel:"meltype-shunti",action:"prepare",variant:this.variant});
     if (result?.error || !result?.ready) throw new Error(result?.error ?? "shuntiを準備できません");
     this.ready = true;
   }

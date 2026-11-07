@@ -2005,6 +2005,7 @@ dependencies = [
  "rfd",
  "roxmltree",
  "serde_json",
+ "sha2",
  "tempfile",
  "tray-icon",
  "windows",

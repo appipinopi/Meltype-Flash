@@ -29,6 +29,27 @@ pub fn shunti_package() -> Package {
     )
     .unwrap()
 }
+pub fn shunti_package_variant(id: &str) -> io::Result<Package> {
+    let catalog: Value = serde_json::from_str(crate::MODEL_CATALOG)?;
+    let model = catalog["models"]
+        .as_array()
+        .unwrap()
+        .iter()
+        .find(|m| m["id"] == id && m["family"] == "Shunti")
+        .ok_or_else(|| failure("shuntiのモデルが一覧にありません"))?;
+    Ok(Package {
+        revision: model["directory"]
+            .as_str()
+            .unwrap()
+            .strip_prefix("shunti-")
+            .unwrap()
+            .to_owned(),
+        files: serde_json::from_value(model["files"].clone())?,
+    })
+}
+pub fn install_shunti_variant(root: &Path, id: &str) -> io::Result<PathBuf> {
+    install_with(root, &shunti_package_variant(id)?, download)
+}
 fn failure(message: impl ToString) -> io::Error {
     io::Error::other(message.to_string())
 }
@@ -147,6 +168,14 @@ pub fn install_shunti_data(root: &Path) -> io::Result<PathBuf> {
 /// macOSの専用環境。Rust内蔵HTTPSを使い、Pythonや開発ツールを導入しない。
 #[cfg(target_os = "macos")]
 pub fn install_macos(root: &Path, shunti: bool) -> io::Result<Value> {
+    install_macos_variant(root, shunti, None)
+}
+#[cfg(target_os = "macos")]
+pub fn install_macos_variant(
+    root: &Path,
+    shunti: bool,
+    model: Option<&Value>,
+) -> io::Result<Value> {
     use std::{io::Write, os::unix::fs::PermissionsExt};
     let arch = if cfg!(target_arch = "aarch64") {
         "arm64"
@@ -155,10 +184,23 @@ pub fn install_macos(root: &Path, shunti: bool) -> io::Result<Value> {
     };
     let parent = root.join("ai");
     fs::create_dir_all(&parent)?;
+    let directory = model
+        .and_then(|m| m["directory"].as_str())
+        .unwrap_or(if shunti {
+            "shunti-14801bff-s8"
+        } else {
+            "zenz-v3.1"
+        });
+    if !directory
+        .bytes()
+        .all(|c| c.is_ascii_alphanumeric() || b"-._".contains(&c))
+    {
+        return Err(failure("不正なモデルIDです"));
+    }
     let name = if shunti {
-        format!("shunti-14801bff-s8-macos-{arch}")
+        format!("{directory}-macos-{arch}")
     } else {
-        format!("zenz-v3.1-b12125-macos-{arch}")
+        format!("{directory}-b12125-macos-{arch}")
     };
     let target = parent.join(name);
     fn result(directory: &Path, shunti: bool) -> io::Result<Value> {
@@ -192,7 +234,24 @@ pub fn install_macos(root: &Path, shunti: bool) -> io::Result<Value> {
         })
     }
     if target.exists() {
-        return result(&target, shunti);
+        let paths = result(&target, shunti)?;
+        if let Some(model) = model {
+            for spec in model["files"]
+                .as_array()
+                .ok_or_else(|| failure("モデルの記録が不正です"))?
+            {
+                let base = if shunti {
+                    target.join("runtime")
+                } else {
+                    target.clone()
+                };
+                let path = child(&base, spec["name"].as_str().unwrap_or(""))?;
+                if Some(sha256(&path)?.as_str()) != spec["sha256"].as_str() {
+                    return Err(failure("選択したモデルと一致しません"));
+                }
+            }
+        }
+        return Ok(paths);
     }
     let stage = tempfile::Builder::new()
         .prefix(".setup-ai-")
@@ -281,7 +340,12 @@ pub fn install_macos(root: &Path, shunti: bool) -> io::Result<Value> {
                 return Err(failure("shuntiのファイルが変更されています"));
             }
         }
-        for spec in shunti_package().files {
+        let specs = if let Some(m) = model {
+            serde_json::from_value::<Vec<DataFile>>(m["files"].clone())?
+        } else {
+            shunti_package().files
+        };
+        for spec in specs {
             download(&spec.url, &runtime.join(&spec.name), &spec.sha256)?;
         }
         executable = runtime.join("shunti-helper");
@@ -338,7 +402,11 @@ pub fn install_macos(root: &Path, shunti: bool) -> io::Result<Value> {
         flatten_links(&runtime, &runtime)?;
         executable =
             find(&runtime, "llama-server").ok_or_else(|| failure("llama-serverがありません"))?;
-        download("https://huggingface.co/Miwa-Keita/zenz-v3.1-small-gguf/resolve/ddf6e44b2e05ab7ea9a3e31559c5e7948761365c/ggml-model-Q5_K_M.gguf", &stage.path().join("model.gguf"), "4de930c06bef8c263aa1aa40684af206db4ce1b96375b3b8ed0ea508e0b14f6c")?;
+        let url = model.and_then(|m| m["files"][0]["url"].as_str()).unwrap_or("https://huggingface.co/Miwa-Keita/zenz-v3.1-small-gguf/resolve/ddf6e44b2e05ab7ea9a3e31559c5e7948761365c/ggml-model-Q5_K_M.gguf");
+        let hash = model
+            .and_then(|m| m["files"][0]["sha256"].as_str())
+            .unwrap_or("4de930c06bef8c263aa1aa40684af206db4ce1b96375b3b8ed0ea508e0b14f6c");
+        download(url, &stage.path().join("model.gguf"), hash)?;
     }
     fs::remove_file(archive)?;
     fs::set_permissions(&executable, fs::Permissions::from_mode(0o755))?;
@@ -417,6 +485,27 @@ pub fn install_macos(root: &Path, shunti: bool) -> io::Result<Value> {
 #[cfg(test)]
 mod tests {
     use super::*;
+    #[test]
+    fn catalog_variants_keep_the_existing_default_and_pair_known_data_files() {
+        let default = shunti_package_variant("shunti-v7-s8p").unwrap();
+        assert_eq!(default.revision, shunti_package().revision);
+        assert_eq!(default.files[0].sha256, shunti_package().files[0].sha256);
+        for id in [
+            "shunti-v5-s7",
+            "shunti-v5-xs5",
+            "shunti-v6-s8p",
+            "shunti-v6-xs5",
+            "shunti-v7-s8p",
+            "shunti-v7-xs5",
+        ] {
+            let package = shunti_package_variant(id).unwrap();
+            assert_eq!(package.files.len(), 2);
+            assert_eq!(package.files[0].name, "kkc_lex.bin");
+            assert_eq!(package.files[1].name, "kkc_model.bin");
+        }
+        assert!(shunti_package_variant("unknown").is_err());
+        assert!(shunti_package_variant("jinen-v2-small-q5_k_m").is_err());
+    }
     #[test]
     fn verified_data_is_reused_and_modified_files_are_rejected() {
         let root = tempfile::tempdir().unwrap();

@@ -42,14 +42,20 @@ def installed(root):
             raise ValueError('shunti環境が変更されています')
     return {'engine': 'shunti', 'helper': str(root/'shunti-helper')}
 
-def setup(data_root, local_package=None):
+def setup(data_root, local_package=None, model=None):
     if platform.system() != 'Linux' or platform.machine() != 'x86_64':
         raise ValueError('shunti追加パッケージはLinux x64専用です')
     parent = Path(data_root).resolve()/'ai'
     parent.mkdir(parents=True, exist_ok=True)
-    target = parent/'shunti-14801bff-s8'
+    directory = model['directory'] if model else 'shunti-14801bff-s8'
+    if not re.fullmatch('[a-zA-Z0-9][a-zA-Z0-9_.-]*', directory):
+        raise ValueError('不正なモデルIDです')
+    target = parent/directory
     if target.exists():
-        return installed(target)
+        result = installed(target)
+        if model and any(digest(target/f['name']) != f['sha256'] for f in model['files']):
+            raise ValueError('選択したモデルと一致しません')
+        return result
     with tempfile.TemporaryDirectory(prefix='.setup-shunti-', dir=parent) as temporary:
         stage = Path(temporary)
         archive = stage/'runtime.tar.gz'
@@ -74,8 +80,11 @@ def setup(data_root, local_package=None):
         for name, checksum in receipt['files'].items():
             if Path(name).name != name or digest(stage/name) != checksum:
                 raise ValueError('実行環境の検証に失敗しました')
-        for name, (source, checksum) in ASSETS.items():
-            download(f'https://github.com/shuntilettuce/Japanese-IME-for-HarmonyOS-next/releases/download/shuntelligence-v7/{source}', stage/name, checksum)
+        specs = model['files'] if model else [{'name': name, 'url': f'https://github.com/shuntilettuce/Japanese-IME-for-HarmonyOS-next/releases/download/shuntelligence-v7/{source}', 'sha256': checksum} for name, (source, checksum) in ASSETS.items()]
+        for spec in specs:
+            if spec['name'] not in ASSETS:
+                raise ValueError('不正なファイル名です')
+            download(spec['url'], stage/spec['name'], spec['sha256'])
         (stage/'shunti-helper').chmod(0o755)
         probe = subprocess.run([str(stage/'shunti-helper')], input='C\t\tきょうはいいてんきです\n', text=True, capture_output=True, timeout=30)
         if probe.returncode or not probe.stdout.startswith('READY\n') or '\x1f' not in probe.stdout:
@@ -87,7 +96,8 @@ def setup(data_root, local_package=None):
 
 if __name__ == '__main__':
     try:
-        print(json.dumps(setup(sys.argv[1])))
+        spec = json.loads(Path(sys.argv[2]).read_text(encoding='utf-8')) if len(sys.argv) > 2 else None
+        print(json.dumps(setup(sys.argv[1], model=spec)))
     except Exception as error:
         print(str(error), file=sys.stderr)
         sys.exit(1)

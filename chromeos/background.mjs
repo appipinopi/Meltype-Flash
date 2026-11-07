@@ -8,7 +8,7 @@ function prepareAI(core) {
   const epoch=++aiEpoch, previous=shunti;
   const settings = JSON.parse(core.snapshot()).settings;
   const selected=settings.UseShunti === true && settings.AiModel !== "None";
-  shunti=selected ? new ShuntiProxy() : null;
+  shunti=selected ? new ShuntiProxy(settings.ShuntiModelVariant ?? "shunti-v7-s8p") : null;
   const next=shunti;
   aiLifecycle=aiLifecycle.catch(()=>{}).then(async()=>{
     await previous?.dispose();
