@@ -1,10 +1,10 @@
 // SPDX-License-Identifier: GPL-3.0-or-later
 // Copyright (C) 2026 appipinopi
-// Android x86_64: avoid the NDK's non-PIC __cpu_model dispatch reference.
+// Android and macOS x86_64: avoid compiler-runtime __cpu_model dependencies.
 // Keep the pinned upstream file unchanged and preserve the OS AVX-state check.
 #pragma once
 #include <cpuid.h>
-static inline bool meltype_android_shunti_avx2_fma() {
+static inline bool meltype_shunti_avx2_fma() {
     unsigned a, b, c, d;
     if (__get_cpuid_max(0, nullptr) < 7 || !__get_cpuid(1, &a, &b, &c, &d)) return false;
     constexpr unsigned required = (1u << 12) | (1u << 27) | (1u << 28);
@@ -16,4 +16,4 @@ static inline bool meltype_android_shunti_avx2_fma() {
     return (b & (1u << 5)) != 0;
 }
 #define __builtin_cpu_init() ((void)0)
-#define __builtin_cpu_supports(feature) meltype_android_shunti_avx2_fma()
+#define __builtin_cpu_supports(feature) meltype_shunti_avx2_fma()
