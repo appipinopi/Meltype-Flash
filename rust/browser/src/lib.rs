@@ -216,6 +216,7 @@ struct Snapshot {
 pub struct BrowserSession {
     session: Session,
     saved_settings: Settings,
+    ai_pending: bool,
 }
 
 #[wasm_bindgen]
@@ -248,6 +249,7 @@ impl BrowserSession {
         Ok(Self {
             session,
             saved_settings: settings,
+            ai_pending: false,
         })
     }
 
@@ -261,6 +263,7 @@ impl BrowserSession {
         if !now_ms.is_finite() || now_ms < 0.0 {
             return Err("invalid key timestamp".into());
         }
+        self.ai_pending = false;
         let was_converting = self.session.is_converting();
         let mut result = self.session.key_at(vk, character, modifiers, now_ms as u64);
         if !was_converting && self.session.is_converting() && result.consumed {
@@ -276,9 +279,27 @@ impl BrowserSession {
                 }
             }
         }
+        self.ai_pending = !was_converting && self.session.is_converting();
         serde_json::to_string(&result).map_err(|e| e.to_string())
     }
 
+    pub fn ai_request(&self) -> Result<String, String> {
+        serde_json::to_string(&if self.ai_pending {
+            self.session.ai_request()
+        } else {
+            None
+        })
+        .map_err(|e| e.to_string())
+    }
+    pub fn ai_apply(&mut self, reading: &str, candidates: &str) -> Result<bool, String> {
+        let candidates: Vec<String> =
+            serde_json::from_str(candidates).map_err(|e| e.to_string())?;
+        if !self.ai_pending {
+            return Ok(false);
+        }
+        self.ai_pending = false;
+        Ok(self.session.apply_ai_candidates(reading, candidates))
+    }
     pub fn select(&mut self, index: u32) -> Result<String, String> {
         serde_json::to_string(&self.session.select(index as usize)).map_err(|e| e.to_string())
     }
@@ -305,6 +326,7 @@ impl BrowserSession {
     }
 
     pub fn reset(&mut self) {
+        self.ai_pending = false;
         self.session.reset();
         self.session.set_context(Some(""), Some(""));
     }

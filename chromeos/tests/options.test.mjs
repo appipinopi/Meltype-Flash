@@ -79,7 +79,10 @@ async function page(t, {available = true} = {}) {
 
 test("入力設定と詳細JSONを同期し、未知の設定・非表示の設定を保存後も保持する", async t => {
   const p = await page(t), get = id => p.elements.get(id);
-  assert.equal(Object.keys(p.fields).length, 6);
+  assert.equal(Object.keys(p.fields).length, 7);
+  assert.equal(p.fields.AiModel.value, "None");
+  assert.equal(get("#ai-details").hidden, true);
+  assert.deepEqual(p.fields.AiModel.options.map(item => item.value), ["None", "Shunti"]);
   assert.equal(get("#core-controls").disabled, false);
   assert.equal(p.fields.DetectionLevel.value, "Balanced");
   assert.equal(p.fields.LearningEnabled.checked, true);

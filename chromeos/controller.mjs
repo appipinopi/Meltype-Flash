@@ -3,8 +3,8 @@
 import {translateKey} from "./keys.mjs";
 const editable = new Set(["text", "search", "url", "email"]);
 export class ImeController {
-  constructor({ime, load, persist, report, now = () => performance.now(), incognito = false, resolveMode = async () => "normal"}) {
-    Object.assign(this, {ime, load, persist, report, now, incognito, resolveMode});
+  constructor({ime, load, persist, report, now = () => performance.now(), incognito = false, resolveMode = async () => "normal", convert = async (_core, result) => result}) {
+    Object.assign(this, {ime, load, persist, report, now, incognito, resolveMode, convert});
     this.engine = null; this.context = null; this.generation = 0;
     this.queue = Promise.resolve(); this.core = null; this.ownedKeys = new Set();
   }
@@ -164,6 +164,8 @@ export class ImeController {
           const direct = mapped.mode === "toggle" ? !core.is_direct() : mapped.mode === "direct";
           result = JSON.parse(core.set_direct(direct));
         } else result = JSON.parse(core.key(mapped.vk, mapped.character, mapped.modifiers, this.now()));
+        if (result.view?.converting) result = await this.convert(core,result);
+        if (!this.valid(engine,id,generation)) return;
         handled = result.consumed;
         if (handled) this.ownedKeys.add(keyID);
         await this.render(result, engine, id, generation);

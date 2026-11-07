@@ -279,6 +279,10 @@ class KeyboardViewController: UIInputViewController, UIContextMenuInteractionDel
     override func viewWillAppear(_ animated: Bool) {
         super.viewWillAppear(animated)
         reloadAppearance()
+        let ai = AISettingsStore()
+        if hasFullAccess, ai.selection() == "Shunti", ai.installed, let path = ai.dataDirectory?.path {
+            _ = path.withCString { meltype_ios_set_ai(session, $0, UInt32(path.utf8.count), 1) }
+        } else { _ = meltype_ios_set_ai(session, nil, 0, 0) }
     }
     private func reloadAppearance() {
         appearance = appearanceStore.load()

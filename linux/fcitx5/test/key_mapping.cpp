@@ -27,7 +27,10 @@ int main(int argc,char **argv) {
             if(static_cast<int>(actual&0xffffffffu)!=expected.first || static_cast<uint32_t>(actual>>32)!=expected.second)
                 throw std::runtime_error("key mapping mismatch: "+std::to_string(symbol));
             for(int direct=0;direct<2;direct++) {
-                if(mode(symbol,direct)!=meltype_fcitx::modePlan(static_cast<fcitx::KeySym>(symbol),direct!=0))
+                // 漢字キーも半角/全角と同じ切替として扱う。
+                const auto expectedMode = symbol==FcitxKey_Kanji ? (direct ? 1U : 3U)
+                    : meltype_fcitx::modePlan(static_cast<fcitx::KeySym>(symbol),direct!=0);
+                if(mode(symbol,direct)!=expectedMode)
                     throw std::runtime_error("mode/role mapping mismatch: "+std::to_string(symbol));
             }
             count++;

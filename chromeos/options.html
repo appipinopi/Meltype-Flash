@@ -27,6 +27,17 @@
         <fieldset id="core-controls" disabled>
           <legend class="visually-hidden">入力設定</legend>
           <fieldset class="settings-group">
+            <legend>AI</legend>
+            <div class="setting-row"><label for="ai-model">AIモデル</label>
+              <select id="ai-model" data-setting="AiModel" data-help="使用しない・shuntiから選択します。辞書とモデルは別ダウンロードで、変換は端末内で行います。"><option value="None">使用しない</option><option value="Shunti">shunti</option></select>
+            </div>
+            <div id="ai-details" hidden>
+              <p>辞書・モデルを任意ダウンロードします。パス入力は不要です。</p>
+              <button id="ai-install" type="button">shuntiをインストール</button>
+              <p id="ai-status" role="status"></p>
+            </div>
+          </fieldset>
+          <fieldset class="settings-group">
             <legend>日英の判定</legend>
             <div class="setting-row">
               <label for="detection-level">日英の自動判定</label>

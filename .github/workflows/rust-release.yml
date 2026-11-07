@@ -120,12 +120,17 @@ jobs:
           & $compiler "/DAppVersion=$version" "/DSourceDir=$source" "/DOutputDir=$output" packaging/Meltype-flash.iss
           if ($LASTEXITCODE -ne 0) { throw 'セットアップEXEのコンパイルに失敗しました。' }
           Copy-Item -LiteralPath "dist/Meltype-flash-$version-setup.exe" -Destination dist/Meltype-flash-Windows-x64-setup.exe
+      - name: Build optional Windows shunti runtime without models
+        run: python rust/build-shunti.py dist/Meltype-flash-Shunti-Windows-x64.zip --windows
+      - name: Verify Windows shunti installer
+        run: powershell -NoProfile -ExecutionPolicy Bypass -File rust/Test-ShuntiSetup.ps1
       - uses: actions/upload-artifact@v4
         with:
           name: release-windows
           path: |
             dist/Meltype-flash-Windows-x64.zip
             dist/Meltype-flash-Windows-x64-setup.exe
+            dist/Meltype-flash-Shunti-Windows-x64.zip
           if-no-files-found: error
   linux:
     needs: validate
@@ -235,10 +240,14 @@ jobs:
           bash mac/test/register-helper/run.sh "$PWD/mac/build/Meltype.app/Contents/MacOS/MeltypeRegisterInputSource"
           python3 rust/native/tests/macos_product_smoke.py target/release/libmeltype_native.dylib
           bash mac/package.sh Meltype-flash-macOS-${{ matrix.arch }}.zip
+      - name: Build optional macOS shunti runtime without models
+        run: python3 rust/build-shunti.py dist/Meltype-flash-Shunti-macOS-${{ matrix.arch }}.zip --macos ${{ matrix.arch == 'x64' && 'x86_64' || 'arm64' }}
       - uses: actions/upload-artifact@v4
         with:
           name: release-macos-${{ matrix.arch }}
-          path: dist/Meltype-flash-macOS-*.zip
+          path: |
+            dist/Meltype-flash-macOS-*.zip
+            dist/Meltype-flash-Shunti-macOS-*.zip
           if-no-files-found: error
   mobile-packages:
     needs: validate

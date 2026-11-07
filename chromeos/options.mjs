@@ -1,6 +1,11 @@
 // SPDX-License-Identifier: GPL-3.0-or-later
 // Copyright (C) 2026 appipinopi
 import {validatePreferences} from "./site-profiles.mjs";
+import {ShuntiPackages,modelOrigins} from "./shunti.mjs";
+const aiPackages = new ShuntiPackages();
+const aiChoice = document.querySelector("#ai-model"), aiDetails = document.querySelector("#ai-details");
+const aiStatus = document.querySelector("#ai-status"), aiInstall = document.querySelector("#ai-install");
+function aiDetailsFor(value) { aiDetails.hidden = value.AiModel !== "Shunti" && !(value.AiModel == null && value.UseShunti === true); }
 const status = document.querySelector("#status"), settings = document.querySelector("#settings");
 const siteStatus = document.querySelector("#site-status"), siteEnabled = document.querySelector("#site-enabled");
 const rules = document.querySelector("#site-rules"), defaultMode = document.querySelector("#default-mode");
@@ -51,9 +56,10 @@ for (const field of document.querySelectorAll("[data-help]")) {
 }
 selectPage(tabs[0]);
 const desktopOnly = new Set(["AppRules", "AppKinds", "AppProfile", "StopInGames"]);
-const neuralSettings = ["UseZenzai", "ZenzaiServerPath", "ZenzaiModelPath"];
+const neuralSettings = ["UseZenzai", "ZenzaiServerPath", "ZenzaiModelPath", "ShuntiHelperPath"];
 function withoutNeuralSettings(value) {
   for (const key of neuralSettings) delete value[key];
+  if (value.AiModel === "Zenz") value.AiModel = "None";
   if (Array.isArray(value.Profiles)) for (const profile of value.Profiles) {
     if (profile?.Values && typeof profile.Values === "object") {
       for (const key of neuralSettings) delete profile.Values[key];
@@ -75,8 +81,9 @@ function parseSettings() {
   return withoutNeuralSettings(value);
 }
 function displayFields(value) {
+  aiDetailsFor(value);
   for (const field of fields) {
-    const current = value[field.dataset.setting];
+    const current = field.dataset.setting === "AiModel" ? (value.AiModel ?? (value.UseShunti ? "Shunti" : "None")) : value[field.dataset.setting];
     if (field.type === "checkbox") field.checked = current === true;
     else {
       // 未知の選択肢も保持し、他の項目を変更しただけで既存設定を失わない。
@@ -87,11 +94,20 @@ function displayFields(value) {
     }
   }
 }
-for (const field of fields) field.addEventListener("change", () => {
+for (const field of fields) field.addEventListener("change", async () => {
   try {
     const value = parseSettings();
     value[field.dataset.setting] = field.type === "checkbox" ? field.checked : field.value;
+    if (field.dataset.setting === "AiModel") {
+      value.UseShunti = false; aiDetailsFor(value);
+    }
     settings.value = JSON.stringify(value, null, 2);
+    if (field.dataset.setting === "AiModel" && value.AiModel === "Shunti") {
+      const installed = await aiPackages.installed();
+      const latest = parseSettings();
+      if (latest.AiModel === "Shunti") { latest.UseShunti = installed; settings.value = JSON.stringify(latest,null,2); }
+      aiStatus.textContent = installed ? "導入済みです。保存すると反映します。" : "未導入です。インストールを押してください。";
+    }
     status.textContent = "入力設定を変更しました。「入力設定を保存」で反映します。";
   } catch (error) {
     displayFields(savedSettings);
@@ -203,3 +219,19 @@ document.querySelector("#export").addEventListener("click", () => show(async () 
   status.textContent = "書き出しには個人の辞書・学習を含みます。";
 }));
 show(reload);
+
+aiInstall.addEventListener("click", async () => {
+  if (!globalThis.confirm("shuntiの環境を作成してよいですか？ 辞書（CC BY-SA 4.0）・モデル（CC BY 4.0）を別ダウンロードします。入力内容は送信しません。")) return;
+  // Request optional host access while the user's button gesture is active.
+  const permission = chrome.permissions.request({origins:modelOrigins,permissions:["unlimitedStorage"]});
+  disableCore(true); aiInstall.disabled = true;
+  try {
+    if (!await permission) throw new Error("ダウンロードが許可されませんでした");
+    aiStatus.textContent = "AI環境を準備しています…";
+    await aiPackages.install();
+    const value = parseSettings(); value.AiModel = "Shunti"; value.UseShunti = true;
+    settings.value = JSON.stringify(value,null,2); displayFields(value);
+    aiStatus.textContent = "インストールしました。「入力設定を保存」で反映します。";
+  } catch (error) { aiStatus.textContent = String(error); }
+  finally { disableCore(false); aiInstall.disabled = false; }
+});

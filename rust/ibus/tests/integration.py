@@ -121,13 +121,14 @@ class EngineTests(unittest.TestCase):
         self.context.set_capabilities(int(IBus.Capabilite.PREEDIT_TEXT | IBus.Capabilite.AUXILIARY_TEXT | IBus.Capabilite.LOOKUP_TABLE | IBus.Capabilite.FOCUS | IBus.Capabilite.PROPERTY | IBus.Capabilite.SURROUNDING_TEXT))
         self.context.focus_in()
         pump()
-        def select():
-            self.bus.set_global_engine("meltype-flash")
-            self.context.set_engine("meltype-flash")
-            pump()
+        # set_engine is asynchronous and redundantly selecting the same engine
+        # can reset its composition after the first ProcessKeyEvent. Select once
+        # through the bus and only observe readiness while polling.
+        self.assertTrue(self.bus.set_global_engine("meltype-flash"))
+        def selected():
             description = self.context.get_engine()
             return description is not None and description.get_name() == "meltype-flash"
-        wait(select, "selected test engine")
+        wait(selected, "selected test engine")
         self.surrounding()
         pump()
 
@@ -396,6 +397,31 @@ class EngineTests(unittest.TestCase):
         self.assertFalse(self.key(IBus.KEY_Left))
         self.assertFalse(any(self.type("a")))
         self.assertEqual(self.marked, "")
+
+    def test_jis_mode_keys_toggle_both_ways_and_commit_preedit_once(self):
+        # JIS keyboards can report Kanji instead of Zenkaku_Hankaku.
+        locks = int(IBus.ModifierType.LOCK_MASK | IBus.ModifierType.MOD2_MASK)
+        keys = [(IBus.KEY_Kanji, 0), (IBus.KEY_Kanji, int(IBus.ModifierType.MOD1_MASK)),
+                (IBus.KEY_Zenkaku_Hankaku, 0), (IBus.KEY_Hankaku, 0), (IBus.KEY_Zenkaku, 0)]
+        for key, modifiers in keys:
+            with self.subTest(key=key, modifiers=modifiers):
+                self.context.reset(); pump()
+                self.document = ""
+                self.assertTrue(self.key(IBus.KEY_Henkan))
+                self.assertTrue(all(self.type("kana")))
+                self.assertEqual(self.marked, "かな")
+                self.assertTrue(self.key(key, state=locks | modifiers))
+                self.assertEqual(self.document, "かな")
+                self.assertEqual(self.marked, "")
+                self.assertFalse(self.key(key, state=modifiers | int(IBus.ModifierType.RELEASE_MASK)))
+                self.assertFalse(self.key(IBus.KEY_x, "x"))
+                self.assertEqual(self.document, "かなx")
+                self.assertFalse(self.key(IBus.KEY_space, " "))
+                self.assertTrue(self.key(key, state=locks | modifiers))
+                self.assertTrue(all(self.type("nihongo")))
+                self.assertEqual(self.marked, "にほんご")
+                self.key(IBus.KEY_Return)
+                self.assertEqual(self.document, "かなx にほんご")
 
     def test_issue_1033_shift_space_uses_configured_switch_without_inserting_space(self):
         path = self.root / "data/config.json"

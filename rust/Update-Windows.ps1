@@ -1,7 +1,8 @@
 # SPDX-License-Identifier: GPL-3.0-or-later
 # Download only a published Rust Windows package from this fork. No arbitrary URLs.
 [CmdletBinding(SupportsShouldProcess=$true)]
-param([ValidateSet('Check','Stage','Apply')][string]$Action = 'Check')
+param([ValidateSet('Check','Stage','Apply')][string]$Action = 'Check',
+      [ValidatePattern('^$|^[a-f0-9]{32}$')][string]$RunId = '')
 $ErrorActionPreference = 'Stop'
 $repository = 'appipinopi/Meltype-Flash'
 $limit = 268435456L
@@ -12,14 +13,31 @@ function Installed-Root {
         try { return (Join-Path ([string]$key.GetValue('ProgramFilesDir')) 'Meltype-FLASH') } finally { $key.Dispose() }
     } finally { $machine.Dispose() }
 }
+function Read-UpdateFailure([string]$Path) {
+    if (Test-Path -LiteralPath $Path -PathType Leaf) {
+        $item = Get-Item -LiteralPath $Path -Force
+        if (-not ($item.Attributes -band [IO.FileAttributes]::ReparsePoint)) {
+            $detail = (Get-Content -LiteralPath $Path -Tail 40 -ErrorAction SilentlyContinue) -join [Environment]::NewLine
+            if ($detail.Length -gt 4000) { $detail = $detail.Substring($detail.Length - 4000) }
+            return "Detailed log: $Path$([Environment]::NewLine)$detail"
+        }
+    }
+    return "No detailed log was created. Expected log: $Path"
+}
 if ($Action -eq 'Apply' -and -not $WhatIfPreference) {
+    if (-not $RunId) { $RunId = [Guid]::NewGuid().ToString('N') }
     $installedRoot = Installed-Root
     if (-not (Test-Path -LiteralPath (Join-Path $installedRoot 'installed.json'))) { throw 'No managed Rust IME installation. Use Manage-Windows.ps1 -Action Install first; portable use supports Stage only.' }
     $principal = New-Object Security.Principal.WindowsPrincipal([Security.Principal.WindowsIdentity]::GetCurrent())
     if (-not $principal.IsInRole([Security.Principal.WindowsBuiltInRole]::Administrator)) {
         $shell = Join-Path ([Environment]::GetFolderPath('Windows')) 'System32/WindowsPowerShell/v1.0/powershell.exe'
-        $process = Start-Process -FilePath $shell -Verb RunAs -ArgumentList @('-NoProfile','-ExecutionPolicy','Bypass','-File',('"'+$PSCommandPath+'"'),'-Action','Apply') -WindowStyle Hidden -Wait -PassThru
-        try { if ($process.ExitCode -ne 0) { throw "Elevated updater failed: $($process.ExitCode)" } } finally { $process.Dispose() }
+        $process = Start-Process -FilePath $shell -Verb RunAs -ArgumentList @('-NoProfile','-ExecutionPolicy','Bypass','-File',('"'+$PSCommandPath+'"'),'-Action','Apply','-RunId',$RunId) -WindowStyle Hidden -Wait -PassThru
+        try {
+            if ($process.ExitCode -ne 0) {
+                $detail = Read-UpdateFailure (Join-Path $installedRoot "update-logs\$RunId.log")
+                throw "Elevated updater failed: $($process.ExitCode)$([Environment]::NewLine)$detail"
+            }
+        } finally { $process.Dispose() }
         $installed = Get-Content -LiteralPath (Join-Path $installedRoot 'installed.json') -Raw | ConvertFrom-Json
         $newExe = [IO.Path]::GetFullPath((Join-Path ([string]$installed.package) 'meltype-flash.exe'))
         if (-not $newExe.StartsWith($installedRoot+'\versions\',[StringComparison]::OrdinalIgnoreCase) -or -not (Test-Path -LiteralPath $newExe -PathType Leaf)) { throw 'Invalid updated tray path' }
@@ -32,7 +50,7 @@ if ($Action -eq 'Apply' -and -not $WhatIfPreference) {
         if ((Test-Path -LiteralPath $path) -and ((Get-Item -LiteralPath $path -Force).Attributes -band [IO.FileAttributes]::ReparsePoint)) { throw 'Reparse point in update log path' }
     }
     New-Item -ItemType Directory -Path $logRoot -Force | Out-Null
-    Start-Transcript -LiteralPath (Join-Path $logRoot (([Guid]::NewGuid().ToString('N'))+'.log')) | Out-Null
+    Start-Transcript -LiteralPath (Join-Path $logRoot ($RunId+'.log')) | Out-Null
 }
 function Get-Releases {
     foreach ($release in (Invoke-RestMethod -Uri "https://api.github.com/repos/$repository/releases?per_page=20" -Headers @{ 'User-Agent' = 'Meltype-flash-Updater'; Accept = 'application/vnd.github+json' } -TimeoutSec 20)) { $release }

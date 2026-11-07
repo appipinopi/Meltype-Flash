@@ -10,3 +10,4 @@ crate-type = ["staticlib", "rlib"]
 [dependencies]
 meltype-core = { path = "../core", default-features = false }
 serde_json.workspace = true
+meltype-ai = { path = "../ai" }

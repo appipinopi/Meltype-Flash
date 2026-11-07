@@ -34,6 +34,9 @@ fn show(env: &mut JNIEnv, handle: jlong, activity: &JObject, page: jint) -> Resu
     Ok(())
 }
 fn apply(env: &mut JNIEnv, handle: jlong, activity: &JObject, reply: Value) -> Result<()> {
+    if reply["installShunti"] == true {
+        ai_ui::start(env, handle, activity).map_err(|e| e.to_string())?;
+    }
     if let Some(edits) = reply.get("edit") {
         let bridge = form(env, activity)?;
         let input = env
@@ -79,6 +82,15 @@ fn finish(env: &mut JNIEnv, activity: &JObject, result: Result<()>) -> jstring {
         let _ = env.exception_clear();
     }
     let message = match &result {
+        Ok(())
+            if ai_ui::busy(
+                env.get_field(activity, "session", "J")
+                    .and_then(|v| v.j())
+                    .unwrap_or(0),
+            ) =>
+        {
+            "AI環境を準備しています…".to_owned()
+        }
         Ok(()) => "完了".to_owned(),
         Err(error) => format!("エラー: {error}"),
     };

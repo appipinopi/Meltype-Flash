@@ -8,6 +8,7 @@ use jni::{
 };
 mod actions;
 mod activity_view;
+mod ai_ui;
 mod appearance;
 mod appearance_ui;
 mod bridge;

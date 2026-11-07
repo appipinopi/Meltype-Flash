@@ -7,6 +7,15 @@ $source = Get-Content -LiteralPath (Join-Path $PSScriptRoot 'Update-Windows.ps1'
 $tokens = $null; $errors = $null
 $ast = [Management.Automation.Language.Parser]::ParseInput($source,[ref]$tokens,[ref]$errors)
 if ($errors.Count) { throw $errors[0] }
+$failureFunction = $ast.FindAll({param($node) $node -is [Management.Automation.Language.FunctionDefinitionAst] -and $node.Name -eq 'Read-UpdateFailure'},$true)[0]
+& {
+    param($Definition,$Root)
+    . ([scriptblock]::Create($Definition))
+    $log = Join-Path $Root 'elevated.log'
+    Set-Content -LiteralPath $log -Value 'controlled elevation failure'
+    if ((Read-UpdateFailure $log) -notlike '*controlled elevation failure*') { throw 'Elevated failure details were hidden' }
+    if ((Read-UpdateFailure (Join-Path $Root 'missing.log')) -notlike '*No detailed log*') { throw 'Missing elevation log was not explained' }
+} $failureFunction.Extent.Text $root
 # Invoke-RestMethod emits a JSON array as one pipeline object. Test the real
 # Get-Releases function before replacing the network boundary below.
 $releaseFunction = $ast.FindAll({param($node) $node -is [Management.Automation.Language.FunctionDefinitionAst] -and $node.Name -eq 'Get-Releases'},$true)[0]

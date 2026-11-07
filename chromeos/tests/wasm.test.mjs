@@ -7,6 +7,22 @@ initSync({module: readFileSync(new URL("../pkg/meltype_browser_bg.wasm", import.
 const key = (s, vk, c = 0, mods = 0) => JSON.parse(s.key(vk, typeof c === "string" ? c.codePointAt(0) : c, mods, 100));
 const type = (s, text) => { for (const c of text) key(s, c.toUpperCase().charCodeAt(0), c); };
 
+test("selected shunti candidates pass through the real WASM core and reset rejects stale replies", () => {
+  BrowserSession.load_dictionary(readFileSync(new URL("../pkg/kanji.bin", import.meta.url)));
+  const s = new BrowserSession(JSON.stringify({settings:{AiModel:"Shunti",UseShunti:true,LiveConversion:false}}));
+  try {
+    type(s,"kyouhaiitenkidesu"); key(s,32," ");
+    const request=JSON.parse(s.ai_request());
+    assert.equal(request[0],"きょうはいいてんきです");
+    assert.equal(s.ai_apply(request[0],JSON.stringify(["今日は良い天気です"])),true);
+    assert.equal(key(s,13).commits[0].text,"今日は良い天気です");
+    assert.equal(s.ai_apply(request[0],JSON.stringify(["古い応答"])),false);
+    type(s,"nihongo"); key(s,32," "); s.reset();
+    assert.equal(JSON.parse(s.ai_request()),null);
+    assert.equal(s.ai_apply("にほんご",JSON.stringify(["古い応答"])),false);
+  } finally { s.free(); }
+});
+
 test("ChromeOSの同梱辞書で基本語と文を漢字変換し、Enterで確定できる", () => {
   BrowserSession.load_dictionary(readFileSync(new URL("../pkg/kanji.bin", import.meta.url)));
   for (const [input, expected] of [["nihongo", "日本語"], ["watashi", "私"], ["toukyou", "東京"],

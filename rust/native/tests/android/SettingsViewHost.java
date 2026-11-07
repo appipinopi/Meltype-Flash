@@ -11,6 +11,10 @@ public final class SettingsViewHost {
     final List<String> actions=new ArrayList<>();boolean failCallback;
     private View.OnClickListener settingsButtonCallback(String operation){if(failCallback)throw new IllegalStateException("listener failed");return view->actions.add(operation);}
     private CompoundButton.OnCheckedChangeListener settingsToggleCallback(String operation){return (view,checked)->actions.add(operation);}
+    private AdapterView.OnItemSelectedListener settingsSelectCallback(String operation){return new AdapterView.OnItemSelectedListener(){
+        public void onNothingSelected(AdapterView parent){}
+        public void onItemSelected(AdapterView parent,View view,int position,long id){actions.add(operation);}
+    };}
     static String ok(String reply){if(reply==null||reply.contains("\"error\":"))throw new AssertionError(reply);return reply;}
     static void check(boolean value,Object detail){if(!value)throw new AssertionError(detail);}
     EditText field(String hint){for(View view:body.children)if(view instanceof EditText edit&&edit.hint.equals(hint))return edit;throw new AssertionError(hint);}

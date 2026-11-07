@@ -32,6 +32,13 @@ enum Node {
         text: String,
         action: Value,
     },
+    Select {
+        text: String,
+        choices: Vec<String>,
+        selected: i32,
+        action: Value,
+        enabled: bool,
+    },
 }
 fn local<T>(
     env: &mut JNIEnv,
@@ -97,6 +104,7 @@ fn node(
         Node::Field { .. } => "android/widget/EditText",
         Node::Toggle { .. } => "android/widget/Switch",
         Node::Button { .. } => "android/widget/Button",
+        Node::Select { .. } => "android/widget/Spinner",
     };
     let view = env
         .new_object(
@@ -161,6 +169,78 @@ fn node(
                 &[JValue::Object(&listener)],
             )?;
             tag(env, &view, json!({"toggle":action}))?;
+        }
+        Node::Select {
+            text,
+            choices,
+            selected,
+            action,
+            enabled,
+        } => {
+            property(env, &view, "setContentDescription", text)?;
+            let labels = env
+                .new_object_array(choices.len() as i32, "java/lang/String", JObject::null())
+                .map_err(|e| e.to_string())?;
+            for (index, label) in choices.iter().enumerate() {
+                let value = env.new_string(label).map_err(|e| e.to_string())?;
+                env.set_object_array_element(&labels, index as i32, &value)
+                    .map_err(|e| e.to_string())?;
+            }
+            let layout = env
+                .get_static_field("android/R$layout", "simple_spinner_dropdown_item", "I")
+                .and_then(|v| v.i())
+                .map_err(|e| e.to_string())?;
+            let adapter = env
+                .new_object(
+                    "android/widget/ArrayAdapter",
+                    "(Landroid/content/Context;I[Ljava/lang/Object;)V",
+                    &[
+                        JValue::Object(context),
+                        JValue::Int(layout),
+                        JValue::Object(&labels),
+                    ],
+                )
+                .map_err(|e| e.to_string())?;
+            invoke(
+                env,
+                &view,
+                "setAdapter",
+                "(Landroid/widget/SpinnerAdapter;)V",
+                &[JValue::Object(&adapter)],
+            )?;
+            invoke(
+                env,
+                &view,
+                "setSelection",
+                "(I)V",
+                &[JValue::Int(*selected)],
+            )?;
+            invoke(
+                env,
+                &view,
+                "setEnabled",
+                "(Z)V",
+                &[JValue::Bool(u8::from(*enabled))],
+            )?;
+            let serialized = env
+                .new_string(action.to_string())
+                .map_err(|e| e.to_string())?;
+            let listener = invoke(
+                env,
+                bridge,
+                "settingsSelectCallback",
+                "(Ljava/lang/String;)Landroid/widget/AdapterView$OnItemSelectedListener;",
+                &[JValue::Object(&serialized)],
+            )?
+            .l()
+            .map_err(|e| e.to_string())?;
+            invoke(
+                env,
+                &view,
+                "setOnItemSelectedListener",
+                "(Landroid/widget/AdapterView$OnItemSelectedListener;)V",
+                &[JValue::Object(&listener)],
+            )?;
         }
         Node::Button { text, action } => {
             property(env, &view, "setText", text)?;

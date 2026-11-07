@@ -1,0 +1,14 @@
+{
+  "repository": "shuntilettuce/Japanese-IME-for-HarmonyOS-next",
+  "commit": "14801bffb90c9ea5f2dd0f594943a97ea35c8a1a",
+  "files": {
+    "engine.cpp": "12dbd50fc24b87880d593558cba5700f8395b8cfc0a849a2ac8ab9a5c63c5116",
+    "engine.h": "2fc45452e22dc6a8a4b63bc7c4f53d83874c8b65a17bb8cd78c1240e4495fe1e",
+    "engine_simd.h": "9917413914e0581303a8a6114f512b9c1218cab414ae0ece30b2ab31e44f6091",
+    "engine_avx2.cpp": "b7d3247aa7c41b52d1d88e89923c466db3a0652b1f504ed15f558eef8883346d",
+    "ai_learn.h": "34b4c04ac78768c24b60d425cec4e5becc2fdcfcb7df961e4e68c8e28e471dc3",
+    "LICENSE": "daf7efcaa5d85ed3e9f8b2d8ad913591a17a8b171dfb1e67b195d9c3e6be875f",
+    "THIRD_PARTY_NOTICES.md": "2c9127210c8f100c9b1a4385a80880e6718afb2fa544bba527f8fbb5ee01c0f2",
+    "DATA_SOURCES.md": "0069f32d28e90f7e5855e423cb09903124225c8995390953e15753565e99c610"
+  }
+}

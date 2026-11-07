@@ -16,7 +16,7 @@ from pathlib import Path
 
 ROOT = Path(__file__).resolve().parents[1]
 VERSION = "0.2.129"
-FILES = ("manifest.json", "background.mjs", "controller.mjs", "keys.mjs", "site-profiles.mjs", "options.html", "options.mjs", "options.css")
+FILES = ("manifest.json", "background.mjs", "controller.mjs", "keys.mjs", "site-profiles.mjs", "options.html", "options.mjs", "options.css", "shunti.mjs", "ai-offscreen.html", "ai-offscreen.mjs", "ai-worker.mjs")
 
 
 def build_kanji_dictionary():
@@ -98,7 +98,7 @@ def main():
     out = args.out.resolve()
     if out == ROOT or ROOT.is_relative_to(out) or out.is_symlink():
         parser.error("output must be a dedicated generated directory")
-    allowed = set(FILES) | {"pkg", "LICENSE", "THIRD-PARTY-NOTICES.md", "RUST-DEPENDENCY-NOTICES.txt", "README.md", "SHA256SUMS.json"}
+    allowed = set(FILES) | {"ai", "pkg", "LICENSE", "THIRD-PARTY-NOTICES.md", "RUST-DEPENDENCY-NOTICES.txt", "README.md", "SHA256SUMS.json"}
     if out.exists() and any(p.name not in allowed for p in out.iterdir()):
         parser.error("output contains unrelated files; choose an empty directory")
     run("cargo", "build", "--release", "--locked", "--target", "wasm32-unknown-unknown", "-p", "meltype-browser")
@@ -106,12 +106,14 @@ def main():
     wasm = Path(metadata["target_directory"]) / "wasm32-unknown-unknown/release/meltype_browser.wasm"
     run(tool, wasm, "--target", "web", "--out-dir", ROOT / "chromeos/pkg")
     build_kanji_dictionary()
+    run(sys.executable, ROOT / "chromeos/build-shunti.py", ROOT / "chromeos/ai")
     run("node", "--test", *sorted((ROOT / "chromeos/tests").glob("*.test.mjs")))
     out.mkdir(parents=True, exist_ok=True)
     for name in FILES + ("README.md",):
         shutil.copyfile(ROOT / "chromeos" / name, out / name)
     for name in ("LICENSE", "THIRD-PARTY-NOTICES.md"):
         shutil.copyfile(ROOT / name, out / name)
+    shutil.copytree(ROOT / "chromeos/ai", out / "ai", dirs_exist_ok=True)
     (out / "pkg").mkdir(exist_ok=True)
     for name in ("meltype_browser.js", "meltype_browser_bg.wasm", "kanji.bin", "MOZC-DICTIONARY-NOTICES.txt"):
         shutil.copyfile(ROOT / "chromeos/pkg" / name, out / "pkg" / name)
@@ -139,6 +141,7 @@ def main():
     packaged = [*(out / p for p in FILES), out / "README.md", out / "LICENSE", out / "THIRD-PARTY-NOTICES.md",
                 out / "pkg/meltype_browser.js", out / "pkg/meltype_browser_bg.wasm", out / "pkg/kanji.bin",
                 out / "pkg/MOZC-DICTIONARY-NOTICES.txt", out / "RUST-DEPENDENCY-NOTICES.txt"]
+    packaged.extend(sorted(p for p in (out / "ai").rglob("*") if p.is_file()))
     checksums = {p.relative_to(out).as_posix(): hashlib.sha256(p.read_bytes()).hexdigest() for p in packaged}
     (out / "SHA256SUMS.json").write_text(json.dumps(checksums, indent=2) + "\n", encoding="utf-8")
     with zipfile.ZipFile(out.with_suffix(".zip"), "w", compression=zipfile.ZIP_DEFLATED) as archive:

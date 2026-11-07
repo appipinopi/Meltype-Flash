@@ -137,9 +137,9 @@ with tempfile.TemporaryDirectory(prefix="meltype-fcitx-event-") as temporary:
     count = 0
     try:
         events = [(ord(letter), ord(letter), 0, 0) for letter in "nihongo"]
-        events += [(0xff23, 0, 0, 0), (0xff0d, 0, 0, 0), (0xff2a, 0, 0, 0)]
+        events += [(0xff23, 0, 0, 0), (0xff0d, 0, 0, 0), (0xff2a, 0, 0, 0), (0xff21, 0, 0, 0), (0xff21, 0, 0, 0)]
         events += [(ord("a"), ord("a"), 0, 0), (0xff27, 0, 0, 0)]
-        events += [(symbol, scalar, flags, release) for symbol, scalar in [(ord("k"), ord("k")), (0xff08, 0), (0xff09, 0), (0xff22, 0), (0xff25, 0), (0x0101f600, 0x1f600), (0, 0)] for flags in [0, 1, 4, 8, 64, 128] for release in [0, 1]]
+        events += [(symbol, scalar, flags, release) for symbol, scalar in [(ord("k"), ord("k")), (0xff08, 0), (0xff09, 0), (0xff22, 0), (0xff21, 0), (0xff25, 0), (0x0101f600, 0x1f600), (0, 0)] for flags in [0, 1, 4, 8, 64, 128] for release in [0, 1]]
         for number, event in enumerate(events):
             for host in hosts:
                 host.trace.clear()

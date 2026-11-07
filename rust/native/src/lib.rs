@@ -4,15 +4,15 @@
 //! Sessions use opaque integer tokens. Stale handles fail without dereferencing
 //! freed memory. Returned strings use malloc/free, including Swift callbacks.
 use meltype_core::{session::Clause, Session};
+#[cfg(any(target_os = "linux", target_os = "macos"))]
+#[path = "windows_converter/zenzai.rs"]
+mod desktop_zenzai;
+#[cfg(any(target_os = "android", feature = "android-jni-test"))]
+mod embedded_ai;
 mod fcitx;
 mod fcitx_dispatch;
 mod fcitx_view;
 pub mod json_bridge;
-#[cfg(target_os = "linux")]
-mod linux_shunti;
-#[cfg(target_os = "linux")]
-#[path = "windows_converter/zenzai.rs"]
-mod linux_zenzai;
 mod macos_application;
 mod macos_apply;
 mod macos_candidates;
@@ -29,6 +29,8 @@ mod macos_services;
 mod macos_suggestion;
 mod macos_view;
 mod macos_window;
+#[cfg(any(windows, target_os = "linux", target_os = "macos"))]
+mod shunti;
 pub mod tip;
 #[cfg(windows)]
 pub mod tip_transport;
@@ -41,15 +43,15 @@ pub mod windows_converter;
 #[cfg(windows)]
 mod windows_github;
 mod word_checker;
-#[cfg(target_os = "linux")]
-fn linux_ai() -> &'static Mutex<linux_zenzai::Zenzai> {
-    static AI: OnceLock<Mutex<linux_zenzai::Zenzai>> = OnceLock::new();
-    AI.get_or_init(|| Mutex::new(linux_zenzai::Zenzai::default()))
+#[cfg(any(target_os = "linux", target_os = "macos"))]
+fn desktop_ai() -> &'static Mutex<desktop_zenzai::Zenzai> {
+    static AI: OnceLock<Mutex<desktop_zenzai::Zenzai>> = OnceLock::new();
+    AI.get_or_init(|| Mutex::new(desktop_zenzai::Zenzai::default()))
 }
-#[cfg(target_os = "linux")]
-fn shunti_ai() -> &'static Mutex<linux_shunti::Shunti> {
-    static AI: OnceLock<Mutex<linux_shunti::Shunti>> = OnceLock::new();
-    AI.get_or_init(|| Mutex::new(linux_shunti::Shunti::default()))
+#[cfg(any(target_os = "linux", target_os = "macos"))]
+fn shunti_ai() -> &'static Mutex<shunti::Shunti> {
+    static AI: OnceLock<Mutex<shunti::Shunti>> = OnceLock::new();
+    AI.get_or_init(|| Mutex::new(shunti::Shunti::default()))
 }
 use std::{
     collections::HashMap,
@@ -105,9 +107,21 @@ fn run_optional(
                 session.storage_error = Some(error.to_string());
             }
         }
+        #[cfg(any(target_os = "android", feature = "android-jni-test"))]
+        let (profile, was_converting) = (embedded_ai::profile(session), session.is_converting());
         let result = f(session);
+        #[cfg(any(target_os = "android", feature = "android-jni-test"))]
+        let mut result = result;
+        #[cfg(any(target_os = "android", feature = "android-jni-test"))]
+        let ai_request = if was_converting {
+            None
+        } else {
+            session.ai_request()
+        };
         let notifications = session.take_engine_learning();
         drop(all);
+        #[cfg(any(target_os = "android", feature = "android-jni-test"))]
+        embedded_ai::complete(handle, profile, ai_request, &mut result);
         // Engine IPC and callbacks must not run under the session registry lock.
         #[cfg(windows)]
         windows_converter::learn(notifications);
@@ -364,7 +378,7 @@ unsafe fn external_conversion_unprotected(
     before: *const c_char,
     expand_candidates: bool,
 ) -> (Vec<Clause>, Vec<String>) {
-    #[cfg(target_os = "linux")]
+    #[cfg(any(target_os = "linux", target_os = "macos"))]
     if let Ok(mut ai) = shunti_ai().lock() {
         if let Some(segments) = ai.convert(reading, &read(before).unwrap_or_default()) {
             return (segments, Vec::new());
@@ -381,8 +395,8 @@ unsafe fn external_conversion_unprotected(
             }
         }
     }
-    #[cfg(target_os = "linux")]
-    if let Ok(mut ai) = linux_ai().lock() {
+    #[cfg(any(target_os = "linux", target_os = "macos"))]
+    if let Ok(mut ai) = desktop_ai().lock() {
         if let Some(text) = ai.convert(reading, &read(before).unwrap_or_default()) {
             let mozc_segments: Vec<_> = segments
                 .iter()
@@ -391,7 +405,7 @@ unsafe fn external_conversion_unprotected(
                     candidates: clause.candidates.clone(),
                 })
                 .collect();
-            let aligned = linux_zenzai::align(&mozc_segments, &text)
+            let aligned = desktop_zenzai::align(&mozc_segments, &text)
                 .unwrap_or_else(|| vec![(reading.to_owned(), text)]);
             segments = aligned
                 .into_iter()
@@ -619,7 +633,7 @@ pub unsafe extern "C" fn meltype_handle_key(
     after: *const c_char,
 ) -> *mut c_char {
     catch_unwind(AssertUnwindSafe(|| {
-        #[cfg(target_os = "linux")]
+        #[cfg(any(target_os = "linux", target_os = "macos"))]
         {
             let settings = sessions()
                 .lock()
@@ -629,7 +643,7 @@ pub unsafe extern "C" fn meltype_handle_key(
                 if let Ok(mut ai) = shunti_ai().lock() {
                     ai.configure(&settings);
                 }
-                if let Ok(mut ai) = linux_ai().lock() {
+                if let Ok(mut ai) = desktop_ai().lock() {
                     ai.configure(&settings);
                     ai.begin_request();
                 }

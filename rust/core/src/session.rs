@@ -1,5 +1,6 @@
 // SPDX-License-Identifier: GPL-3.0-or-later
 // Copyright (C) 2026 appipinopi
+mod ai;
 mod clause_metadata;
 mod direct;
 mod engine_learning;
@@ -309,6 +310,10 @@ impl Session {
             storage_error,
             ..Default::default()
         })
+    }
+    #[cfg(feature = "filesystem")]
+    pub fn data_directory(&self) -> Option<&std::path::Path> {
+        self.store.as_ref().map(|store| store.directory.as_path())
     }
     pub fn set_context(&mut self, before: Option<&str>, after: Option<&str>) {
         if self.private {
@@ -1878,7 +1883,9 @@ impl Session {
         if !plain.is_empty() {
             pieces.push((plain, None));
         }
-        (found && pieces.len() > 1).then_some(pieces)
+        // A whole-reading registration must also replace an external engine's
+        // split clauses; otherwise its candidates disappear from the panel.
+        found.then_some(pieces)
     }
     /// Adapters must retain Space provenance when they fetch engine clauses
     /// before Core handles the key; post-commit correction uses that separator.

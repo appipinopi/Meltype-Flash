@@ -46,3 +46,6 @@ ios/lib/
 ios/build/
 ios/generated/
 ios/*.xcodeproj/
+
+# Generated local AI WebAssembly (built from pinned sources)
+chromeos/ai/

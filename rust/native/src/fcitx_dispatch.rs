@@ -89,7 +89,8 @@ pub unsafe extern "C" fn meltype_fcitx_key_event(
     let packed = meltype_fcitx_key(symbol, scalar);
     let vk = packed as u32 as i32;
     let mode_vk = match symbol {
-        0xff28..=0xff2a => 0x19,
+        0xff21 if states & 8 != 0 => 0xc0,
+        0xff21 | 0xff28..=0xff2a => 0x19,
         0xff30 | 0xff22 => 0x1a,
         0xff23 => 0x1c,
         0xff27 => 0x15,

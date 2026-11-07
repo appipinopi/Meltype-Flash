@@ -680,33 +680,23 @@ impl App {
             });
         }
         ui.add_space(8.);
-        #[cfg(target_os = "linux")]
-        ui.group(|ui| {
-            ui.label("任意導入の変換パッケージ");
-            let mut enabled = self.settings.boolean("UseShunti");
-            if ui
-                .add_enabled(
-                    !self.ai_setup.busy(),
-                    egui::Checkbox::new(&mut enabled, "shunti AI変換を使う"),
-                )
-                .changed()
-            {
-                if enabled {
-                    self.ai_setup.request_shunti();
-                } else {
-                    self.settings.set("UseShunti", json!(false)).unwrap();
-                }
-            }
-            ui.weak("本体とは別に取得します。Zenzaiとは選択して使用し、未導入時はMozcを使います。");
-            ui.hyperlink_to(
-                "shuntiの説明・ライセンス",
-                "https://github.com/shuntilettuce/Japanese-IME-for-HarmonyOS-next",
-            );
-        });
         let mut fields: Vec<_> = metadata::fields()
             .iter()
             .filter_map(|f| {
                 let key = f["key"].as_str()?;
+                if cfg!(any(windows, target_os = "linux", target_os = "macos"))
+                    && [
+                        "AiModel",
+                        "UseZenzai",
+                        "ZenzaiServerPath",
+                        "ZenzaiModelPath",
+                        "UseShunti",
+                        "ShuntiHelperPath",
+                    ]
+                    .contains(&key)
+                {
+                    return None;
+                }
                 let value = self.settings.0.get(key)?;
                 let filter = self.filter.to_lowercase();
                 ((self.show_all || visible_by_default(key))
@@ -722,6 +712,22 @@ impl App {
                 })
             })
             .collect();
+        #[cfg(any(windows, target_os = "linux", target_os = "macos"))]
+        if self.filter.is_empty()
+            || [
+                "ai",
+                "zenz",
+                "zenzai",
+                "shunti",
+                "パス",
+                "モデル",
+                "インストール",
+            ]
+            .iter()
+            .any(|word| self.filter.to_lowercase().contains(word))
+        {
+            fields.push(("ai-packages".into(), Value::Null, "1a. AI".into()));
+        }
         fields.sort_by(|a, b| a.2.cmp(&b.2));
         egui::ScrollArea::vertical()
             .id_salt("settings_body")
@@ -742,6 +748,11 @@ impl App {
                     let group_response = frame.show(ui, |ui| {
                         ui.set_min_width(ui.available_width());
                         for (key, value, _) in group_fields {
+                            #[cfg(any(windows, target_os = "linux", target_os = "macos"))]
+                            if key == "ai-packages" {
+                                self.ai_settings(ui);
+                                continue;
+                            }
                             let mut value = value.clone();
                             ui.push_id(key, |ui| {
                                 if key == "AppRules" || key == "AppKinds" {
@@ -775,17 +786,7 @@ impl App {
                                     }
                                     return;
                                 }
-                                if key == "UseZenzai" && cfg!(any(windows, target_os = "linux")) {
-                                    let mut enabled = value.as_bool().unwrap_or(false);
-                                    let prior = enabled;
-                                    if ui.add_enabled(!self.ai_setup.busy(), egui::Checkbox::new(&mut enabled, metadata::label(key))).changed() {
-                                        if enabled && !prior { self.ai_setup.request(); }
-                                        else { self.action(json!({"op":"settings_set", "name":key, "value":false})); }
-                                    }
-                                    ui.weak("有効にすると、専用のAI実行環境とモデルを作成するか確認します。");
-                                    if self.ai_setup.busy() { ui.spinner(); ui.label("AI環境を作成しています…"); }
-                                    return;
-                                }
+
                                 if key == "Mode" && cfg!(target_os = "linux") {
                                     ui.label("入力方式: Linux IBus");
                                     ui.weak("入力ソースはデスクトップの日本語入力設定で切り替えます。");
@@ -953,6 +954,100 @@ impl App {
                 // Retain the original form's trailing space below the last row.
                 ui.add_space(16.);
             });
+    }
+    #[cfg(any(windows, target_os = "linux", target_os = "macos"))]
+    fn ai_settings(&mut self, ui: &mut egui::Ui) {
+        use meltype_core::ai_model::AiModel;
+        let mut selected = AiModel::selected(&self.settings);
+        let previous = selected;
+        ui.add_enabled_ui(!self.ai_setup.busy(), |ui| {
+            ui.horizontal(|ui| {
+                ui.label("AIモデル");
+                egui::ComboBox::from_id_salt("ai-model")
+                    .selected_text(selected.label())
+                    .show_ui(ui, |ui| {
+                        for model in AiModel::ALL {
+                            ui.selectable_value(&mut selected, model, model.label());
+                        }
+                    });
+            });
+        });
+        let ready = match selected {
+            AiModel::None => false,
+            AiModel::Shunti => {
+                std::path::Path::new(self.settings.text("ShuntiHelperPath")).is_file()
+            }
+            AiModel::Zenz => ["ZenzaiServerPath", "ZenzaiModelPath"]
+                .iter()
+                .all(|key| std::path::Path::new(self.settings.text(key)).is_file()),
+        };
+        if selected != previous {
+            selected.select(&mut self.settings, ready);
+            self.test_session.settings = self.settings.clone();
+        }
+        if selected == AiModel::None {
+            ui.weak("AI変換を使用しません。導入済みの環境とパスは保持します。");
+            return;
+        }
+        ui.weak("専用環境とモデルを取得します。パス入力は不要です。");
+        if ui
+            .add_enabled(
+                !self.ai_setup.busy(),
+                egui::Button::new(format!("{}をインストール", selected.label())),
+            )
+            .clicked()
+        {
+            if selected == AiModel::Shunti {
+                self.ai_setup.request_shunti();
+            } else {
+                self.ai_setup.request();
+            }
+        }
+        if self.ai_setup.busy() {
+            ui.spinner();
+            ui.label("AI環境を準備しています…");
+        } else {
+            ui.weak(if ready {
+                "導入済みです。「OK」で選択を保存します。"
+            } else {
+                "未導入です。インストールを押し、確認画面で「はい」を選んでください。"
+            });
+        }
+        ui.collapsing("手動でパスを指定（任意）", |ui| {
+            let paths: &[(&str, &str)] = if selected == AiModel::Shunti {
+                &[("ShuntiHelperPath", "shuntiの実行ファイル")]
+            } else {
+                &[
+                    ("ZenzaiServerPath", "Zenzの実行ファイル"),
+                    ("ZenzaiModelPath", "ZenzのGGUFモデル"),
+                ]
+            };
+            for (key, label) in paths {
+                ui.label(*label);
+                let mut text = self.settings.text(key).to_owned();
+                if ui.text_edit_singleline(&mut text).changed() {
+                    self.action(json!({"op":"settings_set","name":key,"value":text}));
+                }
+            }
+            if !self.ai_setup.busy() && ui.button("指定したパスを使う").clicked() {
+                let valid = paths
+                    .iter()
+                    .all(|(key, _)| std::path::Path::new(self.settings.text(key)).is_file());
+                if valid {
+                    selected.select(&mut self.settings, true);
+                } else {
+                    self.status =
+                        "指定したファイルが見つかりません。インストールボタンで自動設定できます。"
+                            .into();
+                }
+            }
+        });
+        if selected == AiModel::Shunti {
+            ui.hyperlink_to(
+                "shuntiの説明・ライセンス",
+                "https://github.com/shuntilettuce/Japanese-IME-for-HarmonyOS-next",
+            );
+        }
     }
     fn dictionary(&mut self, ui: &mut egui::Ui) {
         ui.heading("Meltype-FLASH ユーザー辞書");
@@ -1708,8 +1803,7 @@ impl eframe::App for App {
                         self.settings
                             .set("ShuntiHelperPath", paths["helper"].clone())
                             .unwrap();
-                        self.settings.set("UseShunti", json!(true)).unwrap();
-                        self.settings.set("UseZenzai", json!(false)).unwrap();
+                        meltype_core::ai_model::AiModel::Shunti.select(&mut self.settings, true);
                         self.status =
                             "shunti環境を作成しました。「OK」で保存すると入力へ反映します。".into();
                     } else {
@@ -1720,7 +1814,7 @@ impl eframe::App for App {
                         self.settings
                             .set("ZenzaiModelPath", paths["model"].clone())
                             .unwrap();
-                        self.settings.set("UseZenzai", json!(true)).unwrap();
+                        meltype_core::ai_model::AiModel::Zenz.select(&mut self.settings, true);
                         self.status = "AI環境を作成し、Zenzaiを有効にしました。設定を保存すると入力に反映されます。".into();
                     }
                 }
@@ -2073,6 +2167,29 @@ impl eframe::App for App {
 #[cfg(test)]
 mod tests {
     use super::*;
+    #[test]
+    fn ai_choice_keeps_both_installed_paths_and_only_uses_one_engine() {
+        let mut settings = Settings::default();
+        for (key, path) in [
+            ("ZenzaiServerPath", "server"),
+            ("ZenzaiModelPath", "model"),
+            ("ShuntiHelperPath", "shunti"),
+        ] {
+            settings.set(key, json!(path)).unwrap();
+        }
+        meltype_core::ai_model::AiModel::Shunti.select(&mut settings, true);
+        assert!(settings.boolean("UseShunti"));
+        assert!(!settings.boolean("UseZenzai"));
+        meltype_core::ai_model::AiModel::Zenz.select(&mut settings, true);
+        assert!(settings.boolean("UseZenzai"));
+        assert!(!settings.boolean("UseShunti"));
+        assert_eq!(settings.text("ShuntiHelperPath"), "shunti");
+        assert_eq!(settings.text("ZenzaiServerPath"), "server");
+        assert_eq!(settings.text("ZenzaiModelPath"), "model");
+        meltype_core::ai_model::AiModel::None.select(&mut settings, false);
+        assert!(!settings.boolean("UseZenzai") && !settings.boolean("UseShunti"));
+    }
+
     #[cfg(windows)]
     #[test]
     fn keyboard_shortcut_validation_and_capabilities_preserve_saved_values() {

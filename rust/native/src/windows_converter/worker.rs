@@ -45,6 +45,8 @@ struct Backend {
     conversions: HashMap<(String, String), Option<Vec<Segment>>>,
     candidates: HashMap<String, Vec<String>>,
     zenzai: Zenzai,
+    shunti: crate::shunti::Shunti,
+    shunti_candidates: HashMap<String, Vec<String>>,
 }
 impl Backend {
     fn available(&self) -> bool {
@@ -185,6 +187,26 @@ impl Backend {
             .map(|text| String::from_utf16_lossy(&text))
     }
     fn clauses(&mut self, reading: &str, context: &str) -> Option<Vec<(String, String)>> {
+        self.shunti_candidates.clear();
+        if let Some(clauses) = self.shunti.convert(reading, context) {
+            for clause in &clauses {
+                self.shunti_candidates
+                    .insert(clause.reading.clone(), clause.candidates.clone());
+            }
+            return Some(
+                clauses
+                    .into_iter()
+                    .map(|c| {
+                        let text = c
+                            .candidates
+                            .first()
+                            .cloned()
+                            .unwrap_or_else(|| c.reading.clone());
+                        (c.reading, text)
+                    })
+                    .collect(),
+            );
+        }
         let from_mozc = self.mozc_request(reading, context);
         let ordinary = if let Some(segments) = &from_mozc {
             Some(
@@ -260,6 +282,11 @@ impl Backend {
                     result.push(candidate);
                 }
             }
+        }
+        if let Some(candidates) = self.shunti_candidates.get(reading) {
+            let mut combined = candidates.clone();
+            combined.extend(result.into_iter().filter(|s| !candidates.contains(s)));
+            return combined;
         }
         result
     }
@@ -369,6 +396,8 @@ pub fn install() -> Option<WorkerConverters> {
             conversions: HashMap::new(),
             candidates: HashMap::new(),
             zenzai: Zenzai::default(),
+            shunti: crate::shunti::Shunti::default(),
+            shunti_candidates: HashMap::new(),
         })
     });
     *callbacks = Callbacks {
@@ -392,6 +421,9 @@ impl Drop for Scope {
 pub(crate) fn scope(settings: &meltype_core::settings::Settings) -> Scope {
     Scope(
         with_backend(|backend| {
+            if backend.shunti.configure(settings) {
+                backend.shunti_candidates.clear();
+            }
             backend.zenzai.configure(settings);
             backend.zenzai.begin_request();
             if settings.boolean("Enabled") {
