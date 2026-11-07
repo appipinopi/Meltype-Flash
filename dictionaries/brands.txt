@@ -232,3 +232,7 @@
 
 # Meltype v1.4.0 の追加候補
 めるたいぷ Meltype
+# Issue #1318
+あいぞとーぷ iZotope
+にゅーとろん Neutron
+おぞん Ozone

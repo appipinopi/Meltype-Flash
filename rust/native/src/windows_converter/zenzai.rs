@@ -90,16 +90,19 @@ impl Drop for Process {
     }
 }
 
-#[cfg(target_os = "linux")]
+#[cfg(any(target_os = "linux", target_os = "macos"))]
 struct Process {
     child: Child,
 }
-#[cfg(target_os = "linux")]
+#[cfg(any(target_os = "linux", target_os = "macos"))]
 impl Process {
     fn start(command: &mut Command) -> io::Result<Self> {
         use std::os::unix::process::CommandExt;
+        command.process_group(0);
+        #[cfg(target_os = "linux")]
         let parent = unsafe { libc::getpid() };
         // The model server must also end if IBus is killed without running Drop.
+        #[cfg(target_os = "linux")]
         unsafe {
             command.pre_exec(move || {
                 if libc::prctl(libc::PR_SET_PDEATHSIG, libc::SIGKILL) != 0 {
@@ -116,9 +119,13 @@ impl Process {
         })
     }
 }
-#[cfg(target_os = "linux")]
+#[cfg(any(target_os = "linux", target_os = "macos"))]
 impl Drop for Process {
     fn drop(&mut self) {
+        #[cfg(target_os = "macos")]
+        unsafe {
+            libc::kill(-(self.child.id() as i32), libc::SIGKILL);
+        }
         let _ = self.child.kill();
         let _ = self.child.wait();
     }
@@ -210,7 +217,7 @@ impl Server {
                 }
                 // Linux parent-death ownership follows the spawning thread.
                 // Keep it alive for the complete server lifetime, and detect exits.
-                #[cfg(target_os = "linux")]
+                #[cfg(any(target_os = "linux", target_os = "macos"))]
                 while outcome.is_ok() && !cancelled.load(Ordering::Acquire) {
                     let alive = process
                         .lock()
@@ -255,7 +262,10 @@ impl Zenzai {
         self.request_deadline = Some(Instant::now() + TIMEOUT);
     }
     pub(crate) fn configure(&mut self, settings: &Settings) {
-        let paths = (settings.boolean("Enabled") && settings.boolean("UseZenzai"))
+        let paths = (settings.boolean("Enabled")
+            && settings.boolean("UseZenzai")
+            && meltype_core::ai_model::AiModel::selected(settings)
+                == meltype_core::ai_model::AiModel::Zenz)
             .then(|| {
                 (
                     settings.text("ZenzaiServerPath").trim(),
@@ -313,7 +323,7 @@ impl Zenzai {
             || reading.encode_utf16().count() > 80
             || reading
                 .chars()
-                .any(|c| c.is_control() || ('\u{ee00}'..='\u{ee03}').contains(&c))
+                .any(|c| c.is_control() || ('\u{ee00}'..='\u{ee08}').contains(&c))
             || !reading.chars().any(meltype_core::linguistics::kana)
             || self.paused_until.is_some_and(|at| Instant::now() < at)
         {
@@ -385,7 +395,7 @@ impl Zenzai {
 fn context(before: &str) -> String {
     let text: String = before
         .chars()
-        .filter(|c| !c.is_control() && !('\u{ee00}'..='\u{ee03}').contains(c))
+        .filter(|c| !c.is_control() && !('\u{ee00}'..='\u{ee08}').contains(c))
         .collect();
     let text = text.trim();
     if text.is_empty() {
@@ -405,13 +415,13 @@ fn context(before: &str) -> String {
 }
 fn prompt(reading: &str, context: &str) -> String {
     format!(
-        "\u{ee00}{}\u{ee02}{context}\u{ee01}",
+        "\u{ee02}{context}\u{ee00}{}\u{ee01}",
         meltype_core::romaji::katakana(reading)
     )
 }
 fn clean(content: &str) -> Option<String> {
     let text = content
-        .split(['\u{ee00}', '\u{ee01}', '\u{ee02}', '\u{ee03}', '\n'])
+        .split(|c| ('\u{ee00}'..='\u{ee08}').contains(&c) || c == '\n')
         .next()?
         .replace("</s>", "")
         .replace("<s>", "");
@@ -720,7 +730,7 @@ mod tests {
     fn prompt_context_and_cleaning_match_the_model_protocol() {
         assert_eq!(
             prompt("きょう", "昨日の続き"),
-            "\u{ee00}キョウ\u{ee02}昨日の続き\u{ee01}"
+            "\u{ee02}昨日の続き\u{ee00}キョウ\u{ee01}"
         );
         assert_eq!(context("\n\u{ee02}"), "。");
         assert_eq!(context("English context"), "English context");
@@ -729,6 +739,11 @@ mod tests {
         assert_eq!(clean(" 今日</s>\u{ee01}捨てる "), Some("今日".into()));
         assert_eq!(clean("<s>  </s>"), None);
         assert_eq!(clean("今日\r後続"), None);
+        for marker in '\u{ee00}'..='\u{ee08}' {
+            assert_eq!(clean(&format!("今日{marker}前の文章")), Some("今日".into()));
+        }
+        // #1505: a legitimate answer may repeat the preceding context's suffix.
+        assert_eq!(clean("確認"), Some("確認".into()));
     }
 
     #[test]
@@ -746,7 +761,7 @@ mod tests {
         let body: Value = serde_json::from_str(request.split_once("\r\n\r\n").unwrap().1).unwrap();
         assert_eq!(
             body["prompt"],
-            "\u{ee00}キョウデス\u{ee02}昨日の文章\u{ee01}"
+            "\u{ee02}昨日の文章\u{ee00}キョウデス\u{ee01}"
         );
         assert_eq!(body["temperature"], 0);
         assert_eq!(body["top_k"], 1);

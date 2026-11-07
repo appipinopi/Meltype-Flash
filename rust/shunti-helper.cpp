@@ -12,8 +12,10 @@
 #include <stdexcept>
 #include <string>
 #include <vector>
+#ifdef _WIN32
 #define WIN32_LEAN_AND_MEAN
 #include <windows.h>
+#endif
 
 static std::vector<char> read(const std::filesystem::path& path) {
     std::ifstream stream(path, std::ios::binary | std::ios::ate);
@@ -26,12 +28,17 @@ static std::vector<char> read(const std::filesystem::path& path) {
     return data;
 }
 
-int main() {
+int main(int argc, char** argv) {
     try {
+#ifdef _WIN32
         std::vector<wchar_t> filename(32768);
         const auto n = GetModuleFileNameW(nullptr, filename.data(), static_cast<DWORD>(filename.size()));
         if (!n || n == filename.size()) throw std::runtime_error("Cannot locate shunti executable");
         const auto root = std::filesystem::path(std::wstring(filename.data(), n)).parent_path();
+#else
+        if (argc < 1) throw std::runtime_error("Cannot locate shunti executable");
+        const auto root = std::filesystem::absolute(std::filesystem::u8path(argv[0])).parent_path();
+#endif
         // Wide file paths support Japanese Windows user names. Buffers outlive the engine.
         const auto lex = read(root / L"kkc_lex.bin");
         const auto model = read(root / L"kkc_model.bin");

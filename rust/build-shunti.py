@@ -45,7 +45,7 @@ def windows_build(root):
         (root / ("shunti-helper." + extension)).unlink(missing_ok=True)
 
 
-def build(destination, windows=False):
+def build(destination, windows=False, macos=None):
     with tempfile.TemporaryDirectory(prefix='meltype-shunti-build-') as temp:
         root = Path(temp)
         for name in ['engine.cpp', 'engine.h', 'engine_simd.h', 'ai_learn.h'] + (['engine_avx2.cpp'] if windows else []):
@@ -53,10 +53,14 @@ def build(destination, windows=False):
             (root/name).write_bytes(urllib.request.urlopen(url, timeout=60).read())
         for name in ['LICENSE', 'THIRD_PARTY_NOTICES.md', 'DATA_SOURCES.md']:
             (root/name).write_bytes(urllib.request.urlopen(f'https://raw.githubusercontent.com/{REPO}/{COMMIT}/{name}', timeout=60).read())
-        if windows:
+        if windows or macos:
             shutil.copyfile(Path(__file__).with_name('shunti-helper.cpp'), root/'shunti-helper.cpp')
             shutil.copyfile(Path(__file__).resolve().parents[1]/'LICENSE', root/'MELTYPE-LICENSE.txt')
-            windows_build(root)
+            if windows:
+                windows_build(root)
+            else:
+                subprocess.run(['clang++','-std=c++17','-O2','-arch',macos,'-mmacosx-version-min=11.0','-pthread',str(root/'engine.cpp'),str(root/'shunti-helper.cpp'),'-o',str(root/'shunti-helper')],check=True)
+                subprocess.run(['codesign','--force','--sign','-',str(root/'shunti-helper')],check=True)
         else:
             subprocess.run(['g++', '-std=c++17', '-O2', '-fPIC', '-shared', '-pthread', str(root/'engine.cpp'), '-o', str(root/'libshunti.so')], check=True)
             shutil.copyfile(Path(__file__).with_name('shunti-helper.py'), root/'shunti-helper')
@@ -66,7 +70,7 @@ def build(destination, windows=False):
         (root/'runtime-receipt.json').write_text(json.dumps({'commit': COMMIT, 'files': files}), encoding='utf-8')
         destination = Path(destination)
         destination.parent.mkdir(parents=True, exist_ok=True)
-        if windows:
+        if windows or macos:
             with zipfile.ZipFile(destination, 'x', compression=zipfile.ZIP_DEFLATED) as archive:
                 for path in sorted(root.iterdir()):
                     archive.write(path, arcname=path.name)
@@ -76,4 +80,4 @@ def build(destination, windows=False):
                     archive.add(path, arcname=path.name)
 
 if __name__ == '__main__':
-    build(sys.argv[1], windows='--windows' in sys.argv[2:])
+    build(sys.argv[1], windows='--windows' in sys.argv[2:], macos=sys.argv[sys.argv.index('--macos')+1] if '--macos' in sys.argv else None)

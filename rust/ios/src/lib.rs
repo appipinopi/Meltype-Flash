@@ -12,6 +12,10 @@ use std::{
     },
 };
 
+fn ai() -> &'static Mutex<meltype_ai::shunti::Runtime> {
+    static AI: OnceLock<Mutex<meltype_ai::shunti::Runtime>> = OnceLock::new();
+    AI.get_or_init(|| Mutex::new(Default::default()))
+}
 fn sessions() -> &'static Mutex<HashMap<u64, Session>> {
     static SESSIONS: OnceLock<Mutex<HashMap<u64, Session>>> = OnceLock::new();
     SESSIONS.get_or_init(|| Mutex::new(HashMap::new()))
@@ -57,7 +61,51 @@ pub extern "C" fn meltype_ios_key(
     scalar: i32,
     modifiers: i32,
 ) -> *mut c_char {
-    run(handle, |session| session.key(vk, scalar, modifiers))
+    let was_converting = sessions()
+        .lock()
+        .ok()
+        .and_then(|all| all.get(&handle).map(Session::is_converting))
+        .unwrap_or(false);
+    let result = run(handle, |session| session.key(vk, scalar, modifiers));
+    if was_converting {
+        return result;
+    }
+    let request = sessions()
+        .lock()
+        .ok()
+        .and_then(|all| all.get(&handle).and_then(Session::ai_request));
+    if let Some((reading, context)) = request {
+        let candidates = ai()
+            .lock()
+            .ok()
+            .and_then(|mut ai| ai.convert(&reading, &context));
+        if let Some(candidates) = candidates {
+            let applied = sessions().lock().ok().and_then(|mut all| {
+                let session = all.get_mut(&handle)?;
+                session
+                    .apply_ai_candidates(&reading, candidates)
+                    .then(|| session.result(true))
+            });
+            if let Some(applied) = applied {
+                if !result.is_null() {
+                    let previous: Option<SessionResult> = unsafe {
+                        serde_json::from_slice(std::ffi::CStr::from_ptr(result).to_bytes()).ok()
+                    };
+                    unsafe {
+                        meltype_ios_free(result);
+                    }
+                    let mut applied = applied;
+                    if let Some(previous) = previous {
+                        applied.commits = previous.commits;
+                    }
+                    return CString::new(serde_json::to_string(&applied).unwrap())
+                        .unwrap()
+                        .into_raw();
+                }
+            }
+        }
+    }
+    result
 }
 /// Start selection reconversion without modifying the host document.
 /// # Safety
@@ -84,6 +132,56 @@ pub unsafe extern "C" fn meltype_ios_reconvert(
         }
     })
 }
+/// Configure the optional local model from the containing app's shared directory.
+/// # Safety
+/// directory points to length UTF-8 bytes, or is null when disabling.
+#[no_mangle]
+pub unsafe extern "C" fn meltype_ios_set_ai(
+    handle: u64,
+    directory: *const c_char,
+    length: u32,
+    enabled: i32,
+) -> i32 {
+    let path = if enabled != 0 {
+        if directory.is_null() || length == 0 || length > 32768 {
+            return 0;
+        }
+        let Ok(text) = std::str::from_utf8(std::slice::from_raw_parts(
+            directory.cast::<u8>(),
+            length as usize,
+        )) else {
+            return 0;
+        };
+        let path = std::path::PathBuf::from(text);
+        if !path.is_absolute()
+            || !path.join("kkc_lex.bin").is_file()
+            || !path.join("kkc_model.bin").is_file()
+        {
+            return 0;
+        }
+        Some(path)
+    } else {
+        None
+    };
+    if let Ok(mut all) = sessions().lock() {
+        let Some(session) = all.get_mut(&handle) else {
+            return 0;
+        };
+        meltype_core::ai_model::AiModel::Shunti.select(&mut session.settings, path.is_some());
+        if path.is_none() {
+            meltype_core::ai_model::AiModel::None.select(&mut session.settings, false);
+        }
+    } else {
+        return 0;
+    }
+    if let Ok(mut runtime) = ai().lock() {
+        runtime.configure(path.as_deref());
+        1
+    } else {
+        0
+    }
+}
+
 #[no_mangle]
 pub extern "C" fn meltype_ios_select(handle: u64, index: u32) -> *mut c_char {
     run(handle, |session| session.select(index as usize))

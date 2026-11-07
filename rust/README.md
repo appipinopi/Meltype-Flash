@@ -1,6 +1,6 @@
 # Meltype-FLASH
 
-このソースは1.0.1です。[変更と確認範囲](RELEASE-NOTES.md)と[本家1.4.0との差への対応](UPGRADE-1.4.0.md)を参照してください。ChromeOS・iOS・AndroidにはAI変換を搭載しません。Windows TSFのZenzai接続は既定オフの試験実装です。
+AIモデルはWindows・macOS・Linuxで「使用しない / Zenz / shunti」、Android・ChromeOS・iOSで「使用しない / shunti」を選べます。選択後に導入・パスの項目を表示します。[AIの導入と対応範囲](AI-MODELS.md)を参照してください。
 
 ## リリース本文と配布物の自動作成
 

@@ -572,3 +572,606 @@ OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR
 IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER
 DEALINGS IN THE SOFTWARE.
 ```
+
+## shunti local conversion engine
+
+Source: https://github.com/shuntilettuce/Japanese-IME-for-HarmonyOS-next/tree/14801bffb90c9ea5f2dd0f594943a97ea35c8a1a
+
+Android・iOS・ChromeOSに組み込む変換エンジンです。Windows・macOS・Linuxの追加パッケージにも使います。モデル・辞書は本体に同梱しません。任意導入データの出典・条件はソースの `rust/ai/vendor/shunti/THIRD_PARTY_NOTICES.md` と `DATA_SOURCES.md`、設定の導入確認を参照してください。
+
+```text
+MIT License
+
+Copyright (c) 2026 shuntilettuce
+
+Permission is hereby granted, free of charge, to any person obtaining a copy
+of this software and associated documentation files (the "Software"), to deal
+in the Software without restriction, including without limitation the rights
+to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+copies of the Software, and to permit persons to whom the Software is
+furnished to do so, subject to the following conditions:
+
+The above copyright notice and this permission notice shall be included in all
+copies or substantial portions of the Software.
+
+THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
+SOFTWARE.
+
+---
+
+This license covers the application code (.ets/.ts files and build
+configuration) authored for this project. Bundled dictionary and
+connection-cost data are derived from third-party sources under their own
+licenses (public domain, CC BY-SA 4.0, BSD-3-Clause, Apache License 2.0) --
+see THIRD_PARTY_NOTICES.md and DATA_SOURCES.md for the full breakdown and
+attribution.
+
+```
+
+### shunti data attribution (data downloaded separately)
+
+# Third-Party Notices
+
+This project ships derived data generated from the mozc project's
+open-source dictionary and connection-cost data, augmented with
+kanji-spelling vocabulary from JMdict and SudachiDict (see
+`tools/mozc_data/build_mozc_engine.py`, `tools/mozc_data/
+build_jmdict_augment.py`, and `tools/mozc_data/build_sudachi_augment.py`),
+used to build the optional "統計データ" (mozc-derived) conversion engine,
+which the user can enable alongside the app's own hand-built dictionary
+via a settings toggle. The generated files
+(`entry/src/main/resources/rawfile/mozc_dict.json`, `mozc_costs.json`,
+`mozc_matrix.json`) are derived works of the data below and are covered by
+the same license terms.
+
+(An earlier round also fetched and merged in real mecab-ipadic's own
+connection-cost matrix directly from https://github.com/taku910/mecab --
+that merge was later superseded by using mozc's own matrix unreduced,
+which measured better; see `tools/mozc_data/build_mozc_engine.py`'s module
+docstring and git history. mozc's own bundled dictionary text is still
+itself IPAdic-derived per mozc's own documentation, which is what the
+"IPAdic-derived dictionary entries" section below covers -- that one is
+unrelated to the now-removed direct fetch and still applies.)
+
+The AI conversion engine's dictionary **shuntorge** (`kkc_lex.bin`, distributed
+via GitHub Releases and fetched by `tools/fetch_ai_assets.py`) also contains
+mozc's dictionary entries, connection costs, and symbol / emoji / emoticon
+tables, plus readings from SudachiDict; the mozc, IPAdic, Okinawa Dictionary
+and SudachiDict terms below apply to those parts as well. The AI conversion
+model **shuntelligence** (`kkc_model.bin`) is licensed under CC BY 4.0
+(attribution: "shuntelligence (shuntilettuce)"); the inference code in
+`entry/src/main/cpp/` is MIT.
+
+The English-word candidates in shuntorge (e.g. いんじぇくしょん → injection) were
+checked for coverage against **The CEFR-J Wordlist Version 1.5**, compiled by
+Yukio Tono, Tokyo University of Foreign Studies (copyright Tono Laboratory, TUFS;
+free for research and commercial use with citation; retrieved via
+https://github.com/openlanguageprofiles/olp-en-cefrj). The katakana readings
+are this project's own.
+
+shuntorge also contains:
+
+- **Proper nouns from Japanese Wikipedia** (people, organizations, works,
+  surnames / given names, and the original English titles of katakana
+  article titles), extracted from the article leads ("題名（よみ）") of the
+  jawiki dump of 2026-10-01 (https://dumps.wikimedia.org/jawiki/). Wikipedia
+  text is licensed under **CC BY-SA 4.0**
+  (https://creativecommons.org/licenses/by-sa/4.0/); attribution:
+  "Wikipedia contributors, Japanese Wikipedia". Because of this, the
+  dictionary file `kkc_lex.bin` as a whole is distributed under CC BY-SA 4.0
+  as well (the same share-alike terms already apply through JMdict).
+  This project's own parts of shuntorge are also available under MIT on
+  their own.
+- **Common misreadings and reading variants from JMdict/EDICT** (e.g.
+  げっきょく → 月極 from JMdict's "irregular reading" marks, and alternative
+  readings such as ばえる → 映える), under **CC BY-SA 4.0**; see the
+  "JMdict/EDICT" section below for the attribution and EDRDG policy. The
+  JMdict copy is refreshed whenever shuntorge is rebuilt.
+- **Readings of Latin-script words** (Win, GitHub, Excel …) from
+  **mecab-ipadic-NEologd** (https://github.com/neologd/mecab-ipadic-neologd,
+  `seed/mecab-user-dict-seed.20200910.csv.xz`), Copyright (C) 2015-2019
+  Toshinori Sato (@overlast), under the **Apache License 2.0**. NEologd uses the
+  spellings and readings of the Hatena Keyword list (株式会社はてな,
+  http://developer.hatena.ne.jp/ja/documents/keyword/misc/catalog) and other
+  sources listed in its COPYING file. Only Latin-script nouns that appear 30+
+  times in FineWeb-2 Japanese were taken; whether the Latin spelling ranks first
+  was decided from word counts in this project's training text.
+- **Postal codes → addresses** from Japan Post's postal code data
+  (`utf_ken_all.csv`, https://www.post.japanpost.jp/zipcode/). Japan Post
+  states: "郵便番号データに限っては日本郵便株式会社は著作権を主張しません。
+  自由に配布していただいて結構です。"
+- **Emoji names** from the Unicode CLDR (cldr-json 48, Japanese
+  `annotations` / `annotationsDerived`) and the order in Unicode's
+  `emoji-test.txt` (18.0), under the **Unicode License v3**
+  (https://www.unicode.org/license.txt). Copyright © 1991-2026 Unicode, Inc.
+  Emoji were ranked by how often they appear in the FineWeb-2 Japanese test
+  split (ODC-By 1.0); no FineWeb text is distributed.
+
+Sources:
+- https://github.com/google/mozc (branch: master, `src/data/dictionary_oss/`)
+- https://www.edrdg.org/ (JMdict, via http://ftp.edrdg.org/pub/Nihongo/JMdict.gz)
+  — used only to append extra kanji-spelling candidates to readings mozc's
+  own dictionary already recognises (`tools/mozc_data/build_jmdict_augment.py`).
+  See the "JMdict (CC BY-SA 4.0)" section below for the license text and
+  the attribution/share-alike/update-mechanism terms this data carries.
+- https://github.com/WorksApplications/SudachiDict (lexicon CSVs fetched
+  from the project's own distribution bucket, see
+  `tools/mozc_data/fetch_sudachi.py`) — used the same way as JMdict, only
+  to append extra kanji-spelling candidates to readings mozc's own
+  dictionary already recognises
+  (`tools/mozc_data/build_sudachi_augment.py`). See the "SudachiDict
+  (Apache License 2.0)" section below.
+
+---
+
+## mozc (connection cost data, POS definitions, and Google-authored
+## dictionary additions) — BSD-3-Clause
+
+```
+Copyright 2010-2018, Google Inc.
+All rights reserved.
+
+Redistribution and use in source and binary forms, with or without
+modification, are permitted provided that the following conditions are
+met:
+
+  * Redistributions of source code must retain the above copyright
+    notice, this list of conditions and the following disclaimer.
+  * Redistributions in binary form must reproduce the above
+    copyright notice, this list of conditions and the following disclaimer
+    in the documentation and/or other materials provided with the
+    distribution.
+  * Neither the name of Google Inc. nor the names of its
+    contributors may be used to endorse or promote products derived from
+    this software without specific prior written permission.
+
+THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS
+"AS IS" AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT
+LIMITED TO, THE IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR
+A PARTICULAR PURPOSE ARE DISCLAIMED. IN NO EVENT SHALL THE COPYRIGHT
+OWNER OR CONTRIBUTORS BE LIABLE FOR ANY DIRECT, INDIRECT, INCIDENTAL,
+SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES (INCLUDING, BUT NOT
+LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES; LOSS OF USE,
+DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER CAUSED AND ON ANY
+THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT
+(INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
+OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
+```
+
+## IPAdic-derived dictionary entries (files: `dictionary*.txt`) — NAIST /
+## ICOT license (permissive)
+
+```
+Copyright 2000, 2001, 2002, 2003 Nara Institute of Science
+and Technology.  All Rights Reserved.
+
+Use, reproduction, and distribution of this software is permitted.
+Any copy of this software, whether in its original form or modified,
+must include both the above copyright notice and the following
+paragraphs.
+
+Nara Institute of Science and Technology (NAIST),
+the copyright holders, disclaims all warranties with regard to this
+software, including all implied warranties of merchantability and
+fitness, in no event shall NAIST be liable for
+any special, indirect or consequential damages or any damages
+whatsoever resulting from loss of use, data or profits, whether in an
+action of contract, negligence or other tortuous action, arising out
+of or in connection with the use or performance of this software.
+
+A large portion of the dictionary entries
+originate from ICOT Free Software.  The following conditions for ICOT
+Free Software applies to the current dictionary as well.
+
+Each User may also freely distribute the Program, whether in its
+original form or modified, to any third party or parties, PROVIDED
+that the provisions of Section 3 ("NO WARRANTY") will ALWAYS appear
+on, or be attached to, the Program, which is distributed substantially
+in the same form as set out herein and that such intended
+distribution, if actually made, will neither violate or otherwise
+contravene any of the laws and regulations of the countries having
+jurisdiction over the User or the intended distribution itself.
+
+NO WARRANTY
+
+The program was produced on an experimental basis in the course of the
+research and development conducted during the project and is provided
+to users as so produced on an experimental basis.  Accordingly, the
+program is provided without any warranty whatsoever, whether express,
+implied, statutory or otherwise.  The term "warranty" used herein
+includes, but is not limited to, any warranty of the quality,
+performance, merchantability and fitness for a particular purpose of
+the program and the nonexistence of any infringement or violation of
+any right of any third party.
+
+Each user of the program will agree and understand, and be deemed to
+have agreed and understood, that there is no warranty whatsoever for
+the program and, accordingly, the entire risk arising from or
+otherwise connected with the program is assumed by the user.
+
+Therefore, neither ICOT, the copyright holder, or any other
+organization that participated in or was otherwise related to the
+development of the program and their respective officials, directors,
+officers and other employees shall be held liable for any and all
+damages, including, without limitation, general, special, incidental
+and consequential damages, arising out of or otherwise in connection
+with the use or inability to use the program or any product, material
+or result produced or otherwise obtained by using the program,
+regardless of whether they have been advised of, or otherwise had
+knowledge of, the possibility of such damages at any time during the
+project or thereafter.  Each user will be deemed to have agreed to the
+foregoing by his or her commencement of use of the program.  The term
+"use" as used herein includes, but is not limited to, the use,
+modification, copying and distribution of the program and the
+production of secondary products from the program.
+
+In the case where the program, whether in its original form or
+modified, was distributed or delivered to or received by a user from
+any person, organization or entity other than ICOT, unless it makes or
+grants independently of ICOT any specific warranty to the user in
+writing, such person, organization or entity, will also be exempted
+from and not be held liable to the user for any such damages as noted
+above as far as the program is concerned.
+```
+
+## JMdict/EDICT (kanji-spelling candidate augmentation for the "統計データ"
+## engine only, via `tools/mozc_data/build_jmdict_augment.py`) —
+## CC BY-SA 4.0
+
+Source: https://www.edrdg.org/ (The Electronic Dictionary Research and
+Development Group), file fetched: http://ftp.edrdg.org/pub/Nihongo/JMdict.gz
+
+License: Creative Commons Attribution-ShareAlike 4.0 International
+(https://creativecommons.org/licenses/by-sa/4.0/). Full terms and the
+EDRDG's own usage policy: https://www.edrdg.org/edrdg/licence.html
+
+This project's use, and how it satisfies the license's conditions:
+- **Attribution**: this notice, the in-app "ⓘ ライセンス" screen
+  (`SymbolView.ets`), and `DATA_SOURCES.md` each credit JMdict/EDICT by
+  name with a link to the EDRDG's project page, as required by both CC
+  BY-SA 4.0 and the EDRDG's own stated policy for software/apps using
+  these files.
+- **ShareAlike**: only the derived, redistributed data
+  (`entry/src/main/resources/rawfile/mozc_dict.json`'s appended candidate
+  surfaces) is a JMdict-derived work; it is covered by this same CC BY-SA
+  4.0 license, consistent with every other file in this repository being
+  under a permissive/compatible license already (see the app code's own
+  MIT license, noted in the in-app license screen).
+- **"Regular updating" requirement**: the EDRDG's policy asks that
+  software using JMdict data implement "a procedure for regular updating
+  of the data from the most recent versions available." This project does
+  not fetch JMdict at runtime (it is baked into a static shipped asset at
+  build time, like every other data source here); the update procedure is
+  to re-run `tools/mozc_data/fetch_jmdict.py` (which always re-downloads if
+  the local cache is cleared) followed by
+  `tools/mozc_data/build_jmdict_augment.py` before each release that
+  touches track B's data, so the shipped snapshot doesn't go stale
+  indefinitely.
+
+Note: JMdict/EDICT was already used, separately, as one of several sources
+for the hand-built `dict.json`/`global_dict.json` vocabulary (track A) --
+see `DATA_SOURCES.md` and the in-app license screen's existing "変換辞書"
+section. The usage documented here is a second, independent, later use of
+the same source: appending extra kanji-spelling candidates to track B's
+`mozc_dict.json` (see `tools/mozc_data/README.md`'s "JMdict vocabulary
+augmentation" section for the mechanism and scope).
+
+## SudachiDict (kanji-spelling candidate augmentation for the "統計データ"
+## engine only, via `tools/mozc_data/build_sudachi_augment.py`) —
+## Apache License 2.0
+
+Source: https://github.com/WorksApplications/SudachiDict, copyright
+2017-2023 Works Applications Co., Ltd. Lexicon CSVs fetched from the
+project's own distribution host (see `tools/mozc_data/fetch_sudachi.py`
+for the exact URLs, discovered via that host's public bucket listing).
+
+License: Apache License, Version 2.0
+(http://www.apache.org/licenses/LICENSE-2.0). SudachiDict's own README
+states the project "incorporates UniDic and a part of NEologd" and
+distributes the resulting lexicon as a whole under Apache-2.0, without
+carving out separate terms for those incorporated components.
+
+This project's use: only the "small" and "core" lexicon tiers (not the
+much larger "notcore"/full tier of proper nouns) are scanned for entries
+whose reading already exists as a key in `mozc_dict.json`; their kanji
+surface is appended as an extra candidate for that reading, exactly like
+the JMdict augmentation above (same "never adds a new reading key" safe
+mode — see `build_sudachi_augment.py` and `build_jmdict_augment.py`'s
+module docstrings, and `tools/mozc_data/README.md`, for why). Apache-2.0
+is a permissive license (attribution required, no share-alike/copyleft
+obligation on derivative data) — satisfied by this notice, the in-app "ⓘ
+ライセンス" screen (`SymbolView.ets`), and `DATA_SOURCES.md`.
+
+## Okinawa Dictionary entries (also within files: `dictionary*.txt`) —
+## Public Domain
+
+```
+Public Domain Dataです。使用・変更・配布に関しては一切の制限をつけません。
+商品などに組み込むことも自由に行なってください。すでにいくつかの辞書には沖縄辞書が採用されています。
+勝手ながら、沖縄辞書に寄贈された辞書も in the Public Domain' 扱いとさせていただきます。
+```
+
+Source: http://sourceforge.jp/projects/o-dic/
+
+## BIZ UDPGothic (bundled font: `entry/src/main/resources/rawfile/font/
+## BIZUDPGothic-Regular.ttf`, also in the Android APK) — SIL Open Font License 1.1
+
+The keyboard and candidate text use BIZ UDPGothic, a universal-design
+Japanese font. The bundled file is a derived work: subset to the
+characters the app can display, by `tools/build_ud_font.py`. Outlines are
+unmodified.
+
+```
+Copyright 2022 The BIZ UDGothic Project Authors (https://github.com/googlefonts/morisawa-biz-ud-gothic)
+
+This Font Software is licensed under the SIL Open Font License, Version 1.1.
+(The license text is the same as in the Noto Sans JP section below.)
+```
+
+Source: https://github.com/google/fonts —
+`ofl/bizudpgothic/BIZUDPGothic-Regular.ttf`
+
+## Noto Sans JP (bundled font: `entry/src/main/resources/rawfile/font/
+## NotoSansJP-Fallback.ttf`, also in the Android APK) — SIL Open Font License 1.1
+
+The app bundles Japanese fonts because HarmonyOS's own system font ships
+only Simplified/Traditional Chinese regional variants — without them,
+Han-unified kanji render with Chinese glyph shapes on a China-region
+device (see `entry/src/main/ets/components/JpFont.ets`).
+
+This file supplies only the characters BIZ UDPGothic lacks (mostly rarer
+kanji). It is a derived work of Noto Sans JP: instanced from the variable
+font at `wght=400` and subset to those characters, by
+`tools/build_ud_font.py`. Outlines are unmodified.
+
+```
+Copyright 2014-2021 Adobe (http://www.adobe.com/), with Reserved Font Name
+'Source'. Copyright 2012 Google Inc. All Rights Reserved.
+
+This Font Software is licensed under the SIL Open Font License, Version 1.1.
+This license is copied below, and is also available with a FAQ at:
+https://openfontlicense.org
+
+Permission is hereby granted, free of charge, to any person obtaining a
+copy of the Font Software, to use, study, copy, merge, embed, modify,
+redistribute, and sell modified and unmodified copies of the Font
+Software, subject to the following conditions:
+
+1) Neither the Font Software nor any of its individual components, in
+Original or Modified Versions, may be sold by itself.
+
+2) Original or Modified Versions of the Font Software may be bundled,
+redistributed and/or sold with any software, provided that each copy
+contains the above copyright notice and this license. These can be
+included either as stand-alone text files, human-readable headers or in
+the appropriate machine-readable metadata fields within text or binary
+files as long as those fields can be easily viewed by the user.
+
+3) No Modified Version of the Font Software may use the Reserved Font
+Name(s) unless explicit written permission is granted by the corresponding
+Copyright Holder. This restriction only applies to the primary font name as
+presented to the users.
+
+4) The name(s) of the Copyright Holder(s) or the Author(s) of the Font
+Software shall not be used to promote, endorse or advertise any Modified
+Version, except to acknowledge the contribution(s) of the Copyright
+Holder(s) and the Author(s) or with their explicit written permission.
+
+5) The Font Software, modified or unmodified, in part or in whole, must be
+distributed entirely under this license, and must not be distributed under
+any other license. The requirement for fonts to remain under this license
+does not apply to any document created using the Font Software.
+```
+
+Source: https://github.com/google/fonts —
+`ofl/notosansjp/NotoSansJP[wght].ttf`
+
+## 紅皿 (Benizara) の配列定義ファイル (files: `desktop/layouts/*.tsv` のうち、見出しに「紅皿 (Benizara) の配列定義ファイル … から書き起こした」とあるもの) — MIT 相当
+
+キーと字の対応を https://github.com/k-ayaki/benizara の .bnz から書き起こした。各配列の考案者は各ファイルの見出し (#! name / #! url) を参照。
+
+```
+紅皿のLicense
+Copyright (c) 2018 綾木健一郎
+
+以下に定める条件に従い、IME.ahkおよび PATH.ahkを除く本ソフトウェアおよび関連文書のファイル（以下「ソフトウェア」）の複製を取得するすべての人に対し、ソフトウェアを無制限に扱うことを無償で許可します。これには、ソフトウェアの複製を使用、複写、変更、結合、掲載、頒布、サブライセンス、および/または販売する権利、およびソフトウェアを提供する相手に同じことを許可する権利も無制限に含まれます。
+
+上記の著作権表示および本許諾表示を、ソフトウェアのすべての複製または重要な部分に記載するものとします。
+
+ソフトウェアは「現状のまま」で、明示であるか暗黙であるかを問わず、何らの保証もなく提供されます。ここでいう保証とは、商品性、特定の目的への適合性、および権利非侵害についての保証も含みますが、それに限定されるものではありません。 作者または著作権者は、契約行為、不法行為、またはそれ以外であろうと、ソフトウェアに起因または関連し、あるいはソフトウェアの使用またはその他の扱いによって生じる一切の請求、損害、その他の義務について何らの責任も負わないものとします。
+```
+
+# 辞書データの出典一覧
+
+`entry/src/main/resources/rawfile/dict.json` および `global_dict.json` の語彙は、
+本プロジェクトの開発過程（複数セッションにわたる）で以下の外部データソースから
+収集・編纂されました。個々のエントリに出典タグは付与されていないため
+（28万件超の規模でエントリ単位のタグ付けは非現実的）、本ファイルが
+出典追跡の唯一の記録です。git のコミット履歴と合わせて参照してください。
+
+**免責事項**: 本ファイルは開発時点での把握内容をまとめたものであり、法的助言では
+ありません。公開配布前には、特に JMdict（下記）のシェアアライク条項について
+確認することを推奨します。
+
+**関連ファイル**: `entry/src/main/resources/rawfile/mozc_dict.json` /
+`mozc_costs.json` / `mozc_matrix.json`（設定でオプション有効化する第二変換
+エンジン「統計データ」用、track Aとは完全に別データ）の出典は
+`THIRD_PARTY_NOTICES.md` および `tools/mozc_data/README.md` を参照。JMdict
+のみ両トラックで（別々の目的に）利用されているため、下記3.に両方の利用内容を
+記載しています。
+
+---
+
+## 1. Wikipedia日本語版 (ja.wikipedia.org)
+
+- **ライセンス**: CC BY-SA 4.0（一部旧版は3.0）
+- **利用内容**: 記事本文を MeCab で形態素解析し、単語の「読み」を抽出。記事の
+  文章そのものは保存・再配布していない（読み↔漢字の対応関係のみを抽出）。
+  駅名・地名・専門用語カテゴリの網羅的収集に使用。
+- **関連コミット**: `c38514d`〜`f1cb947`（本セッション、バッチ11〜16、駅・
+  市区町村・廃駅・難語）、`db49fab`〜`021c4f1`（バッチ3〜10）、`edd5ab9`
+  （Wikipedia corpus deep expansion）等
+- **帰属表示**: アプリ内ライセンス画面（SymbolView.ets）・プライバシー
+  ポリシー画面（PrivacyPolicy.ets）に記載済み
+
+## 2. Wiktionary日本語版 (ja.wiktionary.org)
+
+- **ライセンス**: CC BY-SA 4.0 + GFDL（デュアルライセンス）
+- **利用内容**: 見出し語・読みの抽出（初期の dict.json 構築に使用）
+- **関連コミット**: `4ff3f6e`, `48c59ba`, `a6cf6b0`, `2b45b58`, `a2cf1df`
+- **帰属表示**: 記載済み — アプリ内ライセンス画面（`SymbolView.ets`）
+
+## 3. JMdict/EDICT（電子化辞書研究開発グループ, EDRDG）
+
+- **ライセンス**: Creative Commons Attribution-ShareAlike 4.0
+- **利用内容 (track A, dict.json/global_dict.json)**: 「196K canonical
+  dictionary, priority entries cross-referenced」として語彙収集に利用
+- **利用内容 (track B, mozc_dict.json — 別セッション、後日追加)**:
+  `tools/mozc_data/build_jmdict_augment.py` が、mozc/実ipadic統計データ
+  エンジン（独自辞書とは完全に別データの、設定でオプション有効化する
+  第二変換エンジン）向けに、既存の読みへの追加の候補表記（漢字表記の
+  バリエーション）としてのみ利用。新しい読みキーの追加は一切行わない
+  （DPのセグメンテーション挙動に影響を与えないための制約、詳細は
+  `tools/mozc_data/build_jmdict_augment.py` のモジュールdocstring参照）。
+- **関連コミット**: `1996469`（corpus blitz + JMdict expansion, track A）
+- **帰属表示**: 記載済み — アプリ内ライセンス画面（`SymbolView.ets`
+  「ⓘ ライセンス」、変換辞書セクションとtrack Bの統計データセクション
+  両方）、`THIRD_PARTY_NOTICES.md`（track B分の全文条件を記載）、
+  本ファイル。EDRDG公式要件（ソフトウェア／アプリでファイルを使用する
+  場合、ドキュメント・宣伝資料・ウェブサイト等で使用と出典を明記する
+  必要がある）を満たす。推奨URL:
+  https://www.edrdg.org/wiki/index.php/JMdict-EDICT_Dictionary_Project
+- **シェアアライク条項**: JMdict由来のデータを含む派生物（dict.json/
+  global_dict.json の該当エントリ、および mozc_dict.json への追加候補）
+  は CC BY-SA 4.0 の下で配布される（このリポジトリの他のデータ・コードは
+  元々MIT/BSD等の互換ライセンスであり、抵触しない）。
+- **定期更新要件**: EDRDG方針は「入手可能な最新版からのデータの定期的な
+  更新手順」の実装を求めている。本プロジェクトは実行時取得ではなく
+  ビルド時に静的アセットへ焼き込む方式のため、`tools/mozc_data/
+  fetch_jmdict.py` を毎リリース前に再実行（キャッシュを消してから）
+  して最新スナップショットを取り込む運用とする。
+
+## 4. Aozora Bunko（青空文庫）
+
+- **ライセンス**: 収録作品ごとに異なる（著作権保護期間満了＝パブリック
+  ドメイン、または著作権者の許諾に基づく無料公開）
+- **利用内容**: 古典文学作品から文語・難読語彙を収集
+- **関連コミット**: `5172741`（Aozora+Wikipedia）, `1996469`（同上に言及）
+
+## 5. 日本郵便 郵便番号データ (KEN_ALL.CSV)
+
+- **ライセンス**: 日本郵便が無償公開する公共データ、自由利用可
+- **利用内容**: 全国の町域名・読みの網羅的収集（区より細かい地名）。
+  加えて、`tools/build_place_packs.py` がこのデータと照合して
+  「どの読みが町域名か」と「どの都道府県のものか」を判定し、
+  地名を8地方の語彙パック (`tools/vocab_packs/place_*.pack`) に分割している。
+  接尾辞だけの判定では 拡張漢字・英数字・企業城下町 のような一般語を
+  巻き込むため、表記と読みの両方が郵便データに存在するものだけを地名と
+  確定している。
+- **取得元**: 都道府県別ファイル
+  <https://www.post.japanpost.jp/service/search/zipcode/download/kogaki-zip.html>
+  （全国一括 `ken_all.zip` は 2026-08 時点で 404 だったため県別を使用。
+  都道府県はファイル名ではなくレコード内の都道府県欄から取る）
+- **関連コミット**: `46e6ae1`（初回収集）
+- **帰属表示**: アプリ内ライセンス画面に記載済み
+
+## 5b. Wikidata
+
+- **ライセンス**: CC0 1.0（パブリックドメイン提供）
+- **利用内容**: `tools/build_place_core.py` が2つの一覧を取得し、
+  「地方パックを切っても引けるべき地名」の判定にのみ使用する。
+  1つは**現行の市区町村**（廃止日 P576 を持たないもの／1,727件）、
+  もう1つは**日本の鉄道駅とそのかな表記**（P1814／7,218件）。
+  駅は表記から「駅」・読みから「えき」を落とした**基底の地名**だけを
+  取り、駅名そのもの（「米原駅」）は登録しない。地名さえあれば
+  「米原」＋「駅」で組めるうえ、駅名を単位で持つと重複が増えるため
+  （以前この形の重複を7,486件削除している）。
+- **取得方法**: SPARQL エンドポイント <https://query.wikidata.org/sparql>。
+  問い合わせ文は `tools/build_place_core.py` の `QUERY_MUNI` /
+  `QUERY_STATION` にそのまま置いてある。取得結果は
+  `tools/.cache/wikidata/`（git 管理外）に残り、2回目以降は通信しない。
+- **帰属表示**: CC0 のため法的な義務は無いが、出典として本ファイルに記載。
+
+## 6. 常用漢字表（文部科学省告示）
+
+- **ライセンス**: パブリックドメイン（政府告示）
+- **帰属表示**: アプリ内ライセンス画面に記載済み
+
+## 7. Unicode Unihan データベース
+
+- **ライセンス**: Unicode, Inc. のライセンス（データ利用は一般的に許可、
+  Unicode社の利用条件表示が求められる場合がある）
+- **帰属表示**: アプリ内ライセンス画面に記載済み
+
+## 8. SudachiDict（Works Applications Co., Ltd.）
+
+- **ライセンス**: Apache License 2.0
+- **利用内容 (track B, mozc_dict.json のみ)**: `tools/mozc_data/
+  build_sudachi_augment.py` が、統計データエンジン向けに、small/core
+  レキシコンCSVから既存の読みへの追加の候補表記（漢字表記のバリエー
+  ション）としてのみ利用。JMdictと同じ「新しい読みキーは追加しない」
+  安全モード。track Aのdict.json/global_dict.jsonでは未使用。
+- **帰属表示**: 記載済み — アプリ内ライセンス画面（`SymbolView.ets`
+  「ⓘ ライセンス」track Bセクション）、`THIRD_PARTY_NOTICES.md`
+  （全文条件を記載）、本ファイル。
+- **注記**: Apache-2.0は許諾的ライセンスで、JMdictのCC BY-SAと異なり
+  シェアアライク（同一ライセンスでの再配布）義務はない。帰属表示のみ
+  required。
+
+---
+
+## 9. AI変換（shuntelligence / shuntorge）
+
+AI変換（設定 → 変換エンジン → AI変換）のモデル **shuntelligence**（`kkc_model.bin`）と辞書 **shuntorge**
+（`kkc_lex.bin`）は GitHub Releases に置き、`tools/fetch_ai_assets.py` で取得する（`tools/ai_assets.json` に SHA-256）。
+学習のコードと教材は公開していない。モデルの重みと推論のコード（`entry/src/main/cpp/`）だけを公開する。
+
+### モデル shuntelligence — CC BY 4.0
+
+約630万パラメータの Transformer。学習に使った文章（モデルの重みに文章そのものは含まれない。日本の著作権法第30条の4に基づく情報解析）:
+
+| 出典 | 条件 |
+|---|---|
+| おーぷん2ちゃんねる（open2ch-dialogue-corpus） | サイトが「投稿は著作権を放棄しパブリックドメイン」と明記。URL・顔文字・コピペ等を掃除し、差別語を含む投稿は除外、罵詈雑言は 1/10 に間引いた |
+| GitHub（codeparrot/github-code-clean） | MIT・Apache-2.0・BSD・ISC・Unlicense・CC0 のファイルのみ |
+| 青空文庫（globis-university/aozorabunko-clean） | 著作権の切れた作品のうち新字新仮名のもの |
+| Wikipedia日本語版 | CC BY-SA 4.0。本文の段落のみ |
+| FineWeb-2 日本語（HuggingFaceFW/fineweb-2、jpn_Jpan） | ODC-By 1.0（元の Common Crawl の利用規約にも従う）。本文のみ |
+
+- 読み付けは SudachiPy + SudachiDict-core（Apache License 2.0）。
+- 書き分けの強化の参考: 文化庁「「異字同訓」の漢字の使い分け例（報告）」（平成26年、文化審議会国語分科会。
+  出典: 文化庁ホームページ。用例から語の組み合わせを取り出して加工し、同じ組み合わせを含む上記の文章を探す手掛かりに使用。
+  用例の文そのものは学習に入れていない）、Wikipedia「助数詞」の一覧（CC BY-SA 4.0、名詞と助数詞の組を同様に手掛かりとして使用）、
+  Wikidata（CC0、生き物の和名と分類）。
+- 評価だけに使ったもの（学習には入れていない）: AJIMEE-Bench（CC BY-SA 3.0）、開発者本人の入力ログ（集計値のみ）。
+
+### 辞書 shuntorge — 辞書ファイル全体は CC BY-SA 4.0（独自部分は単独では MIT）
+
+下の表の Wikipedia日本語版と JMdict/EDICT の部分が CC BY-SA 4.0 のため、`kkc_lex.bin` 全体を CC BY-SA 4.0 で配布している。
+
+| 部分 | 出どころ | ライセンス |
+|---|---|---|
+| 語・品詞のつながりのコスト | mozc OSS 辞書（`src/data/dictionary_oss`） | BSD-3-Clause / IPAdic（NAIST）ライセンス / 沖縄辞書（パブリックドメイン） |
+| 記号・絵文字・顔文字 | mozc `symbol.tsv`・`emoji_data.tsv`・`emoticon.tsv` | BSD-3-Clause |
+| 手入れ済みの語 | shunti IME 独自辞書のネット語・バス行き先等の節（SudachiDict の読みと一致したもの） | MIT |
+| 地名 | shunti IME 地名パック（日本郵便 郵便番号データの町域名と照合） | MIT |
+| ネットの読み・技術用語・【速報】等の定型 | 本プロジェクトで作成（定型の読みは SudachiDict） | MIT / SudachiDict（Apache 2.0） |
+| 文章から拾った名詞 | 上記の教材に30回以上出て mozc に無い名詞（読みは SudachiDict） | MIT / SudachiDict（Apache 2.0） |
+| 英字の語の読み（Win・GitHub・Excel など） | mecab-ipadic-NEologd（`mecab-user-dict-seed.20200910`。はてなキーワード一覧ファイルほかの表記と読み）。FineWeb-2 に30回以上出る英字の名詞のみ。英字を先に出すかは教材の回数で決定 | Apache License 2.0 |
+| 英単語の一覧（each・other・hello など、ローマ字で英字のまま打ったときの英字の語） | SCOWL（en-wl/wordlist rel-2026.02.25、Copyright 2000-2026 Kevin Atkinson）の大きさ 35 の語 | MIT に近い許諾（著作権表示と許諾の表示を残す） |
+| 人名・組織・作品などの固有名詞と読み | Wikipedia日本語版（2026-10-01 のダンプ、記事の冒頭の「題名（よみ）」）。表示: "Wikipedia contributors, Japanese Wikipedia" | CC BY-SA 4.0 |
+| よくある誤読（げっきょく → 月極 など）・読みの揺れ（ばえる → 映える など） | JMdict/EDICT（電子化辞書研究開発グループ、https://www.edrdg.org/wiki/index.php/JMdict-EDICT_Dictionary_Project）。誤読は教材の書き込みからも | CC BY-SA 4.0 |
+
+差別語は辞書と候補から除いている。
+
+## 未対応の推奨アクション
+
+1. ~~Wiktionary・JMdictの帰属表示をライセンス画面に追加~~ — 完了
+   （両方ともアプリ内ライセンス画面に既に記載されていたことを本セッションで
+   確認・修正。track B分のJMdict利用も新規に追記済み）
+2. 可能であれば、今後の語彙拡充では出典を都度このファイルに追記する運用にする

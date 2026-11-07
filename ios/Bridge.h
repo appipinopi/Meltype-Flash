@@ -10,3 +10,5 @@ char *meltype_ios_reset(uint64_t);
 void meltype_ios_free(char *);
 
 char *meltype_ios_reconvert(uint64_t, const char *, uint32_t);
+
+int32_t meltype_ios_set_ai(uint64_t, const char *, uint32_t, int32_t);

@@ -191,6 +191,7 @@ final class SettingsPage {
     String values(String operation){return Native.settingsValues(this,operation);}
     String edit(String edits){return Native.editSettingsFields(this,edits);}
     String render(String page){return Native.renderSettingsPage(this,page);}
+    private AdapterView.OnItemSelectedListener settingsSelectCallback(String operation){return new BridgeCallback(this,Events.SETTINGS_SELECT,0,0,operation);}
     private View.OnClickListener settingsButtonCallback(String operation){return new BridgeCallback(this,Events.SETTINGS_DISPATCH,0,0,operation);}
     private CompoundButton.OnCheckedChangeListener settingsToggleCallback(String operation){return new BridgeCallback(this,Events.SETTINGS_DISPATCH,0,0,operation);}
 }

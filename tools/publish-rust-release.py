@@ -26,6 +26,8 @@ PACKAGES = (
     "Meltype-flash-Windows-x64-setup.exe",
     "Meltype-flash-Shunti-Linux-x64.tar.gz",
     "Meltype-flash-Shunti-Windows-x64.zip",
+    "Meltype-flash-Shunti-macOS-arm64.zip",
+    "Meltype-flash-Shunti-macOS-x64.zip",
 )
 DOCUMENTS = ("LICENSE", "THIRD-PARTY-NOTICES.md", "SHA256SUMS.txt")
 
@@ -153,6 +155,7 @@ def compose_body(tag, sha, benchmark, media_sha, changes):
     ]
     platforms.append(("Linux x64 任意導入 shunti", PACKAGES[12:13], "linux/README.md"))
     platforms.append(("Windows x64 任意導入 shunti", PACKAGES[13:14], "rust/WINDOWS-PACKAGE.md"))
+    platforms.append(("macOS 任意導入 shunti", PACKAGES[14:16], "rust/AI-MODELS.md"))
     for os_name, files, guide in platforms:
         links = "<br>".join(f"[{name}](https://github.com/{REPO}/releases/download/{tag}/{name})" for name in files)
         rows.append(f"|{os_name}|{links}|[導入手順](https://github.com/{REPO}/blob/{sha}/{guide})|")

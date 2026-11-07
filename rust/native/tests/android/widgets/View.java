@@ -9,6 +9,8 @@ public class View {
     private OnTouchListener touchListener;
     public int visibility=VISIBLE;
     public boolean pressed;
+    public boolean enabled=true;
+    public void setEnabled(boolean value){enabled=value;}
     public CharSequence description;
     public void setVisibility(int value){visibility=value;}
     public void setPressed(boolean value){pressed=value;}

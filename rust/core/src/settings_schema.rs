@@ -35,6 +35,8 @@ pub fn metadata() -> &'static Value {
                 }));
             }
         }
+        data["enums"]["AiModel"] = json!({"None":"使用しない","Zenz":"Zenz","Shunti":"shunti"});
+        data["fields"].as_array_mut().unwrap().push(json!({"key":"AiModel","type":"AiModel","category":"1a. AI","label":"AIモデル","description":"使用しない・Zenz・shuntiから選択します。導入とパスは選択したモデルだけ表示します。"}));
         data
     })
 }
@@ -73,6 +75,15 @@ pub fn schema() -> Value {
         }
         properties.insert(key, field);
     }
+    properties.insert(
+        "AiModel".into(),
+        json!({"type":"string","enum":["None","Zenz","Shunti"],"title":"AIモデル"}),
+    );
+    properties.insert(
+        "UseShunti".into(),
+        json!({"type":"boolean","default":false}),
+    );
+    properties.insert("ShuntiHelperPath".into(), json!({"type":"string"}));
     properties.insert("$schema".into(), json!({"type":"string"}));
     json!({
         "$schema":"https://json-schema.org/draft/2020-12/schema",

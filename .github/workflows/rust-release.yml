@@ -240,10 +240,14 @@ jobs:
           bash mac/test/register-helper/run.sh "$PWD/mac/build/Meltype.app/Contents/MacOS/MeltypeRegisterInputSource"
           python3 rust/native/tests/macos_product_smoke.py target/release/libmeltype_native.dylib
           bash mac/package.sh Meltype-flash-macOS-${{ matrix.arch }}.zip
+      - name: Build optional macOS shunti runtime without models
+        run: python3 rust/build-shunti.py dist/Meltype-flash-Shunti-macOS-${{ matrix.arch }}.zip --macos ${{ matrix.arch == 'x64' && 'x86_64' || 'arm64' }}
       - uses: actions/upload-artifact@v4
         with:
           name: release-macos-${{ matrix.arch }}
-          path: dist/Meltype-flash-macOS-*.zip
+          path: |
+            dist/Meltype-flash-macOS-*.zip
+            dist/Meltype-flash-Shunti-macOS-*.zip
           if-no-files-found: error
   mobile-packages:
     needs: validate

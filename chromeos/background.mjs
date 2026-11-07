@@ -2,6 +2,20 @@
 import init, {BrowserSession} from "./pkg/meltype_browser.js";
 import {ImeController} from "./controller.mjs";
 import {SiteProfiles} from "./site-profiles.mjs";
+import {ShuntiProxy} from "./shunti.mjs";
+let shunti, aiEpoch = 0, aiLifecycle = Promise.resolve();
+function prepareAI(core) {
+  const epoch=++aiEpoch, previous=shunti;
+  const settings = JSON.parse(core.snapshot()).settings;
+  const selected=settings.UseShunti === true && settings.AiModel !== "None";
+  shunti=selected ? new ShuntiProxy() : null;
+  const next=shunti;
+  aiLifecycle=aiLifecycle.catch(()=>{}).then(async()=>{
+    await previous?.dispose();
+    if (epoch !== aiEpoch || !next) return;
+    try { await next.prepare(); } catch (error) { if (epoch === aiEpoch) report(`shunti: ${error}`); }
+  });
+}
 const profiles = new SiteProfiles(chrome);
 const available = Boolean(chrome.input?.ime?.onKeyEvent);
 let diagnostic = available ? "Rust Coreの起動待ち" : "この環境ではchrome.input.imeを利用できません。ChromeOSの対応状況・管理ポリシーを確認してください。";
@@ -9,6 +23,16 @@ const report = message => { diagnostic = message; console.warn("Meltype:", messa
 const controller = available ? new ImeController({
   ime: chrome.input.ime, report, incognito: chrome.extension?.inIncognitoContext === true,
   resolveMode: context => profiles.resolve(context),
+  convert: async (core,result) => {
+    if (!shunti?.ready) return result;
+    const request = JSON.parse(core.ai_request());
+    if (!request) return result;
+    try {
+      const candidates = await shunti.convert(request[0],request[1]);
+      if (candidates.length && core.ai_apply(request[0],JSON.stringify(candidates))) return {...result,view:JSON.parse(core.view()).view};
+    } catch (error) { report(`shunti: ${error}`); }
+    return result;
+  },
   load: async () => {
     const saved = await chrome.storage.local.get("snapshot");
     await init({module_or_path: chrome.runtime.getURL("pkg/meltype_browser_bg.wasm")});
@@ -17,6 +41,7 @@ const controller = available ? new ImeController({
     BrowserSession.load_dictionary(new Uint8Array(await dictionary.arrayBuffer()));
     // Invalid data is preserved. Never silently replace it with defaults.
     const core = new BrowserSession(saved.snapshot ?? "");
+    prepareAI(core);
     let focusedGeneration = -1;
     core.focusIfNeeded = (generation, learning) => {
       if (focusedGeneration !== generation) { core.focus(learning); focusedGeneration = generation; }
@@ -80,6 +105,7 @@ chrome.runtime.onMessage.addListener((message, sender, respond) => {
       if (message.op === "snapshot") return {snapshot: core.snapshot()};
       if (message.op === "configure") {
         core.configure(message.settings);
+        prepareAI(core);
         controller.invalidate();
       } else if (message.op === "clear_learning") core.clear_learning();
       else throw new Error("Unknown command");

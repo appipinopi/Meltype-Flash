@@ -522,6 +522,11 @@ jobs:
           export ANDROID_NDK_ROOT="$ANDROID_NDK_HOME"
           export ANDROID_NDK="$ANDROID_NDK_HOME"
           cargo ndk -t arm64-v8a -t x86_64 -o android/app/src/main/jniLibs build -p meltype-native --release --locked
+          for pair in arm64-v8a:aarch64-linux-android x86_64:x86_64-linux-android; do
+            abi=${pair%:*}
+            triple=${pair#*:}
+            cp "$ANDROID_NDK_HOME/toolchains/llvm/prebuilt/linux-x86_64/sysroot/usr/lib/$triple/libc++_shared.so" "android/app/src/main/jniLibs/$abi/"
+          done
       - run: gradle -p android assembleDebug assembleDebugAndroidTest lintDebug --no-daemon
       - name: Instrumentation result gate checks
         run: python3 android/tests/test_instrument_report.py
@@ -571,6 +576,7 @@ jobs:
           tar -xzf wasm-bindgen-0.2.129-x86_64-unknown-linux-musl.tar.gz
           echo "$RUNNER_TEMP/wasm-bindgen-0.2.129-x86_64-unknown-linux-musl" >> "$GITHUB_PATH"
       - run: cargo clippy -p meltype-browser --target wasm32-unknown-unknown --locked -- -D warnings
+      - run: sudo apt-get update && sudo apt-get install -y emscripten
       - run: python3 chromeos/build.py
       - uses: actions/upload-artifact@v4
         with:

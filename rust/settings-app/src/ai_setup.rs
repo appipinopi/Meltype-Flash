@@ -11,21 +11,21 @@ pub struct AiSetup {
     pending: Option<mpsc::Receiver<Result<Value, String>>>,
 }
 impl AiSetup {
-    #[cfg(any(windows, target_os = "linux", test))]
+    #[cfg(any(windows, target_os = "linux", target_os = "macos", test))]
     pub fn request(&mut self) {
         if !self.busy() {
             self.shunti = false;
             self.confirm = true;
         }
     }
-    #[cfg(any(windows, target_os = "linux"))]
+    #[cfg(any(windows, target_os = "linux", target_os = "macos"))]
     pub fn request_shunti(&mut self) {
         if !self.busy() {
             self.shunti = true;
             self.confirm = true;
         }
     }
-    #[cfg(any(windows, target_os = "linux", test))]
+    #[cfg(any(windows, target_os = "linux", target_os = "macos", test))]
     pub fn busy(&self) -> bool {
         self.pending.is_some()
     }
@@ -77,7 +77,8 @@ impl AiSetup {
         None
     }
 }
-fn install(root: &Path, shunti: bool) -> Result<Value, String> {
+#[cfg(not(target_os = "macos"))]
+fn run_installer(root: &Path, shunti: bool) -> Result<Value, String> {
     #[cfg(windows)]
     let output = {
         use std::{
@@ -144,6 +145,13 @@ fn install(root: &Path, shunti: bool) -> Result<Value, String> {
     }
     let paths: Value = serde_json::from_slice(&output.stdout)
         .map_err(|e| format!("作成結果を読み取れません: {e}"))?;
+    Ok(paths)
+}
+fn install(root: &Path, shunti: bool) -> Result<Value, String> {
+    #[cfg(target_os = "macos")]
+    let paths = meltype_ai::packages::install_macos(root, shunti).map_err(|e| e.to_string())?;
+    #[cfg(not(target_os = "macos"))]
+    let paths = run_installer(root, shunti)?;
     for key in if shunti {
         &["helper"][..]
     } else {
@@ -158,6 +166,7 @@ fn install(root: &Path, shunti: bool) -> Result<Value, String> {
     }
     Ok(paths)
 }
+
 #[cfg(test)]
 mod tests {
     use super::*;

@@ -7,10 +7,12 @@
   "minimum_chrome_version": "119",
   "permissions": [
     "input",
-    "storage"
+    "storage",
+    "offscreen"
   ],
   "optional_permissions": [
-    "tabs"
+    "tabs",
+    "unlimitedStorage"
   ],
   "background": {
     "service_worker": "background.mjs",
@@ -49,5 +51,9 @@
   },
   "action": {
     "default_title": "Meltype-FLASHの設定"
-  }
+  },
+  "optional_host_permissions": [
+    "https://github.com/*",
+    "https://release-assets.githubusercontent.com/*"
+  ]
 }

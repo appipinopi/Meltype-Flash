@@ -16,7 +16,11 @@ pub(crate) struct Shunti {
 
 impl Shunti {
     pub(crate) fn configure(&mut self, settings: &Settings) -> bool {
-        let path = if settings.boolean("Enabled") && settings.boolean("UseShunti") {
+        let path = if settings.boolean("Enabled")
+            && settings.boolean("UseShunti")
+            && meltype_core::ai_model::AiModel::selected(settings)
+                == meltype_core::ai_model::AiModel::Shunti
+        {
             settings.text("ShuntiHelperPath").to_owned()
         } else {
             String::new()

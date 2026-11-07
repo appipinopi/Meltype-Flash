@@ -1,0 +1,18 @@
+{
+  "shunti": {
+    "revision": "14801bff-s8",
+    "source": "https://github.com/shuntilettuce/Japanese-IME-for-HarmonyOS-next/tree/14801bffb90c9ea5f2dd0f594943a97ea35c8a1a",
+    "files": [
+      {
+        "name": "kkc_lex.bin",
+        "url": "https://github.com/shuntilettuce/Japanese-IME-for-HarmonyOS-next/releases/download/shuntelligence-v7/kkc_lex_v5.bin",
+        "sha256": "209a151603339a533810a5692037a02dc89725cd4a461b7ecc730e7ade207c75"
+      },
+      {
+        "name": "kkc_model.bin",
+        "url": "https://github.com/shuntilettuce/Japanese-IME-for-HarmonyOS-next/releases/download/shuntelligence-v7/kkc_model_s8pv5.bin",
+        "sha256": "8f802b7c1659a56d00c5566dd03ea1c280fda58eb139cbf55393575e8cc84a41"
+      }
+    ]
+  }
+}

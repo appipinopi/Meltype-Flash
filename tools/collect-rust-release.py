@@ -19,6 +19,8 @@ def collect(source: Path, output: Path):
         'Meltype-flash-Linux-x64.rpm': 'release-linux/Meltype-flash-Linux-x64.rpm',
         'Meltype-flash-macOS-arm64.zip': 'release-macos-arm64/Meltype-flash-macOS-arm64.zip',
         'Meltype-flash-macOS-x64.zip': 'release-macos-x64/Meltype-flash-macOS-x64.zip',
+        'Meltype-flash-Shunti-macOS-arm64.zip': 'release-macos-arm64/Meltype-flash-Shunti-macOS-arm64.zip',
+        'Meltype-flash-Shunti-macOS-x64.zip': 'release-macos-x64/Meltype-flash-Shunti-macOS-x64.zip',
         'Meltype-flash-ChromeOS.zip': 'Meltype-ChromeOS-preview/chromeos-preview.zip',
         'Meltype-flash-iOS-Simulator-arm64.zip': 'release-ios/Meltype-flash-iOS-Simulator-arm64.zip',
         'Meltype-flash-iOS-unsigned.ipa': 'release-ios/Meltype-flash-iOS-unsigned.ipa',

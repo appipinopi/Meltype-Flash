@@ -263,7 +263,7 @@ impl Settings {
         }
         warnings
     }
-    /// Hosts without AI conversion discard model/server configuration, including
+    /// Hosts without Zenz discard its server configuration, including
     /// inactive profiles imported from desktop settings. Other fields survive.
     /// Return whether anything was removed, so persisted documents can migrate.
     pub fn remove_neural_settings(&mut self) -> bool {
@@ -273,10 +273,13 @@ impl Settings {
                 "UseZenzai",
                 "ZenzaiServerPath",
                 "ZenzaiModelPath",
-                "UseShunti",
                 "ShuntiHelperPath",
             ] {
                 removed |= values.remove(key).is_some();
+            }
+            if values.get("AiModel") == Some(&json!("Zenz")) {
+                values.insert("AiModel".into(), json!("None"));
+                removed = true;
             }
             removed
         }
@@ -291,6 +294,14 @@ impl Settings {
         removed
     }
     pub fn set(&mut self, name: &str, value: Value) -> Result<(), String> {
+        if name == "AiModel"
+            && value
+                .as_str()
+                .and_then(crate::ai_model::AiModel::parse)
+                .is_none()
+        {
+            return Err("AIモデルは使用しない・Zenz・shuntiから選択してください".into());
+        }
         if name == "ToggleKeyboardShortcuts" && !value.is_string()
             || name == "HankakuTogglesKeyboard" && !value.is_boolean()
         {
@@ -324,6 +335,19 @@ impl Settings {
         Ok(())
     }
     pub fn normalize(&mut self) {
+        if let Some(value) = self.0.get("AiModel") {
+            let model = value
+                .as_str()
+                .and_then(crate::ai_model::AiModel::parse)
+                .unwrap_or(crate::ai_model::AiModel::None);
+            self.0.insert("AiModel".into(), json!(model.value()));
+            if model != crate::ai_model::AiModel::Zenz {
+                self.0.insert("UseZenzai".into(), json!(false));
+            }
+            if model != crate::ai_model::AiModel::Shunti {
+                self.0.insert("UseShunti".into(), json!(false));
+            }
+        }
         let defaults = Self::default();
         for key in crate::settings_schema::OPTIONAL_BOOLEANS {
             if let Some(value) = self.0.get_mut(*key) {

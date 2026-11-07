@@ -247,6 +247,25 @@ fn settings<'a>(
                 &[JValue::Object(&key), JValue::Object(&operation)],
             )?;
         }
+        SETTINGS_SELECT => {
+            let mut operation: serde_json::Value = serde_json::from_str(&string(env, data)?)
+                .map_err(|_| jni::errors::Error::NullPtr("AI selection"))?;
+            operation["value"] = serde_json::json!(value);
+            let serialized = env.new_string(operation.to_string())?;
+            let actions = object(
+                env,
+                owner,
+                "actions",
+                "Lmoe/meltype/rust/SettingsPage$Actions;",
+            )?;
+            call(
+                env,
+                &actions,
+                "perform",
+                "(Ljava/lang/String;)V",
+                &[JValue::Object(&serialized)],
+            )?;
+        }
         SETTINGS_DISPATCH => {
             if value == 1 {
                 let body = object(env, owner, "body", "Landroid/widget/LinearLayout;")?;
@@ -364,7 +383,13 @@ fn dispatch<'a>(
             }
             Ok(JObject::null())
         }
-        SETTINGS_CREATE..=SETTINGS_DISPATCH => settings(env, owner, event, value, detail, data),
+        SETTINGS_CREATE..=SETTINGS_DISPATCH | SETTINGS_SELECT => {
+            settings(env, owner, event, value, detail, data)
+        }
+        AI_WORK | AI_COMPLETE => {
+            ai_ui::dispatch(env, owner, event, data)?;
+            Ok(JObject::null())
+        }
         APPEAR_PREFERENCES => appearance::preferences(env, owner),
         APPEAR_FILE => appearance::image_file(env, owner),
         APPEAR_THEME => {

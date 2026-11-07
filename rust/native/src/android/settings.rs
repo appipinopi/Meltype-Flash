@@ -46,6 +46,29 @@ pub(super) fn page(handle: jlong, page: jint) -> Result<Value> {
     match page {
         0 => {
             let settings = request(handle, json!({"op":"settings_get"}))?;
+            let selected = settings["AiModel"] == "Shunti"
+                || settings["AiModel"].is_null() && settings["UseShunti"] == true;
+            label(&mut nodes, "AIモデル");
+            nodes.push(json!({"type":"select","text":"AIモデル","choices":["使用しない","shunti"],"selected":i32::from(selected),"action":{"action":"ai_select"},"enabled":!ai_ui::busy(handle)}));
+            if selected {
+                label(
+                    &mut nodes,
+                    "shuntiの辞書・モデルは任意ダウンロードです。パス入力は不要です。",
+                );
+                button(
+                    &mut nodes,
+                    "shuntiをインストール",
+                    json!({"action":"ai_install"}),
+                );
+                label(
+                    &mut nodes,
+                    if settings["UseShunti"] == true {
+                        "導入済み"
+                    } else {
+                        "未導入。インストール後に有効になります。"
+                    },
+                );
+            }
             for (name, text) in TOGGLES {
                 nodes.push(json!({"type":"toggle","text":text,"checked":settings[name].as_bool().unwrap_or(false),"action":{"action":"toggle","name":name}}));
             }
@@ -236,6 +259,59 @@ fn string<'a>(value: &'a Value, key: &str) -> Result<&'a str> {
 pub(super) fn action(handle: jlong, action: Value, fields: Value) -> Result<Value> {
     let kind = string(&action, "action")?;
     let (request, page) = match kind {
+        "ai_select" => {
+            if ai_ui::busy(handle) {
+                return Ok(json!({}));
+            }
+            let model = match action["value"].as_i64() {
+                Some(0) => "None",
+                Some(1) => "Shunti",
+                _ => return Err("AIモデルが正しくありません".into()),
+            };
+            let current = request(handle, json!({"op":"settings_get"}))?;
+            if current["AiModel"] == model {
+                return Ok(json!({}));
+            }
+            request(
+                handle,
+                json!({"op":"settings_set","name":"UseShunti","value":false}),
+            )?;
+            request(
+                handle,
+                json!({"op":"settings_set","name":"AiModel","value":model}),
+            )?;
+            if model == "Shunti" {
+                let ready = sessions()
+                    .lock()
+                    .ok()
+                    .and_then(|sessions| {
+                        sessions
+                            .get(&(handle as usize))
+                            .and_then(|s| s.data_directory())
+                            .map(|root| {
+                                let root = root.join("ai/shunti-14801bff-s8-data");
+                                ["receipt.json", "kkc_lex.bin", "kkc_model.bin"]
+                                    .iter()
+                                    .all(|name| root.join(name).is_file())
+                            })
+                    })
+                    .unwrap_or(false);
+                // The runtime verifies the fixed hashes again before inference.
+                request(
+                    handle,
+                    json!({"op":"settings_set","name":"UseShunti","value":ready}),
+                )?;
+            }
+            return Ok(json!({"page":0}));
+        }
+        "ai_install" => {
+            if ai_ui::busy(handle) {
+                return Ok(json!({}));
+            }
+            return Ok(
+                json!({"confirm":{"title":"shuntiの環境を作成してよいですか？","message":"shuntiの辞書（CC BY-SA 4.0）・モデル（CC BY 4.0）を別ダウンロードします。入力内容は送信しません。","positive":"はい、作成する","action":{"action":"ai_install"}}}),
+            );
+        }
         "toggle" => {
             let name = string(&action, "name")?;
             if !TOGGLES.iter().any(|(allowed, _)| name == *allowed) {

@@ -47,6 +47,9 @@ final class SetupViewController: UIViewController, UITextViewDelegate {
         navigationItem.rightBarButtonItem = UIBarButtonItem(image: UIImage(systemName: "slider.horizontal.3"), style: .plain, target: self, action: #selector(openAppearance))
         navigationItem.rightBarButtonItem?.accessibilityLabel = "背景・テーマ"
         let stack = AppStyle.scrollColumn(in: self)
+        let ai = UIButton(type: .system); ai.setTitle("AIモデル", for: .normal)
+        ai.addTarget(self, action: #selector(openAISettings), for: .touchUpInside)
+        stack.addArrangedSubview(ai)
         let hero = AppStyle.column(spacing: 10)
         let kicker = AppStyle.label("FLASH  /  FOR iPHONE", .caption1, color: .secondaryLabel)
         let mark = UIImageView(image: UIImage(named: "BrandMark")); mark.contentMode = .scaleAspectFit
@@ -106,7 +109,7 @@ final class SetupViewController: UIViewController, UITextViewDelegate {
             placeholder.topAnchor.constraint(equalTo: field.frameLayoutGuide.topAnchor, constant: 14)
         ])
         test.addArrangedSubview(field); stack.addArrangedSubview(AppStyle.card(test))
-        let privacy = AppStyle.label("フルアクセス不要\n入力内容の通信・履歴保存は行いません。", .caption1, color: .secondaryLabel)
+        let privacy = AppStyle.label("通常入力はフルアクセス不要\nshuntiは共有モデルへのアクセスを許可すると使えます。入力内容は送信しません。", .caption1, color: .secondaryLabel)
         let privacyRow = AppStyle.row([AppStyle.symbol("lock.shield", color: .secondaryLabel), privacy])
         stack.addArrangedSubview(privacyRow)
         refresh()
@@ -141,6 +144,7 @@ final class SetupViewController: UIViewController, UITextViewDelegate {
         (textView as? MeltypeTextView)?.selectionMenu(for: range, suggestedActions: suggestedActions)
     }
     func textViewDidChange(_ textView: UITextView) { placeholder.isHidden = !textView.text.isEmpty }
+    @objc private func openAISettings() { navigationController?.pushViewController(AISettingsViewController(), animated: true) }
     @objc private func openAppearance() { navigationController?.pushViewController(AppearanceViewController(), animated: true) }
     @objc private func endEditing() { view.endEditing(true) }
 }
