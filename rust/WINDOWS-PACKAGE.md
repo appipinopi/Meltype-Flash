@@ -3,7 +3,7 @@
 <a id="meltype-for-windows"></a>
 <p align="center"><img src="../assets/branding/readme/windows/hero.svg" alt="Meltype-FLASH for Windows" width="1000"></p>
 <p align="center"><b>稲妻のように、言葉の壁を駆け抜ける日本語入力。</b></p>
-<p align="center"><a href="https://github.com/appipinopi/Meltype-Flash/releases/tag/flash-v1.0.1"><img src="https://img.shields.io/badge/Flash-v1.0.1-ffe34a" alt="Flash v1.0.1"></a> <img src="https://img.shields.io/badge/status-正式版-666973" alt="正式版"></p>
+<p align="center"><a href="https://github.com/appipinopi/Meltype-Flash/releases/latest"><img src="https://img.shields.io/badge/Flash-v1.0.7-ffe34a" alt="Flash v1.0.7"></a> <img src="https://img.shields.io/badge/status-正式版-666973" alt="正式版"></p>
 <p align="center"><a href="#インストール">ダウンロード・導入</a> · <a href="#使い方">使い方</a> · <a href="#困ったとき">困ったとき</a> · <a href="https://github.com/appipinopi/Meltype-Flash/issues/new/choose">不具合の報告・提案</a></p>
 <p align="center">
   <a href="WINDOWS-PACKAGE.md"><img src="../assets/branding/readme/cards/os-windows-active.svg" alt="Windows" width="32%"></a>
@@ -49,7 +49,7 @@ Windows ARM64向けのネイティブ配布を案内するものではありま�
 <a id="セットアップ版"></a>
 <h3><img src="../assets/branding/readme/windows/headings/f361bd6b29a2.svg" alt="セットアップ版" width="1000"></h3>
 
-[1.0.1](https://github.com/appipinopi/Meltype-Flash/releases/tag/flash-v1.0.1)の`Meltype-flash-Windows-x64-setup.exe`を実行し、管理者権限の確認後に導入します。公開済みZIPと同じ1.0.1バイナリを収めています。
+[最新正式版](https://github.com/appipinopi/Meltype-Flash/releases/latest)の`Meltype-flash-Windows-x64-setup.exe`を実行し、管理者権限の確認後に導入します。公開済みZIPと同じ1.0.1バイナリを収めています。
 
 この追加セットアップのインストール動作テストとベンチマーク再測定は未実施です。導入後はOSの入力ソースからMeltype-FLASHを選び、開いていたアプリを起動し直してください。
 
@@ -58,7 +58,7 @@ Windows ARM64向けのネイティブ配布を案内するものではありま�
 <a id="zipから登録する"></a>
 <h3><img src="../assets/branding/readme/windows/headings/b7962eec4c15.svg" alt="ZIPから登録する" width="1000"></h3>
 
-[1.0.1](https://github.com/appipinopi/Meltype-Flash/releases/tag/flash-v1.0.1)の`Meltype-flash-Windows-x64.zip`を全体展開します。
+[最新正式版](https://github.com/appipinopi/Meltype-Flash/releases/latest)の`Meltype-flash-Windows-x64.zip`を全体展開します。
 管理者PowerShellで、そのフォルダーから実行します。
 
 ```powershell

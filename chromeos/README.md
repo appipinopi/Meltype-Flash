@@ -3,7 +3,7 @@
 <a id="meltype-for-chromeos"></a>
 <p align="center"><img src="../assets/branding/readme/chromeos/hero.svg" alt="Meltype-FLASH for ChromeOS" width="1000"></p>
 <p align="center"><b>稲妻のように、言葉の壁を駆け抜ける日本語入力。</b></p>
-<p align="center"><a href="https://github.com/appipinopi/Meltype-Flash/releases/tag/flash-v1.0.1"><img src="https://img.shields.io/badge/Flash-v1.0.1-ffe34a" alt="Flash v1.0.1"></a> <img src="https://img.shields.io/badge/status-正式版-666973" alt="正式版"></p>
+<p align="center"><a href="https://github.com/appipinopi/Meltype-Flash/releases/latest"><img src="https://img.shields.io/badge/Flash-v1.0.7-ffe34a" alt="Flash v1.0.7"></a> <img src="https://img.shields.io/badge/status-正式版-666973" alt="正式版"></p>
 <p align="center"><a href="#インストール">ダウンロード・導入</a> · <a href="#使い方">使い方</a> · <a href="#困ったとき">困ったとき</a> · <a href="https://github.com/appipinopi/Meltype-Flash/issues/new/choose">不具合の報告・提案</a></p>
 <p align="center">
   <a href="../rust/WINDOWS-PACKAGE.md"><img src="../assets/branding/readme/cards/os-windows.svg" alt="Windows" width="32%"></a>
@@ -47,7 +47,7 @@ AIモデルは「使用しない / shunti」から選べます。shuntiを選択
 <a id="インストール"></a>
 <h2><img src="../assets/branding/readme/chromeos/headings/4f36b3b314d8.svg" alt="インストール" width="1000"></h2>
 
-1. [Flash 1.0.1](https://github.com/appipinopi/Meltype-Flash/releases/tag/flash-v1.0.1) から `Meltype-flash-ChromeOS.zip` を取得し、フォルダーへ全体展開します。
+1. [最新正式版](https://github.com/appipinopi/Meltype-Flash/releases/latest) から `Meltype-flash-ChromeOS.zip` を取得し、フォルダーへ全体展開します。
 2. ChromeOSの `chrome://extensions` を開き、拡張機能の「デベロッパーモード」を有効にします。
 3. 「パッケージ化されていない拡張機能を読み込む」で、`manifest.json` のあるフォルダーを選びます。
 4. ChromeOSの言語・入力方法の設定からMeltypeを追加し、入力方法として選びます。
