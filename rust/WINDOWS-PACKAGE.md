@@ -157,6 +157,14 @@ TSF版とポータブル入力では対応する入力欄が異なります。�
 使用中のDLLなど、削除できない旧ファイルが残る場合は、関連アプリを閉じてから管理スクリプトのCleanupを使います。
 ポータブル版は終了後、展開フォルダーを削除します。個人データの扱いは導入形式で異なるため、必要な設定・辞書を先に保存してください。
 
+## 任意導入のAI変換
+
+この修正を含むリリースでは、設定の「AI」にZenzaiとshuntiの導入ボタンがあります。未導入のAIを有効にするか「インストール」を押すと確認画面が開き、「はい」で専用環境・辞書・モデルを個人領域へ取得します。パス入力は不要です。両方を導入しておき、使うAIだけを切り替えられます。「OK」で選択を保存します。
+
+shuntiはWindows x64用の別パッケージです。Python・Ollama・Docker・開発用コンパイラーは導入しません。本体ZIPとモデルは別配布で、ランタイムとモデルのSHA-256、起動と変換を検証してから有効にします。未公開のビルドでは、対応する公開ランタイムがない場合は導入できません。
+
+上流は[shunti IME](https://github.com/shuntilettuce/Japanese-IME-for-HarmonyOS-next/tree/14801bffb90c9ea5f2dd0f594943a97ea35c8a1a)の固定ソースを使用します。モデル・辞書のライセンスと出典は任意パッケージの `THIRD_PARTY_NOTICES.md`・`DATA_SOURCES.md`・`UPSTREAM.txt` を参照してください。使用しないAIの設定パスは消去しません。
+
 <a id="開発者向け"></a>
 <h2><img src="../assets/branding/readme/windows/headings/f4832b647e65.svg" alt="開発者向け" width="1000"></h2>
 

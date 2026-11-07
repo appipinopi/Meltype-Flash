@@ -397,6 +397,31 @@ class EngineTests(unittest.TestCase):
         self.assertFalse(any(self.type("a")))
         self.assertEqual(self.marked, "")
 
+    def test_jis_mode_keys_toggle_both_ways_and_commit_preedit_once(self):
+        # JIS keyboards can report Kanji instead of Zenkaku_Hankaku.
+        locks = int(IBus.ModifierType.LOCK_MASK | IBus.ModifierType.MOD2_MASK)
+        keys = [(IBus.KEY_Kanji, 0), (IBus.KEY_Kanji, int(IBus.ModifierType.MOD1_MASK)),
+                (IBus.KEY_Zenkaku_Hankaku, 0), (IBus.KEY_Hankaku, 0), (IBus.KEY_Zenkaku, 0)]
+        for key, modifiers in keys:
+            with self.subTest(key=key, modifiers=modifiers):
+                self.context.reset(); pump()
+                self.document = ""
+                self.assertTrue(self.key(IBus.KEY_Henkan))
+                self.assertTrue(all(self.type("kana")))
+                self.assertEqual(self.marked, "かな")
+                self.assertTrue(self.key(key, state=locks | modifiers))
+                self.assertEqual(self.document, "かな")
+                self.assertEqual(self.marked, "")
+                self.assertFalse(self.key(key, state=modifiers | int(IBus.ModifierType.RELEASE_MASK)))
+                self.assertFalse(self.key(IBus.KEY_x, "x"))
+                self.assertEqual(self.document, "かなx")
+                self.assertFalse(self.key(IBus.KEY_space, " "))
+                self.assertTrue(self.key(key, state=locks | modifiers))
+                self.assertTrue(all(self.type("nihongo")))
+                self.assertEqual(self.marked, "にほんご")
+                self.key(IBus.KEY_Return)
+                self.assertEqual(self.document, "かなx にほんご")
+
     def test_issue_1033_shift_space_uses_configured_switch_without_inserting_space(self):
         path = self.root / "data/config.json"
         original = path.read_bytes()

@@ -17,7 +17,7 @@ impl AiSetup {
             self.confirm = true;
         }
     }
-    #[cfg(target_os = "linux")]
+    #[cfg(any(windows, target_os = "linux"))]
     pub fn request_shunti(&mut self) {
         if !self.busy() {
             self.shunti = true;
@@ -31,27 +31,9 @@ impl AiSetup {
         let root = root.to_owned();
         let (sender, receiver) = mpsc::channel();
         self.pending = Some(receiver);
-        #[cfg(target_os = "linux")]
         let shunti = self.shunti;
         std::thread::spawn(move || {
-            #[cfg(target_os = "linux")]
-            if shunti {
-                let result = std::process::Command::new("python3")
-                    .args(["-c", include_str!("../../setup-shunti-linux.py")])
-                    .arg(&root)
-                    .output()
-                    .map_err(|e| e.to_string())
-                    .and_then(|output| {
-                        if output.status.success() {
-                            serde_json::from_slice(&output.stdout).map_err(|e| e.to_string())
-                        } else {
-                            Err(String::from_utf8_lossy(&output.stderr).into_owned())
-                        }
-                    });
-                let _ = sender.send(result);
-                return;
-            }
-            let _ = sender.send(install(&root));
+            let _ = sender.send(install(&root, shunti));
         });
     }
     pub fn show(&mut self, ctx: &egui::Context, root: &Path) -> Option<Result<Value, String>> {
@@ -93,7 +75,7 @@ impl AiSetup {
         None
     }
 }
-fn install(root: &Path) -> Result<Value, String> {
+fn install(root: &Path, shunti: bool) -> Result<Value, String> {
     #[cfg(windows)]
     let output = {
         use std::{
@@ -118,7 +100,11 @@ fn install(root: &Path) -> Result<Value, String> {
             .tempfile()
             .map_err(|e| e.to_string())?;
         script
-            .write_all(include_bytes!("../../Setup-AI.ps1"))
+            .write_all(if shunti {
+                include_bytes!("../../Setup-Shunti.ps1")
+            } else {
+                include_bytes!("../../Setup-AI.ps1")
+            })
             .map_err(|e| e.to_string())?;
         script.flush().map_err(|e| e.to_string())?;
         // Close the write handle before Windows PowerShell opens the script.
@@ -140,7 +126,14 @@ fn install(root: &Path) -> Result<Value, String> {
     };
     #[cfg(not(windows))]
     let output = std::process::Command::new("python3")
-        .args(["-c", include_str!("../../setup-ai-linux.py")])
+        .args([
+            "-c",
+            if shunti {
+                include_str!("../../setup-shunti-linux.py")
+            } else {
+                include_str!("../../setup-ai-linux.py")
+            },
+        ])
         .arg(root)
         .output();
     let output = output.map_err(|e| e.to_string())?;
@@ -149,8 +142,12 @@ fn install(root: &Path) -> Result<Value, String> {
     }
     let paths: Value = serde_json::from_slice(&output.stdout)
         .map_err(|e| format!("作成結果を読み取れません: {e}"))?;
-    for key in ["server", "model"] {
-        if !paths[key]
+    for key in if shunti {
+        &["helper"][..]
+    } else {
+        &["server", "model"][..]
+    } {
+        if !paths[*key]
             .as_str()
             .is_some_and(|path| Path::new(path).is_file())
         {
@@ -190,13 +187,13 @@ mod tests {
             serde_json::to_vec(&receipt).unwrap(),
         )
         .unwrap();
-        let paths = install(root.path()).unwrap();
+        let paths = install(root.path(), false).unwrap();
         assert_eq!(
             std::fs::canonicalize(paths["server"].as_str().unwrap()).unwrap(),
             std::fs::canonicalize(environment.join(server)).unwrap()
         );
         std::fs::write(environment.join("model.gguf"), b"changed").unwrap();
-        assert!(install(root.path()).is_err());
+        assert!(install(root.path(), false).is_err());
     }
 
     #[test]
@@ -205,5 +202,11 @@ mod tests {
         setup.request();
         assert!(setup.confirm);
         assert!(!setup.busy());
+        #[cfg(any(windows, target_os = "linux"))]
+        {
+            setup.request_shunti();
+            assert!(setup.shunti && setup.confirm);
+            assert!(!setup.busy());
+        }
     }
 }

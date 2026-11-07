@@ -164,7 +164,7 @@ pub extern "C" fn meltype_fcitx_modifiers(state: u32) -> i32 {
 #[no_mangle]
 pub extern "C" fn meltype_fcitx_mode(symbol: u32, direct: i32) -> u32 {
     let direct = direct != 0;
-    let toggle = matches!(symbol, 0xff28..=0xff2a);
+    let toggle = matches!(symbol, 0xff21 | 0xff28..=0xff2a);
     let english = matches!(symbol, 0xff22 | 0xff30);
     let role = if direct {
         0
@@ -334,7 +334,7 @@ mod tests {
     #[test]
     fn japanese_mode_and_role_plans_preserve_direct_and_commit_policy() {
         for direct in [0, 1] {
-            for symbol in [0xff28, 0xff29, 0xff2a] {
+            for symbol in [0xff21, 0xff28, 0xff29, 0xff2a] {
                 assert_eq!(
                     meltype_fcitx_mode(symbol, direct),
                     if direct == 0 { 3 } else { 1 }
@@ -353,7 +353,7 @@ mod tests {
                 meltype_fcitx_mode(0xff27, direct),
                 1 | if direct == 0 { 0x15 << 8 } else { 0 }
             );
-            for ordinary in [0, 0xff21, 0xff24, 0xff25, 0xff26, 0xff2f, 0x61, 0x100304b] {
+            for ordinary in [0, 0xff24, 0xff25, 0xff26, 0xff2f, 0x61, 0x100304b] {
                 assert_eq!(meltype_fcitx_mode(ordinary, direct), 0);
             }
         }

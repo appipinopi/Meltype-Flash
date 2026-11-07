@@ -9,8 +9,6 @@ mod fcitx_dispatch;
 mod fcitx_view;
 pub mod json_bridge;
 #[cfg(target_os = "linux")]
-mod linux_shunti;
-#[cfg(target_os = "linux")]
 #[path = "windows_converter/zenzai.rs"]
 mod linux_zenzai;
 mod macos_application;
@@ -29,6 +27,8 @@ mod macos_services;
 mod macos_suggestion;
 mod macos_view;
 mod macos_window;
+#[cfg(any(windows, target_os = "linux"))]
+mod shunti;
 pub mod tip;
 #[cfg(windows)]
 pub mod tip_transport;
@@ -47,9 +47,9 @@ fn linux_ai() -> &'static Mutex<linux_zenzai::Zenzai> {
     AI.get_or_init(|| Mutex::new(linux_zenzai::Zenzai::default()))
 }
 #[cfg(target_os = "linux")]
-fn shunti_ai() -> &'static Mutex<linux_shunti::Shunti> {
-    static AI: OnceLock<Mutex<linux_shunti::Shunti>> = OnceLock::new();
-    AI.get_or_init(|| Mutex::new(linux_shunti::Shunti::default()))
+fn shunti_ai() -> &'static Mutex<shunti::Shunti> {
+    static AI: OnceLock<Mutex<shunti::Shunti>> = OnceLock::new();
+    AI.get_or_init(|| Mutex::new(shunti::Shunti::default()))
 }
 use std::{
     collections::HashMap,

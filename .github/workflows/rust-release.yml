@@ -120,12 +120,17 @@ jobs:
           & $compiler "/DAppVersion=$version" "/DSourceDir=$source" "/DOutputDir=$output" packaging/Meltype-flash.iss
           if ($LASTEXITCODE -ne 0) { throw 'セットアップEXEのコンパイルに失敗しました。' }
           Copy-Item -LiteralPath "dist/Meltype-flash-$version-setup.exe" -Destination dist/Meltype-flash-Windows-x64-setup.exe
+      - name: Build optional Windows shunti runtime without models
+        run: python rust/build-shunti.py dist/Meltype-flash-Shunti-Windows-x64.zip --windows
+      - name: Verify Windows shunti installer
+        run: powershell -NoProfile -ExecutionPolicy Bypass -File rust/Test-ShuntiSetup.ps1
       - uses: actions/upload-artifact@v4
         with:
           name: release-windows
           path: |
             dist/Meltype-flash-Windows-x64.zip
             dist/Meltype-flash-Windows-x64-setup.exe
+            dist/Meltype-flash-Shunti-Windows-x64.zip
           if-no-files-found: error
   linux:
     needs: validate

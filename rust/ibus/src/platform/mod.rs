@@ -405,7 +405,7 @@ unsafe extern "C" fn process_key(
             }
         }
         if !s.private {
-            if let Some(vk) = crate::keys::mode_key(keyval, ibus_keyval_to_unicode(keyval)) {
+            if let Some(vk) = crate::keys::mode_key(keyval, ibus_keyval_to_unicode(keyval), state) {
                 let pointer =
                     native::meltype_mode_key(s.session, vk, crate::keys::modifiers(state));
                 if !pointer.is_null() {

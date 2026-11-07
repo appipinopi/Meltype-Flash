@@ -941,16 +941,12 @@ impl App {
     }
     #[cfg(any(windows, target_os = "linux"))]
     fn ai_settings(&mut self, ui: &mut egui::Ui) {
-        ui.label(if cfg!(target_os = "linux") {
-            "どちらも別にインストールできます。使用するAIは1つ選びます。"
-        } else {
-            "Zenzaiの追加環境をインストールして使用できます。"
-        });
+        ui.label("どちらも別にインストールできます。使用するAIは1つ選びます。");
         ui.weak("インストールボタンで専用環境とモデルを取得します。パス入力は不要です。");
-        let mut engines = vec![("Zenzai", "UseZenzai", false)];
-        if cfg!(target_os = "linux") {
-            engines.push(("shunti", "UseShunti", true));
-        }
+        let engines = [
+            ("Zenzai", "UseZenzai", false),
+            ("shunti", "UseShunti", true),
+        ];
         for (name, flag, shunti) in engines {
             ui.push_id(flag, |ui| {
                 ui.horizontal_wrapped(|ui| {
@@ -970,14 +966,11 @@ impl App {
                                 .all(|key| std::path::Path::new(self.settings.text(key)).is_file())
                         };
                         if enabled && !ready {
-                            #[cfg(target_os = "linux")]
                             if shunti {
                                 self.ai_setup.request_shunti();
                             } else {
                                 self.ai_setup.request();
                             }
-                            #[cfg(windows)]
-                            self.ai_setup.request();
                         } else {
                             choose_ai(&mut self.settings, flag, enabled);
                             self.test_session.settings = self.settings.clone();
@@ -990,14 +983,11 @@ impl App {
                         )
                         .clicked()
                     {
-                        #[cfg(target_os = "linux")]
                         if shunti {
                             self.ai_setup.request_shunti();
                         } else {
                             self.ai_setup.request();
                         }
-                        #[cfg(windows)]
-                        self.ai_setup.request();
                     }
                 });
             });
@@ -1008,13 +998,11 @@ impl App {
         }
         ui.weak("導入済みの環境は検証して再利用します。「OK」で選択を保存します。");
         ui.collapsing("手動でパスを指定（任意）", |ui| {
-            let mut paths = vec![
+            let paths = [
                 ("ZenzaiServerPath", "Zenzaiの実行ファイル"),
                 ("ZenzaiModelPath", "ZenzaiのGGUFモデル"),
+                ("ShuntiHelperPath", "shuntiの実行ファイル"),
             ];
-            if cfg!(target_os = "linux") {
-                paths.push(("ShuntiHelperPath", "shuntiの実行ファイル"));
-            }
             for (key, label) in paths {
                 ui.label(label);
                 let mut text = self.settings.text(key).to_owned();
@@ -1023,7 +1011,6 @@ impl App {
                 }
             }
         });
-        #[cfg(target_os = "linux")]
         ui.hyperlink_to(
             "shuntiの説明・ライセンス",
             "https://github.com/shuntilettuce/Japanese-IME-for-HarmonyOS-next",
