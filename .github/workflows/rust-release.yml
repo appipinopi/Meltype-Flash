@@ -211,6 +211,8 @@ jobs:
             dist/release-benchmark/charts/summary.json
   macos:
     needs: validate
+    env:
+      MACOSX_DEPLOYMENT_TARGET: '13.0'
     strategy:
       fail-fast: false
       matrix:
@@ -236,6 +238,7 @@ jobs:
       - name: Inspect macOS package
         run: |
           codesign --verify --deep --strict mac/build/Meltype.app
+          python3 -c 'import plistlib,tomllib; assert plistlib.load(open("mac/build/Meltype.app/Contents/Info.plist","rb"))["CFBundleShortVersionString"] == tomllib.load(open("Cargo.toml","rb"))["workspace"]["package"]["version"]'
           MELTYPE_RUST_DATA_DIR="$RUNNER_TEMP/meltype-release-test" mac/build/Meltype.app/Contents/MacOS/Meltype --self-test
           bash mac/test/register-helper/run.sh "$PWD/mac/build/Meltype.app/Contents/MacOS/MeltypeRegisterInputSource"
           python3 rust/native/tests/macos_product_smoke.py target/release/libmeltype_native.dylib

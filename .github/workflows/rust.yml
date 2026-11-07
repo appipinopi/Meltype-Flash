@@ -44,6 +44,20 @@ concurrency:
   group: all-os-${{ github.workflow }}-${{ github.ref }}
   cancel-in-progress: ${{ github.event_name == 'pull_request' }}
 jobs:
+  macos-intel-ai:
+    if: ${{ !inputs.packages_only && inputs.platform != 'ios' }}
+    runs-on: macos-15-intel
+    env:
+      MACOSX_DEPLOYMENT_TARGET: '13.0'
+    steps:
+      - uses: actions/checkout@v5
+      - uses: dtolnay/rust-toolchain@stable
+      - uses: Swatinem/rust-cache@v2
+        with:
+          shared-key: shunti-macos-intel
+      - run: cargo test -p meltype-ai --all-features --locked
+      - run: cargo build -p meltype-native -p meltype-settings --release --locked
+      - run: python3 rust/build-shunti.py dist/shunti-runtime-test.zip --macos x86_64
   desktop:
     if: ${{ !inputs.packages_only && inputs.platform != 'ios' }}
     strategy:
