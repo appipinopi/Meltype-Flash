@@ -11,6 +11,7 @@ pub struct AiSetup {
     pending: Option<mpsc::Receiver<Result<Value, String>>>,
 }
 impl AiSetup {
+    #[cfg(any(windows, target_os = "linux", test))]
     pub fn request(&mut self) {
         if !self.busy() {
             self.shunti = false;
@@ -24,6 +25,7 @@ impl AiSetup {
             self.confirm = true;
         }
     }
+    #[cfg(any(windows, target_os = "linux", test))]
     pub fn busy(&self) -> bool {
         self.pending.is_some()
     }
