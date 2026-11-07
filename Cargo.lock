@@ -1896,7 +1896,7 @@ dependencies = [
 
 [[package]]
 name = "meltype-ai"
-version = "1.0.7"
+version = "1.0.8"
 dependencies = [
  "cc",
  "flate2",
@@ -1912,7 +1912,7 @@ dependencies = [
 
 [[package]]
 name = "meltype-browser"
-version = "1.0.7"
+version = "1.0.8"
 dependencies = [
  "meltype-core",
  "serde",
@@ -1922,7 +1922,7 @@ dependencies = [
 
 [[package]]
 name = "meltype-cli"
-version = "1.0.7"
+version = "1.0.8"
 dependencies = [
  "meltype-core",
  "serde",
@@ -1931,7 +1931,7 @@ dependencies = [
 
 [[package]]
 name = "meltype-core"
-version = "1.0.7"
+version = "1.0.8"
 dependencies = [
  "base64 0.22.1",
  "chrono",
@@ -1949,7 +1949,7 @@ dependencies = [
 
 [[package]]
 name = "meltype-ibus"
-version = "1.0.7"
+version = "1.0.8"
 dependencies = [
  "meltype-core",
  "meltype-native",
@@ -1958,7 +1958,7 @@ dependencies = [
 
 [[package]]
 name = "meltype-ios"
-version = "1.0.7"
+version = "1.0.8"
 dependencies = [
  "meltype-ai",
  "meltype-core",
@@ -1967,7 +1967,7 @@ dependencies = [
 
 [[package]]
 name = "meltype-mac-register"
-version = "1.0.7"
+version = "1.0.8"
 dependencies = [
  "objc2 0.6.5",
  "objc2-foundation 0.3.2",
@@ -1976,7 +1976,7 @@ dependencies = [
 
 [[package]]
 name = "meltype-native"
-version = "1.0.7"
+version = "1.0.8"
 dependencies = [
  "jni 0.21.1",
  "libc",
@@ -1993,7 +1993,7 @@ dependencies = [
 
 [[package]]
 name = "meltype-settings"
-version = "1.0.7"
+version = "1.0.8"
 dependencies = [
  "ab_glyph",
  "chrono",
@@ -2014,7 +2014,7 @@ dependencies = [
 
 [[package]]
 name = "meltype-tip-worker"
-version = "1.0.7"
+version = "1.0.8"
 dependencies = [
  "libc",
  "meltype-native",
