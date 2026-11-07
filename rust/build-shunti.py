@@ -59,7 +59,11 @@ def build(destination, windows=False, macos=None):
             if windows:
                 windows_build(root)
             else:
-                subprocess.run(['clang++','-std=c++17','-O2','-arch',macos,'-mmacosx-version-min=11.0','-pthread',str(root/'engine.cpp'),str(root/'shunti-helper.cpp'),'-o',str(root/'shunti-helper')],check=True)
+                cpu = []
+                if macos == 'x86_64':
+                    shutil.copyfile(Path(__file__).with_name('ai')/'x86-cpu.h', root/'x86-cpu.h')
+                    cpu = ['-include', str(root/'x86-cpu.h')]
+                subprocess.run(['clang++','-std=c++17','-O2','-arch',macos,'-mmacosx-version-min=13.0','-pthread',*cpu,str(root/'engine.cpp'),str(root/'shunti-helper.cpp'),'-o',str(root/'shunti-helper')],check=True)
                 subprocess.run(['codesign','--force','--sign','-',str(root/'shunti-helper')],check=True)
         else:
             subprocess.run(['g++', '-std=c++17', '-O2', '-fPIC', '-shared', '-pthread', str(root/'engine.cpp'), '-o', str(root/'libshunti.so')], check=True)
