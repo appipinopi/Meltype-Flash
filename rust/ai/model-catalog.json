@@ -204,9 +204,9 @@
       "label": "jinen-v1.1-beta / Q4_K_M",
       "directory": "jinen-v1.1-beta-q4_k_m",
       "protocol": "jinen",
-      "license": "",
+      "license": "配布元モデルカードにライセンス表記なし",
       "source": "https://huggingface.co/togatogah/jinen-v1.1-beta.gguf",
-      "available": false,
+      "available": true,
       "files": [
         {
           "name": "model.gguf",
@@ -222,9 +222,9 @@
       "label": "jinen-v1.1-beta / Q5_K_M",
       "directory": "jinen-v1.1-beta-q5_k_m",
       "protocol": "jinen",
-      "license": "",
+      "license": "配布元モデルカードにライセンス表記なし",
       "source": "https://huggingface.co/togatogah/jinen-v1.1-beta.gguf",
-      "available": false,
+      "available": true,
       "files": [
         {
           "name": "model.gguf",
@@ -240,9 +240,9 @@
       "label": "jinen-v1.1-beta / Q8_0",
       "directory": "jinen-v1.1-beta-q8_0",
       "protocol": "jinen",
-      "license": "",
+      "license": "配布元モデルカードにライセンス表記なし",
       "source": "https://huggingface.co/togatogah/jinen-v1.1-beta.gguf",
-      "available": false,
+      "available": true,
       "files": [
         {
           "name": "model.gguf",
@@ -258,9 +258,9 @@
       "label": "jinen-v1.1-beta / f16",
       "directory": "jinen-v1.1-beta-f16",
       "protocol": "jinen",
-      "license": "",
+      "license": "配布元モデルカードにライセンス表記なし",
       "source": "https://huggingface.co/togatogah/jinen-v1.1-beta.gguf",
-      "available": false,
+      "available": true,
       "files": [
         {
           "name": "model.gguf",

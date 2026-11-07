@@ -355,6 +355,15 @@ pub(super) fn action(handle: jlong, action: Value, fields: Value) -> Result<Valu
         }
         "ai_install" => {
             if ai_ui::busy(handle) {
+                let current = request(handle, json!({"op":"settings_get"}))?;
+                if ai_installed(
+                    handle,
+                    current["ShuntiModelVariant"]
+                        .as_str()
+                        .unwrap_or("shunti-v7-s8p"),
+                ) {
+                    return Ok(json!({}));
+                }
                 return Ok(json!({}));
             }
             return Ok(
