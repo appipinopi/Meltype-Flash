@@ -3,13 +3,20 @@
 //! AI用CPUランタイムとモデルだけを、利用者の確認後に導入する。
 use eframe::egui;
 use serde_json::Value;
-use std::{path::Path, sync::mpsc};
+use std::{
+    path::Path,
+    sync::{
+        atomic::{AtomicU64, Ordering},
+        mpsc, Arc,
+    },
+};
 #[derive(Default)]
 pub struct AiSetup {
     confirm: bool,
     shunti: bool,
     model: Option<meltype_core::ai_catalog::Model>,
     checked: String,
+    status_epoch: Arc<AtomicU64>,
     verified: bool,
     verifying: Option<mpsc::Receiver<Option<Value>>>,
     pending: Option<mpsc::Receiver<Result<Value, String>>>,
@@ -28,6 +35,8 @@ impl AiSetup {
     }
     pub fn status(&mut self, root: &Path, model: &meltype_core::ai_catalog::Model) -> bool {
         if self.checked != model.id {
+            let epoch = self.status_epoch.fetch_add(1, Ordering::AcqRel) + 1;
+            let current = self.status_epoch.clone();
             self.checked = model.id.clone();
             self.verified = false;
             let root = root.to_owned();
@@ -35,7 +44,12 @@ impl AiSetup {
             let (tx, rx) = mpsc::channel();
             self.verifying = Some(rx);
             std::thread::spawn(move || {
-                let _ = tx.send(verified_paths(&root, &model).ok());
+                let _ = tx.send(
+                    verified_paths_while(&root, &model, || {
+                        current.load(Ordering::Acquire) == epoch
+                    })
+                    .ok(),
+                );
             });
         }
         self.verified
@@ -44,6 +58,7 @@ impl AiSetup {
         self.busy() || self.confirm
     }
     pub fn reset_status(&mut self) {
+        self.status_epoch.fetch_add(1, Ordering::AcqRel);
         self.checked.clear();
         self.verifying = None;
         self.verified = false;
@@ -207,7 +222,15 @@ fn run_installer(
     Ok(paths)
 }
 
+#[cfg(test)]
 fn verified_paths(root: &Path, model: &meltype_core::ai_catalog::Model) -> Result<Value, String> {
+    verified_paths_while(root, model, || true)
+}
+fn verified_paths_while(
+    root: &Path,
+    model: &meltype_core::ai_catalog::Model,
+    current: impl Fn() -> bool,
+) -> Result<Value, String> {
     use sha2::{Digest, Sha256};
     use std::{fs, io::Read, path::Component};
     let arch = if cfg!(target_arch = "aarch64") {
@@ -245,6 +268,9 @@ fn verified_paths(root: &Path, model: &meltype_core::ai_catalog::Model) -> Resul
         if fs::symlink_metadata(&target)?.file_type().is_symlink() {
             return Err("AI directory is a link".into());
         }
+        if !current() {
+            return Err("model selection changed".into());
+        }
         let bytes = fs::read(target.join("receipt.json"))?;
         let receipt: Value =
             serde_json::from_slice(bytes.strip_prefix(&[239, 187, 191]).unwrap_or(&bytes))?;
@@ -274,6 +300,9 @@ fn verified_paths(root: &Path, model: &meltype_core::ai_catalog::Model) -> Resul
             let mut hash = Sha256::new();
             let mut buffer = [0; 65536];
             loop {
+                if !current() {
+                    return Err("model selection changed".into());
+                }
                 let n = file.read(&mut buffer)?;
                 if n == 0 {
                     break;
@@ -393,6 +422,7 @@ mod tests {
         std::fs::write(folder.join("server"), b"model").unwrap();
         std::fs::write(folder.join("model.gguf"), b"model").unwrap();
         std::fs::write(folder.join("receipt.json"),serde_json::to_vec(&serde_json::json!({"server":"server","model":"model.gguf","files":{"server":hash.to_uppercase(),"model.gguf":hash}})).unwrap()).unwrap();
+        assert!(verified_paths_while(root.path(), &model, || false).is_err());
         assert_eq!(
             verified_paths(root.path(), &model).unwrap()["variant"],
             model.id
