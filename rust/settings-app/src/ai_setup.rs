@@ -15,20 +15,6 @@ pub struct AiSetup {
     pending: Option<mpsc::Receiver<Result<Value, String>>>,
 }
 impl AiSetup {
-    #[cfg(test)]
-    pub fn request(&mut self) {
-        if !self.busy() {
-            self.shunti = false;
-            self.confirm = true;
-        }
-    }
-    #[cfg(test)]
-    pub fn request_shunti(&mut self) {
-        if !self.busy() {
-            self.shunti = true;
-            self.confirm = true;
-        }
-    }
     #[cfg(any(windows, target_os = "linux", target_os = "macos", test))]
     pub fn busy(&self) -> bool {
         self.pending.is_some()
@@ -341,10 +327,6 @@ fn verified_paths(root: &Path, model: &meltype_core::ai_catalog::Model) -> Resul
     };
     check().map_err(|e| e.to_string())
 }
-#[cfg(test)]
-fn install(root: &Path, shunti: bool) -> Result<Value, String> {
-    install_model(root, shunti, None)
-}
 fn install_model(
     root: &Path,
     shunti: bool,
@@ -468,24 +450,23 @@ mod tests {
             serde_json::to_vec(&receipt).unwrap(),
         )
         .unwrap();
-        let paths = install(root.path(), false).unwrap();
+        let paths = install_model(root.path(), false, None).unwrap();
         assert_eq!(
             std::fs::canonicalize(paths["server"].as_str().unwrap()).unwrap(),
             std::fs::canonicalize(environment.join(server)).unwrap()
         );
         std::fs::write(environment.join("model.gguf"), b"changed").unwrap();
-        assert!(install(root.path(), false).is_err());
+        assert!(install_model(root.path(), false, None).is_err());
     }
 
     #[test]
     fn asking_for_consent_never_starts_installation() {
         let mut setup = AiSetup::default();
-        setup.request();
+        setup.request_model(meltype_core::ai_catalog::find("zenz-v3.1-small-q5_k_m").unwrap());
         assert!(setup.confirm);
         assert!(!setup.busy());
-        #[cfg(any(windows, target_os = "linux"))]
         {
-            setup.request_shunti();
+            setup.request_model(meltype_core::ai_catalog::find("shunti-v7-s8p").unwrap());
             assert!(setup.shunti && setup.confirm);
             assert!(!setup.busy());
         }

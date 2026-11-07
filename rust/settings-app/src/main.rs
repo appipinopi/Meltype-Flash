@@ -1767,7 +1767,9 @@ impl eframe::App for App {
                     self.lifecycle.about = screen == "about";
                     self.lifecycle.updates = screen == "updates";
                     if screen == "ai-setup" {
-                        self.ai_setup.request();
+                        self.ai_setup.request_model(
+                            meltype_core::ai_catalog::find("zenz-v3.1-small-q5_k_m").unwrap(),
+                        );
                     }
                     self.dialogs.report = screen == "report";
                     self.dialogs.log = screen == "log";
@@ -1794,6 +1796,7 @@ impl eframe::App for App {
             let ready = self.tray.as_ref().is_none_or(|t| !t.startup_status().1);
             #[cfg(not(windows))]
             let ready = true;
+            let ready = ready && !self.ai_setup.checking();
             if self.capture_frames >= 20 && ready {
                 ctx.send_viewport_cmd(egui::ViewportCommand::Screenshot(egui::UserData::default()));
             }
