@@ -4,3 +4,6 @@
 pure
 # Issue #1003。metaru（メタル）などの途中には適用しない。
 meta
+
+# Issue #1377: pre単独は英字。presidentなどの入力途中を切り出さない。
+pre

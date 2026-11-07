@@ -255,5 +255,5 @@ docs
 # Issue #887
 exe
 
-# Issue #1365・#1391・#1426・#1377・#1158: 英語で打つことの多い語 (metadata・megatrends・pre・beep・eq)
-metadata mega pre beep eq
+# Issue #1365・#1391・#1426・#1377・#1158: 英語で打つことの多い語 (metadata・megatrends・beep・eq)
+metadata mega beep eq

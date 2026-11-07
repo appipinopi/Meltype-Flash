@@ -60,3 +60,20 @@ fn privacy_change_between_request_and_response_discards_ai_result() {
     assert!(s.ai_request().is_none());
     assert!(!s.apply_ai_candidates(&reading, vec!["秘密の候補".into()]));
 }
+
+#[test]
+fn explicit_user_dictionary_registration_is_not_replaced_by_ai() {
+    let mut s = Session::default();
+    s.settings.set("LiveConversion", json!(false)).unwrap();
+    AiModel::Shunti.select(&mut s.settings, true);
+    s.preferences
+        .user_dictionary
+        .insert("にほんご".into(), vec!["私の登録語".into()]);
+    for c in "nihongo".chars() {
+        s.key(0, c as i32, 0);
+    }
+    s.key(32, 32, 0);
+    assert!(s.ai_request().is_none());
+    assert!(!s.apply_ai_candidates("にほんご", vec!["日本語".into()]));
+    assert_eq!(s.commit().commits[0].text, "私の登録語");
+}

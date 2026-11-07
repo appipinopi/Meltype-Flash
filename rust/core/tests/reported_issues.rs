@@ -44,6 +44,7 @@ fn reported_english_words_and_commands_preserve_spelling() {
             (852, "image"),
             (347, "deepseek"),
             (1013, "yachi8000"),
+            (1377, "pre"),
         ] {
             let actual = type_and_commit(raw, scored);
             if actual != raw {

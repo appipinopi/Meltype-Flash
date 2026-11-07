@@ -1883,7 +1883,9 @@ impl Session {
         if !plain.is_empty() {
             pieces.push((plain, None));
         }
-        (found && pieces.len() > 1).then_some(pieces)
+        // A whole-reading registration must also replace an external engine's
+        // split clauses; otherwise its candidates disappear from the panel.
+        found.then_some(pieces)
     }
     /// Adapters must retain Space provenance when they fetch engine clauses
     /// before Core handles the key; post-commit correction uses that separator.

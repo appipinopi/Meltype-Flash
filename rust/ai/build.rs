@@ -5,6 +5,7 @@ fn main() {
     {
         let target = std::env::var("TARGET").unwrap();
         println!("cargo:rerun-if-changed=vendor/shunti");
+        println!("cargo:rerun-if-changed=android-cpu.h");
         let mut engine = cc::Build::new();
         engine
             .cpp(true)
@@ -13,6 +14,9 @@ fn main() {
             .warnings(false)
             .flag_if_supported("/utf-8")
             .file("vendor/shunti/engine.cpp");
+        if target == "x86_64-linux-android" {
+            engine.flag("-include").flag("android-cpu.h");
+        }
         if target.contains("msvc") && (target.starts_with("x86_64") || target.starts_with("i686")) {
             cc::Build::new()
                 .cpp(true)

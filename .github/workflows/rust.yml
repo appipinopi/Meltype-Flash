@@ -77,6 +77,9 @@ jobs:
       - run: cargo test --workspace --locked
       - run: cargo run -p meltype-core --example quality -- quality-report.json --check
       - run: cargo build --workspace --release --locked
+      - name: Verify optional macOS shunti runtime build
+        if: runner.os == 'macOS'
+        run: python3 rust/build-shunti.py dist/shunti-runtime-test.zip --macos "$(uname -m)"
       - name: Windows converter batch ABI bounds and cleanup
         if: runner.os == 'Windows'
         run: python rust/native/tests/windows_converter_batch_smoke.py target/release/meltype_native.dll

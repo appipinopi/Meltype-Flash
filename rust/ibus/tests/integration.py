@@ -121,13 +121,14 @@ class EngineTests(unittest.TestCase):
         self.context.set_capabilities(int(IBus.Capabilite.PREEDIT_TEXT | IBus.Capabilite.AUXILIARY_TEXT | IBus.Capabilite.LOOKUP_TABLE | IBus.Capabilite.FOCUS | IBus.Capabilite.PROPERTY | IBus.Capabilite.SURROUNDING_TEXT))
         self.context.focus_in()
         pump()
-        def select():
-            self.bus.set_global_engine("meltype-flash")
-            self.context.set_engine("meltype-flash")
-            pump()
+        # set_engine is asynchronous and redundantly selecting the same engine
+        # can reset its composition after the first ProcessKeyEvent. Select once
+        # through the bus and only observe readiness while polling.
+        self.assertTrue(self.bus.set_global_engine("meltype-flash"))
+        def selected():
             description = self.context.get_engine()
             return description is not None and description.get_name() == "meltype-flash"
-        wait(select, "selected test engine")
+        wait(selected, "selected test engine")
         self.surrounding()
         pump()
 
