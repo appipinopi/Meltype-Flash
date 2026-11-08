@@ -56,18 +56,30 @@ function Get-Releases {
     foreach ($release in (Invoke-RestMethod -Uri "https://api.github.com/repos/$repository/releases?per_page=20" -Headers @{ 'User-Agent' = 'Meltype-flash-Updater'; Accept = 'application/vnd.github+json' } -TimeoutSec 20)) { $release }
 }
 function Select-Release($Releases) {
+    # GitHub のリリース一覧は版の順に並ぶとは限らない (1.0.9 が 1.0.10 より前に来ることがある)。
+    # 一覧の先頭ではなく、一番新しい版を選ぶ。
+    $best = $null
+    $bestVersion = $null
     foreach ($release in $Releases) {
         if ($release.draft -or $release.prerelease) { continue }
+        $version = $null
+        if ([string]$release.tag_name -match '^flash-v(\d+)\.(\d+)\.(\d+)$') {
+            $version = [version]::new([int]$Matches[1], [int]$Matches[2], [int]$Matches[3])
+        }
+        if ($null -eq $version) { continue }
+        if ($null -ne $bestVersion -and $version -le $bestVersion) { continue }
         foreach ($asset in $release.assets) {
             if ($asset.name -notmatch '(?i)^Meltype[-_.]flash[-_.]Windows[-_.a-z0-9]*\.zip$') { continue }
             if ($asset.size -le 0 -or $asset.size -gt $limit) { continue }
             if ($asset.digest -notmatch '^sha256:[a-fA-F0-9]{64}$') { continue }
             $expected = "https://github.com/$repository/releases/download/$([Uri]::EscapeDataString([string]$release.tag_name))/$([Uri]::EscapeDataString([string]$asset.name))"
             if ($asset.browser_download_url -cne $expected) { continue }
-            return @{ release = $release; asset = $asset; uri = $expected; sha256 = $asset.digest.Substring(7) }
+            $bestVersion = $version
+            $best = @{ release = $release; asset = $asset; uri = $expected; sha256 = $asset.digest.Substring(7) }
+            break
         }
     }
-    return $null
+    return $best
 }
 function Download-Asset([string]$Uri, [string]$Destination, [long]$ExpectedSize) {
     Add-Type -AssemblyName System.Net.Http

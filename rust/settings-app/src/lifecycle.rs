@@ -17,38 +17,44 @@ pub struct Lifecycle {
     next_auto_check: Option<std::time::Instant>,
 }
 #[cfg(any(windows, test))]
+fn version_parts(text: &str) -> Option<Vec<u32>> {
+    text.trim_start_matches("flash-v")
+        .split('.')
+        .map(str::parse)
+        .collect::<Result<Vec<_>, _>>()
+        .ok()
+        .filter(|v| v.len() == 3)
+}
+#[cfg(any(windows, test))]
 fn newer_release(tag: &str, current: &str) -> bool {
-    fn version(text: &str) -> Option<Vec<u32>> {
-        text.trim_start_matches("flash-v")
-            .split('.')
-            .map(str::parse)
-            .collect::<Result<Vec<_>, _>>()
-            .ok()
-            .filter(|v| v.len() == 3)
-    }
-    match (version(tag), version(current)) {
+    match (version_parts(tag), version_parts(current)) {
         (Some(next), Some(now)) => next > now,
         _ => false,
     }
 }
+/// GitHub のリリース一覧は版の順に並ぶとは限らない (1.0.9 が 1.0.10 より前に来ることがある)。
+/// 一覧の先頭ではなく、Rust Windows 版 ZIP を持つ中で一番新しい版を選ぶ。
 #[cfg(any(windows, test))]
 fn rust_release(body: &serde_json::Value) -> Option<String> {
-    body.as_array()?.iter().find_map(|release| {
-        if release["draft"] == true || release["prerelease"] == true {
-            return None;
-        }
-        let tag = release["tag_name"].as_str()?;
-        let rust_windows = release["assets"].as_array()?.iter().any(|asset| {
-            let name = asset["name"].as_str().unwrap_or("").to_ascii_lowercase();
-            let digest = asset["digest"].as_str().unwrap_or("");
-            name.starts_with("meltype-flash-windows")
-                && name.ends_with(".zip")
-                && digest
-                    .strip_prefix("sha256:")
-                    .is_some_and(|s| s.len() == 64 && s.bytes().all(|b| b.is_ascii_hexdigit()))
-        });
-        rust_windows.then(|| tag.to_owned())
-    })
+    body.as_array()?
+        .iter()
+        .filter_map(|release| {
+            if release["draft"] == true || release["prerelease"] == true {
+                return None;
+            }
+            let tag = release["tag_name"].as_str()?;
+            let rust_windows = release["assets"].as_array()?.iter().any(|asset| {
+                let name = asset["name"].as_str().unwrap_or("").to_ascii_lowercase();
+                let digest = asset["digest"].as_str().unwrap_or("");
+                name.starts_with("meltype-flash-windows")
+                    && name.ends_with(".zip")
+                    && digest
+                        .strip_prefix("sha256:")
+                        .is_some_and(|s| s.len() == 64 && s.bytes().all(|b| b.is_ascii_hexdigit()))
+            });
+            rust_windows.then(|| tag.to_owned())
+        })
+        .max_by(|a, b| version_parts(a).cmp(&version_parts(b)))
 }
 impl Lifecycle {
     pub fn new(settings: &Settings) -> Self {
@@ -424,6 +430,18 @@ mod tests {
             }
         }
         assert_eq!(rust_release(&releases).as_deref(), Some("flash-v1.0.0"));
+        // GitHub の一覧順が 1.0.9 → 1.0.10 でも、新しい 1.0.10 を選ぶ。
+        let mut ordered = json!([
+            {"tag_name":"flash-v1.0.9","assets":[{"name":"Meltype-flash-Windows-x64.zip"}]},
+            {"tag_name":"flash-v1.0.10","assets":[{"name":"Meltype-flash-Windows-x64.zip"}]},
+            {"tag_name":"flash-v1.0.8","assets":[{"name":"Meltype-flash-Windows-x64.zip"}]}
+        ]);
+        for release in ordered.as_array_mut().unwrap() {
+            for asset in release["assets"].as_array_mut().unwrap() {
+                asset["digest"] = json!(format!("sha256:{}", "a".repeat(64)));
+            }
+        }
+        assert_eq!(rust_release(&ordered).as_deref(), Some("flash-v1.0.10"));
         assert!(rust_release(&json!([])).is_none());
         let settings = Settings::parse(r#"{"AutoUpdate":false,"SettingsVersion":5}"#).unwrap();
         let mut lifecycle = Lifecycle::new(&settings);
