@@ -4,6 +4,15 @@
 import Foundation
 import InputMethodKit
 
+// テストだけの利用状況スタブ。実際の実装は mac/Sources/MeltypeIME/Analytics.swift で、
+// Aptabase を使うため境界試験ではリンクせず、送信もしない。
+enum FlashAnalytics {
+    static var isEnabled: Bool { false }
+    static func setEnabled(_ enabled: Bool) {}
+    static func start() {}
+    static func track(_ event: String) {}
+}
+
 // テストだけの変換スタブ。実際の NativeCore / InputController / KeyMapping と一緒にコンパイルする。
 final class MeltypeConverter {
     static let shared = MeltypeConverter()
