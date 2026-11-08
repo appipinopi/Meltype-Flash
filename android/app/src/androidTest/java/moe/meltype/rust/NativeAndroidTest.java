@@ -589,7 +589,7 @@ public final class NativeAndroidTest {
             for(int i=0;i<settings.body.getChildCount();i++)if(settings.body.getChildAt(i) instanceof Switch toggle) {
                 toggles++;if("予測候補".contentEquals(toggle.getText())){toggle.setChecked(true);toggle.performClick();assertFalse("framework switch toggled off",toggle.isChecked());}
             }
-            assertEquals(13,toggles);assertFalse(new JSONObject(Native.control(profile.session,"{\"op\":\"settings_get\"}")).getBoolean("PredictiveCandidates"));
+            assertEquals(14,toggles);assertFalse(new JSONObject(Native.control(profile.session,"{\"op\":\"settings_get\"}")).getBoolean("PredictiveCandidates"));
             settings.field("定型文の開始記号").setText(";");settings.press("開始記号を保存");
             assertEquals(";",new JSONObject(Native.control(profile.session,"{\"op\":\"settings_get\"}")).getString("SnippetMark"));
             settings.show(1);settings.field("読み（ひらがな）").setText("めるたいぷ");settings.field("単語").setText("Meltype😀");settings.press("登録");
