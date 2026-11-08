@@ -4,14 +4,14 @@
 import argparse,hashlib,json,os,subprocess,struct,zlib
 from pathlib import Path
 p=argparse.ArgumentParser(description=__doc__);p.add_argument('binary',type=Path);p.add_argument('output',type=Path)
-p.add_argument('--pages',nargs='+',choices=['settings','dictionary','snippets','learning','backup','input-test'])
+p.add_argument('--pages',nargs='+',choices=['settings','dictionary','snippets','learning','backup','input-test','key-count'])
 p.add_argument('--lifecycle',choices=['welcome','about','updates','report','corrections','log','ai-setup'],help='Capture a lifecycle window over the selected page.')
 p.add_argument('--help-key',help='Show this settings explanation in a visual-test build.')
 p.add_argument('--filter',help='Filter settings in a visual-test build.')
 a=p.parse_args();a.output.mkdir(parents=True,exist_ok=False)
 settings_version=json.loads((Path(__file__).resolve().parents[3]/'rust/core/data/settings-defaults.json').read_text(encoding='utf-8'))['SettingsVersion']
 results=[]
-for page,name in enumerate(['settings','dictionary','snippets','learning','backup','input-test']):
+for page,name in enumerate(['settings','dictionary','snippets','learning','backup','input-test','key-count']):
     if a.pages and name not in a.pages: continue
     profile=(a.output/(name+'-profile')).resolve();profile.mkdir()
     config=json.dumps(dict(SettingsVersion=settings_version,LearningEnabled=False,LiveConversion=False,WelcomeShown=True,TsfIntroduced=True,AutoUpdate=False))

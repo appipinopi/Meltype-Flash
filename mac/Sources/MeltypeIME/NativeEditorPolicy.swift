@@ -48,7 +48,7 @@ struct NativeEditorPolicy {
     private let indicatorPreferenceFunction: IndicatorPreference
     private let selectionCreateFunction: SelectionCreate
     private let selectionUpdateFunction: SelectionUpdate
-    private typealias MenuCreate = @convention(c) (UnsafeMutableRawPointer?,Int32,Int32,Int32) -> UnsafeMutableRawPointer?
+    private typealias MenuCreate = @convention(c) (UnsafeMutableRawPointer?,Int32,Int32,Int32,Int32) -> UnsafeMutableRawPointer?
     private let menuCreateFunction: MenuCreate
     private typealias DictionaryEntries = @convention(c) (UnsafePointer<UInt8>?,UInt32,UnsafeMutablePointer<UnsafeMutableRawPointer?>?) -> UnsafeMutablePointer<CChar>?
     private typealias DictionaryMerge = @convention(c) (UnsafePointer<UInt8>?,UInt32) -> UnsafeMutablePointer<CChar>?
@@ -272,8 +272,8 @@ struct NativeEditorPolicy {
     func modeSelection(_ owner:AnyObject,mode:UInt32?=nil)->Int32 {
         withExtendedLifetime(owner) {selectionUpdateFunction(Unmanaged.passUnretained(owner).toOpaque(),mode == nil ? 0 : 1,mode ?? 0)}
     }
-    func inputMenu(target:AnyObject,direct:Bool,code:Bool,indicator:Bool)->AnyObject? {
-        guard let pointer=withExtendedLifetime(target,{menuCreateFunction(Unmanaged.passUnretained(target).toOpaque(),direct ? 1 : 0,code ? 1 : 0,indicator ? 1 : 0)}) else {return nil}
+    func inputMenu(target:AnyObject,direct:Bool,code:Bool,indicator:Bool,analytics:Bool)->AnyObject? {
+        guard let pointer=withExtendedLifetime(target,{menuCreateFunction(Unmanaged.passUnretained(target).toOpaque(),direct ? 1 : 0,code ? 1 : 0,indicator ? 1 : 0,analytics ? 1 : 0)}) else {return nil}
         return Unmanaged<AnyObject>.fromOpaque(pointer).takeRetainedValue()
     }
     func normalizedInputSources(_ sources:[[String:Any]])->[[String:Any]] {

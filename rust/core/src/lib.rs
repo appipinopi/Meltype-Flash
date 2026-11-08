@@ -15,6 +15,8 @@ pub mod dictionary;
 pub mod github_titles;
 pub mod input_session;
 pub mod kana;
+#[cfg(feature = "filesystem")]
+pub mod keycount;
 mod language_memory;
 pub mod linguistics;
 pub mod math_candidates;

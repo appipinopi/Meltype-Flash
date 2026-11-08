@@ -207,6 +207,10 @@ if CommandLine.arguments.contains("--self-test") || CommandLine.arguments.contai
     exit(failures == 0 ? 0 : 1)
 }
 
+// 利用状況の集計は、入力メニューで入れた人だけ。ここまでの起動確認・自己診断では送らない。
+FlashAnalytics.start()
+FlashAnalytics.track("app_open")
+
 let connectionName = Bundle.main.object(forInfoDictionaryKey: "InputMethodConnectionName") as? String ?? "Meltype_Connection"
 #if MELTYPE_RUST_CORE
 let nativeServer = Bundle.main.bundleIdentifier.flatMap {

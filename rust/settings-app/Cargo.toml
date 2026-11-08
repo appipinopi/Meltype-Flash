@@ -27,6 +27,9 @@ roxmltree = "0.20"
 meltype-ai = { path = "../ai", default-features = false, features = ["download"] }
 
 [target.'cfg(windows)'.dependencies]
+# 利用状況の集計 (Aptabase)。Windows の設定画面から HTTPS で送る。
+reqwest = { version = "0.12", features = ["json"] }
+tokio = { version = "1", features = ["full"] }
 roxmltree = "0.20"
 raw-window-handle = "0.6"
 tray-icon = { version = "=0.26.1", default-features = false }
@@ -34,4 +37,4 @@ ab_glyph = "0.2"
 fs2 = "0.4"
 tempfile = "3"
 windows = { version = "=0.58.0", features = ["Win32_Foundation", "Win32_System_Com", "Win32_System_Variant", "Win32_UI_Accessibility"] }
-windows-sys = { version = "0.61", features = ["Win32_Foundation", "Win32_Graphics_Gdi", "Win32_UI_WindowsAndMessaging", "Win32_UI_Shell", "Win32_UI_Input_KeyboardAndMouse", "Win32_Security_Authentication_Identity", "Win32_System_Registry", "Win32_System_LibraryLoader", "Win32_UI_Accessibility", "Win32_System_SystemInformation", "Win32_System_Threading", "Win32_System_Diagnostics_ToolHelp", "Win32_Security"] }
+windows-sys = { version = "0.61", features = ["Win32_Foundation", "Win32_Graphics_Gdi", "Win32_UI_WindowsAndMessaging", "Win32_UI_Shell", "Win32_UI_Input_KeyboardAndMouse", "Win32_Security_Authentication_Identity", "Win32_System_Registry", "Win32_System_LibraryLoader", "Win32_UI_Accessibility", "Win32_System_SystemInformation", "Win32_System_Threading", "Win32_System_Diagnostics_ToolHelp", "Win32_Security", "Win32_Globalization", "Wdk_System_SystemServices"] }
