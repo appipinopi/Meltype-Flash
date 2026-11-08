@@ -29,13 +29,13 @@ fn count_key() {
         return;
     };
     let index = KEYS.fetch_add(1, Ordering::Relaxed);
-    // 設定画面で入れた変更を、次の打鍵から反映させる (64 打ごとに読み直す)。
-    if index.is_multiple_of(64) {
-        counter.refresh();
-    }
+    // 設定画面で入れた変更を、次の打鍵から反映させる。ファイルの更新時刻が変わった
+    // ときだけ読み直すので、打鍵ごとに見ても軽い (設定変更が 64 打待たない)。
+    counter.refresh_if_changed();
     counter.count_key(&meltype_core::keycount::today());
     // 書き込みは 20 打ごとにまとめる。終了時は meltype_tip_destroy で書く。
-    if index.is_multiple_of(20) {
+    // 1 打目はすぐ書いて、起動直後でも Discord のステータスに出るようにする。
+    if index == 0 || index.is_multiple_of(20) {
         let _ = counter.flush();
     }
 }

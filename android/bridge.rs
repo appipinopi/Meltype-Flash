@@ -291,7 +291,7 @@ final class Analytics {
     }
     private static boolean enabled(long session){
         if(session==0){return false;}
-        try{return new JSONObject(Native.control(session,"{\"op\":\"settings_get\"}")).optBoolean("AnalyticsEnabled",false);}
+        try{return new JSONObject(Native.control(session,"{\"op\":\"settings_get\"}")).optBoolean("AnalyticsEnabled",true);}
         catch(Exception e){return false;}
     }
 }

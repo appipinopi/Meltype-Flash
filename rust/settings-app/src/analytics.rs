@@ -1,7 +1,7 @@
 // SPDX-License-Identifier: GPL-3.0-or-later
 // Copyright (C) 2026 appipinopi
 //! 利用状況の集計 (Aptabase)。送るのは出来事の名前と端末の種類・OSの版・アプリの版だけで、
-//! 入力内容・入力履歴・辞書・設定値は送らない。設定画面で入れた人だけ送る。既定は無効。
+//! 入力内容・入力履歴・辞書・設定値は送らない。既定は有効で、設定画面で切った人だけ送らない。
 use serde_json::{json, Value};
 use std::path::Path;
 use std::time::{SystemTime, UNIX_EPOCH};
@@ -11,13 +11,13 @@ const API_URL: &str = "https://us.aptabase.com/api/v0/events";
 const SDK_VERSION: &str = "meltype-flash-http@1";
 const SETTINGS_FILE: &str = "analytics.json";
 
-/// 設定画面で利用状況の送信を入れたか。ファイルが無い・読めないときは無効。
+/// 設定画面で利用状況の送信を切ったか。ファイルが無い・読めないときは有効 (既定)。
 pub fn enabled(directory: &Path) -> bool {
     std::fs::read(directory.join(SETTINGS_FILE))
         .ok()
         .and_then(|bytes| serde_json::from_slice::<Value>(&bytes).ok())
         .and_then(|value| value["enabled"].as_bool())
-        .unwrap_or(false)
+        .unwrap_or(true)
 }
 
 /// 設定を保存する。入れたときはすぐ送り、切ったときは次の起動から送らない。
@@ -129,6 +129,9 @@ mod tests {
     #[test]
     fn preference_roundtrip_and_payload_shape() {
         let directory = tempfile::tempdir().unwrap();
+        // ファイルが無いときは既定で有効。
+        assert!(enabled(directory.path()));
+        set_enabled(directory.path(), false).unwrap();
         assert!(!enabled(directory.path()));
         set_enabled(directory.path(), true).unwrap();
         assert!(enabled(directory.path()));

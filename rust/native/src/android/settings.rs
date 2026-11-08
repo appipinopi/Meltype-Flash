@@ -101,11 +101,13 @@ pub(super) fn page(handle: jlong, page: jint) -> Result<Value> {
                 );
             }
             for (name, text) in TOGGLES {
-                nodes.push(json!({"type":"toggle","text":text,"checked":settings[name].as_bool().unwrap_or(false),"action":{"action":"toggle","name":name}}));
+                // 利用状況の送信だけは既定で有効 (設定で OFF にできる)。
+                let default = *name == "AnalyticsEnabled";
+                nodes.push(json!({"type":"toggle","text":text,"checked":settings[name].as_bool().unwrap_or(default),"action":{"action":"toggle","name":name}}));
             }
             label(
                 &mut nodes,
-                "利用状況を送るときも、送るのはアプリの版・OSの版・起動回数だけです。入力内容・入力履歴・辞書・設定値は送りません。既定は無効です。",
+                "利用状況を送るときも、送るのはアプリの版・OSの版・起動回数だけです。入力内容・入力履歴・辞書・設定値は送りません。既定は有効で、この画面で切れます。",
             );
             label(
                 &mut nodes,

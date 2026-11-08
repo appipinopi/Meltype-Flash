@@ -12,7 +12,7 @@ use meltype_core::{
 use std::{
     fs::{File, OpenOptions},
     io::{self, Read, Write},
-    path::PathBuf,
+    path::{Path, PathBuf},
     sync::{
         atomic::{AtomicBool, Ordering},
         Arc,
@@ -230,7 +230,14 @@ impl Presence {
                         &elapsed,
                         ai,
                     );
-                    let _ = send_activity(&mut session, &activity);
+                    match send_activity(&mut session, &activity) {
+                        Ok(()) => log_presence(&directory, "Discord にステータスを送信しました"),
+                        Err(error) => {
+                            log_presence(&directory, &format!("送信できませんでした: {error}"));
+                            // 次回つなぎ直す (壊れた接続を残さない)。
+                            session = None;
+                        }
+                    }
                     if let Some(session) = &mut session {
                         session.last = Some((total, Instant::now()));
                     }
@@ -268,14 +275,29 @@ impl Drop for Presence {
     }
 }
 
+/// 送信の結果を `presence.log` に残す (最後の結果だけ上書き)。
+/// 接続できないときの原因を追うため。打った文字は書かない。
+fn log_presence(directory: &Path, message: &str) {
+    let _ = std::fs::write(
+        directory.join("presence.log"),
+        format!(
+            "{} {}
+",
+            chrono::Local::now().format("%Y-%m-%d %H:%M:%S"),
+            message
+        ),
+    );
+}
+
 /// つないでいなければつなぎ直し、内容が変わっていれば送る。
-fn send_activity(session: &mut Option<Session>, activity: &str) -> io::Result<()> {
+/// つなげない・送れないときは理由を返す (呼び出し側が presence.log に残す)。
+fn send_activity(session: &mut Option<Session>, activity: &str) -> Result<(), String> {
     if session.is_none() {
         let Some(mut file) = connect() else {
-            return Ok(());
+            return Err("Discord が見つかりません (起動していないか、IPC が開いていません)".into());
         };
-        send(&mut file, 0, &handshake_json(CLIENT_ID))?;
-        receive(&mut file)?;
+        send(&mut file, 0, &handshake_json(CLIENT_ID)).map_err(|e| e.to_string())?;
+        receive(&mut file).map_err(|e| e.to_string())?;
         *session = Some(Session {
             file,
             sent: None,
@@ -288,8 +310,8 @@ fn send_activity(session: &mut Option<Session>, activity: &str) -> io::Result<()
     if current.sent.as_deref() == Some(activity) {
         return Ok(());
     }
-    send(&mut current.file, 1, &set_activity_json(Some(activity)))?;
-    receive(&mut current.file)?;
+    send(&mut current.file, 1, &set_activity_json(Some(activity))).map_err(|e| e.to_string())?;
+    receive(&mut current.file).map_err(|e| e.to_string())?;
     current.sent = Some(activity.to_owned());
     Ok(())
 }

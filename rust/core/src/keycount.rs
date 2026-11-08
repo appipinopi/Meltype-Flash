@@ -13,6 +13,7 @@ use std::{
     fs::{self, File, OpenOptions},
     io,
     path::{Path, PathBuf},
+    time::SystemTime,
 };
 
 pub const FILE: &str = "keycount.json";
@@ -31,9 +32,9 @@ pub struct KeyCount {
     pub total: u64,
     /// 日 (yyyy-MM-dd) ごとの打鍵数。
     pub days: BTreeMap<String, u64>,
-    /// 打鍵を数えるか。既定は無効 (打った時刻を残すので、使う人が自分で入れる)。
+    /// 打鍵を数えるか。既定は有効 (設定画面で OFF にできる)。
     pub enabled: bool,
-    /// Discord のステータスに出すか。既定は無効。
+    /// Discord のステータスに出すか。既定は有効 (設定画面で OFF にできる)。
     pub discord: bool,
     /// Discord の詳細行。
     pub details: String,
@@ -52,8 +53,8 @@ impl Default for KeyCount {
         Self {
             total: 0,
             days: BTreeMap::new(),
-            enabled: false,
-            discord: false,
+            enabled: true,
+            discord: true,
             details: DEFAULT_DETAILS.into(),
             state: DEFAULT_STATE.into(),
             button: DEFAULT_BUTTON.into(),
@@ -116,16 +117,27 @@ pub struct KeyCounter {
     directory: PathBuf,
     count: KeyCount,
     pending: BTreeMap<String, u64>,
+    /// 最後に読んだファイルの更新時刻。設定画面が書き換えたかどうかを打鍵ごとに見る。
+    mtime: Option<SystemTime>,
+}
+
+/// keycount.json の更新時刻。無い・読めないときは None。
+fn modified(directory: &Path) -> Option<SystemTime> {
+    fs::metadata(path(directory))
+        .and_then(|metadata| metadata.modified())
+        .ok()
 }
 
 impl KeyCounter {
     pub fn load(directory: impl Into<PathBuf>) -> Self {
         let directory = directory.into();
         let count = load(&directory);
+        let mtime = modified(&directory);
         Self {
             directory,
             count,
             pending: BTreeMap::new(),
+            mtime,
         }
     }
 
@@ -153,6 +165,7 @@ impl KeyCounter {
     /// 設定 (数えるか・Discord に出すか・文言) だけをファイルから読み直す。
     /// 入力プロセスは動いたままなので、設定画面での変更を次の打鍵から反映させる。
     pub fn refresh(&mut self) {
+        self.mtime = modified(&self.directory);
         let count = load(&self.directory);
         self.count.enabled = count.enabled;
         self.count.discord = count.discord;
@@ -161,6 +174,15 @@ impl KeyCounter {
         self.count.button = count.button;
         self.count.url = count.url;
         self.count.ai = count.ai;
+    }
+
+    /// ファイルが設定画面で書き換わっていれば設定を読み直す。
+    /// 更新時刻が同じときは何もしない (打鍵のたびに数えるだけなら安い)。
+    pub fn refresh_if_changed(&mut self) {
+        if modified(&self.directory) == self.mtime {
+            return;
+        }
+        self.refresh();
     }
 
     pub fn has_pending(&self) -> bool {
@@ -182,6 +204,7 @@ impl KeyCounter {
             *slot = slot.saturating_add(*added);
         }
         write(&self.directory, &count)?;
+        self.mtime = modified(&self.directory);
         self.count = count;
         self.pending.clear();
         Ok(())
@@ -226,10 +249,10 @@ mod tests {
     use super::*;
 
     #[test]
-    fn defaults_are_disabled_and_match_the_reference_text() {
+    fn defaults_are_enabled_and_match_the_reference_text() {
         let count = KeyCount::default();
-        assert!(!count.enabled);
-        assert!(!count.discord);
+        assert!(count.enabled);
+        assert!(count.discord);
         assert!(count.ai);
         assert_eq!(count.details, "今日 {today} 打");
         assert_eq!(count.state, "合計 {total} 打 · {kpm} 打/分{ai}");
@@ -268,6 +291,9 @@ mod tests {
     #[test]
     fn disabled_counter_counts_nothing() {
         let directory = tempfile::tempdir().unwrap();
+        let mut settings = load(directory.path());
+        settings.enabled = false;
+        save_settings(directory.path(), &settings).unwrap();
         let mut counter = KeyCounter::load(directory.path());
         counter.count_key("2026-02-14");
         assert!(!counter.has_pending());
@@ -298,5 +324,37 @@ mod tests {
         );
         assert_eq!(render("{today}", 0, 0, 0, "", false), "0");
         assert_eq!(render("{today}", 1234567, 0, 0, "", false), "1,234,567");
+    }
+
+    #[test]
+    fn refresh_if_changed_follows_settings_written_by_another_process() {
+        let directory = tempfile::tempdir().unwrap();
+        let mut settings = load(directory.path());
+        settings.enabled = false;
+        save_settings(directory.path(), &settings).unwrap();
+
+        // 入力プロセスは数えない設定で起動する。
+        let mut counter = KeyCounter::load(directory.path());
+        assert!(!counter.enabled());
+        counter.count_key("2026-02-14");
+        assert!(!counter.has_pending());
+
+        // 設定画面がファイルを書き換えたら、次の打鍵で読み直して数え始める。
+        settings.enabled = true;
+        save_settings(directory.path(), &settings).unwrap();
+        counter.refresh_if_changed();
+        assert!(counter.enabled());
+        counter.count_key("2026-02-14");
+        assert!(counter.has_pending());
+        counter.flush().unwrap();
+        assert_eq!(load(directory.path()).total, 1);
+
+        // 文言の変更も次の打鍵で反映される。
+        settings.details = "きょう {today}".into();
+        save_settings(directory.path(), &settings).unwrap();
+        counter.refresh_if_changed();
+        let count = load(directory.path());
+        assert_eq!(count.details, "きょう {today}");
+        assert!(count.enabled);
     }
 }
