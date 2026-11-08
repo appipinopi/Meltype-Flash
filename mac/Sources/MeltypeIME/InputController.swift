@@ -242,7 +242,7 @@ final class MeltypeInputController: IMKInputController, ModeServiceTarget {
         modeIndicator.hide()
     }
 
-    /// 利用状況の集計は、入力を預かるアプリなので既定は無効。入れた人だけ送る。
+    /// 利用状況の集計は既定で有効。切った人だけ送らない。
     @objc private func toggleAnalytics(_ sender: Any?) {
         FlashAnalytics.setEnabled(!FlashAnalytics.isEnabled)
     }

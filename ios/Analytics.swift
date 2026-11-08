@@ -7,13 +7,13 @@ import Aptabase
 ///
 /// 送るのは出来事の名前と、Aptabaseが付ける端末の種類・OSの版・アプリの版・言語。
 /// 入力内容・入力履歴・辞書・設定値・入力欄の文字列は送らない。
-/// 既定は無効で、アプリの画面で入れた人だけ送る。キーボード拡張では初期化しない。
+/// 既定は有効で、アプリの画面で切った人だけ送らない。キーボード拡張では初期化しない。
 /// 呼び出しはメインスレッドからだけ行う。
 enum FlashAnalytics {
     /// Aptabaseのアプリキー (A-US-... はUSリージョン)。
     static let appKey = "A-US-4882313783"
-    /// 全員から既定で送る場合はtrueにする。入力を預かるアプリなので既定は無効。
-    private static let defaultEnabled = false
+    /// 全員から既定で送る (設定画面で切れる)。false にすると既定で送らない。
+    private static let defaultEnabled = true
     private static let enabledKey = "MeltypeFlashAnalytics"
     private static var started = false
 

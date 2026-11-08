@@ -991,7 +991,7 @@ impl App {
                             }
                         }
                     });
-                    ui.weak("Aptabaseへ、アプリの版・OSの版・起動回数だけを送ります。入力内容・入力履歴・辞書・設定値は送りません。既定は無効です。");
+                    ui.weak("Aptabaseへ、アプリの版・OSの版・起動回数だけを送ります。入力内容・入力履歴・辞書・設定値は送りません。既定は有効で、ここで切れます。");
                 }
                 // Retain the original form's trailing space below the last row.
                 ui.add_space(16.);
