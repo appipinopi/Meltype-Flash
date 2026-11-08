@@ -26,6 +26,19 @@ Meltype のソースコード (このリポジトリ) には、他者の著作�
 | .NET ランタイム (NativeAOT) | MIT License | libMeltypeNative.dylib に組み込まれる |
 | [swift-collections](https://github.com/apple/swift-collections)・[swift-algorithms](https://github.com/apple/swift-algorithms)・[swift-numerics](https://github.com/apple/swift-numerics) (Apple) | Apache License 2.0 | AzooKeyKanaKanjiConverter が使う部品として、一緒に Meltype.app に組み込まれる (`mac/Package.resolved` で版を固定) |
 | [Jinja](https://github.com/johnmai-dev/Jinja)・[swift-tokenizers](https://github.com/ensan-hcl/swift-tokenizers) | Apache License 2.0 | AzooKeyKanaKanjiConverter が依存する部品 (`mac/Package.resolved` で版を固定)。組み込まれる場合は、ライセンス表示を同梱する |
+| [aptabase-swift](https://github.com/aptabase/aptabase-swift) | MIT License (Copyright Sumbit Labs Ltd.) | Swift Package として取り込み、Meltype.app に組み込む (利用状況の集計)。入力メニューで入れた人だけが対象 |
+
+## iOS 版 (ios/) がビルド時に取り込むもの
+
+| 部品 | ライセンス | 使い方 |
+| --- | --- | --- |
+| [aptabase-swift](https://github.com/aptabase/aptabase-swift) | MIT License (Copyright Sumbit Labs Ltd.) | Swift Package として取り込み、アプリ本体に組み込む (利用状況の集計)。キーボード拡張には入れない |
+
+## Android 版 (android/) がビルド時に取り込むもの
+
+| 部品 | ライセンス | 使い方 |
+| --- | --- | --- |
+| [aptabase-kotlin](https://github.com/aptabase/aptabase-kotlin) | MIT License (Copyright Sumbit Labs Ltd.) | JitPack から取り込み、APK に組み込む (利用状況の集計)。設定で入れた人だけが対象 |
 
 ## 実行時に使う Windows の機能 (同梱しない)
 

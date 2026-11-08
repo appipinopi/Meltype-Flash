@@ -85,11 +85,11 @@ api.meltype_macos_mode_selection.restype=c.c_int
 assert api.meltype_macos_indicator_preference(None,0,0)==-1
 assert not api.meltype_macos_mode_selection_create(None)
 assert api.meltype_macos_mode_selection(None,0,0)==-1
-api.meltype_macos_menu.argtypes=[P,c.c_int,c.c_int,c.c_int]
+api.meltype_macos_menu.argtypes=[P,c.c_int,c.c_int,c.c_int,c.c_int]
 api.meltype_macos_menu.restype=P
-assert not api.meltype_macos_menu(None,0,0,0)
+assert not api.meltype_macos_menu(None,0,0,0,0)
 if sys.platform!="darwin":
-    assert not api.meltype_macos_menu(P(1),0,0,0)
+    assert not api.meltype_macos_menu(P(1),0,0,0,0)
 callback_type=c.CFUNCTYPE(None,P)
 api.meltype_macos_meaning_schedule.argtypes=[P,callback_type]
 api.meltype_macos_meaning_schedule.restype=c.c_int

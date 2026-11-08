@@ -5,8 +5,12 @@ use eframe::egui;
 use meltype_core::{control, settings::Settings, storage::Store, Session};
 use serde_json::{json, Value};
 mod ai_setup;
+#[cfg(windows)]
+mod analytics;
 mod branding;
 mod dialogs;
+#[cfg(windows)]
+mod discord;
 mod lifecycle;
 mod metadata;
 #[cfg(windows)]
@@ -27,6 +31,16 @@ fn main() -> eframe::Result {
     if let Some(code) = startup::command_line(&std::env::args_os().skip(1).collect::<Vec<_>>()) {
         std::process::exit(code);
     }
+    // 利用状況の集計は、設定画面で入れた人だけ。起動の確認・導入などの引数は上の時点で終了している。
+    #[cfg(windows)]
+    analytics::track(&Store::default_directory(), "app_open");
+    // 打鍵数を Discord のステータスに出す (設定画面で入れた人だけ)。Discord が
+    // 起動していなければ何もしない。
+    #[cfg(windows)]
+    let _presence = discord::Presence::start(
+        Store::default_directory(),
+        Store::new(Store::default_directory()),
+    );
     let resident = cfg!(windows)
         && std::env::args().any(|a| matches!(a.as_str(), "--tray" | "--portable-keyboard"));
     let options = eframe::NativeOptions {
@@ -557,6 +571,7 @@ impl App {
                 "学習した語",
                 "バックアップ",
                 "入力テスト",
+                "打鍵数",
                 "ログ / 判定理由",
             ]
             .iter()
@@ -950,6 +965,33 @@ impl App {
                     });
                     widgets::group_border(ui, group_response.response.rect, title);
                     ui.add_space(14.);
+                }
+                #[cfg(windows)]
+                {
+                    ui.add_space(8.);
+                    ui.horizontal(|ui| {
+                        ui.strong("利用状況の匿名集計");
+                    });
+                    let mut requested = analytics::enabled(&self.store.directory);
+                    ui.horizontal(|ui| {
+                        ui.label("利用状況を匿名で送る");
+                        if widgets::toggle(ui, &mut requested, "利用状況を匿名で送る").changed() {
+                            match analytics::set_enabled(&self.store.directory, requested) {
+                                Ok(()) => {
+                                    self.status = if requested {
+                                        "利用状況の送信を有効にしました。".into()
+                                    } else {
+                                        "利用状況の送信を停止しました。次の起動から送りません。".into()
+                                    };
+                                    if requested {
+                                        analytics::track(&self.store.directory, "analytics_enabled");
+                                    }
+                                }
+                                Err(error) => self.status = error.to_string(),
+                            }
+                        }
+                    });
+                    ui.weak("Aptabaseへ、アプリの版・OSの版・起動回数だけを送ります。入力内容・入力履歴・辞書・設定値は送りません。既定は無効です。");
                 }
                 // Retain the original form's trailing space below the last row.
                 ui.add_space(16.);
@@ -1747,6 +1789,102 @@ fn choices(key: &str) -> Option<&'static [&'static str]> {
         _ => return None,
     })
 }
+impl App {
+    /// 打鍵数。数えるか・Discord に出すか・表示する文言を変える。
+    fn keycount(&mut self, ui: &mut egui::Ui) {
+        use meltype_core::keycount;
+        let mut count = keycount::load(&self.store.directory);
+        let mut changed = false;
+        ui.heading("打鍵数");
+        ui.weak("打った文字は残さず、合計と日ごとの回数だけを数えます。Discord には今日と合計の回数・1 分あたりの回数だけを送ります。");
+        ui.add_space(8.);
+        let today = count.days.get(&keycount::today()).copied().unwrap_or(0);
+        ui.label(format!(
+            "合計 {} 打　　今日 {} 打",
+            keycount::group(count.total),
+            keycount::group(today)
+        ));
+        ui.add_space(12.);
+        changed |= ui
+            .horizontal(|ui| {
+                ui.label("打鍵を数える");
+                widgets::toggle(ui, &mut count.enabled, "打鍵を数える")
+                    .on_hover_text(
+                        "OFF の間は何も数えません。パスワード欄などプライベートな入力は数えません。",
+                    )
+                    .changed()
+            })
+            .inner;
+        changed |= ui
+            .add_enabled_ui(count.enabled, |ui| {
+                ui.horizontal(|ui| {
+                    ui.label("Discord のステータスに表示する");
+                    widgets::toggle(ui, &mut count.discord, "Discord のステータスに表示する")
+                        .on_hover_text("今日・合計・1 分あたりの回数だけを送ります。打った文字・候補・入力先のアプリ名は送りません。")
+                        .changed()
+                })
+                .inner
+            })
+            .inner;
+        changed |= ui
+            .add_enabled_ui(count.discord, |ui| {
+                ui.horizontal(|ui| {
+                    ui.label("AI対応中を表示する");
+                    widgets::toggle(ui, &mut count.ai, "AI対応中を表示する")
+                        .on_hover_text(
+                            "AI (予測変換) が有効なとき、状態の行に「AI対応中」を足します。",
+                        )
+                        .changed()
+                })
+                .inner
+            })
+            .inner;
+        ui.add_space(12.);
+        ui.label("表示する文言 (Discord のステータス):");
+        ui.add_enabled_ui(count.discord, |ui| {
+            ui.horizontal(|ui| {
+                ui.label("詳細の行");
+                changed |= ui.text_edit_singleline(&mut count.details).changed();
+            });
+            ui.horizontal(|ui| {
+                ui.label("状態の行");
+                changed |= ui.text_edit_singleline(&mut count.state).changed();
+            });
+            ui.horizontal(|ui| {
+                ui.label("ボタンの文字");
+                changed |= ui.text_edit_singleline(&mut count.button).changed();
+            });
+            ui.horizontal(|ui| {
+                ui.label("ボタンのリンク先");
+                changed |= ui.text_edit_singleline(&mut count.url).changed();
+            });
+            ui.weak("使える置き換え: {today} 今日の回数 / {total} 合計 / {kpm} 1分あたり / {elapsed} 起動からの経過 / {ai} AI対応中");
+            if ui.button("文言を既定値に戻す").clicked() {
+                count.details = keycount::DEFAULT_DETAILS.into();
+                count.state = keycount::DEFAULT_STATE.into();
+                count.button = keycount::DEFAULT_BUTTON.into();
+                count.url = keycount::DEFAULT_URL.into();
+                changed = true;
+            }
+        });
+        ui.add_space(12.);
+        if ui.button("数えた分をリセット").clicked() {
+            match keycount::reset(&self.store.directory) {
+                Ok(()) => {
+                    self.status = "打鍵数をリセットしました。".into();
+                    count = keycount::load(&self.store.directory);
+                }
+                Err(error) => self.status = error.to_string(),
+            }
+        }
+        if changed {
+            match keycount::save_settings(&self.store.directory, &count) {
+                Ok(()) => self.status = "打鍵数の設定を保存しました。".into(),
+                Err(error) => self.status = error.to_string(),
+            }
+        }
+    }
+}
 impl eframe::App for App {
     fn update(&mut self, ctx: &egui::Context, _: &mut eframe::Frame) {
         #[cfg(windows)]
@@ -1779,7 +1917,7 @@ impl eframe::App for App {
                     }
                 }
                 if let Ok(page) = std::env::var("MELTYPE_UI_PAGE") {
-                    self.page = page.parse::<usize>().unwrap_or(0).min(5);
+                    self.page = page.parse::<usize>().unwrap_or(0).min(6);
                 }
                 if let Ok(key) = std::env::var("MELTYPE_UI_HELP_KEY") {
                     self.help = metadata::description(&key).to_owned();
@@ -2061,6 +2199,7 @@ impl eframe::App for App {
                 3 => self.learning(ui),
                 4 => self.backup(ui),
                 5 => self.test(ui),
+                6 => self.keycount(ui),
                 _ => {
                     self.dialogs.log = true;
                     self.page = 0;

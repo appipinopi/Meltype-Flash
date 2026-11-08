@@ -13,17 +13,24 @@ pub unsafe extern "C" fn meltype_macos_menu(
     direct: i32,
     code: i32,
     indicator: i32,
+    analytics: i32,
 ) -> *mut c_void {
     if target.is_null() {
         return std::ptr::null_mut();
     }
     #[cfg(target_os = "macos")]
     {
-        native::create(target, direct != 0, code != 0, indicator != 0)
+        native::create(
+            target,
+            direct != 0,
+            code != 0,
+            indicator != 0,
+            analytics != 0,
+        )
     }
     #[cfg(not(target_os = "macos"))]
     {
-        let _ = (direct, code, indicator);
+        let _ = (direct, code, indicator, analytics);
         std::ptr::null_mut()
     }
 }
@@ -44,6 +51,7 @@ mod native {
         direct: bool,
         code: bool,
         indicator: bool,
+        analytics: bool,
     ) -> *mut c_void {
         if MainThreadMarker::new().is_none() {
             return std::ptr::null_mut();
@@ -59,24 +67,28 @@ mod native {
         };
         let menu: Retained<AnyObject> = msg_send![menu_class, new];
         let empty = NSString::from_str("");
-        let entries: [(&str, Sel, bool, bool); 7] = [
+        // (名前, 動作, 選択中, target を設定する, 手前に区切り線を置く)
+        let entries: [(&str, Sel, bool, bool, bool); 8] = [
             (
                 "日本語・英語の自動判定",
                 sel!(selectAutomatic:),
                 !code && !direct,
                 true,
+                false,
             ),
-            ("英数の直接入力", sel!(selectDirect:), direct, true),
+            ("英数の直接入力", sel!(selectDirect:), direct, true, false),
             (
                 "コード入力 (コメント・文字列は日本語)",
                 sel!(selectCode:),
                 code && !direct,
                 true,
+                false,
             ),
             (
                 "入力モードをミニウィンドウで表示",
                 sel!(toggleModeIndicator:),
                 indicator,
+                true,
                 true,
             ),
             (
@@ -84,22 +96,32 @@ mod native {
                 sel!(importUserDictionary:),
                 false,
                 true,
+                false,
             ),
             (
                 "Meltype-FLASH のデータフォルダを開く (設定・ユーザー辞書)",
                 sel!(openDataFolder:),
                 false,
                 false,
+                false,
+            ),
+            (
+                "利用状況を匿名で送る",
+                sel!(toggleAnalytics:),
+                analytics,
+                true,
+                true,
             ),
             (
                 "不具合の報告・提案… (Mac 版はプレビュー版です)",
                 sel!(openReport:),
                 false,
                 false,
+                false,
             ),
         ];
-        for (index, (title, action, selected, set_target)) in entries.iter().enumerate() {
-            if index == 3 {
+        for (title, action, selected, set_target, separator) in entries.iter() {
+            if *separator {
                 let separator: Retained<AnyObject> = msg_send![item_class, separatorItem];
                 let _: () = msg_send![&menu,addItem:&*separator];
             }
@@ -109,10 +131,8 @@ mod native {
             if *set_target {
                 let _: () = msg_send![&item,setTarget:&*target];
             }
-            // Original import/report/folder items retain their SDK default state.
-            if index < 4 {
-                let _: () = msg_send![&item,setState:if *selected{1isize}else{0isize}];
-            }
+            // Original import/report/folder items have no state; setting off keeps them unchanged.
+            let _: () = msg_send![&item,setState:if *selected{1isize}else{0isize}];
         }
         Retained::into_raw(menu).cast()
     }

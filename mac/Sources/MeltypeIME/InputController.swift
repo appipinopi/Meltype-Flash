@@ -166,7 +166,7 @@ final class MeltypeInputController: IMKInputController, ModeServiceTarget {
 
     override func menu() -> NSMenu! {
 #if MELTYPE_RUST_CORE
-        return NativeCore.shared.editorPolicy?.inputMenu(target:self,direct:directInput,code:codeInput,indicator:ModeIndicatorSettings.shared.isEnabled) as? NSMenu
+        return NativeCore.shared.editorPolicy?.inputMenu(target:self,direct:directInput,code:codeInput,indicator:ModeIndicatorSettings.shared.isEnabled,analytics:FlashAnalytics.isEnabled) as? NSMenu
 #else
         let menu = NSMenu()
         for (title, action, selected) in [
@@ -187,6 +187,10 @@ final class MeltypeInputController: IMKInputController, ModeServiceTarget {
         let configItem = menu.addItem(withTitle: "Meltype の設定ファイル (config.json) を開く…", action: #selector(openConfigFile(_:)), keyEquivalent: "")
         configItem.target = self
         menu.addItem(withTitle: "Meltype のデータフォルダを開く (設定・ユーザー辞書)", action: #selector(openDataFolder(_:)), keyEquivalent: "")
+        menu.addItem(.separator())
+        let analytics = menu.addItem(withTitle: "利用状況を匿名で送る", action: #selector(toggleAnalytics(_:)), keyEquivalent: "")
+        analytics.target = self
+        analytics.state = FlashAnalytics.isEnabled ? .on : .off
         menu.addItem(withTitle: "不具合の報告・提案… (Mac 版はプレビュー版です)", action: #selector(openReport(_:)), keyEquivalent: "")
         return menu
 #endif
@@ -236,6 +240,11 @@ final class MeltypeInputController: IMKInputController, ModeServiceTarget {
     @objc private func toggleModeIndicator(_ sender: Any?) {
         ModeIndicatorSettings.shared.isEnabled.toggle()
         modeIndicator.hide()
+    }
+
+    /// 利用状況の集計は、入力を預かるアプリなので既定は無効。入れた人だけ送る。
+    @objc private func toggleAnalytics(_ sender: Any?) {
+        FlashAnalytics.setEnabled(!FlashAnalytics.isEnabled)
     }
 
     @objc private func importUserDictionary(_ sender: Any?) {

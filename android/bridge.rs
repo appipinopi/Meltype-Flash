@@ -103,7 +103,7 @@ import android.view.inputmethod.EditorInfo;
 import android.widget.*;
 public final class MeltypeService extends InputMethodService implements FlickKeyboard.Listener {
     long session; TextView preview; LinearLayout candidates,inputRoot; FlickKeyboard keyboard; KeyboardAppearance appearance;
-    @Override public void onCreate(){super.onCreate();Native.bridge(this,Events.SERVICE_CREATE,0,0,null);}
+    @Override public void onCreate(){super.onCreate();Native.bridge(this,Events.SERVICE_CREATE,0,0,null);Analytics.start(this,session);Analytics.track("keyboard_ready");}
     @Override public void onDestroy(){Native.bridge(this,Events.SERVICE_DESTROY,0,0,null);super.onDestroy();}
     @Override public void onStartInput(EditorInfo info,boolean restarting){super.onStartInput(info,restarting);Native.bridge(this,Events.SERVICE_BEGIN,0,restarting?1:0,info);}
     @Override public void onFinishInput(){Native.bridge(this,Events.SERVICE_END,0,0,null);super.onFinishInput();}
@@ -163,7 +163,7 @@ import android.os.Bundle;
 import android.widget.*;
 public final class SettingsActivity extends Activity implements SettingsPage.Actions {
     long session; LinearLayout body; TextView status; SettingsPage form;
-    @Override public void onCreate(Bundle state){super.onCreate(state);Native.bridge(this,Events.SETTINGS_CREATE,0,0,state);}
+    @Override public void onCreate(Bundle state){super.onCreate(state);Native.bridge(this,Events.SETTINGS_CREATE,0,0,state);Analytics.start(this,session);Analytics.track("app_open");}
     @Override public void onDestroy(){Native.bridge(this,Events.SETTINGS_DESTROY,0,0,null);super.onDestroy();}
     @Override protected void onSaveInstanceState(Bundle state){Native.bridge(this,Events.SETTINGS_SAVE,0,0,state);super.onSaveInstanceState(state);}
     @Override protected void onActivityResult(int code,int result,Intent data){super.onActivityResult(code,result,data);Native.bridge(this,Events.SETTINGS_RESULT,code,result,data);}
@@ -264,6 +264,36 @@ final class AppearanceHierarchy implements ViewGroup.OnHierarchyChangeListener {
     AppearanceHierarchy(KeyboardAppearance appearance){this.appearance=appearance;}
     public void onChildViewAdded(View parent,View child){Native.bridge(appearance,Events.APPEAR_STYLE,0,0,child);}
     public void onChildViewRemoved(View parent,View child){}
+}
+"#,
+    );
+    write(
+        out,
+        "Analytics",
+        r#"
+import android.content.Context;
+import com.aptabase.Aptabase;
+import org.json.JSONObject;
+import java.util.Collections;
+final class Analytics {
+    static final String APP_KEY="A-US-4882313783";
+    private static boolean started;
+    private Analytics(){}
+    static synchronized void start(Context context,long session){
+        if(started||context==null){return;}
+        if(!enabled(session)){return;}
+        started=true;
+        Aptabase.getInstance().initialize(context.getApplicationContext(),APP_KEY,null);
+    }
+    static void track(String event){
+        if(!started){return;}
+        Aptabase.getInstance().trackEvent(event,Collections.<String,Object>emptyMap());
+    }
+    private static boolean enabled(long session){
+        if(session==0){return false;}
+        try{return new JSONObject(Native.control(session,"{\"op\":\"settings_get\"}")).optBoolean("AnalyticsEnabled",false);}
+        catch(Exception e){return false;}
+    }
 }
 "#,
     );

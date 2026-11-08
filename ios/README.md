@@ -3,7 +3,7 @@
 <a id="meltype-for-ios"></a>
 <p align="center"><img src="../assets/branding/readme/ios/hero.svg" alt="Meltype-FLASH for iOS" width="1000"></p>
 <p align="center"><b>稲妻のように、言葉の壁を駆け抜ける日本語入力。</b></p>
-<p align="center"><a href="https://github.com/appipinopi/Meltype-Flash/releases/latest"><img src="https://img.shields.io/badge/Flash-v1.0.8-ffe34a" alt="Flash v1.0.8"></a> <img src="https://img.shields.io/badge/status-正式版-666973" alt="正式版"></p>
+<p align="center"><a href="https://github.com/appipinopi/Meltype-Flash/releases/latest"><img src="https://img.shields.io/badge/Flash-v1.0.9-ffe34a" alt="Flash v1.0.9"></a> <img src="https://img.shields.io/badge/status-正式版-666973" alt="正式版"></p>
 <p align="center"><a href="#インストール">ダウンロード・導入</a> · <a href="#使い方">使い方</a> · <a href="#困ったとき">困ったとき</a> · <a href="https://github.com/appipinopi/Meltype-Flash/issues/new/choose">不具合の報告・提案</a></p>
 <p align="center">
   <a href="../rust/WINDOWS-PACKAGE.md"><img src="../assets/branding/readme/cards/os-windows.svg" alt="Windows" width="32%"></a>
@@ -110,6 +110,7 @@ Pre6で追加した[署名・公証・PALソースJSONの生成手順](ALTSTORE-
 <h2><img src="../assets/branding/readme/ios/headings/b4b5391c3c92.svg" alt="プライバシー" width="1000"></h2>
 
 入力内容を通信・記録する機能はありません。アプリ内のコピー・ペーストはユーザーが標準メニューから操作したときにiOSが処理します。入力履歴や学習は保存しません。選んだ配列はキーボード内に保存します。
+アプリ本体の画面で「利用状況を送る」を入れた場合だけ、Aptabaseへ匿名の利用回数（アプリの版・OSの版・画面を開いた回数）を送ります。入力内容・入力履歴・辞書・設定値は送らず、キーボード拡張からは送りません。既定は無効で、いつでも切れます（切ると次の起動から送りません）。
 キーボードの制限はiOSと使用中のアプリの挙動にも従います。
 署名・アプリ導入に使うApple IDや認証情報を不具合報告へ添付しないでください。
 

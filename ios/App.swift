@@ -16,6 +16,10 @@ final class AppDelegate: UIResponder, UIApplicationDelegate {
         navigation.navigationBar.tintColor = .label
         window.rootViewController = navigation
         window.makeKeyAndVisible(); self.window = window
+        // 利用状況の集計は、アプリの画面で入れた人だけ。キーボード拡張では呼ばない。
+        FlashAnalytics.start()
+        FlashAnalytics.track("app_open")
+        if SetupViewController.hasKeyboardExtension() { FlashAnalytics.track("keyboard_ready") }
         return true
     }
 }
@@ -27,6 +31,7 @@ final class SetupViewController: UIViewController, UITextViewDelegate {
     private let preview = KeyboardPreviewView()
     private let appearanceStore = KeyboardAppearanceStore()
     private var settings: UIButton!
+    private let analyticsSwitch = UISwitch()
 
     static func hasKeyboardExtension(in app: Bundle = .main) -> Bool {
         guard let plugins = app.builtInPlugInsURL,
@@ -109,6 +114,15 @@ final class SetupViewController: UIViewController, UITextViewDelegate {
             placeholder.topAnchor.constraint(equalTo: field.frameLayoutGuide.topAnchor, constant: 14)
         ])
         test.addArrangedSubview(field); stack.addArrangedSubview(AppStyle.card(test))
+        analyticsSwitch.isOn = FlashAnalytics.isEnabled
+        analyticsSwitch.onTintColor = AppStyle.yellow
+        analyticsSwitch.accessibilityIdentifier = "analytics-switch"
+        analyticsSwitch.accessibilityLabel = "利用状況を送る"
+        analyticsSwitch.addTarget(self, action: #selector(toggleAnalytics), for: .valueChanged)
+        let usage = AppStyle.column(spacing: 8)
+        usage.addArrangedSubview(AppStyle.row([AppStyle.symbol("chart.bar", color: .secondaryLabel), AppStyle.label("利用状況を送る", .headline), UIView(), analyticsSwitch]))
+        usage.addArrangedSubview(AppStyle.label("OSと版、画面を開いた回数だけを匿名で送ります。入力内容・辞書・設定は送りません。", .caption1, color: .secondaryLabel))
+        stack.addArrangedSubview(AppStyle.card(usage))
         let privacy = AppStyle.label("通常入力はフルアクセス不要\nshuntiは共有モデルへのアクセスを許可すると使えます。入力内容は送信しません。", .caption1, color: .secondaryLabel)
         let privacyRow = AppStyle.row([AppStyle.symbol("lock.shield", color: .secondaryLabel), privacy])
         stack.addArrangedSubview(privacyRow)
@@ -147,4 +161,5 @@ final class SetupViewController: UIViewController, UITextViewDelegate {
     @objc private func openAISettings() { navigationController?.pushViewController(AISettingsViewController(), animated: true) }
     @objc private func openAppearance() { navigationController?.pushViewController(AppearanceViewController(), animated: true) }
     @objc private func endEditing() { view.endEditing(true) }
+    @objc private func toggleAnalytics() { FlashAnalytics.setEnabled(analyticsSwitch.isOn) }
 }

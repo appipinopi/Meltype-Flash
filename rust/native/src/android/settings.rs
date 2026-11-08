@@ -40,6 +40,7 @@ const TOGGLES: &[(&str, &str)] = &[
     ("TabConversion", "Tabで変換"),
     ("ContinueAfterConversion", "変換後も入力を続ける"),
     ("SeparateKeyRoles", "変換キーの役割を分ける"),
+    ("AnalyticsEnabled", "利用状況を匿名で送る"),
 ];
 fn ai_installed(handle: jlong, id: &str) -> bool {
     let Some(model) = meltype_core::ai_catalog::find(id).filter(|m| m.family == "Shunti") else {
@@ -102,6 +103,10 @@ pub(super) fn page(handle: jlong, page: jint) -> Result<Value> {
             for (name, text) in TOGGLES {
                 nodes.push(json!({"type":"toggle","text":text,"checked":settings[name].as_bool().unwrap_or(false),"action":{"action":"toggle","name":name}}));
             }
+            label(
+                &mut nodes,
+                "利用状況を送るときも、送るのはアプリの版・OSの版・起動回数だけです。入力内容・入力履歴・辞書・設定値は送りません。既定は無効です。",
+            );
             label(
                 &mut nodes,
                 "ソフトキーボードはローマ字入力です。JISかな入力は外付けキーボードで使用できます。",
@@ -515,7 +520,7 @@ mod tests {
                 .iter()
                 .filter(|n| n["type"] == "toggle")
                 .count(),
-            13
+            14
         );
         profile
             .act(

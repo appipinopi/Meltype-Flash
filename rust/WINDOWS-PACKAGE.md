@@ -3,7 +3,7 @@
 <a id="meltype-for-windows"></a>
 <p align="center"><img src="../assets/branding/readme/windows/hero.svg" alt="Meltype-FLASH for Windows" width="1000"></p>
 <p align="center"><b>稲妻のように、言葉の壁を駆け抜ける日本語入力。</b></p>
-<p align="center"><a href="https://github.com/appipinopi/Meltype-Flash/releases/latest"><img src="https://img.shields.io/badge/Flash-v1.0.8-ffe34a" alt="Flash v1.0.8"></a> <img src="https://img.shields.io/badge/status-正式版-666973" alt="正式版"></p>
+<p align="center"><a href="https://github.com/appipinopi/Meltype-Flash/releases/latest"><img src="https://img.shields.io/badge/Flash-v1.0.9-ffe34a" alt="Flash v1.0.9"></a> <img src="https://img.shields.io/badge/status-正式版-666973" alt="正式版"></p>
 <p align="center"><a href="#インストール">ダウンロード・導入</a> · <a href="#使い方">使い方</a> · <a href="#困ったとき">困ったとき</a> · <a href="https://github.com/appipinopi/Meltype-Flash/issues/new/choose">不具合の報告・提案</a></p>
 <p align="center">
   <a href="WINDOWS-PACKAGE.md"><img src="../assets/branding/readme/cards/os-windows-active.svg" alt="Windows" width="32%"></a>
@@ -114,6 +114,8 @@ OS辞書・ライブ変換・確定後訂正・学習の永続保存など、登
 登録したIMEの既定データは `%LOCALAPPDATA%\Meltype-flash`、ポータブル起動は展開先の `data` を使います。
 通常の入力と変換は端末内で処理します。更新確認・更新ファイルの取得や、自分で開く不具合報告は通信を伴います。
 本家の個人データを自動で取り込む前提にはしていません。
+設定画面で「利用状況を匿名で送る」を入れた場合だけ、Aptabaseへ匿名の利用回数（アプリの版・OSの版・起動回数）を送ります。入力内容・入力履歴・辞書・設定値は送りません。既定は無効で、いつでも切れます（切ると次の起動から送りません）。
+「打鍵数」の画面で「打鍵を数える」を入れた場合だけ、合計と日ごとの打鍵数を端末内（`keycount.json`）に保存します。打った文字は残しません。同じ画面で「Discord のステータスに表示する」を入れた場合は、今日と合計の回数・1分あたりの回数・起動からの経過だけをDiscordのローカルIPCへ送ります（外のサーバーは通りません）。どちらも既定は無効です。
 
 <a id="困ったとき"></a>
 <h2><img src="../assets/branding/readme/windows/headings/ecff8916cc2a.svg" alt="困ったとき" width="1000"></h2>

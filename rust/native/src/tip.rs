@@ -4,9 +4,46 @@
 //! connection; session IDs cannot address sessions in other connections.
 use super::*;
 use serde_json::{json, Value};
+#[cfg(not(test))]
+use std::sync::atomic::AtomicU64;
 static CONNECTIONS: OnceLock<Mutex<HashMap<usize, HashMap<String, usize>>>> = OnceLock::new();
 fn connections() -> &'static Mutex<HashMap<usize, HashMap<String, usize>>> {
     CONNECTIONS.get_or_init(|| Mutex::new(HashMap::new()))
+}
+/// 打鍵数 (keycount.json)。打った文字は残さず、日ごとの回数だけを足す。
+#[cfg(not(test))]
+fn key_counter() -> &'static Mutex<meltype_core::keycount::KeyCounter> {
+    static COUNTER: OnceLock<Mutex<meltype_core::keycount::KeyCounter>> = OnceLock::new();
+    COUNTER.get_or_init(|| {
+        Mutex::new(meltype_core::keycount::KeyCounter::load(
+            meltype_core::storage::Store::default_directory(),
+        ))
+    })
+}
+/// 1 打鍵を数える。数える設定のときだけ。押しっぱなしの繰り返しもそのまま数える
+/// (TSF から来る key は押した回数だけ)。
+#[cfg(not(test))]
+fn count_key() {
+    static KEYS: AtomicU64 = AtomicU64::new(0);
+    let Ok(mut counter) = key_counter().lock() else {
+        return;
+    };
+    let index = KEYS.fetch_add(1, Ordering::Relaxed);
+    // 設定画面で入れた変更を、次の打鍵から反映させる (64 打ごとに読み直す)。
+    if index.is_multiple_of(64) {
+        counter.refresh();
+    }
+    counter.count_key(&meltype_core::keycount::today());
+    // 書き込みは 20 打ごとにまとめる。終了時は meltype_tip_destroy で書く。
+    if index.is_multiple_of(20) {
+        let _ = counter.flush();
+    }
+}
+#[cfg(not(test))]
+fn flush_key_count() {
+    if let Ok(mut counter) = key_counter().lock() {
+        let _ = counter.flush();
+    }
 }
 
 #[no_mangle]
@@ -20,6 +57,8 @@ pub extern "C" fn meltype_tip_create() -> *mut c_void {
 }
 #[no_mangle]
 pub extern "C" fn meltype_tip_destroy(handle: *mut c_void) {
+    #[cfg(not(test))]
+    flush_key_count();
     if let Ok(mut all) = connections().lock() {
         if let Some(sessions) = all.remove(&(handle as usize)) {
             for (_, id) in sessions {
@@ -136,6 +175,10 @@ unsafe fn request_inner(connection: *mut c_void, request: *const c_char) -> Opti
             )
         }
         "key" => {
+            #[cfg(not(test))]
+            if request["private"] != true {
+                count_key();
+            }
             meltype_set_direct(handle, i32::from(request["direct"] == true));
             let before = request["before"]
                 .as_str()
