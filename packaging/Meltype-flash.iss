@@ -39,7 +39,10 @@ Name: "english"; MessagesFile: "compiler:Default.isl"
 Source: "{#SourceDir}\*"; DestDir: "{app}"; Flags: ignoreversion recursesubdirs createallsubdirs
 Source: "Invoke-FlashSetup.ps1"; DestDir: "{app}"; Flags: ignoreversion
 [Icons]
-Name: "{commonprograms}\Meltype-flash 設定"; Filename: "{app}\meltype-flash.exe"
+Name: "{commonprograms}\Meltype-FLASH"; Filename: "{app}\meltype-flash.exe"; WorkingDir: "{app}"; IconFilename: "{app}\meltype-flash.exe"; Comment: "Meltype-FLASH"
+Name: "{commonprograms}\Meltype-FLASH 設定"; Filename: "{app}\meltype-flash.exe"; WorkingDir: "{app}"; IconFilename: "{app}\meltype-flash.exe"; Comment: "Meltype-FLASH の設定"
+[Registry]
+Root: HKLM; Subkey: "SOFTWARE\Microsoft\Windows\CurrentVersion\App Paths\Meltype-FLASH.exe"; ValueType: string; ValueName: ""; ValueData: "{app}\meltype-flash.exe"; Flags: uninsdeletekey
 [Code]
 var InstallFailed: Boolean;
 function Manage(Action: String): Boolean;

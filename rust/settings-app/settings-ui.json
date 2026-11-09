@@ -609,6 +609,20 @@
       "category": "8. ログ",
       "label": "ログに入力した文字を残す",
       "description": "確定した文字列・打った英字・読み・直した語をログに残します (不具合を調べるとき用)。OFF なら文字数だけを残します。パスワード欄では入力を扱わないので残りません。"
+    },
+    {
+      "key": "UiLanguage",
+      "type": "UiLanguage",
+      "category": "1. 全般",
+      "label": "設定画面の言語",
+      "description": "設定画面の表示言語です。自動はOSの言語に合わせます。"
+    },
+    {
+      "key": "StartConversionAtLastClause",
+      "type": "Boolean",
+      "category": "3. 候補",
+      "label": "変換を始めたときに最後の文節を選ぶ",
+      "description": "SpaceやTabで変換を始めたとき、先頭ではなく最後の文節を選んだ状態にします。長い文を後ろから直すときに使います。"
     }
   ],
   "enums": {
@@ -665,6 +679,11 @@
       "General": "一般",
       "Code": "コード",
       "Game": "ゲーム"
+    },
+    "UiLanguage": {
+      "Auto": "自動 (OSに合わせる)",
+      "Japanese": "日本語",
+      "English": "English"
     }
   }
 }

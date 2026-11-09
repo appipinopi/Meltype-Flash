@@ -36,7 +36,7 @@ results=[]
 for name,title in [('log','ログ / 判定理由'),('report','不具合の報告・提案'),('corrections','直した誤判定を報告'),('about','について'),('updates','更新')]:
     with tempfile.TemporaryDirectory(prefix='flash-native-dialog-') as temporary:
         root=Path(temporary)
-        config=json.dumps(dict(SettingsVersion=settings_version,LearningEnabled=False,WelcomeShown=True,TsfIntroduced=True,AutoUpdate=False))
+        config=json.dumps(dict(SettingsVersion=settings_version,LearningEnabled=False,WelcomeShown=True,TsfIntroduced=True,AutoUpdate=False,UiLanguage='Japanese'))
         (root/'config.json').write_text(config,encoding='utf-8')
         (root/'userdict.txt').write_text('はし\t橋\n',encoding='utf-8')
         env=dict(os.environ,MELTYPE_FLASH_DATA_DIR=str(root),MELTYPE_RUST_DATA_DIR=str(root),MELTYPE_UI_CAPTURE=str(root/'capture'),MELTYPE_UI_LIFECYCLE=name,MELTYPE_UI_PAGE='0',MELTYPE_UI_CAPTURE_NATIVE_DIALOG='1')

@@ -417,7 +417,7 @@ impl Linguistics {
                 }
             }
         }
-        // FLASH spells its current version as "Meltype-FLASH 1.1.1", which the
+        // FLASH spells its current version as "Meltype-FLASH 1.1.2", which the
         // upstream prefix check above does not cover.
         if let Some(index) = text.find("Meltype-FLASH") {
             let rest = &text[index + "Meltype-FLASH".len()..];

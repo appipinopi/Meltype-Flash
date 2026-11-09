@@ -28,6 +28,7 @@ mod phrase_spacing;
 pub mod prefix_learning;
 pub mod protection;
 pub mod romaji;
+pub mod seasonal;
 pub mod session;
 pub mod settings;
 pub mod settings_schema;

@@ -44,6 +44,25 @@ for match in re.finditer(r"public enum (\w+)\s*\{(.*?)\n\}", source, re.S):
         r'\[Description\("((?:\\.|[^"\\])*)"\)\]\s*(\w+)', match[2])}
 assert fields and len({f["key"] for f in fields}) == len(fields)
 assert all(f["label"] and f["category"] for f in fields)
+# Flash-only settings that are not in the pinned upstream metadata. Keeping
+# them here lets --check continue to verify the upstream fields exactly while
+# still shipping the extra settings.
+FLASH_FIELDS = [
+    dict(key="UiLanguage", type="UiLanguage", category="1. 全般",
+         label="設定画面の言語",
+         description="設定画面の表示言語です。自動はOSの言語に合わせます。"),
+    dict(key="StartConversionAtLastClause", type="Boolean", category="3. 候補",
+         label="変換を始めたときに最後の文節を選ぶ",
+         description="SpaceやTabで変換を始めたとき、先頭ではなく最後の文節を選んだ状態にします。長い文を後ろから直すときに使います。"),
+]
+FLASH_ENUMS = {
+    "UiLanguage": {"Auto": "自動 (OSに合わせる)", "Japanese": "日本語", "English": "English"},
+}
+for field in FLASH_FIELDS:
+    if field["key"] not in {item["key"] for item in fields}:
+        fields.append(field)
+for name, values in FLASH_ENUMS.items():
+    enums.setdefault(name, values)
 data = dict(upstream=baseline, fields=fields, enums=enums)
 text = json.dumps(data, ensure_ascii=False, indent=2) + "\n"
 path = root / "rust/settings-app/settings-ui.json"

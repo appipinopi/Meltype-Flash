@@ -78,6 +78,10 @@ pub fn candidates(reading: &str, now: NaiveDateTime) -> Vec<String> {
     if let Some(typed) = typed(reading, now.date()) {
         return typed;
     }
+    let seasonal = crate::seasonal::candidates(reading, now.date());
+    if !seasonal.is_empty() {
+        return seasonal;
+    }
     if matches!(reading, "じこう" | "じこうのあいさつ") {
         return crate::number_candidates::seasonal(now.month());
     }
@@ -98,7 +102,7 @@ pub fn candidates(reading: &str, now: NaiveDateTime) -> Vec<String> {
     let slash_date = format!("{year:04}/{month:02}/{day:02}");
     let clock = format!("{hour:02}:{minute:02}");
     if !is_now {
-        return vec![
+        let mut values = vec![
             date.clone(),
             format!("{date}({week})"),
             month_day.clone(),
@@ -110,6 +114,10 @@ pub fn candidates(reading: &str, now: NaiveDateTime) -> Vec<String> {
             format!("{week}曜日"),
             format!("{year:04}{month:02}{day:02}"),
         ];
+        if let Some(event) = crate::seasonal::event(now.date()) {
+            values.push(event.label().to_owned());
+        }
+        return values;
     }
     let time = format!("{hour}時{minute}分");
     vec![
