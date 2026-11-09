@@ -18,7 +18,7 @@ public final class SettingsHost {
             for(int page=0;page<6;page++) {
                 String result=Native.settingsPage(session,page);check(result.contains("\"nodes\":[")&&!result.contains("\"error\":"),result);
             }
-            String page=Native.settingsPage(session,0);check(page.split("\"type\":\"toggle\"",-1).length-1==14,"14 existing controls");
+            String page=Native.settingsPage(session,0);check(page.split("\"type\":\"toggle\"",-1).length-1==13,"13 existing controls");
             check(page.contains("入力を有効にする")&&page.contains("定型文の開始記号"),page);
             action(session,"{\"action\":\"ai_select\",\"value\":1}","{}");
             page=Native.settingsPage(session,0);
@@ -44,7 +44,7 @@ public final class SettingsHost {
             for(String input:new String[]{"broken","{\"action\":\"dictionary_add\"}","{\"action\":\"unknown\"}"})
                 check(Native.settingsAction(session,input,"{}").contains("\"error\":"),"invalid operation rejected");
             check(Native.settingsPage(session,6).contains("\"error\":"),"invalid page rejected");
-            System.out.println("Android JNI settings: six page models, 14 controls, Unicode actions, separate-session persistence, confirmation/document plans and malformed input passed (framework rendering tested separately)");
+            System.out.println("Android JNI settings: six page models, 13 controls, Unicode actions, separate-session persistence, confirmation/document plans and malformed input passed (framework rendering tested separately)");
         } finally {
             Native.destroy(session);
             try(var paths=Files.walk(root)){for(Path path:paths.sorted(java.util.Comparator.reverseOrder()).toList())Files.delete(path);}

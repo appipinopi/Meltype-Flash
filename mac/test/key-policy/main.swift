@@ -797,8 +797,8 @@ for direct in [false,true] {for code in [false,true] {for indicator in [false,tr
         precondition((a.target as AnyObject?) === (e.target as AnyObject?))
     }
     menuTarget.actions=[]
-    for index in [0,1,2,4,5,8] {actual.performActionForItem(at:index)}
-    precondition(menuTarget.actions==["automatic","direct","code","indicator","import","report"],"native SDK menu dispatch changed")
+    for index in [0,1,2,4,5] {actual.performActionForItem(at:index)}
+    precondition(menuTarget.actions==["automatic","direct","code","indicator","import"],"native SDK menu dispatch changed")
     menuCases+=1
 }}}
 let menuBackgroundDone=DispatchSemaphore(value:0)
@@ -807,7 +807,7 @@ DispatchQueue.global().async {
     menuBackgroundDone.signal()
 }
 precondition(menuBackgroundDone.wait(timeout:.now()+5) == .success)
-print("macOS Rust menu: \(menuCases) actual NSMenus compared with former Swift, title/order/separator/checks/key equivalents/targets and six owned target actions, autorelease ownership and background rejection passed (OS input-menu presentation not tested)")
+print("macOS Rust menu: \(menuCases) actual NSMenus compared with former Swift, title/order/separator/checks/key equivalents/targets and five owned target actions, autorelease ownership and background rejection passed (OS input-menu presentation not tested)")
 
 let dictionaryRows:[[String:Any]]=[
     ["reading":" カタカナ ","phrase":" 単語 "], ["shortcut":"ｶﾅ","word":"半角"],
