@@ -93,6 +93,27 @@ function Register-Server([string]$Arch,[string]$Dll,[switch]$Remove) {
     $process = Start-Process -FilePath $exe -ArgumentList $arguments -WindowStyle Hidden -Wait -PassThru
     if ($process.ExitCode -ne 0) { throw "regsvr32 $Arch failed: $($process.ExitCode)" }
 }
+function Set-StartMenuShortcut([string]$Exe) {
+    $programs = [Environment]::GetFolderPath('CommonPrograms')
+    $shortcut = Join-Path $programs 'Meltype-FLASH.lnk'
+    $shell = New-Object -ComObject WScript.Shell
+    $link = $shell.CreateShortcut($shortcut)
+    $link.TargetPath = $Exe
+    $link.WorkingDirectory = Split-Path -Parent $Exe
+    $link.IconLocation = "$Exe,0"
+    $link.Description = 'Meltype-FLASH'
+    $link.Save()
+    $key = 'HKLM:\SOFTWARE\Microsoft\Windows\CurrentVersion\App Paths\Meltype-FLASH.exe'
+    New-Item -Path $key -Force | Out-Null
+    Set-ItemProperty -Path $key -Name '(default)' -Value $Exe
+    Write-Host "Start menu shortcut: $shortcut"
+}
+function Remove-StartMenuShortcut {
+    $shortcut = Join-Path ([Environment]::GetFolderPath('CommonPrograms')) 'Meltype-FLASH.lnk'
+    if (Test-Path -LiteralPath $shortcut) { Remove-Item -LiteralPath $shortcut -Force }
+    $key = 'HKLM:\SOFTWARE\Microsoft\Windows\CurrentVersion\App Paths\Meltype-FLASH.exe'
+    if (Test-Path -LiteralPath $key) { Remove-Item -LiteralPath $key -Recurse -Force }
+}
 function Invoke-StartupMaintenance([string]$Exe, [ValidateSet('rebind','disable','stop-tray')][string]$Operation) {
     if (-not (Test-Path -LiteralPath $Exe -PathType Leaf)) { throw "Startup helper missing: $Exe" }
     $report = [IO.Path]::GetTempFileName()
@@ -177,6 +198,7 @@ function Remove-ManagedFiles([string]$Root) {
 }
 if ($Action -eq 'Cleanup') {
     if ($null -eq $state -or $state.unregistered -ne $true) { throw 'Uninstall must complete before Cleanup.' }
+    Remove-StartMenuShortcut
     foreach ($arch in 'x64','x86') {
         if ($old[$arch] -and $old[$arch].StartsWith($installRoot+'\',[StringComparison]::OrdinalIgnoreCase)) { throw 'Installed IME is still registered; cleanup refused.' }
     }
@@ -201,6 +223,7 @@ if ($Action -eq 'Uninstall') {
     $state | Add-Member -NotePropertyName unregistered -NotePropertyValue $true -Force
     $state | ConvertTo-Json | Set-Content -LiteralPath "$statePath.tmp" -Encoding UTF8
     Move-Item -LiteralPath "$statePath.tmp" -Destination $statePath -Force
+    try { Remove-StartMenuShortcut } catch { Write-Warning "Could not remove the Start menu shortcut: $_" }
     Remove-ManagedFiles $installRoot
     Write-Host 'IME unregistered. Current-user tray/startup were processed unless explicitly skipped. User data is retained.'
     return
@@ -256,5 +279,7 @@ if (-not $SkipCurrentUserStartup) {
         throw "IME installation completed, but current-user startup was not updated: $_. Old version files were retained; retry the startup helper from the new folder."
     }
 }
+try { Set-StartMenuShortcut (Join-Path $versionRoot 'meltype-flash.exe') }
+catch { Write-Warning "Could not create the Start menu shortcut: $_" }
 Write-Host "Installed: $versionRoot. Select Meltype-FLASH in Windows language settings; restart open applications."
 Write-Host "Start tray: & '$versionRoot\meltype-flash.exe' --tray"

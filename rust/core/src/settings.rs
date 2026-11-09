@@ -27,6 +27,7 @@ const SHARED: &[&str] = &[
     "TsfOffered",
     "SettingsShowHelp",
     "SettingsWheelChangesValue",
+    "UiLanguage",
 ];
 fn same_type(default: &Value, value: &Value) -> bool {
     match default {

@@ -49,6 +49,8 @@
   "TsfOffered": false,
   "SettingsShowHelp": true,
   "SettingsWheelChangesValue": true,
+  "UiLanguage": "Auto",
+  "StartConversionAtLastClause": false,
   "Profiles": [],
   "ActiveProfile": "標準",
   "SessionIdleMs": 1500,

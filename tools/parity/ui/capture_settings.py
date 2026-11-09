@@ -14,7 +14,7 @@ results=[]
 for page,name in enumerate(['settings','dictionary','snippets','learning','backup','input-test','key-count']):
     if a.pages and name not in a.pages: continue
     profile=(a.output/(name+'-profile')).resolve();profile.mkdir()
-    config=json.dumps(dict(SettingsVersion=settings_version,LearningEnabled=False,LiveConversion=False,WelcomeShown=True,TsfIntroduced=True,AutoUpdate=False))
+    config=json.dumps(dict(SettingsVersion=settings_version,LearningEnabled=False,LiveConversion=False,WelcomeShown=True,TsfIntroduced=True,AutoUpdate=False,UiLanguage='Japanese'))
     (profile/'config.json').write_text(config,encoding='utf-8')
     (profile/'userdict.txt').write_text('はし\t橋\nはし\t箸\n',encoding='utf-8')
     output=(a.output/name).resolve()

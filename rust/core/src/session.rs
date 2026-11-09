@@ -2365,7 +2365,15 @@ impl Session {
         self.rank_clauses(&mut clauses);
         self.live_clauses.clear();
         self.clauses = clauses;
-        self.selected_clause = 0;
+        self.selected_clause = if self.settings.boolean("StartConversionAtLastClause") {
+            self.clauses.len().saturating_sub(1)
+        } else {
+            0
+        };
+        self.selected = self
+            .clauses
+            .get(self.selected_clause)
+            .map_or(0, |clause| clause.selected);
         self.explicit = None;
         self.selected_prediction = -1;
         self.sync_clause();

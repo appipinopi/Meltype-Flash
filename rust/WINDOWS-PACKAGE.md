@@ -3,7 +3,7 @@
 <a id="meltype-for-windows"></a>
 <p align="center"><img src="../assets/branding/readme/windows/hero.svg" alt="Meltype-FLASH for Windows" width="1000"></p>
 <p align="center"><b>稲妻のように、言葉の壁を駆け抜ける日本語入力。</b></p>
-<p align="center"><a href="https://github.com/appipinopi/Meltype-Flash/releases/latest"><img src="https://img.shields.io/badge/Flash-v1.1.1-ffe34a" alt="Flash v1.1.1"></a> <img src="https://img.shields.io/badge/status-正式版-666973" alt="正式版"></p>
+<p align="center"><a href="https://github.com/appipinopi/Meltype-Flash/releases/latest"><img src="https://img.shields.io/badge/Flash-v1.1.2-ffe34a" alt="Flash v1.1.2"></a> <img src="https://img.shields.io/badge/status-正式版-666973" alt="正式版"></p>
 <p align="center"><a href="#インストール">ダウンロード・導入</a> · <a href="#使い方">使い方</a> · <a href="#困ったとき">困ったとき</a> · <a href="https://github.com/appipinopi/Meltype-Flash/issues/new/choose">不具合の報告・提案</a></p>
 <p align="center">
   <a href="WINDOWS-PACKAGE.md"><img src="../assets/branding/readme/cards/os-windows-active.svg" alt="Windows" width="32%"></a>
@@ -45,6 +45,8 @@ Windows ARM64向けのネイティブ配布を案内するものではありま�
 
 <a id="インストール"></a>
 <h2><img src="../assets/branding/readme/windows/headings/4f36b3b314d8.svg" alt="インストール" width="1000"></h2>
+
+インストールすると、スタートメニューとWinキーのアプリ一覧に「Meltype-FLASH」が登録されます。ZIPを展開して使う場合は、`rust/Start-Portable.ps1 -InstallShortcut` でスタートメニューへ登録してから起動できます。
 
 <a id="セットアップ版"></a>
 <h3><img src="../assets/branding/readme/windows/headings/f361bd6b29a2.svg" alt="セットアップ版" width="1000"></h3>

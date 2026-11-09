@@ -297,3 +297,23 @@ fn v150_delete_forgets_the_selected_learned_prediction() {
         .iter()
         .all(|phrase| phrase.text != "おはようございます！"));
 }
+
+#[test]
+fn issue_1620_conversion_can_start_at_the_last_clause() {
+    for (enabled, expected) in [(false, 0usize), (true, 1usize)] {
+        let mut session = Session::default();
+        session
+            .settings
+            .set("StartConversionAtLastClause", json!(enabled))
+            .unwrap();
+        type_text(&mut session, "kyouhaii");
+        assert!(session.begin_clauses(vec![
+            Clause::new("きょうは".into(), vec!["今日は".into(), "きょうは".into()]),
+            Clause::new("いい".into(), vec!["いい".into(), "良い".into()]),
+        ]));
+        let view = session.result(false).view.unwrap();
+        assert_eq!(view.selected_clause, expected, "enabled={enabled}");
+        assert_eq!(view.selected_index, 0);
+        assert_eq!(view.text, "今日はいい");
+    }
+}

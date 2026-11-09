@@ -2,6 +2,13 @@
   "upstream": "46db6ca2f941eb9580f4d5ed103ee0bee71111c7",
   "fields": [
     {
+      "key": "UiLanguage",
+      "type": "UiLanguage",
+      "category": "1. 全般",
+      "label": "設定画面の言語",
+      "description": "設定画面の表示言語です。自動はOSの言語に合わせます。"
+    },
+    {
       "key": "Enabled",
       "type": "Boolean",
       "category": "1. 全般",
@@ -91,6 +98,13 @@
       "category": "1. 全般",
       "label": "半角数字の前後に半角スペース",
       "description": "確定するときに、日本語と半角数字の間に半角スペースを入れます (この処理を3回実行します → この処理を 3 回実行します)。技術文書などの表記に合わせるとき用です。全角数字 (３回) には入れません。"
+    },
+    {
+      "key": "StartConversionAtLastClause",
+      "type": "Boolean",
+      "category": "3. 候補",
+      "label": "変換を始めたときに最後の文節を選ぶ",
+      "description": "SpaceやTabで変換を始めたとき、先頭ではなく最後の文節を選んだ状態にします。長い文を後ろから直すときに使います。"
     },
     {
       "key": "NumberKeysSelectCandidates",
@@ -612,6 +626,11 @@
     }
   ],
   "enums": {
+    "UiLanguage": {
+      "Auto": "自動 (OSに合わせる)",
+      "Japanese": "日本語",
+      "English": "English"
+    },
     "InputStyle": {
       "Romaji": "ローマ字入力",
       "Kana": "かな入力 (JIS、α版)"

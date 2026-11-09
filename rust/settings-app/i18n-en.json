@@ -1,0 +1,486 @@
+{
+  "categories": {
+    "1. 全般": "1. General",
+    "1a. AI": "1a. AI",
+    "2. 表示": "2. Display",
+    "3. 候補": "3. Candidates",
+    "5. 学習": "5. Learning",
+    "6. IME": "6. IME",
+    "7. アプリ": "7. Apps",
+    "8. ログ": "8. Logs",
+    "9. 更新": "9. Updates"
+  },
+  "fields": {
+    "Enabled": {
+      "label": "Enable Meltype",
+      "description": "Turn the IME and keyboard input on or off."
+    },
+    "JapaneseKeyboardOnly": {
+      "label": "Only while the Windows input language is Japanese",
+      "description": "Suspend Meltype while the Windows input language is English or another language, and resume when it returns to Japanese."
+    },
+    "AllowInjectedInput": {
+      "label": "Accept injected input",
+      "description": "Also handle keys sent by remote desktop, VNC, and key-layout tools. Turn this off if another tool's keys should pass through unchanged."
+    },
+    "Mode": {
+      "label": "Input mode",
+      "description": "Tsf: use Meltype as a Windows IME (select it with Win+Space). Keyboard: use Meltype's own conversion box (typing English stays English; Space converts and Enter commits)."
+    },
+    "ToggleShortcuts": {
+      "label": "Input-mode toggle keys",
+      "description": "Register one or more shortcuts that switch between Japanese and English input. Avoid shortcuts already used by Windows or other applications."
+    },
+    "ConvertKeysSwitchKeyboard": {
+      "label": "Henkan to English / Muhenkan to Japanese",
+      "description": "In keyboard mode, when no conversion box is open, Henkan switches to English and Muhenkan switches to Japanese input."
+    },
+    "AltKeysSwitchKeyboard": {
+      "label": "Left Alt to English / Right Alt to Japanese",
+      "description": "Pressing Left Alt alone switches to English and Right Alt alone switches to Japanese. Alt+Tab and Alt+click are not affected."
+    },
+    "AutoCorrectAfterCommit": {
+      "label": "Correct after the surrounding text",
+      "description": "If a word such as i or sushi is committed as one reading, commit it again automatically once the following word makes English or Japanese clear."
+    },
+    "DirectModeAutoDetect": {
+      "label": "Detect romaji in English mode",
+      "description": "In English mode, detect when you start typing a romaji word and switch back to Japanese input automatically."
+    },
+    "SigilWordsDirect": {
+      "label": "Pass / $ @ at the start as typed",
+      "description": "In keyboard mode, a line beginning with /, $, or @ is passed to the application without conversion so agent commands and file mentions work."
+    },
+    "SnippetMark": {
+      "label": "Snippet trigger",
+      "description": "In keyboard mode, type this mark and a snippet name, then Space or Tab, to insert a registered snippet. Esc returns to the typed text."
+    },
+    "SpaceAroundEnglish": {
+      "label": "Half-width spaces around English",
+      "description": "Insert half-width spaces between Japanese and English words when committing. Numbers and URLs without Japanese context are left alone."
+    },
+    "SpaceAroundNumbers": {
+      "label": "Half-width spaces around numbers",
+      "description": "Insert half-width spaces between Japanese and half-width numbers when committing."
+    },
+    "NumberKeysSelectCandidates": {
+      "label": "Number keys select candidates",
+      "description": "While converting, the top-row 1-9 keys select the numbered candidate. Numpad keys always select candidates."
+    },
+    "ShiftSpaceHalfWidth": {
+      "label": "Shift+Space enters a half-width space",
+      "description": "During Japanese input, Shift+Space inserts a half-width space instead of a full-width space."
+    },
+    "EnterCommitsAsShown": {
+      "label": "Enter commits what is shown",
+      "description": "Enter commits the text currently shown without applying typo correction. Space conversion still corrects typos."
+    },
+    "AlphanumericKeyStartsAsTyped": {
+      "label": "First F9/F10 press keeps the typed case",
+      "description": "The first F9 or F10 press keeps the visible English as typed; later presses cycle all-uppercase, capitalized, and lowercase."
+    },
+    "FullWidthParentheses": {
+      "label": "Full-width parentheses",
+      "description": "Convert ( ) typed during Japanese input to （ ）."
+    },
+    "FullWidthSlash": {
+      "label": "Full-width slash for Japanese",
+      "description": "Convert / typed after kana to ／ instead of ・."
+    },
+    "SquareBrackets": {
+      "label": "Full-width square brackets",
+      "description": "Convert [ ] typed during Japanese input to ［ ］ instead of 「 」."
+    },
+    "EscStepsBack": {
+      "label": "Esc steps back",
+      "description": "Esc undoes one step of the current input instead of clearing everything."
+    },
+    "EscRevertsSelectedClause": {
+      "label": "Esc in conversion restores the selected clause",
+      "description": "While converting, Esc restores the selected clause to kana instead of cancelling the whole conversion."
+    },
+    "FunctionKeysAffectSelectedClause": {
+      "label": "F6-F10 affect only the selected clause",
+      "description": "When converting multiple clauses, F6-F10 change only the selected clause instead of the whole text."
+    },
+    "CompatibleShortcuts": {
+      "label": "Ctrl+K / L resize the clause",
+      "description": "Ctrl+K shortens and Ctrl+L lengthens the selected clause during conversion."
+    },
+    "PartialCommit": {
+      "label": "Shift+Enter commits up to the selected clause",
+      "description": "Commit the selected clause and keep the remaining clauses in kana for further editing."
+    },
+    "MacControlKeys": {
+      "label": "macOS-style Control shortcuts",
+      "description": "Use Control+J/K/L for hiragana/katakana/full-width English and other macOS-style editing shortcuts."
+    },
+    "CursorIntoBrackets": {
+      "label": "Move the caret inside brackets",
+      "description": "After committing a bracket pair, place the caret inside it when the application supports caret movement."
+    },
+    "ControlKeyBindings": {
+      "label": "Control key bindings",
+      "description": "Bind Control plus a letter to another key, for example T=F6;Y=F7;U=F8;I=F9;O=F10."
+    },
+    "CalculatorCandidates": {
+      "label": "Calculator results as candidates",
+      "description": "When converting an expression containing only numbers and + - * / ( ), show the result and \"expression=result\" as candidates."
+    },
+    "LogKeyIntervals": {
+      "label": "Log key intervals (diagnostic)",
+      "description": "Record the interval between keys in the diagnostic log. Only timing is recorded, not the text."
+    },
+    "LaughterAfterKana": {
+      "label": "Single-kana + w becomes laughter",
+      "description": "Convert a single kana followed by w (for example なるほどw) to laughter instead of the English word new."
+    },
+    "ContextualLearning": {
+      "label": "Learn English and Japanese separately",
+      "description": "Remember whether an ambiguous word was chosen in an English or Japanese context and apply that choice in the same context."
+    },
+    "FullWidthSpaceByDefault": {
+      "label": "Full-width space by default",
+      "description": "Space inserts a full-width space during Japanese input; Shift+Space inserts a half-width space."
+    },
+    "ShowCandidatesWhileTyping": {
+      "label": "Show conversion candidates while typing",
+      "description": "Show up to five conversion candidates before Space is pressed."
+    },
+    "GitHubIssueCandidates": {
+      "label": "GitHub Issue/PR titles for #numbers",
+      "description": "Convert #123 to the title of the matching GitHub issue or pull request in the configured repository."
+    },
+    "GitHubRepository": {
+      "label": "GitHub repository",
+      "description": "Repository queried for #number candidates, written as owner/name."
+    },
+    "ClipboardCandidates": {
+      "label": "Clipboard text as a candidate",
+      "description": "Show one line of clipboard text (up to 200 characters) when converting a clipboard reading. Windows only."
+    },
+    "PauseHotkey": {
+      "label": "Pause/resume hotkey",
+      "description": "Shortcut that pauses and resumes Meltype. Changes take effect after restarting Meltype."
+    },
+    "Punctuation": {
+      "label": "Punctuation style",
+      "description": "Choose the comma and period used when typing , and . during Japanese input."
+    },
+    "JapanesePunctuationAfterEnglish": {
+      "label": "Japanese punctuation after English",
+      "description": "Convert a comma or period typed after an English word to the Japanese punctuation style."
+    },
+    "LiveConversion": {
+      "label": "Live conversion",
+      "description": "In keyboard mode, convert and display kana as you type, before Space is pressed."
+    },
+    "ConversionEngine": {
+      "label": "Conversion engine",
+      "description": "Engine used for kana-kanji conversion. Hybrid prefers Mozc and falls back to Microsoft IME."
+    },
+    "UseZenzai": {
+      "label": "Use Zenzai (Windows, experimental)",
+      "description": "Use the Zenzai neural kana-kanji conversion model with a separately installed llama-server and GGUF model."
+    },
+    "ZenzaiServerPath": {
+      "label": "Zenzai: llama-server path",
+      "description": "Path to llama-server used when Zenzai is enabled."
+    },
+    "ZenzaiModelPath": {
+      "label": "Zenzai: GGUF model path",
+      "description": "Path to the zenz GGUF model used when Zenzai is enabled."
+    },
+    "TranslationCandidates": {
+      "label": "English translation candidates",
+      "description": "Show English translations after the Japanese conversion candidates."
+    },
+    "PredictiveCandidates": {
+      "label": "Predictive candidates",
+      "description": "Show continuation candidates while typing. Choose with Tab/Shift+Tab and commit with Enter."
+    },
+    "EnglishNamePredictions": {
+      "label": "English company/service predictions",
+      "description": "When predictive candidates are on, also suggest English company and service names from the reading."
+    },
+    "TabConversion": {
+      "label": "Tab starts conversion",
+      "description": "Tab starts conversion like Space. Inside a conversion, Tab selects the next candidate and Shift+Tab the previous one."
+    },
+    "ContinueAfterConversion": {
+      "label": "Keep typing after conversion",
+      "description": "Do not commit when typing after opening a conversion; keep the typed character in the conversion box."
+    },
+    "SeparateKeyRoles": {
+      "label": "Separate key roles while typing",
+      "description": "Give Space, Henkan, Muhenkan, and Kana keys distinct roles inside the conversion box."
+    },
+    "EnglishFirstInput": {
+      "label": "English-first input",
+      "description": "Keep typed English as English; use the conversion key or Down to convert it as romaji."
+    },
+    "ConsonantAbbreviations": {
+      "label": "Consonant abbreviation candidates",
+      "description": "Show candidates for consonant-only readings such as ast or Angt."
+    },
+    "ShowCandidateMeanings": {
+      "label": "Show candidate meanings",
+      "description": "Show a meaning or translation after the candidate list when hovering or pausing on a candidate."
+    },
+    "ShowTypedKeys": {
+      "label": "Show typed keys",
+      "description": "Show the keys typed so far under the conversion box or candidate list."
+    },
+    "CorrectTypos": {
+      "label": "Correct typos",
+      "description": "Correct obvious romaji or English typos when converting or committing."
+    },
+    "SlashAsMiddleDot": {
+      "label": "/ enters a middle dot after kana",
+      "description": "Convert / typed after kana to ・. URLs and fractions are kept as /."
+    },
+    "ZSymbols": {
+      "label": "z + symbol keys enter symbols",
+      "description": "In Japanese input, z followed by h/j/k/l or punctuation enters symbols such as brackets and quotes."
+    },
+    "ShowModeIndicator": {
+      "label": "Show input mode near the caret",
+      "description": "Show あ (Japanese) or A (English) near the caret when the input mode changes."
+    },
+    "ShowModeIndicatorOnFocus": {
+      "label": "Show the mode on focus too",
+      "description": "Also show the mode indicator when the caret enters an input field."
+    },
+    "ModeIndicatorJapaneseColor": {
+      "label": "Mode indicator color: Japanese (あ)",
+      "description": "Background color for the あ indicator in #RRGGBB form."
+    },
+    "ModeIndicatorDirectColor": {
+      "label": "Mode indicator color: English (A)",
+      "description": "Background color for the A indicator in #RRGGBB form."
+    },
+    "ModeIndicatorTextColor": {
+      "label": "Mode indicator text color",
+      "description": "Text color for the あ/A indicator in #RRGGBB form."
+    },
+    "CompositionPlacement": {
+      "label": "Conversion box position",
+      "description": "Overlay: draw the preedit in place. Below caret / Above caret: use a separate box."
+    },
+    "CompositionSize": {
+      "label": "Conversion box text size",
+      "description": "Auto follows the input field font size; choose Small to Huge to override it."
+    },
+    "CompositionFont": {
+      "label": "Conversion box font",
+      "description": "Font used in the conversion box."
+    },
+    "CompositionTheme": {
+      "label": "Conversion box colors",
+      "description": "Dark, Light, or follow the Windows theme."
+    },
+    "CompositionOpacity": {
+      "label": "Conversion box opacity",
+      "description": "Make the conversion box translucent so the text behind it remains visible."
+    },
+    "ShowNotifications": {
+      "label": "Show notifications",
+      "description": "Show Windows notifications when Meltype is enabled, paused, or needs attention."
+    },
+    "AutoUpdate": {
+      "label": "Update automatically",
+      "description": "Check for and download new versions automatically; install on the next restart or from the tray."
+    },
+    "InputStyle": {
+      "label": "Input style",
+      "description": "Romaji input or JIS kana input."
+    },
+    "DetectionLevel": {
+      "label": "Detection strength",
+      "description": "Aggressive, Balanced, Conservative, or Manual Japanese/English boundary detection."
+    },
+    "ScoredSegmentation": {
+      "label": "Choose boundaries by score (experimental)",
+      "description": "Score possible English/Japanese boundaries and choose the most natural one."
+    },
+    "JapaneseThreshold": {
+      "label": "Japanese decision threshold",
+      "description": "Switch to Japanese when the Japanese score is at least this value; higher values make detection stricter."
+    },
+    "TypoEnabled": {
+      "label": "Use typo detection",
+      "description": "Add a small Japanese score when a key sequence looks like a typo."
+    },
+    "MaxPendingKeys": {
+      "label": "Maximum pending keys",
+      "description": "Maximum number of characters held while deciding English or Japanese. The text is output as-is if the limit is reached."
+    },
+    "LearningEnabled": {
+      "label": "Enable user learning",
+      "description": "Remember chosen conversions, language choices, and predictions. Turning this off keeps existing learning."
+    },
+    "ImeTimeoutMs": {
+      "label": "IME timeout (ms)",
+      "description": "Time to wait for the converter before showing the current text."
+    },
+    "PasteApps": {
+      "label": "Apps that accept pasted input",
+      "description": "Commit one character at a time by paste for the listed processes."
+    },
+    "NoPasteApps": {
+      "label": "Apps that do not accept pasted input",
+      "description": "For these processes, avoid clipboard paste and send keys one at a time."
+    },
+    "TextInputApps": {
+      "label": "Apps treated as text fields",
+      "description": "Treat focus in these processes as an editable text field even when the accessibility tree does not report one."
+    },
+    "ExcludeFullscreen": {
+      "label": "Ignore fullscreen apps",
+      "description": "Do not hold keys in fullscreen windows such as games and video players."
+    },
+    "StopInGames": {
+      "label": "Stop in games",
+      "description": "Do not run in windows detected as games from known game folders."
+    },
+    "AppRules": {
+      "label": "Per-application settings",
+      "description": "Set on/off and a kind for each process name. Code mode keeps code English and only converts comments and strings."
+    },
+    "AppKinds": {
+      "label": "Custom app kinds",
+      "description": "Define custom kinds used by per-application settings, such as code-like behavior."
+    },
+    "FileLog": {
+      "label": "Write a log file",
+      "description": "Write diagnostics to meltype.log. Typed text is included only when LogTypedText is on."
+    },
+    "LogTypedText": {
+      "label": "Include typed text in the log",
+      "description": "Include committed text, typed English, readings, and candidates in the log for diagnostics."
+    },
+    "UiLanguage": {
+      "label": "Settings language",
+      "description": "Language used by the settings window. Auto follows the system language."
+    },
+    "AiModel": {
+      "label": "AI model",
+      "description": "Choose None, Zenz, Jinen, kanakanji-edge, or shuntelligence. Installation and paths are shown only for the selected model."
+    },
+    "DisableZShortcuts": {
+      "label": "Disable z symbol shortcuts",
+      "description": "Disable symbol input such as z. z/ and zh."
+    },
+    "NumpadDirect": {
+      "label": "Commit numpad input directly",
+      "description": "Commit numpad digits and operators directly; the current text is committed first. Windows only."
+    },
+    "MuhenkanKatakanaCycle": {
+      "label": "Cycle katakana with Muhenkan",
+      "description": "Cycle full-width katakana, half-width katakana, and hiragana with the Muhenkan key while typing."
+    },
+    "StartConversionAtLastClause": {
+      "label": "Start conversion at the last clause",
+      "description": "When conversion starts with Space or Tab, select the last clause instead of the first. Useful when editing a long sentence from the end."
+    }
+  },
+  "enums": {
+    "InputStyle": {
+      "Romaji": "Romaji input",
+      "Kana": "Kana input (JIS)"
+    },
+    "DetectionLevel": {
+      "Aggressive": "Aggressive",
+      "Balanced": "Balanced",
+      "Conservative": "Conservative",
+      "Manual": "Manual"
+    },
+    "CompositionSize": {
+      "Auto": "Auto (follow input field)",
+      "Small": "Small",
+      "Medium": "Medium",
+      "Large": "Large",
+      "ExtraLarge": "Extra large",
+      "Huge": "Huge"
+    },
+    "CompositionPlacement": {
+      "Overlay": "Overlay at the caret",
+      "BelowCaret": "Below the caret",
+      "AboveCaret": "Above the caret"
+    },
+    "CompositionTheme": {
+      "Dark": "Dark",
+      "Light": "Light",
+      "System": "Follow Windows"
+    },
+    "CompositionOpacity": {
+      "Opaque": "100% (opaque)",
+      "Percent90": "90%",
+      "Percent80": "80%",
+      "Percent70": "70%"
+    },
+    "ConversionEngine": {
+      "Hybrid": "Hybrid (prefer Mozc)",
+      "Mozc": "Mozc",
+      "System": "Microsoft IME"
+    },
+    "PunctuationStyle": {
+      "Japanese": "、。",
+      "FullWidthCommaPeriod": "，．",
+      "FullWidthCommaKuten": "，。",
+      "ToutenFullWidthPeriod": "、．"
+    },
+    "InputMode": {
+      "Keyboard": "Meltype keyboard (conversion box)",
+      "Tsf": "Meltype IME (direct input)"
+    },
+    "AppProfile": {
+      "General": "General",
+      "Code": "Code",
+      "Game": "Game"
+    },
+    "UiLanguage": {
+      "Auto": "Auto",
+      "Japanese": "日本語",
+      "English": "English"
+    }
+  },
+  "ui": {
+    "設定": "Settings",
+    "ユーザー辞書": "User dictionary",
+    "定型文": "Snippets",
+    "学習した語": "Learned words",
+    "バックアップ": "Backup",
+    "入力テスト": "Input test",
+    "打鍵数": "Keystrokes",
+    "ログ / 判定理由": "Log / decisions",
+    "プロファイル:": "Profile:",
+    "新規...": "New...",
+    "名前を変更...": "Rename...",
+    "削除": "Delete",
+    "書き出す...": "Export...",
+    "読み込む...": "Import...",
+    "下部に説明を表示": "Show help below",
+    "マウスホイールで値を変更": "Mouse wheel changes values",
+    "検索": "Search",
+    "保存 JSON": "Save JSON",
+    "既定値に戻す": "Reset to defaults",
+    "キャンセル": "Cancel",
+    "バージョン情報": "About",
+    "アップデート": "Update",
+    "今アップデートを確認": "Check for updates now",
+    "アップデート方法": "Update method",
+    "自動": "Automatic",
+    "手動": "Manual",
+    "利用状況の匿名集計": "Anonymous usage analytics",
+    "利用状況を匿名で送る": "Send anonymous usage data",
+    "入力方式: Linux IBus": "Input method: Linux IBus",
+    "AIモデル": "AI model",
+    "判定テスト (ローマ字か英語かの判定。英字で入力):": "Detection test (romaji or English; type letters):",
+    "日本語": "Japanese",
+    "英語": "English",
+    "未確定": "Undecided",
+    "ポータブル入力": "Portable input",
+    "編集可能な通常入力欄のみ対応。OS辞書・確定後訂正・学習保存は使用しません。": "Editable text fields only. OS dictionary, post-commit correction, and learning are not used."
+  }
+}

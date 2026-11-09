@@ -11,6 +11,7 @@ mod branding;
 mod dialogs;
 #[cfg(windows)]
 mod discord;
+mod i18n;
 mod lifecycle;
 mod metadata;
 #[cfg(windows)]
@@ -53,8 +54,13 @@ fn main() -> eframe::Result {
     };
     let mut options = options;
     options.viewport = options.viewport.with_visible(!resident);
+    let ui_language = Store::new(Store::default_directory())
+        .settings()
+        .map(|settings| settings.text("UiLanguage").to_owned())
+        .unwrap_or_else(|_| "Auto".into());
+    i18n::set(&ui_language);
     eframe::run_native(
-        "Meltype-FLASH 設定",
+        i18n::window_title(),
         options,
         Box::new(|cc| {
             widgets::configure_style(&cc.egui_ctx);
@@ -130,6 +136,7 @@ struct App {
     #[cfg(windows)]
     tray: Option<tray::Tray>,
     page: usize,
+    title: String,
     status: String,
     filter: String,
     reading: String,
@@ -204,6 +211,7 @@ impl App {
             .map(ToString::to_string)
             .unwrap_or(shortcut_warnings);
         let settings = loaded.unwrap_or_default();
+        crate::i18n::set(settings.text("UiLanguage"));
         // The input test must not write learning or settings to disk.
         let mut test_session = Session::default();
         test_session.settings = settings.clone();
@@ -227,6 +235,7 @@ impl App {
             #[cfg(windows)]
             tray: None,
             page: 0,
+            title: crate::i18n::window_title().to_owned(),
             status,
             filter: String::new(),
             reading: String::new(),
@@ -577,7 +586,10 @@ impl App {
             .iter()
             .enumerate()
             {
-                if ui.selectable_value(&mut self.page, page, *title).clicked() {
+                if ui
+                    .selectable_value(&mut self.page, page, i18n::t(title))
+                    .clicked()
+                {
                     ui.close_menu();
                 }
             }
@@ -588,7 +600,7 @@ impl App {
         ui.horizontal_wrapped(|ui| {
             ui.spacing_mut().item_spacing.x = 8.;
             ui.spacing_mut().interact_size.y = 25.;
-            ui.label("プロファイル:");
+            ui.label(i18n::t("プロファイル:"));
             let active = self.settings.text("ActiveProfile").to_owned();
             let mut selected = active.clone();
             egui::ComboBox::from_id_salt("active_profile")
@@ -607,14 +619,14 @@ impl App {
                 self.action(json!({"op":"profile_switch","name":selected}));
             }
             if ui
-                .add_sized([72., 25.], egui::Button::new("新規..."))
+                .add_sized([72., 25.], egui::Button::new(i18n::t("新規...")))
                 .clicked()
             {
                 self.profile.clear();
                 self.profile_prompt = Some(false);
             }
             if ui
-                .add_sized([88., 25.], egui::Button::new("名前を変更..."))
+                .add_sized([88., 25.], egui::Button::new(i18n::t("名前を変更...")))
                 .clicked()
             {
                 self.profile = active;
@@ -625,14 +637,14 @@ impl App {
                     self.settings.0["Profiles"]
                         .as_array()
                         .is_some_and(|p| p.len() > 1),
-                    egui::Button::new("削除").min_size(egui::vec2(72., 25.)),
+                    egui::Button::new(i18n::t("削除")).min_size(egui::vec2(72., 25.)),
                 )
                 .clicked()
             {
                 self.confirm_remove = true;
             }
             if ui
-                .add_sized([72., 25.], egui::Button::new("書き出す..."))
+                .add_sized([72., 25.], egui::Button::new(i18n::t("書き出す...")))
                 .clicked()
             {
                 if let Some(path) = rfd::FileDialog::new()
@@ -653,7 +665,7 @@ impl App {
                 }
             }
             if ui
-                .add_sized([72., 25.], egui::Button::new("読み込む..."))
+                .add_sized([72., 25.], egui::Button::new(i18n::t("読み込む...")))
                 .clicked()
             {
                 if let Some(path) = rfd::FileDialog::new()
@@ -682,15 +694,15 @@ impl App {
                 ("SettingsWheelChangesValue", "マウスホイールで値を変更"),
             ] {
                 let mut enabled = self.settings.boolean(key);
-                ui.label(label);
-                if widgets::toggle(ui, &mut enabled, label).changed() {
+                ui.label(i18n::t(label));
+                if widgets::toggle(ui, &mut enabled, i18n::t(label)).changed() {
                     self.action(json!({"op":"settings_set","name":key,"value":enabled}));
                 }
             }
         });
         if self.show_all {
             ui.horizontal(|ui| {
-                ui.label("検索");
+                ui.label(i18n::t("検索"));
                 ui.text_edit_singleline(&mut self.filter);
             });
         }
@@ -754,6 +766,7 @@ impl App {
                     let title = group
                         .split_once(". ")
                         .map_or(group.as_str(), |(_, label)| label);
+                    let title = i18n::category(title);
                     let frame = egui::Frame::NONE.inner_margin(egui::Margin {
                         left: 12,
                         right: 12,
@@ -811,14 +824,14 @@ impl App {
                                     let mut automatic = value.as_bool().unwrap_or(false);
                                     let prior = automatic;
                                     ui.horizontal(|ui| {
-                                        ui.label("アップデート方法");
+                                        ui.label(i18n::t("アップデート方法"));
                                         egui::ComboBox::from_id_salt("update-method")
-                                            .selected_text(if automatic { "自動" } else { "手動" })
+                                            .selected_text(if automatic { i18n::t("自動") } else { i18n::t("手動") })
                                             .show_ui(ui, |ui| {
-                                                ui.selectable_value(&mut automatic, false, "手動");
-                                                ui.selectable_value(&mut automatic, true, "自動");
+                                                ui.selectable_value(&mut automatic, false, i18n::t("手動"));
+                                                ui.selectable_value(&mut automatic, true, i18n::t("自動"));
                                             });
-                                        if ui.button("今アップデートを確認").clicked() {
+                                        if ui.button(i18n::t("今アップデートを確認")).clicked() {
                                             self.lifecycle.updates = true;
                                             self.lifecycle.check_updates();
                                         }
@@ -939,7 +952,7 @@ impl App {
                                                     },
                                                 );
                                             ui.text_edit_singleline(text);
-                                            if ui.button("保存 JSON").clicked() {
+                                            if ui.button(i18n::t("保存 JSON")).clicked() {
                                                 match serde_json::from_str::<Value>(text) {
                                         Ok(value) => self.action(
                                             json!({"op":"settings_set","name":key,"value":value}),
@@ -970,12 +983,12 @@ impl App {
                 {
                     ui.add_space(8.);
                     ui.horizontal(|ui| {
-                        ui.strong("利用状況の匿名集計");
+                        ui.strong(i18n::t("利用状況の匿名集計"));
                     });
                     let mut requested = analytics::enabled(&self.store.directory);
                     ui.horizontal(|ui| {
-                        ui.label("利用状況を匿名で送る");
-                        if widgets::toggle(ui, &mut requested, "利用状況を匿名で送る").changed() {
+                        ui.label(i18n::t("利用状況を匿名で送る"));
+                        if widgets::toggle(ui, &mut requested, i18n::t("利用状況を匿名で送る")).changed() {
                             match analytics::set_enabled(&self.store.directory, requested) {
                                 Ok(()) => {
                                     self.status = if requested {
@@ -1004,7 +1017,7 @@ impl App {
         let previous = selected;
         ui.add_enabled_ui(!self.ai_setup.locked(), |ui| {
             ui.horizontal(|ui| {
-                ui.label("AIモデル");
+                ui.label(i18n::t("AIモデル"));
                 egui::ComboBox::from_id_salt("ai-model")
                     .selected_text(selected.label())
                     .show_ui(ui, |ui| {
@@ -1686,6 +1699,7 @@ fn supported(key: &str) -> bool {
         "ConsonantAbbreviations",
         "EnglishNamePredictions",
         "ShowCandidatesWhileTyping",
+        "StartConversionAtLastClause",
         "Enabled",
         "Mode",
         "LiveConversion",
@@ -1887,6 +1901,12 @@ impl App {
 }
 impl eframe::App for App {
     fn update(&mut self, ctx: &egui::Context, _: &mut eframe::Frame) {
+        crate::i18n::set(self.settings.text("UiLanguage"));
+        let title = crate::i18n::window_title();
+        if title != self.title {
+            self.title = title.to_owned();
+            ctx.send_viewport_cmd(egui::ViewportCommand::Title(title.to_owned()));
+        }
         #[cfg(windows)]
         self.update_tray(ctx);
         if ctx.input(|i| i.viewport().close_requested()) && !self.closing {
@@ -2031,16 +2051,16 @@ impl eframe::App for App {
                 #[cfg(target_os = "linux")]
                 ui.horizontal_wrapped(|ui| {
                     ui.label(format!("Meltype-FLASH {}", env!("CARGO_PKG_VERSION")));
-                    if ui.button("アップデート").clicked() {
+                    if ui.button(i18n::t("アップデート")).clicked() {
                         self.lifecycle.updates = true;
                     }
-                    if ui.button("バージョン情報").clicked() {
+                    if ui.button(i18n::t("バージョン情報")).clicked() {
                         self.lifecycle.about = true;
                     }
                 });
                 ui.with_layout(egui::Layout::right_to_left(egui::Align::Center), |ui| {
                     if ui
-                        .add_sized([92., 32.], egui::Button::new("キャンセル"))
+                        .add_sized([92., 32.], egui::Button::new(i18n::t("キャンセル")))
                         .clicked()
                     {
                         self.finish(ctx, true);
@@ -2059,7 +2079,7 @@ impl eframe::App for App {
                     }
                     if self.page == 0
                         && ui
-                            .add_sized([114., 32.], egui::Button::new("既定値に戻す"))
+                            .add_sized([114., 32.], egui::Button::new(i18n::t("既定値に戻す")))
                             .clicked()
                     {
                         let defaults = Settings::default();
@@ -2094,7 +2114,7 @@ impl eframe::App for App {
                 .exact_height(110.)
                 .resizable(false)
                 .show(ctx, |ui| {
-                    ui.label("判定テスト (ローマ字か英語かの判定。英字で入力):");
+                    ui.label(i18n::t("判定テスト (ローマ字か英語かの判定。英字で入力):"));
                     ui.add(
                         egui::TextEdit::singleline(&mut self.test_raw).desired_width(f32::INFINITY),
                     );
@@ -2117,9 +2137,9 @@ impl eframe::App for App {
                                     &self.settings,
                                 );
                                 let verdict = match result.verdict {
-                                    meltype_core::detection::Verdict::Japanese => "日本語",
-                                    meltype_core::detection::Verdict::English => "英語",
-                                    _ => "未確定",
+                                    meltype_core::detection::Verdict::Japanese => i18n::t("日本語"),
+                                    meltype_core::detection::Verdict::English => i18n::t("英語"),
+                                    _ => i18n::t("未確定"),
                                 };
                                 egui::ScrollArea::vertical()
                                     .id_salt("detection_reasons")
