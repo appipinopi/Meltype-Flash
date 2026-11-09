@@ -102,7 +102,7 @@ mod native {
                 sel!(openReport:),
                 false,
                 false,
-                false,
+                true,
             ),
         ];
         for (title, action, selected, set_target, separator) in entries.iter() {

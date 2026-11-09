@@ -2168,12 +2168,13 @@ impl eframe::App for App {
             self.title = title.to_owned();
             ctx.send_viewport_cmd(egui::ViewportCommand::Title(title.to_owned()));
         }
+        // 同意待ちでもトレイは作る。設定画面だけを同意画面で止める。
+        #[cfg(windows)]
+        self.update_tray(ctx);
         if self.consent_pending {
             self.consent(ctx);
             return;
         }
-        #[cfg(windows)]
-        self.update_tray(ctx);
         if ctx.input(|i| i.viewport().close_requested()) && !self.closing {
             self.finish(ctx, self.discard);
         }
