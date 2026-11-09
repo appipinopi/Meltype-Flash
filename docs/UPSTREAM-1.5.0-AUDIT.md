@@ -32,7 +32,7 @@ Meltype-FLASH 1.1.1で、上流 [v1.5.0](https://github.com/yksr-melt/Meltype/re
 ## 検証
 
 - `cargo test -p meltype-core`：共通Coreの単体・統合試験が成功（1.1.1の版番号変更後にも再実行）。新規に `upstream_v150.rs` を追加し、定型句、最後の文節の予測と確定、版番号の除外、括弧の系統、Markdown、日付、予測のDeleteを確認する。
-- 既存の上流予測試験（`upstream_prediction_keys.json`）は、Tab選択中に文字を打つ12ケースだけをv1.5.0の確定動作へ更新した。学習が無効なケースなので、保存される語句は変えていない。
+- 凍結したC#参照との予測互換試験（`upstream-prediction-keys.json`）は旧版の挙動のまま残し、v1.5.0で変わるTab選択中の文字入力12ケースを含む期待値を `upstream-prediction-keys-v150.json` として分けた。Rustの試験は新しい側を使い、CIのC#参照試験は凍結版の側を使う。学習が無効なケースなので、保存される語句は変えていない。
 - `cargo check --workspace --locked`：Windows上で全クレートのコンパイルを確認。
 
 この記録は共通Coreの移植と自動試験の範囲です。各OSのアプリ・IME・実機入力の確認ではありません。Windows・macOS・Linux・Android・ChromeOS・iOSのビルドと実機確認は、それぞれ別に行います。
