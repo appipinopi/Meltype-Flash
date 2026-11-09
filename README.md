@@ -9,7 +9,7 @@
 
 本家 [Meltype](https://github.com/yksr-melt/Meltype) を参照して開発している、Rust版の日本語入力です。
 Windows・Mac・Linux・Android・ChromeOS・iOSで共通の入力コアを使います。
-**Flash 1.1.3です。環境によって変換エンジン・設定・学習・操作が異なります。本家C#版と全機能・精度が同じことを示す版番号ではありません。**
+**Flash 1.1.4です。環境によって変換エンジン・設定・学習・操作が異なります。本家C#版と全機能・精度が同じことを示す版番号ではありません。**
 
 <p align="center">
 <a href="https://github.com/appipinopi/Meltype-Flash/releases/latest"><b>ダウンロード</b></a> ·
@@ -52,8 +52,8 @@ Windows・Mac・Linux・Android・ChromeOS・iOSで共通の入力コアを使�
 </p>
 <!-- meltype-flash-os-navigation:end -->
 
-このソースに対応するリリースは [v1.1.3](https://github.com/appipinopi/Meltype-Flash/releases/tag/flash-v1.1.3) です。
-版番号は`1.1.3`です。初回起動の同意画面、Linux・ChromeOSを含む利用状況の集計、設定画面の左分類、アプリ内リリースノート（Markdown・日本語/English）、PC版すべての打鍵数・Discordステータス表示、ChromeOSのCRXを使わないZIP更新を追加しました。今回はリリースCIで上流C#・前版・今回のRustを比較するベンチマークを実行し、結果をリリース本文へ掲載します。[変更と確認範囲](rust/RELEASE-NOTES.md)を参照してください。iOSの実機導入には署名が必要です。AIモデルは本体と別ダウンロードです。公開状況と配布物は上のリリースページで確認してください。
+このソースに対応するリリースは [v1.1.4](https://github.com/appipinopi/Meltype-Flash/releases/tag/flash-v1.1.4) です。
+版番号は`1.1.4`です。v1.1.3の同意画面・利用状況の集計・リリースノート・ChromeOSのZIP更新に加え、設定画面のレイアウトを修正し、「とけい」「じこく」のタイムゾーン時刻候補、プレリリース自動更新の設定、打鍵数の既定OFF、Linux/macOS文書を追加しました。今回はリリースCIで上流C#・前版・今回のRustを比較するベンチマークを実行し、結果をリリース本文へ掲載します。[変更と確認範囲](rust/RELEASE-NOTES.md)を参照してください。iOSの実機導入には署名が必要です。AIモデルは本体と別ダウンロードです。公開状況と配布物は上のリリースページで確認してください。
 [配布ファイルの選び方](rust/DOWNLOADS.md) で、OSとCPUに合うファイルを選んでください。
 ZIP・APK・IPAは互換ではありません。本家のC#版の配布ファイルをFlash用として案内していません。
 
