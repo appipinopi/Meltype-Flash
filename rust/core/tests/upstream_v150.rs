@@ -242,7 +242,9 @@ fn v150_today_has_eight_digits_and_slash_dates_pick_the_upcoming_year() {
         .and_hms_opt(17, 22, 0)
         .unwrap();
     assert_eq!(
-        time::candidates("きょう", now).last().map(String::as_str),
+        time::candidates("きょう", now, "Asia/Tokyo")
+            .last()
+            .map(String::as_str),
         Some("20261009")
     );
     let date = |year, month, day| chrono::NaiveDate::from_ymd_opt(year, month, day).unwrap();

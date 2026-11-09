@@ -1318,7 +1318,8 @@ impl App {
             self.reading.trim(),
             true,
         ));
-        let mut candidates = meltype_core::dictionary::Dictionary::bundled().candidates(&reading);
+        let mut candidates = meltype_core::dictionary::Dictionary::bundled()
+            .candidates(&reading, self.settings.text("TimeZone"));
         let mut remove_reading = reading.clone();
         if let Ok(state) = self.store.load() {
             if state
@@ -1919,7 +1920,7 @@ fn ui_category(key: &str, original: &str) -> &'static str {
         | "ModeIndicatorTextColor" => "8. 表示",
         "LearningEnabled" | "ContextualLearning" => "9. 学習",
         "FileLog" | "LogTypedText" | "LogKeyIntervals" => "11. ログ",
-        "AutoUpdate" => "12. 更新",
+        "AutoUpdate" | "PrereleaseUpdate" => "12. 更新",
         _ if original == "7. アプリ" => "10. アプリ",
         _ if original == "8. ログ" => "11. ログ",
         _ if original == "9. 更新" => "12. 更新",

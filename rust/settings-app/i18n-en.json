@@ -393,6 +393,14 @@
     "StartConversionAtLastClause": {
       "label": "Start conversion at the last clause",
       "description": "When conversion starts with Space or Tab, select the last clause instead of the first. Useful when editing a long sentence from the end."
+    },
+    "TimeZone": {
+      "label": "Time zone",
+      "description": "Time zone used for the current time shown by \"とけい\" and \"じこく\". Example: Asia/Tokyo, UTC, America/New_York."
+    },
+    "PrereleaseUpdate": {
+      "label": "Include pre-releases in automatic updates",
+      "description": "Automatic update checks include pre-release versions as well as stable releases. Off by default."
     }
   },
   "enums": {

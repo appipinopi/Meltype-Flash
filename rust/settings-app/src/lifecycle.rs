@@ -14,12 +14,15 @@ pub struct Lifecycle {
     update_status: String,
     auto_check_pending: bool,
     auto_enabled: bool,
+    prerelease: bool,
     #[cfg(target_os = "linux")]
     next_auto_check: Option<std::time::Instant>,
 }
 #[cfg(any(windows, test))]
 fn version_parts(text: &str) -> Option<Vec<u32>> {
     text.trim_start_matches("flash-v")
+        .split(['-', '+'])
+        .next()?
         .split('.')
         .map(str::parse)
         .collect::<Result<Vec<_>, _>>()
@@ -36,11 +39,11 @@ fn newer_release(tag: &str, current: &str) -> bool {
 /// GitHub のリリース一覧は版の順に並ぶとは限らない (1.0.9 が 1.0.10 より前に来ることがある)。
 /// 一覧の先頭ではなく、Rust Windows 版 ZIP を持つ中で一番新しい版を選ぶ。
 #[cfg(any(windows, test))]
-fn rust_release(body: &serde_json::Value) -> Option<String> {
+fn rust_release(body: &serde_json::Value, include_prerelease: bool) -> Option<String> {
     body.as_array()?
         .iter()
         .filter_map(|release| {
-            if release["draft"] == true || release["prerelease"] == true {
+            if release["draft"] == true || release["prerelease"] == true && !include_prerelease {
                 return None;
             }
             let tag = release["tag_name"].as_str()?;
@@ -64,6 +67,7 @@ impl Lifecycle {
                 || settings.text("Mode") == "Tsf" && !settings.boolean("TsfIntroduced"),
             auto_check_pending: settings.boolean("AutoUpdate"),
             auto_enabled: settings.boolean("AutoUpdate"),
+            prerelease: settings.boolean("PrereleaseUpdate"),
             ..Default::default()
         }
     }
@@ -81,20 +85,21 @@ impl Lifecycle {
         self.update_status = "Rust版の配布を確認しています…".into();
         #[cfg(windows)]
         let auto_download = automatic;
+        let include_prerelease = self.prerelease;
         std::thread::spawn(move || {
             #[cfg(windows)]
             let message = match meltype_core::windows_http::get_api_json(
                 "/repos/appipinopi/Meltype-Flash/releases?per_page=20",
                 None,
             ) {
-                Some(body) => rust_release(&body).map_or_else(
+                Some(body) => rust_release(&body, include_prerelease).map_or_else(
                     || "最近の配布一覧にRust Windows版のZIPはありません。".into(),
                     |tag| {
                         if !newer_release(&tag, env!("CARGO_PKG_VERSION")) {
                             return "現在のバージョンは最新です。".into();
                         }
                         if auto_download {
-                            run_updater("Stage")
+                            run_updater("Stage", include_prerelease)
                         } else {
                             format!(
                                 "Rust Windows版の配布: {tag}。ダウンロード・更新を実行できます。"
@@ -119,9 +124,10 @@ impl Lifecycle {
         let (sender, receiver) = std::sync::mpsc::channel();
         self.update = Some(receiver);
         self.update_status = "更新を準備しています。インストール画面で確認してください。".into();
+        let include_prerelease = self.prerelease;
         std::thread::spawn(move || {
             #[cfg(windows)]
-            let message = run_updater("Apply");
+            let message = run_updater("Apply", include_prerelease);
             #[cfg(target_os = "linux")]
             let message = linux_update(true);
             let _ = sender.send(message);
@@ -131,6 +137,7 @@ impl Lifecycle {
         if store.directory.join("config.json").is_file() {
             if let Ok(settings) = store.settings() {
                 self.auto_enabled = settings.boolean("AutoUpdate");
+                self.prerelease = settings.boolean("PrereleaseUpdate");
             }
         }
         #[cfg(target_os = "linux")]
@@ -298,7 +305,7 @@ impl Lifecycle {
     }
 }
 #[cfg(windows)]
-fn run_updater(action: &str) -> String {
+fn run_updater(action: &str, include_prerelease: bool) -> String {
     use std::os::windows::{ffi::OsStringExt, process::CommandExt};
     let result = (|| -> Result<String, String> {
         if action == "Apply" {
@@ -306,7 +313,7 @@ fn run_updater(action: &str) -> String {
                 "/repos/appipinopi/Meltype-Flash/releases?per_page=20",
                 None,
             )
-            .and_then(|body| rust_release(&body))
+            .and_then(|body| rust_release(&body, include_prerelease))
             .ok_or("公開版を確認できませんでした。時間をおいて再度お試しください。")?;
             if !newer_release(&release, env!("CARGO_PKG_VERSION")) {
                 return Ok("現在のバージョンは最新です。".into());
@@ -437,7 +444,14 @@ mod tests {
                 asset["digest"] = json!(format!("sha256:{}", "a".repeat(64)));
             }
         }
-        assert_eq!(rust_release(&releases).as_deref(), Some("flash-v1.0.0"));
+        assert_eq!(
+            rust_release(&releases, false).as_deref(),
+            Some("flash-v1.0.0")
+        );
+        assert_eq!(
+            rust_release(&releases, true).as_deref(),
+            Some("flash-v1.1.0-preview.1")
+        );
         // GitHub の一覧順が 1.0.9 → 1.0.10 でも、新しい 1.0.10 を選ぶ。
         let mut ordered = json!([
             {"tag_name":"flash-v1.0.9","assets":[{"name":"Meltype-flash-Windows-x64.zip"}]},
@@ -449,8 +463,11 @@ mod tests {
                 asset["digest"] = json!(format!("sha256:{}", "a".repeat(64)));
             }
         }
-        assert_eq!(rust_release(&ordered).as_deref(), Some("flash-v1.0.10"));
-        assert!(rust_release(&json!([])).is_none());
+        assert_eq!(
+            rust_release(&ordered, false).as_deref(),
+            Some("flash-v1.0.10")
+        );
+        assert!(rust_release(&json!([]), false).is_none());
         let settings = Settings::parse(r#"{"AutoUpdate":false,"SettingsVersion":5}"#).unwrap();
         let mut lifecycle = Lifecycle::new(&settings);
         assert!(!lifecycle.auto_check_pending);

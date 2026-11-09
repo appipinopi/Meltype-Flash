@@ -2,7 +2,7 @@
 // Copyright (C) 2026 Yukishiro, appipinopi
 //! Date/clock candidates and segment joining, ported from CompositionController.
 use crate::session::Clause;
-use chrono::{Datelike, NaiveDate, NaiveDateTime, Timelike};
+use chrono::{Datelike, NaiveDate, NaiveDateTime, TimeZone, Timelike};
 const DAYS: [&str; 7] = ["日", "月", "火", "水", "木", "金", "土"];
 fn number(text: &str) -> Option<u32> {
     let digits: String = text
@@ -74,7 +74,32 @@ pub fn typed(reading: &str, today: NaiveDate) -> Option<Vec<String>> {
         Some(vec![])
     }
 }
-pub fn candidates(reading: &str, now: NaiveDateTime) -> Vec<String> {
+/// 「とけい」「じこく」で、設定したタイムゾーンの現在時刻を返す。
+pub fn clock_candidates(reading: &str, utc: NaiveDateTime, timezone: &str) -> Vec<String> {
+    if !matches!(reading, "とけい" | "じこく") {
+        return vec![];
+    }
+    let zone: chrono_tz::Tz = timezone.parse().unwrap_or(chrono_tz::Asia::Tokyo);
+    let local = zone.from_utc_datetime(&utc);
+    let (hour, minute) = (local.hour(), local.minute());
+    let time = format!("{hour}時{minute}分");
+    vec![
+        format!("{hour}:{minute:02}"),
+        format!("{hour:02}:{minute:02}"),
+        time.clone(),
+        format!(
+            "{}{h}時{minute}分",
+            if hour < 12 { "午前" } else { "午後" },
+            h = hour % 12
+        ),
+        format!("{time} ({timezone})"),
+    ]
+}
+
+pub fn candidates(reading: &str, now: NaiveDateTime, timezone: &str) -> Vec<String> {
+    if matches!(reading, "とけい" | "じこく") {
+        return clock_candidates(reading, chrono::Utc::now().naive_utc(), timezone);
+    }
     if let Some(typed) = typed(reading, now.date()) {
         return typed;
     }
@@ -137,7 +162,7 @@ pub fn candidates(reading: &str, now: NaiveDateTime) -> Vec<String> {
 pub fn is_dynamic_choice(reading: &str, text: &str) -> bool {
     ["くりっぷぼーど", "ぺーすと"].contains(&reading)
         || crate::math_candidates::is_choice(reading, text)
-        || ["いま", "なう", "きょう"].contains(&reading)
+        || ["いま", "なう", "きょう", "とけい", "じこく"].contains(&reading)
             && (text.chars().any(|c| c.is_ascii_digit()) || text.ends_with("曜日"))
         || shape(reading).is_some() && text.contains(['/', ':', '月'])
 }
@@ -165,4 +190,24 @@ pub fn join(clauses: Vec<Clause>) -> Vec<Clause> {
         }
     }
     result
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use chrono::NaiveDate;
+
+    #[test]
+    fn clock_candidates_use_the_configured_timezone() {
+        let utc = NaiveDate::from_ymd_opt(2026, 1, 2)
+            .unwrap()
+            .and_hms_opt(3, 4, 0)
+            .unwrap();
+        let tokyo = clock_candidates("とけい", utc, "Asia/Tokyo");
+        assert!(tokyo.contains(&"12:04".to_owned()));
+        assert!(tokyo.contains(&"12時4分".to_owned()));
+        let utc_values = clock_candidates("じこく", utc, "UTC");
+        assert!(utc_values.contains(&"3:04".to_owned()));
+        assert!(clock_candidates("きょう", utc, "UTC").is_empty());
+    }
 }

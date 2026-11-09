@@ -344,7 +344,7 @@ impl Dictionary {
         }
     }
 
-    pub fn candidates(&self, reading: &str) -> Vec<String> {
+    pub fn candidates(&self, reading: &str, timezone: &str) -> Vec<String> {
         let words = self
             .candidates
             .get(reading)
@@ -375,6 +375,7 @@ impl Dictionary {
         values.extend(crate::time_candidates::candidates(
             reading,
             chrono::Local::now().naive_local(),
+            timezone,
         ));
         if reading == "ばーじょん" {
             values.push(format!("Meltype-FLASH {}", env!("CARGO_PKG_VERSION")));

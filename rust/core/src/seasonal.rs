@@ -156,8 +156,14 @@ mod tests {
     #[test]
     fn today_adds_the_named_event() {
         let now = date(12, 25).and_hms_opt(12, 0, 0).unwrap();
-        assert!(crate::time_candidates::candidates("きょう", now).contains(&"クリスマス".into()));
+        assert!(
+            crate::time_candidates::candidates("きょう", now, "Asia/Tokyo")
+                .contains(&"クリスマス".into())
+        );
         let new_year = date(1, 1).and_hms_opt(12, 0, 0).unwrap();
-        assert!(crate::time_candidates::candidates("きょう", new_year).contains(&"元日".into()));
+        assert!(
+            crate::time_candidates::candidates("きょう", new_year, "Asia/Tokyo")
+                .contains(&"元日".into())
+        );
     }
 }
