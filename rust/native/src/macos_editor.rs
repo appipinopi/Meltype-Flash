@@ -161,6 +161,18 @@ pub unsafe extern "C" fn meltype_macos_handle_key(
     before: *const std::ffi::c_char,
     after: *const std::ffi::c_char,
 ) -> *mut std::ffi::c_char {
+    // パスワード欄などプライベートな入力は数えない。
+    #[cfg(not(test))]
+    {
+        let private = super::sessions()
+            .lock()
+            .ok()
+            .and_then(|all| all.get(&(handle as usize)).map(|s| s.private))
+            .unwrap_or(true);
+        if !private {
+            super::count_key();
+        }
+    }
     let Some(scalar) = u32::try_from(ch).ok().and_then(char::from_u32) else {
         let Ok(_spelling) = super::word_checker::prepare(
             handle as usize,

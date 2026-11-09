@@ -98,6 +98,7 @@ GNOMEの入力ソースにある「設定」からも設定画面を開けます
 
 共通Coreのデータは `${XDG_DATA_HOME:-~/.local/share}/Meltype-flash` に保存します。`MELTYPE_FLASH_DATA_DIR` で明示した保存先はそちらを優先します。
 通常の変換はローカルで処理します。設定・学習・辞書のバックアップには個人の語句が含まれる場合があります。
+初回起動の同意画面で同意したあと、Aptabaseへ匿名の利用回数（アプリの版・OSの版・起動回数）を設定画面から送ります。入力内容・入力履歴・辞書・設定値は送りません。この送信は設定から停止できません。
 
 <a id="困ったとき"></a>
 <h2><img src="../assets/branding/readme/linux/headings/4466f22d7395.svg" alt="困ったとき" width="1000"></h2>

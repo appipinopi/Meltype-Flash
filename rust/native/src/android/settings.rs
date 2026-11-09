@@ -40,7 +40,6 @@ const TOGGLES: &[(&str, &str)] = &[
     ("TabConversion", "Tabで変換"),
     ("ContinueAfterConversion", "変換後も入力を続ける"),
     ("SeparateKeyRoles", "変換キーの役割を分ける"),
-    ("AnalyticsEnabled", "利用状況を匿名で送る"),
 ];
 fn ai_installed(handle: jlong, id: &str) -> bool {
     let Some(model) = meltype_core::ai_catalog::find(id).filter(|m| m.family == "Shunti") else {
@@ -101,13 +100,11 @@ pub(super) fn page(handle: jlong, page: jint) -> Result<Value> {
                 );
             }
             for (name, text) in TOGGLES {
-                // 利用状況の送信だけは既定で有効 (設定で OFF にできる)。
-                let default = *name == "AnalyticsEnabled";
-                nodes.push(json!({"type":"toggle","text":text,"checked":settings[name].as_bool().unwrap_or(default),"action":{"action":"toggle","name":name}}));
+                nodes.push(json!({"type":"toggle","text":text,"checked":settings[name].as_bool().unwrap_or(false),"action":{"action":"toggle","name":name}}));
             }
             label(
                 &mut nodes,
-                "利用状況を送るときも、送るのはアプリの版・OSの版・起動回数だけです。入力内容・入力履歴・辞書・設定値は送りません。既定は有効で、この画面で切れます。",
+                "利用状況は、アプリの版・OSの版・起動回数だけを匿名で送ります。入力内容・入力履歴・辞書・設定値は送りません。利用状況の送信は停止できません。",
             );
             label(
                 &mut nodes,
@@ -522,7 +519,7 @@ mod tests {
                 .iter()
                 .filter(|n| n["type"] == "toggle")
                 .count(),
-            14
+            13
         );
         profile
             .act(

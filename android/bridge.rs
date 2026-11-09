@@ -103,7 +103,7 @@ import android.view.inputmethod.EditorInfo;
 import android.widget.*;
 public final class MeltypeService extends InputMethodService implements FlickKeyboard.Listener {
     long session; TextView preview; LinearLayout candidates,inputRoot; FlickKeyboard keyboard; KeyboardAppearance appearance;
-    @Override public void onCreate(){super.onCreate();Native.bridge(this,Events.SERVICE_CREATE,0,0,null);Analytics.start(this,session);Analytics.track("keyboard_ready");}
+    @Override public void onCreate(){super.onCreate();Native.bridge(this,Events.SERVICE_CREATE,0,0,null);Analytics.start(this);Analytics.track("keyboard_ready");}
     @Override public void onDestroy(){Native.bridge(this,Events.SERVICE_DESTROY,0,0,null);super.onDestroy();}
     @Override public void onStartInput(EditorInfo info,boolean restarting){super.onStartInput(info,restarting);Native.bridge(this,Events.SERVICE_BEGIN,0,restarting?1:0,info);}
     @Override public void onFinishInput(){Native.bridge(this,Events.SERVICE_END,0,0,null);super.onFinishInput();}
@@ -163,7 +163,21 @@ import android.os.Bundle;
 import android.widget.*;
 public final class SettingsActivity extends Activity implements SettingsPage.Actions {
     long session; LinearLayout body; TextView status; SettingsPage form;
-    @Override public void onCreate(Bundle state){super.onCreate(state);Native.bridge(this,Events.SETTINGS_CREATE,0,0,state);Analytics.start(this,session);Analytics.track("app_open");}
+    @Override public void onCreate(Bundle state){
+        super.onCreate(state);
+        Native.bridge(this,Events.SETTINGS_CREATE,0,0,state);
+        if(Analytics.accepted(this)){Analytics.begin(this);}
+        else{consent();}
+    }
+    private void consent(){
+        new android.app.AlertDialog.Builder(this)
+            .setTitle("Meltype-FLASH をはじめる前に")
+            .setMessage("Meltype-FLASH を使うには、次の内容に同意してください。\n\n・本ソフトは GNU GPL v3 以降で提供され、無保証です。\n・より良い入力のために、利用状況（アプリの版・OSの版・起動回数・画面を開いた回数）を匿名で送信します。この送信は設定で停止できません。\n・入力内容・入力履歴・辞書・設定値・入力欄の文字列は送信しません。\n・送信先は Aptabase です。")
+            .setCancelable(false)
+            .setPositiveButton("同意してはじめる",(dialog,which)->{Analytics.accept(this);Analytics.begin(this);})
+            .setNegativeButton("同意しない",(dialog,which)->finishAndRemoveTask())
+            .show();
+    }
     @Override public void onDestroy(){Native.bridge(this,Events.SETTINGS_DESTROY,0,0,null);super.onDestroy();}
     @Override protected void onSaveInstanceState(Bundle state){Native.bridge(this,Events.SETTINGS_SAVE,0,0,state);super.onSaveInstanceState(state);}
     @Override protected void onActivityResult(int code,int result,Intent data){super.onActivityResult(code,result,data);Native.bridge(this,Events.SETTINGS_RESULT,code,result,data);}
@@ -273,15 +287,21 @@ final class AppearanceHierarchy implements ViewGroup.OnHierarchyChangeListener {
         r#"
 import android.content.Context;
 import com.aptabase.Aptabase;
-import org.json.JSONObject;
 import java.util.Collections;
 final class Analytics {
     static final String APP_KEY="A-US-4882313783";
+    static final int CONSENT_VERSION=1;
     private static boolean started;
     private Analytics(){}
-    static synchronized void start(Context context,long session){
-        if(started||context==null){return;}
-        if(!enabled(session)){return;}
+    static boolean accepted(Context context){
+        return context!=null&&context.getSharedPreferences("meltype-consent",Context.MODE_PRIVATE).getInt("version",0)>=CONSENT_VERSION;
+    }
+    static void accept(Context context){
+        if(context==null){return;}
+        context.getSharedPreferences("meltype-consent",Context.MODE_PRIVATE).edit().putInt("version",CONSENT_VERSION).apply();
+    }
+    static synchronized void start(Context context){
+        if(started||context==null||!accepted(context)){return;}
         started=true;
         Aptabase.getInstance().initialize(context.getApplicationContext(),APP_KEY,null);
     }
@@ -289,10 +309,8 @@ final class Analytics {
         if(!started){return;}
         Aptabase.getInstance().trackEvent(event,Collections.<String,Object>emptyMap());
     }
-    private static boolean enabled(long session){
-        if(session==0){return false;}
-        try{return new JSONObject(Native.control(session,"{\"op\":\"settings_get\"}")).optBoolean("AnalyticsEnabled",true);}
-        catch(Exception e){return false;}
+    static void begin(Context context){
+        if(accepted(context)){start(context);track("app_open");}
     }
 }
 "#,

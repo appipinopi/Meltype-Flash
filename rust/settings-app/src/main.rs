@@ -5,17 +5,20 @@ use eframe::egui;
 use meltype_core::{control, settings::Settings, storage::Store, Session};
 use serde_json::{json, Value};
 mod ai_setup;
-#[cfg(windows)]
+#[cfg(any(windows, target_os = "linux"))]
 mod analytics;
 mod branding;
+mod consent;
 mod dialogs;
-#[cfg(windows)]
+#[cfg(any(windows, target_os = "linux", target_os = "macos"))]
 mod discord;
 mod i18n;
 mod lifecycle;
+mod markdown;
 mod metadata;
 #[cfg(windows)]
 mod portable_keyboard;
+mod release_notes;
 mod rules;
 #[cfg(windows)]
 mod startup;
@@ -32,12 +35,12 @@ fn main() -> eframe::Result {
     if let Some(code) = startup::command_line(&std::env::args_os().skip(1).collect::<Vec<_>>()) {
         std::process::exit(code);
     }
-    // 利用状況の集計は、設定画面で入れた人だけ。起動の確認・導入などの引数は上の時点で終了している。
-    #[cfg(windows)]
-    analytics::track(&Store::default_directory(), "app_open");
+    // 同意が済んでいないときは、設定画面を出して同意を待つ。
+    // 起動の確認・導入などの引数は上の時点で終了している。
+    let needs_consent = !consent::accepted(&Store::default_directory());
     // 打鍵数を Discord のステータスに出す (設定画面で入れた人だけ)。Discord が
     // 起動していなければ何もしない。
-    #[cfg(windows)]
+    #[cfg(any(windows, target_os = "linux", target_os = "macos"))]
     let _presence = discord::Presence::start(
         Store::default_directory(),
         Store::new(Store::default_directory()),
@@ -53,7 +56,7 @@ fn main() -> eframe::Result {
         ..Default::default()
     };
     let mut options = options;
-    options.viewport = options.viewport.with_visible(!resident);
+    options.viewport = options.viewport.with_visible(!resident || needs_consent);
     let ui_language = Store::new(Store::default_directory())
         .settings()
         .map(|settings| settings.text("UiLanguage").to_owned())
@@ -126,6 +129,10 @@ struct App {
     opened: Settings,
     discard: bool,
     closing: bool,
+    consent_pending: bool,
+    release_notes: bool,
+    release_notes_from_update: bool,
+    release_notes_english: bool,
     help: String,
     #[cfg(windows)]
     resident: bool,
@@ -136,6 +143,7 @@ struct App {
     #[cfg(windows)]
     tray: Option<tray::Tray>,
     page: usize,
+    settings_category: Option<String>,
     title: String,
     status: String,
     filter: String,
@@ -215,6 +223,19 @@ impl App {
         // The input test must not write learning or settings to disk.
         let mut test_session = Session::default();
         test_session.settings = settings.clone();
+        // 画面の採取試験は隔離したデータで行うため、同意画面では止めない。
+        let consent_pending = !consent::accepted(&store.directory)
+            && !(cfg!(feature = "visual-test") && std::env::var_os("MELTYPE_UI_CAPTURE").is_some());
+        #[cfg(any(windows, target_os = "linux"))]
+        if !consent_pending {
+            analytics::track("app_open");
+        }
+        // 新規導入では出さず、前の版から更新したときだけリリースノートを一度出す。
+        let first_run = !store.directory.join("config.json").is_file();
+        let release_notes_from_update =
+            !consent_pending && release_notes::take_update_notice(&store.directory, first_run);
+        let release_notes = release_notes_from_update;
+        let release_notes_english = crate::i18n::english();
         Self {
             lifecycle: lifecycle::Lifecycle::new(&settings),
             ai_setup: ai_setup::AiSetup::default(),
@@ -224,6 +245,10 @@ impl App {
             settings,
             discard: false,
             closing: false,
+            consent_pending,
+            release_notes,
+            release_notes_from_update,
+            release_notes_english,
             help: "Meltype-FLASH を有効にする".into(),
             #[cfg(windows)]
             resident: std::env::args()
@@ -235,6 +260,7 @@ impl App {
             #[cfg(windows)]
             tray: None,
             page: 0,
+            settings_category: None,
             title: crate::i18n::window_title().to_owned(),
             status,
             filter: String::new(),
@@ -432,6 +458,135 @@ impl App {
         self.closing = true;
         ctx.send_viewport_cmd(egui::ViewportCommand::Close);
     }
+    fn open_release_notes(&mut self) {
+        self.release_notes = true;
+        self.release_notes_from_update = false;
+        release_notes::mark_shown(&self.store.directory);
+    }
+    fn release_notes_window(&mut self, ctx: &egui::Context) -> bool {
+        let version = release_notes::VERSION;
+        let title = if self.release_notes_english {
+            "Meltype-FLASH release notes"
+        } else {
+            "Meltype-FLASH リリースノート"
+        };
+        crate::dialogs::window(ctx, "flash-release-notes", title, [720., 620.], |ui| {
+            let mut closed = false;
+            ui.horizontal(|ui| {
+                ui.heading(if self.release_notes_english {
+                    "Release notes"
+                } else {
+                    "リリースノート"
+                });
+                ui.with_layout(egui::Layout::right_to_left(egui::Align::Center), |ui| {
+                    if ui
+                        .selectable_label(self.release_notes_english, "English")
+                        .clicked()
+                    {
+                        self.release_notes_english = true;
+                    }
+                    if ui
+                        .selectable_label(!self.release_notes_english, "日本語")
+                        .clicked()
+                    {
+                        self.release_notes_english = false;
+                    }
+                });
+            });
+            if self.release_notes_from_update {
+                ui.label(if self.release_notes_english {
+                    format!("Updated to {version}.")
+                } else {
+                    format!("{version} に更新しました。")
+                });
+            }
+            ui.separator();
+            egui::ScrollArea::vertical()
+                .auto_shrink([false, false])
+                .show(ui, |ui| {
+                    match release_notes::notes(version, self.release_notes_english) {
+                        Some(notes) => markdown::show(ui, notes),
+                        None => {
+                            ui.label(if self.release_notes_english {
+                                "The release notes for this version are on GitHub."
+                            } else {
+                                "この版のリリースノートは GitHub のリリースページで見られます。"
+                            });
+                        }
+                    }
+                });
+            ui.separator();
+            ui.horizontal(|ui| {
+                if ui
+                    .button(if self.release_notes_english {
+                        "Close"
+                    } else {
+                        "閉じる"
+                    })
+                    .clicked()
+                {
+                    closed = true;
+                }
+                ui.hyperlink_to(
+                    if self.release_notes_english {
+                        "View on GitHub"
+                    } else {
+                        "GitHub で見る"
+                    },
+                    release_notes::release_url(version),
+                );
+                ui.hyperlink_to(
+                    if self.release_notes_english {
+                        "Past release notes"
+                    } else {
+                        "過去のリリースノート"
+                    },
+                    crate::lifecycle::RELEASES,
+                );
+            });
+            closed
+        })
+    }
+    fn consent(&mut self, ctx: &egui::Context) {
+        egui::CentralPanel::default().show(ctx, |ui| {
+            egui::ScrollArea::vertical().show(ui, |ui| {
+                ui.add_space(20.);
+                ui.heading("はじめる前に");
+                ui.add_space(10.);
+                ui.label(consent::text());
+                ui.add_space(18.);
+                ui.horizontal(|ui| {
+                    if ui
+                        .add_sized([200., 36.], egui::Button::new("同意してはじめる"))
+                        .clicked()
+                    {
+                        match consent::accept(&self.store.directory) {
+                            Ok(()) => {
+                                self.consent_pending = false;
+                                self.status = "同意を保存しました。".into();
+                                #[cfg(any(windows, target_os = "linux"))]
+                                analytics::track("app_open");
+                                // 新規導入の初回同意ではリリースノートを出さない。
+                                release_notes::take_update_notice(&self.store.directory, true);
+                            }
+                            Err(error) => self.status = format!("同意を保存できません: {error}"),
+                        }
+                    }
+                    if ui
+                        .add_sized([150., 36.], egui::Button::new("同意しない (終了)"))
+                        .clicked()
+                    {
+                        self.closing = true;
+                        ctx.send_viewport_cmd(egui::ViewportCommand::Close);
+                    }
+                });
+                if !self.status.is_empty() {
+                    ui.add_space(10.);
+                    ui.colored_label(egui::Color32::from_rgb(180, 40, 40), &self.status);
+                }
+            });
+        });
+    }
     #[cfg(windows)]
     fn update_tray(&mut self, ctx: &egui::Context) {
         if !self.resident {
@@ -513,6 +668,11 @@ impl App {
                 tray::Action::CheckUpdates => {
                     self.lifecycle.updates = true;
                     self.lifecycle.check_updates();
+                }
+                tray::Action::ReleaseNotes => {
+                    self.open_release_notes();
+                    ctx.send_viewport_cmd(egui::ViewportCommand::Visible(true));
+                    ctx.send_viewport_cmd(egui::ViewportCommand::Focus);
                 }
                 tray::Action::About => self.lifecycle.about = true,
                 tray::Action::Help => {
@@ -734,7 +894,7 @@ impl App {
                     (
                         key.to_owned(),
                         value.clone(),
-                        f["category"].as_str().unwrap_or("").to_owned(),
+                        ui_category(key, f["category"].as_str().unwrap_or("")).to_owned(),
                     )
                 })
             })
@@ -756,12 +916,57 @@ impl App {
             fields.push(("ai-packages".into(), Value::Null, "1a. AI".into()));
         }
         fields.sort_by(|a, b| a.2.cmp(&b.2));
-        egui::ScrollArea::vertical()
+        let mut categories: Vec<String> = Vec::new();
+        for (_, _, group) in &fields {
+            if categories.last() != Some(group) {
+                categories.push(group.clone());
+            }
+        }
+        ui.horizontal_top(|ui| {
+            egui::Frame::NONE
+                .fill(egui::Color32::from_gray(246))
+                .inner_margin(egui::Margin::symmetric(6, 8))
+                .show(ui, |ui| {
+                    ui.set_width(146.);
+                    ui.vertical(|ui| {
+                        if ui
+                            .selectable_label(
+                                self.settings_category.is_none(),
+                                i18n::t("すべて"),
+                            )
+                            .clicked()
+                        {
+                            self.settings_category = None;
+                        }
+                        for category in &categories {
+                            let label = category
+                                .split_once(". ")
+                                .map_or(category.as_str(), |(_, label)| label);
+                            let selected =
+                                self.settings_category.as_deref() == Some(category.as_str());
+                            if ui
+                                .selectable_label(selected, i18n::category(label))
+                                .clicked()
+                            {
+                                self.settings_category = Some(category.clone());
+                            }
+                        }
+                    });
+                });
+            ui.separator();
+            egui::ScrollArea::vertical()
             .id_salt("settings_body")
             .auto_shrink([false, false])
             .show(ui, |ui| {
                 ui.set_width((ui.available_width() - 18.).max(220.));
                 for group_fields in fields.chunk_by(|a, b| a.2 == b.2) {
+                    if self
+                        .settings_category
+                        .as_deref()
+                        .is_some_and(|selected| group_fields[0].2 != selected)
+                    {
+                        continue;
+                    }
                     let group = &group_fields[0].2;
                     let title = group
                         .split_once(". ")
@@ -834,6 +1039,9 @@ impl App {
                                         if ui.button(i18n::t("今アップデートを確認")).clicked() {
                                             self.lifecycle.updates = true;
                                             self.lifecycle.check_updates();
+                                        }
+                                        if ui.button(i18n::t("リリースノートを見る")).clicked() {
+                                            self.open_release_notes();
                                         }
                                     });
                                     ui.weak(metadata::description(key));
@@ -979,36 +1187,10 @@ impl App {
                     widgets::group_border(ui, group_response.response.rect, title);
                     ui.add_space(14.);
                 }
-                #[cfg(windows)]
-                {
-                    ui.add_space(8.);
-                    ui.horizontal(|ui| {
-                        ui.strong(i18n::t("利用状況の匿名集計"));
-                    });
-                    let mut requested = analytics::enabled(&self.store.directory);
-                    ui.horizontal(|ui| {
-                        ui.label(i18n::t("利用状況を匿名で送る"));
-                        if widgets::toggle(ui, &mut requested, i18n::t("利用状況を匿名で送る")).changed() {
-                            match analytics::set_enabled(&self.store.directory, requested) {
-                                Ok(()) => {
-                                    self.status = if requested {
-                                        "利用状況の送信を有効にしました。".into()
-                                    } else {
-                                        "利用状況の送信を停止しました。次の起動から送りません。".into()
-                                    };
-                                    if requested {
-                                        analytics::track(&self.store.directory, "analytics_enabled");
-                                    }
-                                }
-                                Err(error) => self.status = error.to_string(),
-                            }
-                        }
-                    });
-                    ui.weak("Aptabaseへ、アプリの版・OSの版・起動回数だけを送ります。入力内容・入力履歴・辞書・設定値は送りません。既定は有効で、ここで切れます。");
-                }
                 // Retain the original form's trailing space below the last row.
                 ui.add_space(16.);
             });
+        });
     }
     #[cfg(any(windows, target_os = "linux", target_os = "macos"))]
     fn ai_settings(&mut self, ui: &mut egui::Ui) {
@@ -1665,6 +1847,85 @@ fn toggle_shortcuts_editor(
     }
     Ok(changed)
 }
+/// 本家1.5.0系の設定画面に近い、左側の分類へ振り分ける表示用の分類。
+/// 保存する設定の分類 (settings-ui.json) は変えない。
+fn ui_category(key: &str, original: &str) -> &'static str {
+    match key {
+        "ToggleShortcuts" | "ConvertKeysSwitchKeyboard" | "AltKeysSwitchKeyboard" => {
+            "2. 入力モード"
+        }
+        "DetectionLevel"
+        | "ScoredSegmentation"
+        | "JapaneseThreshold"
+        | "TypoEnabled"
+        | "DirectModeAutoDetect"
+        | "SigilWordsDirect"
+        | "EnglishFirstInput"
+        | "AutoCorrectAfterCommit"
+        | "LaughterAfterKana" => "3. 判定",
+        "NumberKeysSelectCandidates"
+        | "EnterCommitsAsShown"
+        | "ShowCandidatesWhileTyping"
+        | "LiveConversion"
+        | "ConversionEngine"
+        | "UseZenzai"
+        | "ZenzaiServerPath"
+        | "ZenzaiModelPath"
+        | "TabConversion"
+        | "ContinueAfterConversion"
+        | "CorrectTypos"
+        | "StartConversionAtLastClause" => "4. 変換",
+        "SnippetMark"
+        | "CalculatorCandidates"
+        | "GitHubIssueCandidates"
+        | "GitHubRepository"
+        | "ClipboardCandidates"
+        | "TranslationCandidates"
+        | "PredictiveCandidates"
+        | "EnglishNamePredictions"
+        | "ConsonantAbbreviations"
+        | "ShowCandidateMeanings" => "5. 候補",
+        "SpaceAroundEnglish"
+        | "SpaceAroundNumbers"
+        | "FullWidthSpaceByDefault"
+        | "ShiftSpaceHalfWidth"
+        | "FullWidthParentheses"
+        | "SquareBrackets"
+        | "CursorIntoBrackets"
+        | "Punctuation"
+        | "JapanesePunctuationAfterEnglish"
+        | "FullWidthSlash"
+        | "SlashAsMiddleDot"
+        | "ZSymbols" => "6. 記号・スペース",
+        "AlphanumericKeyStartsAsTyped"
+        | "EscStepsBack"
+        | "EscRevertsSelectedClause"
+        | "FunctionKeysAffectSelectedClause"
+        | "CompatibleShortcuts"
+        | "PartialCommit"
+        | "ControlKeyBindings"
+        | "MacControlKeys"
+        | "SeparateKeyRoles" => "7. キー操作",
+        "ShowTypedKeys"
+        | "CompositionPlacement"
+        | "CompositionSize"
+        | "CompositionFont"
+        | "CompositionTheme"
+        | "CompositionOpacity"
+        | "ShowModeIndicator"
+        | "ShowModeIndicatorOnFocus"
+        | "ModeIndicatorJapaneseColor"
+        | "ModeIndicatorDirectColor"
+        | "ModeIndicatorTextColor" => "8. 表示",
+        "LearningEnabled" | "ContextualLearning" => "9. 学習",
+        "FileLog" | "LogTypedText" | "LogKeyIntervals" => "11. ログ",
+        "AutoUpdate" => "12. 更新",
+        _ if original == "7. アプリ" => "10. アプリ",
+        _ if original == "8. ログ" => "11. ログ",
+        _ if original == "9. 更新" => "12. 更新",
+        _ => "1. 全般",
+    }
+}
 fn visible_by_default(key: &str) -> bool {
     supported(key)
         || key == "ToggleShortcuts"
@@ -1907,6 +2168,10 @@ impl eframe::App for App {
             self.title = title.to_owned();
             ctx.send_viewport_cmd(egui::ViewportCommand::Title(title.to_owned()));
         }
+        if self.consent_pending {
+            self.consent(ctx);
+            return;
+        }
         #[cfg(windows)]
         self.update_tray(ctx);
         if ctx.input(|i| i.viewport().close_requested()) && !self.closing {
@@ -2037,6 +2302,17 @@ impl eframe::App for App {
                 }
                 Err(error) => self.status = error.to_string(),
             }
+        }
+        if self.lifecycle.release_notes {
+            self.lifecycle.release_notes = false;
+            self.open_release_notes();
+        }
+        if self.release_notes {
+            let open = self.release_notes_window(ctx);
+            if !open {
+                self.release_notes_from_update = false;
+            }
+            self.release_notes = open;
         }
         if self.page != 0 {
             egui::TopBottomPanel::top("navigation").show(ctx, |ui| self.navigation(ui));
@@ -2205,6 +2481,10 @@ impl eframe::App for App {
                 }
                 if ui.button("更新...").clicked() {
                     self.lifecycle.updates = true;
+                    ui.close_menu();
+                }
+                if ui.button("リリースノート...").clicked() {
+                    self.open_release_notes();
                     ui.close_menu();
                 }
                 if ui.button("Meltype-FLASH について...").clicked() {
@@ -2443,6 +2723,7 @@ mod tests {
     fn mouse_click_can_change_settings_in_the_complete_window() {
         use eframe::App as _;
         let directory = tempfile::tempdir().unwrap();
+        consent::accept(directory.path()).unwrap();
         let mut app = App::with_store(Store::new(directory.path()));
         app.settings
             .0

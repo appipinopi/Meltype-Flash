@@ -63,6 +63,43 @@ use std::{
     },
 };
 
+/// 打鍵数 (keycount.json)。打った文字は残さず、日ごとの回数だけを足す。
+#[cfg(not(test))]
+fn key_counter() -> &'static Mutex<meltype_core::keycount::KeyCounter> {
+    static COUNTER: OnceLock<Mutex<meltype_core::keycount::KeyCounter>> = OnceLock::new();
+    COUNTER.get_or_init(|| {
+        Mutex::new(meltype_core::keycount::KeyCounter::load(
+            meltype_core::storage::Store::default_directory(),
+        ))
+    })
+}
+
+/// 1 打鍵を数える。数える設定のときだけ。押しっぱなしの繰り返しもそのまま数える。
+#[cfg(not(test))]
+pub(crate) fn count_key() {
+    static KEYS: std::sync::atomic::AtomicU64 = std::sync::atomic::AtomicU64::new(0);
+    let Ok(mut counter) = key_counter().lock() else {
+        return;
+    };
+    let index = KEYS.fetch_add(1, Ordering::Relaxed);
+    // 設定画面で入れた変更を、次の打鍵から反映させる。ファイルの更新時刻が変わった
+    // ときだけ読み直すので、打鍵ごとに見ても軽い (設定変更が 64 打待たない)。
+    counter.refresh_if_changed();
+    counter.count_key(&meltype_core::keycount::today());
+    // 書き込みは 20 打ごとにまとめる。終了時は destroy で書く。
+    // 1 打目はすぐ書いて、起動直後でも Discord のステータスに出るようにする。
+    if index == 0 || index.is_multiple_of(20) {
+        let _ = counter.flush();
+    }
+}
+
+#[cfg(not(test))]
+pub(crate) fn flush_key_count() {
+    if let Ok(mut counter) = key_counter().lock() {
+        let _ = counter.flush();
+    }
+}
+
 pub type ClausesCallback = unsafe extern "C" fn(*const c_char, *const c_char) -> *mut c_char;
 pub type CandidatesCallback = unsafe extern "C" fn(*const c_char) -> *mut c_char;
 pub type WordCallback = unsafe extern "C" fn(*const c_char) -> i32;
@@ -292,6 +329,8 @@ pub extern "C" fn meltype_destroy(handle: *mut c_void) {
     if let Ok(mut all) = sessions().lock() {
         all.remove(&(handle as usize));
     }
+    #[cfg(all(not(test), any(target_os = "linux", target_os = "macos")))]
+    flush_key_count();
 }
 
 unsafe fn external_conversion(reading: &str, before: *const c_char) -> (Vec<Clause>, Vec<String>) {
@@ -633,6 +672,18 @@ pub unsafe extern "C" fn meltype_handle_key(
     after: *const c_char,
 ) -> *mut c_char {
     catch_unwind(AssertUnwindSafe(|| {
+        // パスワード欄などプライベートな入力は数えない。
+        #[cfg(all(not(test), any(target_os = "linux", target_os = "macos")))]
+        {
+            let private = sessions()
+                .lock()
+                .ok()
+                .and_then(|all| all.get(&(handle as usize)).map(|s| s.private))
+                .unwrap_or(true);
+            if !private {
+                count_key();
+            }
+        }
         #[cfg(any(target_os = "linux", target_os = "macos"))]
         {
             let settings = sessions()

@@ -7,6 +7,26 @@ final class AppDelegate: UIResponder, UIApplicationDelegate {
     var window: UIWindow?
     func application(_ application: UIApplication, didFinishLaunchingWithOptions launchOptions: [UIApplication.LaunchOptionsKey: Any]?) -> Bool {
         let window = UIWindow(frame: UIScreen.main.bounds)
+        self.window = window
+        if ConsentStore.accepted {
+            window.rootViewController = makeSetupNavigation()
+            window.makeKeyAndVisible()
+            startAnalytics()
+        } else {
+            let consent = ConsentViewController()
+            consent.onAccept = { [weak self] in
+                guard let self else { return }
+                ConsentStore.accept()
+                self.window?.rootViewController = self.makeSetupNavigation()
+                self.startAnalytics()
+            }
+            window.rootViewController = consent
+            window.makeKeyAndVisible()
+        }
+        return true
+    }
+
+    private func makeSetupNavigation() -> UINavigationController {
         let navigation = UINavigationController(rootViewController: SetupViewController())
         let appearance = UINavigationBarAppearance()
         appearance.configureWithOpaqueBackground(); appearance.backgroundColor = AppStyle.canvas
@@ -14,13 +34,50 @@ final class AppDelegate: UIResponder, UIApplicationDelegate {
         navigation.navigationBar.standardAppearance = appearance
         navigation.navigationBar.scrollEdgeAppearance = appearance
         navigation.navigationBar.tintColor = .label
-        window.rootViewController = navigation
-        window.makeKeyAndVisible(); self.window = window
-        // 利用状況の集計は、アプリの画面で入れた人だけ。キーボード拡張では呼ばない。
+        return navigation
+    }
+
+    /// 同意が済んだあとだけ送る。キーボード拡張では呼ばない。
+    private func startAnalytics() {
         FlashAnalytics.start()
         FlashAnalytics.track("app_open")
         if SetupViewController.hasKeyboardExtension() { FlashAnalytics.track("keyboard_ready") }
-        return true
+    }
+}
+
+/// 初回起動の同意。同意するまで設定画面へ進めない。
+enum ConsentStore {
+    private static let key = "MeltypeConsentVersion"
+    static let version = 1
+    static var accepted: Bool { UserDefaults.standard.integer(forKey: key) >= version }
+    static func accept() { UserDefaults.standard.set(version, forKey: key) }
+    static let text = """
+    Meltype-FLASH を使うには、次の内容に同意してください。
+
+    ・本ソフトは GNU GPL v3 以降で提供され、無保証です。
+    ・より良い入力のために、利用状況（アプリの版・OSの版・起動回数・画面を開いた回数）を匿名で送信します。この送信は設定で停止できません。
+    ・入力内容・入力履歴・辞書・設定値・入力欄の文字列は送信しません。
+    ・送信先は Aptabase です。
+    """
+}
+
+final class ConsentViewController: UIViewController {
+    var onAccept: (() -> Void)?
+    override func viewDidLoad() {
+        super.viewDidLoad()
+        let stack = AppStyle.scrollColumn(in: self)
+        let hero = AppStyle.column(spacing: 10)
+        hero.addArrangedSubview(AppStyle.label("FLASH  /  FOR iPHONE", .caption1, color: .secondaryLabel))
+        let headline = AppStyle.label("はじめる前に", .largeTitle)
+        headline.font = UIFontMetrics(forTextStyle: .largeTitle).scaledFont(for: .systemFont(ofSize: 34, weight: .bold))
+        hero.addArrangedSubview(headline)
+        hero.addArrangedSubview(AppStyle.label("Meltype-FLASH を安心して使っていただくために、利用状況の扱いを確認してください。", .subheadline, color: .secondaryLabel))
+        stack.addArrangedSubview(hero)
+        stack.addArrangedSubview(AppStyle.card(AppStyle.label(ConsentStore.text, .footnote, color: .secondaryLabel)))
+        let accept = AppStyle.button("同意してはじめる", symbol: "checkmark", primary: true) { [weak self] in self?.onAccept?() }
+        accept.accessibilityIdentifier = "consent-accept"
+        stack.addArrangedSubview(accept)
+        stack.addArrangedSubview(AppStyle.label("同意しない場合は、アプリを終了してください。", .caption1, color: .secondaryLabel))
     }
 }
 
@@ -31,7 +88,6 @@ final class SetupViewController: UIViewController, UITextViewDelegate {
     private let preview = KeyboardPreviewView()
     private let appearanceStore = KeyboardAppearanceStore()
     private var settings: UIButton!
-    private let analyticsSwitch = UISwitch()
 
     static func hasKeyboardExtension(in app: Bundle = .main) -> Bool {
         guard let plugins = app.builtInPlugInsURL,
@@ -114,16 +170,7 @@ final class SetupViewController: UIViewController, UITextViewDelegate {
             placeholder.topAnchor.constraint(equalTo: field.frameLayoutGuide.topAnchor, constant: 14)
         ])
         test.addArrangedSubview(field); stack.addArrangedSubview(AppStyle.card(test))
-        analyticsSwitch.isOn = FlashAnalytics.isEnabled
-        analyticsSwitch.onTintColor = AppStyle.yellow
-        analyticsSwitch.accessibilityIdentifier = "analytics-switch"
-        analyticsSwitch.accessibilityLabel = "利用状況を送る"
-        analyticsSwitch.addTarget(self, action: #selector(toggleAnalytics), for: .valueChanged)
-        let usage = AppStyle.column(spacing: 8)
-        usage.addArrangedSubview(AppStyle.row([AppStyle.symbol("chart.bar", color: .secondaryLabel), AppStyle.label("利用状況を送る", .headline), UIView(), analyticsSwitch]))
-        usage.addArrangedSubview(AppStyle.label("OSと版、画面を開いた回数だけを匿名で送ります。入力内容・辞書・設定は送りません。", .caption1, color: .secondaryLabel))
-        stack.addArrangedSubview(AppStyle.card(usage))
-        let privacy = AppStyle.label("通常入力はフルアクセス不要\nshuntiは共有モデルへのアクセスを許可すると使えます。入力内容は送信しません。", .caption1, color: .secondaryLabel)
+        let privacy = AppStyle.label("通常入力はフルアクセス不要\nshuntiは共有モデルへのアクセスを許可すると使えます。入力内容は送信しません。\n利用状況の送信は、同意後は停止できません。", .caption1, color: .secondaryLabel)
         let privacyRow = AppStyle.row([AppStyle.symbol("lock.shield", color: .secondaryLabel), privacy])
         stack.addArrangedSubview(privacyRow)
         refresh()
@@ -161,5 +208,4 @@ final class SetupViewController: UIViewController, UITextViewDelegate {
     @objc private func openAISettings() { navigationController?.pushViewController(AISettingsViewController(), animated: true) }
     @objc private func openAppearance() { navigationController?.pushViewController(AppearanceViewController(), animated: true) }
     @objc private func endEditing() { view.endEditing(true) }
-    @objc private func toggleAnalytics() { FlashAnalytics.setEnabled(analyticsSwitch.isOn) }
 }

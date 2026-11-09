@@ -2,7 +2,8 @@
 // Copyright (C) 2026 appipinopi
 import {validatePreferences} from "./site-profiles.mjs";
 import {ShuntiPackages,modelOrigins} from "./shunti.mjs";
-import {cachedUpdate,hasUpdatePermission,requestUpdatePermission} from "./update.mjs";
+import {cachedUpdate,downloadUpdate,hasUpdatePermission,requestUpdatePermission,writeUpdate} from "./update.mjs";
+import {acceptAnalytics,analyticsAccepted,track} from "./analytics.mjs";
 let aiPackages = new ShuntiPackages();
 const aiVersion = document.querySelector("#ai-version");
 let aiVersions, aiCatalogPromise, aiRefreshEpoch = 0;
@@ -35,6 +36,7 @@ const aiStatus = document.querySelector("#ai-status"), aiInstall = document.quer
 function aiDetailsFor(value) { aiDetails.hidden = value.AiModel !== "Shunti" && !(value.AiModel == null && value.UseShunti === true); }
 const status = document.querySelector("#status"), settings = document.querySelector("#settings");
 const currentVersion = document.querySelector("#current-version"), updateStatus = document.querySelector("#update-status"), updateCheck = document.querySelector("#update-check");
+const updateZip = document.querySelector("#update-zip"), reloadExtension = document.querySelector("#reload-extension");
 currentVersion.textContent = chrome.runtime.getManifest?.().version ?? "?";
 function showUpdate(update) {
   updateStatus.replaceChildren();
@@ -258,7 +260,20 @@ document.querySelector("#export").addEventListener("click", () => show(async () 
   setTimeout(() => URL.revokeObjectURL(url), 1000);
   status.textContent = "書き出しには個人の辞書・学習を含みます。";
 }));
-show(reload);
+const consentGate = document.querySelector("#consent-gate");
+document.querySelector("#consent-accept").addEventListener("click", async () => {
+  await acceptAnalytics();
+  consentGate.close();
+  await track("options_open");
+  show(reload);
+});
+document.querySelector("#consent-decline").addEventListener("click", () => window.close());
+if (!globalThis.chrome?.storage?.local || await analyticsAccepted()) {
+  if (globalThis.chrome?.storage?.local) await track("options_open");
+  show(reload);
+} else {
+  consentGate.showModal();
+}
 updateCheck.addEventListener("click", () => show(async () => {
   if (!await hasUpdatePermission() && !await requestUpdatePermission()) throw new Error("更新の確認にはGitHubへの接続の許可が必要です。");
   updateCheck.disabled = true;
@@ -266,6 +281,26 @@ updateCheck.addEventListener("click", () => show(async () => {
   try { showUpdate(await request({op: "update_check"})); }
   finally { updateCheck.disabled = false; }
 }));
+
+updateZip.addEventListener("click", () => show(async () => {
+  if (!globalThis.showDirectoryPicker) throw new Error("このChromeではフォルダーを選べません。ZIPを展開して同じフォルダーへ置き換えてください。");
+  // Pick the folder while the click's user activation is still valid.
+  const directory = await globalThis.showDirectoryPicker({mode: "readwrite", id: "meltype-extension"});
+  if (!await hasUpdatePermission()) throw new Error("先に「更新を確認」を押して、GitHubへの接続を許可してください。");
+  updateZip.disabled = true;
+  updateStatus.textContent = "更新ファイルを確認しています…";
+  try {
+    const update = await request({op: "update_check"});
+    if (!update) throw new Error("更新を確認できませんでした。先に「更新を確認」を押してください。");
+    if (!update.update) { updateStatus.textContent = "最新版です。"; return; }
+    const files = await downloadUpdate(update);
+    updateStatus.textContent = `v${update.version} を書き込んでいます…`;
+    await writeUpdate(files, directory);
+    updateStatus.textContent = `v${update.version} を書き込みました。「拡張機能を再読み込み」を押してください。`;
+    reloadExtension.hidden = false;
+  } finally { updateZip.disabled = false; }
+}));
+reloadExtension.addEventListener("click", () => chrome.runtime.reload());
 
 aiInstall.addEventListener("click", async () => {
   if (!globalThis.confirm("shuntiの環境を作成してよいですか？ 辞書（CC BY-SA 4.0）・モデル（CC BY 4.0）を別ダウンロードします。入力内容は送信しません。")) return;

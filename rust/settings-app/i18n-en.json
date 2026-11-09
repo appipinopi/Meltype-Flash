@@ -2,13 +2,24 @@
   "categories": {
     "1. 全般": "1. General",
     "1a. AI": "1a. AI",
+    "2. 入力モード": "2. Input mode",
     "2. 表示": "2. Display",
+    "3. 判定": "3. Judgment",
     "3. 候補": "3. Candidates",
+    "4. 変換": "4. Conversion",
+    "5. 候補": "5. Candidates",
     "5. 学習": "5. Learning",
     "6. IME": "6. IME",
+    "6. 記号・スペース": "6. Symbols and spaces",
+    "7. キー操作": "7. Key operations",
     "7. アプリ": "7. Apps",
+    "8. 表示": "8. Display",
     "8. ログ": "8. Logs",
-    "9. 更新": "9. Updates"
+    "9. 学習": "9. Learning",
+    "9. 更新": "9. Updates",
+    "10. アプリ": "10. Apps",
+    "11. ログ": "11. Logs",
+    "12. 更新": "12. Updates"
   },
   "fields": {
     "Enabled": {
@@ -447,6 +458,7 @@
   },
   "ui": {
     "設定": "Settings",
+    "すべて": "All",
     "ユーザー辞書": "User dictionary",
     "定型文": "Snippets",
     "学習した語": "Learned words",
@@ -469,6 +481,8 @@
     "バージョン情報": "About",
     "アップデート": "Update",
     "今アップデートを確認": "Check for updates now",
+    "リリースノートを見る": "View release notes",
+    "リリースノート": "Release notes",
     "アップデート方法": "Update method",
     "自動": "Automatic",
     "手動": "Manual",

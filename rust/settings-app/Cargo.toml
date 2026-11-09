@@ -19,12 +19,19 @@ tempfile = "3"
 chrono = { version = "0.4", default-features = false, features = ["clock"] }
 eframe = { version = "=0.31.1", default-features = false, features = ["glow", "default_fonts", "x11", "wayland", "accesskit"] }
 rfd = "=0.17.2"
+# リリースノートの Markdown。HTML 変換は使わない。
+pulldown-cmark = { version = "0.12", default-features = false }
 
 [dev-dependencies]
 roxmltree = "0.20"
 
 [target.'cfg(target_os = "macos")'.dependencies]
 meltype-ai = { path = "../ai", default-features = false, features = ["download"] }
+
+[target.'cfg(target_os = "linux")'.dependencies]
+# 利用状況の集計 (Aptabase)。Linux の設定画面から HTTPS で送る。
+reqwest = { version = "0.12", default-features = false, features = ["json", "rustls-tls"] }
+tokio = { version = "1", features = ["rt", "time", "net"] }
 
 [target.'cfg(windows)'.dependencies]
 # 利用状況の集計 (Aptabase)。Windows の設定画面から HTTPS で送る。

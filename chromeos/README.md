@@ -3,7 +3,7 @@
 <a id="meltype-for-chromeos"></a>
 <p align="center"><img src="../assets/branding/readme/chromeos/hero.svg" alt="Meltype-FLASH for ChromeOS" width="1000"></p>
 <p align="center"><b>稲妻のように、言葉の壁を駆け抜ける日本語入力。</b></p>
-<p align="center"><a href="https://github.com/appipinopi/Meltype-Flash/releases/latest"><img src="https://img.shields.io/badge/Flash-v1.1.2-ffe34a" alt="Flash v1.1.2"></a> <img src="https://img.shields.io/badge/status-正式版-666973" alt="正式版"></p>
+<p align="center"><a href="https://github.com/appipinopi/Meltype-Flash/releases/latest"><img src="https://img.shields.io/badge/Flash-v1.1.3-ffe34a" alt="Flash v1.1.3"></a> <img src="https://img.shields.io/badge/status-正式版-666973" alt="正式版"></p>
 <p align="center"><a href="#インストール">ダウンロード・導入</a> · <a href="#使い方">使い方</a> · <a href="#困ったとき">困ったとき</a> · <a href="https://github.com/appipinopi/Meltype-Flash/issues/new/choose">不具合の報告・提案</a></p>
 <p align="center">
   <a href="../rust/WINDOWS-PACKAGE.md"><img src="../assets/branding/readme/cards/os-windows.svg" alt="Windows" width="32%"></a>
@@ -58,9 +58,11 @@ AIモデルは「使用しない / shunti」から選べます。shuntiを選択
 <a id="自動更新"></a>
 <h3>自動更新</h3>
 
-リリースには、署名した `Meltype-flash-ChromeOS.crx` と更新マニフェスト `updates.xml` を添付しています。拡張機能の `update_url` は `https://github.com/appipinopi/Meltype-Flash/releases/latest/download/updates.xml` です。CRXを管理者ポリシー（`ExtensionInstallForcelist` など）で導入した場合、Chromeが新しい版を自動で取得します。CRXを手動で入れる場合は、`chrome://extensions` のデベロッパーモードが必要です。
+リリースには、署名した `Meltype-flash-ChromeOS.crx` と更新マニフェスト `updates.xml` を添付しています。拡張機能の `update_url` は `https://github.com/appipinopi/Meltype-Flash/releases/latest/download/updates.xml` です。CRXを管理者ポリシー（`ExtensionInstallForcelist` など）で導入した場合、Chromeが新しい版を自動で取得します。
 
-ZIPを「パッケージ化されていない拡張機能」として読み込んだ場合は、Chromeの仕様上、拡張機能が自分自身のファイルを置き換えられません。設定画面の「学習とデータ」→「更新を確認」で新しい版を確認でき、更新があると拡張機能のタブに「新」の印が出ます。ZIPを取得して同じフォルダーを更新し、拡張機能を再読み込みしてください。確認には `api.github.com` への接続許可が必要です。入力内容は送信しません。
+CRXは管理者ポリシーで導入するためのファイルです。`chrome://extensions` へドラッグして手動で入れることはできません（[CRX_REQUIRED_PROOF_MISSING](#crx-required-proof-missing)）。通常は下のZIPの手順を使ってください。
+
+ZIPを「パッケージ化されていない拡張機能」として読み込んだ場合も、CRXを使わずに更新できます。設定画面の「学習とデータ」→「更新を確認」で新しい版を確認し、「ZIPで更新（CRXなし）」で拡張機能のフォルダーを選ぶと、配布ZIPの内容をSHA-256で確認してから書き込みます。書き込み後に「拡張機能を再読み込み」を押してください。フォルダーを選べない環境では、ZIPを展開して同じフォルダーへ置き換えてから再読み込みします。確認には `api.github.com` と配布ファイルへの接続許可が必要です。入力内容は送信しません。
 
 <a id="使い方"></a>
 <h2><img src="../assets/branding/readme/chromeos/headings/936b17951891.svg" alt="使い方" width="1000"></h2>
@@ -92,11 +94,26 @@ ChromeOSの入力方式切替はOS側の設定を使います。
 <h2><img src="../assets/branding/readme/chromeos/headings/5b98193660c4.svg" alt="プライバシー" width="1000"></h2>
 
 入力と変換は拡張機能内のWASMで処理し、設定・学習は `chrome.storage.local` に保存します。学習禁止やシークレットでは保存を抑止します。
+初回の設定画面で同意したあと、利用状況（アプリの版・OSの版・起動回数・画面を開いた回数）をAptabaseへ匿名で送ります。入力内容・入力履歴・辞書・設定値・入力欄の文字列は送りません。同意後の送信は停止できません。
 サイト別切替の任意権限 `tabs` は、現在のタブを調べるために使います。ページへ入力用スクリプトを挿入する構成ではありません。
 拡張機能の削除でローカルデータを失うため、必要なスナップショットは先に保存してください。
 
 <a id="困ったとき"></a>
 <h2><img src="../assets/branding/readme/chromeos/headings/4466f22d7395.svg" alt="困ったとき" width="1000"></h2>
+
+<a id="crx-required-proof-missing"></a>
+<details>
+<summary>「CRX_REQUIRED_PROOF_MISSING」と出てCRXをインストールできない</summary>
+
+CRXファイルが壊れているわけではありません。Chrome Web Storeを通さない自己署名CRXには、Chromeが要求する発行元の証明（proof）がないため、Chromeが仕様として手動インストールを拒否しています。Web Storeで公開していない拡張機能では、この表示が正常です。
+
+1. **通常はZIPで入れる**：上の「インストール」の手順どおりZIPを展開し、`chrome://extensions` のデベロッパーモードで「パッケージ化されていない拡張機能を読み込む」から `manifest.json` のあるフォルダーを選びます。
+2. **CRXで自動更新したい場合**：端末の管理ポリシーで `ExtensionInstallForcelist` を設定します。値は `拡張機能ID;https://github.com/appipinopi/Meltype-Flash/releases/latest/download/updates.xml` です。拡張機能IDは、リリースの `updates.xml` にある `<app appid="...">` で確認できます。ChromeOSの管理端末では、管理者がGoogle管理コンソールの「アプリと拡張機能」からURLを指定して強制インストールする方法でも同じです。
+3. **Web Storeから入れる**：Meltype-FLASHはChrome Web Storeへ公開していないため、Web Store経由ではインストールできません。
+
+CRXをダブルクリックしたり `chrome://extensions` へドラッグしたりする方法は、Chromeの仕様で使えません。デベロッパーモードでも、この手動CRXインストールは許可されません。
+
+</details>
 
 <details>
 <summary>拡張機能として入ったのに入力方法が出ない</summary>

@@ -1,37 +1,16 @@
 // SPDX-License-Identifier: GPL-3.0-or-later
 // Copyright (C) 2026 appipinopi
 //! 利用状況の集計 (Aptabase)。送るのは出来事の名前と端末の種類・OSの版・アプリの版だけで、
-//! 入力内容・入力履歴・辞書・設定値は送らない。既定は有効で、設定画面で切った人だけ送らない。
+//! 入力内容・入力履歴・辞書・設定値は送らない。同意した人だけが使い、送信は停止できない。
 use serde_json::{json, Value};
-use std::path::Path;
 use std::time::{SystemTime, UNIX_EPOCH};
 
 const APP_KEY: &str = "A-US-4882313783";
 const API_URL: &str = "https://us.aptabase.com/api/v0/events";
 const SDK_VERSION: &str = "meltype-flash-http@1";
-const SETTINGS_FILE: &str = "analytics.json";
-
-/// 設定画面で利用状況の送信を切ったか。ファイルが無い・読めないときは有効 (既定)。
-pub fn enabled(directory: &Path) -> bool {
-    std::fs::read(directory.join(SETTINGS_FILE))
-        .ok()
-        .and_then(|bytes| serde_json::from_slice::<Value>(&bytes).ok())
-        .and_then(|value| value["enabled"].as_bool())
-        .unwrap_or(true)
-}
-
-/// 設定を保存する。入れたときはすぐ送り、切ったときは次の起動から送らない。
-pub fn set_enabled(directory: &Path, enabled: bool) -> std::io::Result<()> {
-    let bytes =
-        serde_json::to_vec_pretty(&json!({"enabled": enabled})).map_err(std::io::Error::other)?;
-    meltype_core::storage::atomic_write(&directory.join(SETTINGS_FILE), &bytes)
-}
 
 /// 背景スレッドで1件だけ送る。待たない・失敗しても本体の動作に影響させない。
-pub fn track(directory: &Path, event: &'static str) {
-    if !enabled(directory) {
-        return;
-    }
+pub fn track(event: &'static str) {
     std::thread::spawn(move || {
         let Ok(runtime) = tokio::runtime::Builder::new_current_thread()
             .enable_all()
@@ -51,7 +30,7 @@ fn payload(event: &str) -> Value {
         "systemProps": {
             "isDebug": cfg!(debug_assertions),
             "locale": locale(),
-            "osName": "Windows",
+            "osName": os_name(),
             "osVersion": os_version(),
             "appVersion": env!("CARGO_PKG_VERSION"),
             "appBuildNumber": env!("CARGO_PKG_VERSION"),
@@ -68,7 +47,7 @@ async fn send(event: &str) -> Result<(), Box<dyn std::error::Error>> {
     let response = reqwest::Client::new()
         .post(API_URL)
         .header("App-Key", APP_KEY)
-        .header("User-Agent", format!("Windows/{os_version} {locale}"))
+        .header("User-Agent", format!("{}/{os_version} {locale}", os_name()))
         .json(&payload)
         .send()
         .await?;
@@ -96,6 +75,17 @@ fn session_id() -> String {
     format!("{}", seconds * 100_000_000 + random)
 }
 
+fn os_name() -> &'static str {
+    if cfg!(windows) {
+        "Windows"
+    } else if cfg!(target_os = "linux") {
+        "Linux"
+    } else {
+        "macOS"
+    }
+}
+
+#[cfg(windows)]
 fn os_version() -> String {
     use windows_sys::Wdk::System::SystemServices::RtlGetVersion;
     use windows_sys::Win32::System::SystemInformation::OSVERSIONINFOW;
@@ -110,6 +100,28 @@ fn os_version() -> String {
     )
 }
 
+#[cfg(target_os = "linux")]
+fn os_version() -> String {
+    let text = std::fs::read_to_string("/etc/os-release").unwrap_or_default();
+    for key in ["VERSION_ID", "PRETTY_NAME"] {
+        if let Some(value) = text.lines().find_map(|line| {
+            line.strip_prefix(&format!("{key}="))
+                .map(|value| value.trim_matches('"').to_owned())
+        }) {
+            if !value.is_empty() {
+                return value;
+            }
+        }
+    }
+    "unknown".into()
+}
+
+#[cfg(not(any(windows, target_os = "linux")))]
+fn os_version() -> String {
+    "unknown".into()
+}
+
+#[cfg(windows)]
 fn locale() -> String {
     use windows_sys::Win32::Globalization::GetUserDefaultLocaleName;
     use windows_sys::Win32::System::SystemServices::LOCALE_NAME_MAX_LENGTH;
@@ -122,25 +134,23 @@ fn locale() -> String {
     String::from_utf16_lossy(&buffer[..(length as usize - 1)])
 }
 
+#[cfg(not(windows))]
+fn locale() -> String {
+    std::env::var("LC_ALL")
+        .or_else(|_| std::env::var("LC_MESSAGES"))
+        .or_else(|_| std::env::var("LANG"))
+        .unwrap_or_default()
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
 
     #[test]
-    fn preference_roundtrip_and_payload_shape() {
-        let directory = tempfile::tempdir().unwrap();
-        // ファイルが無いときは既定で有効。
-        assert!(enabled(directory.path()));
-        set_enabled(directory.path(), false).unwrap();
-        assert!(!enabled(directory.path()));
-        set_enabled(directory.path(), true).unwrap();
-        assert!(enabled(directory.path()));
-        set_enabled(directory.path(), false).unwrap();
-        assert!(!enabled(directory.path()));
-
+    fn payload_shape() {
         let value = payload("app_open");
         assert_eq!(value[0]["eventName"], "app_open");
-        assert_eq!(value[0]["systemProps"]["osName"], "Windows");
+        assert_eq!(value[0]["systemProps"]["osName"], os_name());
         assert!(value[0]["systemProps"]["appVersion"].as_str().is_some());
         assert!(timestamp().ends_with('Z'));
         assert!(session_id().parse::<u64>().is_ok());

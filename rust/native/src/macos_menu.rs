@@ -13,24 +13,17 @@ pub unsafe extern "C" fn meltype_macos_menu(
     direct: i32,
     code: i32,
     indicator: i32,
-    analytics: i32,
 ) -> *mut c_void {
     if target.is_null() {
         return std::ptr::null_mut();
     }
     #[cfg(target_os = "macos")]
     {
-        native::create(
-            target,
-            direct != 0,
-            code != 0,
-            indicator != 0,
-            analytics != 0,
-        )
+        native::create(target, direct != 0, code != 0, indicator != 0)
     }
     #[cfg(not(target_os = "macos"))]
     {
-        let _ = (direct, code, indicator, analytics);
+        let _ = (direct, code, indicator);
         std::ptr::null_mut()
     }
 }
@@ -51,7 +44,6 @@ mod native {
         direct: bool,
         code: bool,
         indicator: bool,
-        analytics: bool,
     ) -> *mut c_void {
         if MainThreadMarker::new().is_none() {
             return std::ptr::null_mut();
@@ -68,7 +60,7 @@ mod native {
         let menu: Retained<AnyObject> = msg_send![menu_class, new];
         let empty = NSString::from_str("");
         // (名前, 動作, 選択中, target を設定する, 手前に区切り線を置く)
-        let entries: [(&str, Sel, bool, bool, bool); 8] = [
+        let entries: [(&str, Sel, bool, bool, bool); 7] = [
             (
                 "日本語・英語の自動判定",
                 sel!(selectAutomatic:),
@@ -104,13 +96,6 @@ mod native {
                 false,
                 false,
                 false,
-            ),
-            (
-                "利用状況を匿名で送る",
-                sel!(toggleAnalytics:),
-                analytics,
-                true,
-                true,
             ),
             (
                 "不具合の報告・提案… (Mac 版はプレビュー版です)",

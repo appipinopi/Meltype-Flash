@@ -32,6 +32,8 @@ test("only the newest published release with a ChromeOS package is chosen", () =
     version: "1.1.1",
     pageUrl: "https://example.test/1.1.1",
     zipUrl: "zip-1.1.1",
+    zipDigest: null,
+    sumsUrl: null,
     crxUrl: "crx-1.1.1",
   });
 });

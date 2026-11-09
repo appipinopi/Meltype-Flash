@@ -37,6 +37,8 @@ cargo build --workspace --release --locked
 
 Rust 1.88以上。WindowsはMSVC C++ビルドツール、LinuxはCリンカーと `libibus-1.0-dev`、macOSはXcode command line toolsが必要です。Cargo.lockを共有しています。
 
+ビルドキャッシュ (`target/`) はデバッグ情報と増分ビルドで数GB〜数十GBになります。配布ビルドが終わって不要になったら `cargo clean` で削除できます。`CARGO_TARGET_DIR` を設定している場合は、そのフォルダーが削除の対象です。`target/debug/incremental` と `target/debug/deps` が大きいときは、個別の削除より `cargo clean` が確実です。PowerShell からは `powershell -ExecutionPolicy Bypass -File tools/clean-rust-cache.ps1` でも実行できます。
+
 | crate | 内容 |
 |---|---|
 | meltype-core | ローマ字表222件、日英混在判定、保護範囲、JISかな・字種変換、候補・予測・意味・英訳・誤字提案、永続学習・設定・辞書・バックアップ、Mozcヘルパー通信 |

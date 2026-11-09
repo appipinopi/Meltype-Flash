@@ -9,6 +9,7 @@ pub struct Lifecycle {
     pub welcome: bool,
     pub about: bool,
     pub updates: bool,
+    pub release_notes: bool,
     update: Option<std::sync::mpsc::Receiver<String>>,
     update_status: String,
     auto_check_pending: bool,
@@ -234,6 +235,7 @@ impl Lifecycle {
                 },
             );
         }
+        let mut open_release_notes = false;
         if self.updates {
             self.updates = crate::dialogs::window(
                 ctx,
@@ -258,6 +260,9 @@ impl Lifecycle {
                         ui.label(&self.update_status);
                     }
                     ui.hyperlink_to("配布一覧を開く", RELEASES);
+                    if ui.button("リリースノートを見る").clicked() {
+                        open_release_notes = true;
+                    }
                     #[cfg(any(windows, target_os = "linux"))]
                     if ui
                         .add_enabled(
@@ -278,6 +283,9 @@ impl Lifecycle {
                     .inner
                 },
             );
+            if open_release_notes {
+                self.release_notes = true;
+            }
         }
         if check_updates {
             self.check_updates();
