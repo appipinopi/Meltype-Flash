@@ -328,6 +328,11 @@ jobs:
             --tag "$TAG" \
             --output release-assets
           rm -f "$KEY"
+      - name: Refresh checksums with the ChromeOS update files
+        run: |
+          cd release-assets
+          rm -f SHA256SUMS.txt
+          sha256sum Meltype-flash-* updates.xml LICENSE THIRD-PARTY-NOTICES.md > SHA256SUMS.txt
       - name: Publish all platforms together
         env:
           GH_TOKEN: ${{ github.token }}
