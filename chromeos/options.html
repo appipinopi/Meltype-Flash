@@ -108,6 +108,13 @@
         <button id="clear" type="button" data-help="削除前に確認します。学習履歴だけを削除し、ユーザー辞書と入力設定は保持します。">学習を削除…</button>
       </fieldset>
       <fieldset class="settings-group">
+        <legend>更新</legend>
+        <p>現在の版: <span id="current-version">…</span></p>
+        <p id="update-status" class="inline-status" role="status" aria-live="polite">まだ確認していません。</p>
+        <button id="update-check" type="button" data-help="GitHubの公開一覧を確認します。更新がある場合は配布ファイルへのリンクを表示します。入力内容は送信しません。">更新を確認</button>
+        <p class="group-description">CRXで導入した場合は、Chromeの拡張機能の更新で新しい版へ自動的に切り替わります。ZIPを手動で読み込んだ場合は、更新の確認後にZIPを取得して再読み込みしてください。設定・学習は拡張機能の削除まで残ります。</p>
+      </fieldset>
+      <fieldset class="settings-group">
         <legend>データの保存</legend>
         <p>設定・学習・ユーザー辞書はこの端末に保存します。未確定の文字列は保存せず、Chrome Syncやサーバーへ送信しません。</p>
         <p class="group-description">拡張機能を削除すると保存データも失われます。削除前に必要なファイルを書き出してください。</p>

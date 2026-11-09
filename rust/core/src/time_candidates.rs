@@ -43,21 +43,30 @@ fn shape(reading: &str) -> Option<(bool, u32, u32)> {
     }
     None
 }
-pub fn typed(reading: &str, year: i32) -> Option<Vec<String>> {
+pub fn typed(reading: &str, today: NaiveDate) -> Option<Vec<String>> {
     let (date, a, b) = shape(reading)?;
     if date {
-        let Some(day) = NaiveDate::from_ymd_opt(year, a, b) else {
+        // Prefer the upcoming occurrence: this year if the date has not
+        // passed, otherwise next year. Dates up to 30 days back stay in the
+        // past (writing about a recent date); otherwise last year is used.
+        let chosen = (today.year() - 1..=today.year() + 4).find_map(|year| {
+            let day = NaiveDate::from_ymd_opt(year, a, b)?;
+            (day >= today - chrono::Duration::days(30)).then_some(day)
+        });
+        let Some(day) = chosen else {
             return Some(vec![]);
         };
         let week = DAYS[day.weekday().num_days_from_sunday() as usize];
+        let year = day.year();
         Some(vec![
             format!("{a}/{b}"),
             format!("{a:02}/{b:02}"),
-            format!("{a}/{b}({week})"),
-            format!("{year:04}/{a:02}/{b:02}"),
             format!("{a}月{b}日"),
+            format!("{a}/{b}({week})"),
             format!("{a}月{b}日({week})"),
+            format!("{year:04}/{a:02}/{b:02}"),
             format!("{year:04}/{a:02}/{b:02}({week})"),
+            format!("{year}年{a}月{b}日"),
         ])
     } else if a <= 23 && b <= 59 {
         Some(vec![format!("{a}:{b:02}"), format!("{a:02}:{b:02}")])
@@ -66,7 +75,7 @@ pub fn typed(reading: &str, year: i32) -> Option<Vec<String>> {
     }
 }
 pub fn candidates(reading: &str, now: NaiveDateTime) -> Vec<String> {
-    if let Some(typed) = typed(reading, now.year()) {
+    if let Some(typed) = typed(reading, now.date()) {
         return typed;
     }
     if matches!(reading, "じこう" | "じこうのあいさつ") {
@@ -99,6 +108,7 @@ pub fn candidates(reading: &str, now: NaiveDateTime) -> Vec<String> {
             format!("{month}/{day}({week})"),
             format!("{year:04}-{month:02}-{day:02}"),
             format!("{week}曜日"),
+            format!("{year:04}{month:02}{day:02}"),
         ];
     }
     let time = format!("{hour}時{minute}分");

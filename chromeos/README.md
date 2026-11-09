@@ -3,7 +3,7 @@
 <a id="meltype-for-chromeos"></a>
 <p align="center"><img src="../assets/branding/readme/chromeos/hero.svg" alt="Meltype-FLASH for ChromeOS" width="1000"></p>
 <p align="center"><b>稲妻のように、言葉の壁を駆け抜ける日本語入力。</b></p>
-<p align="center"><a href="https://github.com/appipinopi/Meltype-Flash/releases/latest"><img src="https://img.shields.io/badge/Flash-v1.1.0-ffe34a" alt="Flash v1.1.0"></a> <img src="https://img.shields.io/badge/status-正式版-666973" alt="正式版"></p>
+<p align="center"><a href="https://github.com/appipinopi/Meltype-Flash/releases/latest"><img src="https://img.shields.io/badge/Flash-v1.1.1-ffe34a" alt="Flash v1.1.1"></a> <img src="https://img.shields.io/badge/status-正式版-666973" alt="正式版"></p>
 <p align="center"><a href="#インストール">ダウンロード・導入</a> · <a href="#使い方">使い方</a> · <a href="#困ったとき">困ったとき</a> · <a href="https://github.com/appipinopi/Meltype-Flash/issues/new/choose">不具合の報告・提案</a></p>
 <p align="center">
   <a href="../rust/WINDOWS-PACKAGE.md"><img src="../assets/branding/readme/cards/os-windows.svg" alt="Windows" width="32%"></a>
@@ -54,6 +54,13 @@ AIモデルは「使用しない / shunti」から選べます。shuntiを選択
 
 表示名は `Meltype-FLASH` です。旧版では `Meltype Rust` と表示します。[画像付きの導入案内](docs/INSTALLATION.md) は旧版の画面ですが、追加する経路は同じです。
 既存版を更新する場合は、先に設定画面で必要なスナップショットを保存します。同じフォルダーを新しいファイルで更新し、拡張機能を再読み込みしてください。学習を残したい場合は、先に拡張機能を削除しないでください。
+
+<a id="自動更新"></a>
+<h3>自動更新</h3>
+
+リリースには、署名した `Meltype-flash-ChromeOS.crx` と更新マニフェスト `updates.xml` を添付しています。拡張機能の `update_url` は `https://github.com/appipinopi/Meltype-Flash/releases/latest/download/updates.xml` です。CRXを管理者ポリシー（`ExtensionInstallForcelist` など）で導入した場合、Chromeが新しい版を自動で取得します。CRXを手動で入れる場合は、`chrome://extensions` のデベロッパーモードが必要です。
+
+ZIPを「パッケージ化されていない拡張機能」として読み込んだ場合は、Chromeの仕様上、拡張機能が自分自身のファイルを置き換えられません。設定画面の「学習とデータ」→「更新を確認」で新しい版を確認でき、更新があると拡張機能のタブに「新」の印が出ます。ZIPを取得して同じフォルダーを更新し、拡張機能を再読み込みしてください。確認には `api.github.com` への接続許可が必要です。入力内容は送信しません。
 
 <a id="使い方"></a>
 <h2><img src="../assets/branding/readme/chromeos/headings/936b17951891.svg" alt="使い方" width="1000"></h2>

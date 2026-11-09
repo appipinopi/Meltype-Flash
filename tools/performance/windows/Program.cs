@@ -22,8 +22,8 @@ foreach (var c in cases)
         var languages = new LanguageMemory(null);
         detector.Memory = languages;
         var settings = new Settings { LiveConversion = false, PredictiveCandidates = false, LearningEnabled = false }.Normalize();
-        settings.ScoredSegmentation = c.scored;
-        detector.UseScoredSegmentation = () => settings.ScoredSegmentation;
+        // Upstream 1.5.0 always uses the scored reading lattice; the former
+        // ScoredSegmentation switch no longer exists.
         var options = new CompositionOptions
         {
             Languages = languages, Candidates = CandidateDictionary.Load(null),

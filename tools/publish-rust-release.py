@@ -28,6 +28,8 @@ PACKAGES = (
     "Meltype-flash-Shunti-Windows-x64.zip",
     "Meltype-flash-Shunti-macOS-arm64.zip",
     "Meltype-flash-Shunti-macOS-x64.zip",
+    "Meltype-flash-ChromeOS.crx",
+    "updates.xml",
 )
 DOCUMENTS = ("LICENSE", "THIRD-PARTY-NOTICES.md", "SHA256SUMS.txt")
 
@@ -150,7 +152,7 @@ def compose_body(tag, sha, benchmark, media_sha, changes):
         ("Linux x64", PACKAGES[1:2] + PACKAGES[9:11], "linux/README.md"),
         ("macOS Apple Silicon / Intel", PACKAGES[2:4], "mac/README.md"),
         ("Android", PACKAGES[4:5], "android/README.md"),
-        ("ChromeOS", PACKAGES[5:6], "chromeos/README.md"),
+        ("ChromeOS", PACKAGES[5:6] + PACKAGES[16:17], "chromeos/README.md"),
         ("iOS", PACKAGES[6:9], "ios/README.md"),
     ]
     platforms.append(("Linux x64 任意導入 shunti", PACKAGES[12:13], "linux/README.md"))

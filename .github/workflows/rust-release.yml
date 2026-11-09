@@ -186,7 +186,7 @@ jobs:
             Meltype-flash-Linux-x64.rpm
             Meltype-flash-Shunti-Linux-x64.tar.gz
           if-no-files-found: error
-      - name: Compare upstream 1.4.0, previous and current Rust on the same Linux runner
+      - name: Compare upstream 1.5.0, previous and current Rust on the same Linux runner
         if: ${{ !inputs.skip_benchmark }}
         timeout-minutes: 40
         shell: bash
@@ -194,8 +194,8 @@ jobs:
           PYTHONUTF8: '1'
           BENCHMARK_BASELINE: ${{ inputs.benchmark_baseline }}
         run: |
-          git fetch --no-tags https://github.com/yksr-melt/Meltype.git 46db6ca2f941eb9580f4d5ed103ee0bee71111c7
-          python tools/compare-rust-benchmarks.py --build --with-csharp --csharp-ref 46db6ca2f941eb9580f4d5ed103ee0bee71111c7 --fetch-tags --baseline-ref "$BENCHMARK_BASELINE" --output dist/release-benchmark --samples 3 --warmups 1 --rounds 9
+          git fetch --no-tags https://github.com/yksr-melt/Meltype.git 36a7c0d9900dff1f41099be027af98bd072ea68a
+          python tools/compare-rust-benchmarks.py --build --with-csharp --csharp-ref 36a7c0d9900dff1f41099be027af98bd072ea68a --fetch-tags --baseline-ref "$BENCHMARK_BASELINE" --output dist/release-benchmark --samples 3 --warmups 1 --rounds 9
           python -m pip install --disable-pip-version-check matplotlib==3.10.8 numpy==2.4.2
           python tools/plot-windows-benchmark.py dist/release-benchmark/report.json --output dist/release-benchmark/charts
       - uses: actions/upload-artifact@v4
@@ -312,6 +312,22 @@ jobs:
           python3 -m unittest discover -s tools -p test_collect_rust_release.py -v
           python3 tools/collect-rust-release.py artifacts release-assets
           cp LICENSE THIRD-PARTY-NOTICES.md release-assets/
+      - name: Sign ChromeOS CRX and update manifest
+        env:
+          CHROMEOS_CRX_KEY: ${{ secrets.CHROMEOS_CRX_KEY }}
+          TAG: ${{ inputs.tag }}
+        run: |
+          test -n "$CHROMEOS_CRX_KEY"
+          KEY="$RUNNER_TEMP/chromeos-crx-key.pem"
+          printf '%s' "$CHROMEOS_CRX_KEY" | base64 -d > "$KEY"
+          chmod 600 "$KEY"
+          python3 tools/make-chromeos-crx.py \
+            --zip artifacts/Meltype-ChromeOS-preview/chromeos-preview.zip \
+            --key "$KEY" \
+            --version "${TAG#flash-v}" \
+            --tag "$TAG" \
+            --output release-assets
+          rm -f "$KEY"
       - name: Publish all platforms together
         env:
           GH_TOKEN: ${{ github.token }}

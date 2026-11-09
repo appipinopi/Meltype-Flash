@@ -159,16 +159,39 @@ fn issue_460_numpad_direct_confirms_preedit_then_one_ascii_character() {
 fn issue_935_slash_dates_and_today_include_weekdays_and_validate_leap_days() {
     use meltype_core::time_candidates as time;
     for raw in ["10/20", "10月20日", "10がつ20にち"] {
-        let values = time::typed(raw, 2026).unwrap();
+        let values =
+            time::typed(raw, chrono::NaiveDate::from_ymd_opt(2026, 10, 9).unwrap()).unwrap();
         for expected in ["10月20日", "10/20(火)", "10月20日(火)", "2026/10/20(火)"] {
             assert!(values.contains(&expected.into()), "{raw}: {expected}");
             assert!(time::is_dynamic_choice(raw, expected));
         }
     }
-    assert!(time::typed("2/29", 2026).unwrap().is_empty());
-    assert!(!time::typed("2/29", 2024).unwrap().is_empty());
-    assert!(time::typed("10/20/26", 2026).is_none());
-    assert!(time::typed("https://example.com", 2026).is_none());
+    assert_eq!(
+        time::typed(
+            "2/29",
+            chrono::NaiveDate::from_ymd_opt(2026, 10, 9).unwrap()
+        )
+        .unwrap()[5],
+        "2028/02/29"
+    );
+    assert_eq!(
+        time::typed(
+            "2/29",
+            chrono::NaiveDate::from_ymd_opt(2024, 2, 29).unwrap()
+        )
+        .unwrap()[0],
+        "2/29"
+    );
+    assert!(time::typed(
+        "10/20/26",
+        chrono::NaiveDate::from_ymd_opt(2026, 10, 9).unwrap()
+    )
+    .is_none());
+    assert!(time::typed(
+        "https://example.com",
+        chrono::NaiveDate::from_ymd_opt(2026, 10, 9).unwrap()
+    )
+    .is_none());
     let now = chrono::NaiveDate::from_ymd_opt(2026, 10, 20)
         .unwrap()
         .and_hms_opt(0, 0, 0)

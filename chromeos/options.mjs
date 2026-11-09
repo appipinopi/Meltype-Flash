@@ -2,6 +2,7 @@
 // Copyright (C) 2026 appipinopi
 import {validatePreferences} from "./site-profiles.mjs";
 import {ShuntiPackages,modelOrigins} from "./shunti.mjs";
+import {cachedUpdate,hasUpdatePermission,requestUpdatePermission} from "./update.mjs";
 let aiPackages = new ShuntiPackages();
 const aiVersion = document.querySelector("#ai-version");
 let aiVersions, aiCatalogPromise, aiRefreshEpoch = 0;
@@ -33,6 +34,17 @@ const aiChoice = document.querySelector("#ai-model"), aiDetails = document.query
 const aiStatus = document.querySelector("#ai-status"), aiInstall = document.querySelector("#ai-install");
 function aiDetailsFor(value) { aiDetails.hidden = value.AiModel !== "Shunti" && !(value.AiModel == null && value.UseShunti === true); }
 const status = document.querySelector("#status"), settings = document.querySelector("#settings");
+const currentVersion = document.querySelector("#current-version"), updateStatus = document.querySelector("#update-status"), updateCheck = document.querySelector("#update-check");
+currentVersion.textContent = chrome.runtime.getManifest?.().version ?? "?";
+function showUpdate(update) {
+  updateStatus.replaceChildren();
+  if (!update) { updateStatus.textContent = "まだ確認していません。"; return; }
+  if (!update.update) { updateStatus.textContent = `最新版です（確認: ${new Date(update.checkedAt).toLocaleString()}）。`; return; }
+  const link = document.createElement("a");
+  link.href = update.zipUrl; link.textContent = `v${update.version} のZIPを取得`;
+  updateStatus.append(`新しい版 v${update.version} があります。`, link);
+  updateStatus.append("CRXで導入している場合は自動で更新されます。");
+}
 const siteStatus = document.querySelector("#site-status"), siteEnabled = document.querySelector("#site-enabled");
 const rules = document.querySelector("#site-rules"), defaultMode = document.querySelector("#default-mode");
 const saveSettings = document.querySelector("#save-settings"), reloadSettings = document.querySelector("#reload");
@@ -212,6 +224,7 @@ async function reload() {
     return;
   }
   await loadSettings();
+  showUpdate(state.update ?? await cachedUpdate());
   status.textContent = "入力設定を読み込みました。";
 }
 document.querySelector("#reload").addEventListener("click", () => show(async () => {
@@ -246,6 +259,13 @@ document.querySelector("#export").addEventListener("click", () => show(async () 
   status.textContent = "書き出しには個人の辞書・学習を含みます。";
 }));
 show(reload);
+updateCheck.addEventListener("click", () => show(async () => {
+  if (!await hasUpdatePermission() && !await requestUpdatePermission()) throw new Error("更新の確認にはGitHubへの接続の許可が必要です。");
+  updateCheck.disabled = true;
+  updateStatus.textContent = "更新を確認しています…";
+  try { showUpdate(await request({op: "update_check"})); }
+  finally { updateCheck.disabled = false; }
+}));
 
 aiInstall.addEventListener("click", async () => {
   if (!globalThis.confirm("shuntiの環境を作成してよいですか？ 辞書（CC BY-SA 4.0）・モデル（CC BY 4.0）を別ダウンロードします。入力内容は送信しません。")) return;
