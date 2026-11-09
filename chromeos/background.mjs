@@ -3,6 +3,7 @@ import init, {BrowserSession} from "./pkg/meltype_browser.js";
 import {ImeController} from "./controller.mjs";
 import {SiteProfiles} from "./site-profiles.mjs";
 import {ShuntiProxy} from "./shunti.mjs";
+import {cachedUpdate,checkForUpdate,hasUpdatePermission} from "./update.mjs";
 let shunti, aiEpoch = 0, aiLifecycle = Promise.resolve();
 function prepareAI(core) {
   const epoch=++aiEpoch, previous=shunti;
@@ -89,10 +90,38 @@ if (controller) {
   });
 }
 chrome.action.onClicked.addListener(() => chrome.runtime.openOptionsPage());
+const UPDATE_ALARM = "meltype-update-check";
+async function checkUpdate() {
+  if (!await hasUpdatePermission()) return null;
+  try {
+    const update = await checkForUpdate();
+    await chrome.storage.local.set({updateCheck: update});
+    await chrome.action.setBadgeText({text: update.update ? "新" : ""});
+    await chrome.action.setBadgeBackgroundColor({color: "#d97706"});
+    return update;
+  } catch (error) {
+    report(`更新の確認: ${error}`);
+    return null;
+  }
+}
+async function scheduleUpdateCheck() {
+  if (!chrome.alarms) return;
+  const existing = await chrome.alarms.get(UPDATE_ALARM);
+  if (!existing) await chrome.alarms.create(UPDATE_ALARM, {periodInMinutes: 24 * 60, delayInMinutes: 1});
+  await checkUpdate();
+}
+chrome.runtime.onInstalled?.addListener(() => { scheduleUpdateCheck().catch(error => report(String(error))); });
+chrome.runtime.onStartup?.addListener(() => { scheduleUpdateCheck().catch(error => report(String(error))); });
+chrome.alarms?.onAlarm.addListener(alarm => { if (alarm.name === UPDATE_ALARM) checkUpdate(); });
+chrome.permissions?.onAdded?.addListener(details => {
+  if ((details.origins ?? []).some(origin => origin.startsWith("https://api.github.com"))) checkUpdate();
+});
 chrome.runtime.onMessage.addListener((message, sender, respond) => {
   if (sender.id !== chrome.runtime.id || sender.url !== chrome.runtime.getURL("options.html")) return false;
   (async () => {
-    if (message.op === "status") return {available, diagnostic};
+    if (message.op === "status") return {available, diagnostic, update: await cachedUpdate()};
+    if (message.op === "update_check") return await checkUpdate();
+    if (message.op === "update_cached") return await cachedUpdate();
     if (message.op === "site_preferences") return {preferences: await profiles.preferences()};
     if (message.op === "save_site_preferences") {
       const preferences = await profiles.save(message.preferences);

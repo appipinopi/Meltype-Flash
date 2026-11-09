@@ -162,9 +162,9 @@ impl Session {
         }
         if vk == 0x2e && self.selected_prediction >= 0 && !self.is_converting() {
             if let Some(word) = self
-                .predictions()
+                .prediction_entries()
                 .get(self.selected_prediction as usize)
-                .cloned()
+                .map(|entry| entry.text.clone())
             {
                 #[cfg(feature = "filesystem")]
                 if let Some(store) = &self.store {

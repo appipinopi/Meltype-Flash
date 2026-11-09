@@ -402,6 +402,37 @@ impl Linguistics {
     pub fn predict(&self, reading: &str, state: &State) -> Vec<String> {
         self.predict_with_preferences(reading, &state.phrases, &state.preferences)
     }
+    /// Version numbers (Meltype-1.4.0, Mozc-3.34.6239.102+24.11.oss) are
+    /// never predicted or learned: after an update the remembered number is
+    /// stale and would outrank the plain "バージョン" candidate (#1488).
+    pub fn is_version_text(text: &str) -> bool {
+        for name in ["Meltype-", "Mozc-"] {
+            if let Some(index) = text.find(name) {
+                if text[index + name.len()..]
+                    .chars()
+                    .next()
+                    .is_some_and(|c| c.is_ascii_digit())
+                {
+                    return true;
+                }
+            }
+        }
+        // FLASH spells its current version as "Meltype-FLASH 1.1.1", which the
+        // upstream prefix check above does not cover.
+        if let Some(index) = text.find("Meltype-FLASH") {
+            let rest = &text[index + "Meltype-FLASH".len()..];
+            if rest
+                .strip_prefix(' ')
+                .unwrap_or(rest)
+                .chars()
+                .next()
+                .is_some_and(|c| c.is_ascii_digit())
+            {
+                return true;
+            }
+        }
+        false
+    }
     pub(crate) fn predict_with_preferences(
         &self,
         reading: &str,
@@ -438,11 +469,23 @@ impl Linguistics {
                     .map(|(_, v)| v.clone()),
             )
         {
-            if !result.contains(&word) {
+            if !result.contains(&word) && !Self::is_version_text(&word) {
                 result.push(word);
                 if result.len() == 5 {
                     break;
                 }
+            }
+        }
+        // Bundled greetings are shown after learned phrases, user words and
+        // re-selected conversions (#1213, v1.5.0). The start reading keeps a
+        // greeting from appearing while a different word is being typed.
+        let greetings = crate::greetings::predictions(reading);
+        for word in greetings {
+            if result.len() == 5 {
+                break;
+            }
+            if !result.contains(&word) {
+                result.push(word);
             }
         }
         result

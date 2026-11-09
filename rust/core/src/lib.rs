@@ -3,6 +3,7 @@
 pub mod ai_catalog;
 pub mod ai_model;
 pub mod app_identity;
+mod bracket_candidates;
 pub mod calculator;
 mod candidate_sources;
 mod commit_correction;
@@ -13,6 +14,7 @@ pub mod control;
 pub mod detection;
 pub mod dictionary;
 pub mod github_titles;
+mod greetings;
 pub mod input_session;
 pub mod kana;
 #[cfg(feature = "filesystem")]

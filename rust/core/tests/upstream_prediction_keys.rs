@@ -14,7 +14,7 @@ fn projection(result: &Value) -> Value {
 #[test]
 fn original_prediction_display_navigation_and_phrase_learning_match() {
     let fixture: Value =
-        serde_json::from_str(include_str!("data/upstream-prediction-keys.json")).unwrap();
+        serde_json::from_str(include_str!("data/upstream-prediction-keys-v150.json")).unwrap();
     let cases = fixture["cases"].as_array().unwrap();
     assert_eq!(cases.len(), 110);
     for row in cases {

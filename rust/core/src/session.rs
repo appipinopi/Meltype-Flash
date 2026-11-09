@@ -22,6 +22,19 @@ pub use reconversion::ReconversionPart;
 use serde::{Deserialize, Serialize};
 use std::collections::BTreeMap;
 
+/// A predicted continuation shown by Tab (#974, upstream v1.5.0).
+#[derive(Clone, Debug)]
+pub(crate) struct Prediction {
+    pub(crate) text: String,
+    pub(crate) before: String,
+    pub(crate) reading: String,
+}
+impl Prediction {
+    fn display(&self) -> String {
+        format!("{}{}", self.before, self.text)
+    }
+}
+
 fn is_zero(value: &u32) -> bool {
     *value == 0
 }
@@ -447,14 +460,20 @@ impl Session {
         }
         self.preferences = self.state.preferences.clone();
     }
-    pub fn predictions(&self) -> Vec<String> {
+    /// A predicted continuation: `text` is the word shown in the prediction
+    /// list, `before` the already-shown clauses it follows, and `reading` the
+    /// typed reading it was predicted from (#974).
+    fn prediction_entries(&self) -> Vec<Prediction> {
+        self.prediction_entries_with_explicit(false)
+    }
+    fn prediction_entries_with_explicit(&self, allow_explicit: bool) -> Vec<Prediction> {
         let _romaji = romaji::Scope::new(self.custom_romaji.clone());
         if self.private
             || !self.settings.boolean("PredictiveCandidates")
             || self.is_converting()
             || self.raw.is_empty()
             || self.function_key != 0
-            || self.explicit.is_some()
+            || !allow_explicit && self.explicit.is_some()
             || self.language_suggestion().is_some()
             || self.composition_misspelling().is_some()
         {
@@ -469,42 +488,101 @@ impl Session {
         } else {
             romaji::hiragana(&self.raw, false)
         };
-        let mut predictions = if !english
+        let kana = !english
             && reading
                 .chars()
-                .all(|c| ('ぁ'..='ゖ').contains(&c) || c == 'ー')
-        {
-            Linguistics::bundled().predict_with_preferences(
-                &reading,
-                &self.state.phrases,
-                &self.preferences,
-            )
+                .all(|c| ('ぁ'..='ゖ').contains(&c) || c == 'ー');
+        let mut predictions = if kana {
+            // Whole reading, then the last live-conversion clause (#974).
+            // The clause form lets a phrase learned from its beginning be
+            // predicted from its last clause too; the earlier clauses are
+            // kept as shown and prefixed to the committed text.
+            let mut starts: Vec<(String, String, Vec<String>)> =
+                vec![(String::new(), reading.clone(), vec![])];
+            if self.settings.boolean("LiveConversion") && self.live_clauses.len() >= 2 {
+                if let Some(last) = self.live_clauses.last() {
+                    let shown = if displayed.ends_with(last.text()) {
+                        Some(last.text())
+                    } else if displayed.ends_with(last.reading.as_str()) {
+                        Some(last.reading.as_str())
+                    } else {
+                        None
+                    };
+                    if let Some(shown) = shown {
+                        starts.push((
+                            displayed[..displayed.len() - shown.len()].to_owned(),
+                            last.reading.clone(),
+                            vec![last.text().to_owned(), last.reading.clone()],
+                        ));
+                    }
+                }
+            }
+            let mut entries = Vec::new();
+            for (before, start, heads) in starts {
+                let mut predicted = Linguistics::bundled().predict_with_preferences(
+                    &start,
+                    &self.state.phrases,
+                    &self.preferences,
+                );
+                if self.settings.boolean("EnglishNamePredictions") {
+                    predicted.extend(crate::candidate_sources::Sources::english_names(&start));
+                }
+                for word in predicted {
+                    if (heads.is_empty() || heads.iter().any(|head| word.starts_with(head)))
+                        && !entries.iter().any(|entry: &Prediction| entry.text == word)
+                    {
+                        entries.push(Prediction {
+                            text: word,
+                            before: before.clone(),
+                            reading: start.clone(),
+                        });
+                        if entries.len() == 5 {
+                            break;
+                        }
+                    }
+                }
+                if entries.len() == 5 {
+                    break;
+                }
+            }
+            entries
         } else {
             vec![]
         };
-        if !english && self.settings.boolean("EnglishNamePredictions") {
-            for word in crate::candidate_sources::Sources::english_names(&reading) {
-                if predictions.len() < 5 && !predictions.contains(&word) {
-                    predictions.push(word);
-                }
-            }
-        }
         for word in self
             .dictionary()
             .predict_english(&self.raw)
             .into_iter()
             .filter(|_| english || self.raw.len() >= 4)
         {
-            if predictions.len() < 5 && !predictions.contains(&word) {
-                predictions.push(word);
+            if predictions.len() < 5 && !predictions.iter().any(|entry| entry.text == word) {
+                predictions.push(Prediction {
+                    text: word,
+                    before: String::new(),
+                    reading: self.raw.clone(),
+                });
             }
         }
         predictions
     }
+    pub fn predictions(&self) -> Vec<String> {
+        self.prediction_entries()
+            .into_iter()
+            .map(|entry| entry.text)
+            .collect()
+    }
+    fn prediction_at(&self, index: i32) -> Option<Prediction> {
+        (index >= 0)
+            .then(|| self.prediction_entries_with_explicit(true))
+            .and_then(|entries| entries.get(index as usize).cloned())
+    }
     pub fn select_prediction(&mut self, index: usize) -> SessionResult {
-        let predictions = self.predictions();
-        if let Some(text) = predictions.get(index) {
-            self.explicit = Some(text.clone());
+        if let Some(text) = self
+            .prediction_entries()
+            .get(index)
+            .map(Prediction::display)
+        {
+            self.explicit = Some(text);
             self.selected_prediction = index as i32;
             self.commit()
         } else {
@@ -876,7 +954,52 @@ impl Session {
                     .any(|span| span.start == 0 && span.end == self.raw.len())
             })
             .map_or(text.clone(), |u| u.render(&text, final_input));
-        self.punctuate(text)
+        // Markdown markers keep the typed half-width spelling while typing
+        // (---, **bold**); a single - or * is still shown as kana until Space.
+        if self.raw.as_bytes().first() == Some(&b'-') && self.horizontal_rule() {
+            return self.raw.clone();
+        }
+        let text = self.punctuate(text);
+        if self.raw.as_bytes().contains(&b'*') && self.raw.matches('*').count() >= 2 {
+            return text.replace('＊', "*");
+        }
+        text
+    }
+    /// A single Markdown marker that Space commits as typed plus a space (#1560).
+    fn markdown_marker(&self) -> bool {
+        !self.uses_kana()
+            && !self.direct
+            && (matches!(self.raw.as_str(), "-" | ">" | "*" | "+")
+                || (!self.raw.is_empty()
+                    && self.raw.chars().count() <= 6
+                    && self.raw.chars().all(|c| c == '#')))
+    }
+    /// Three or more hyphens are a Markdown rule/front matter fence.
+    fn horizontal_rule(&self) -> bool {
+        !self.uses_kana()
+            && !self.direct
+            && self.raw.chars().count() >= 3
+            && self.raw.chars().all(|c| c == '-')
+    }
+    /// The displayed bracket shape for a 1-2 unit bracket composition.
+    fn bracket_input(&self) -> Option<String> {
+        if self.direct || !crate::protection::scan(&self.raw).is_empty() {
+            return None;
+        }
+        // Braces and angle brackets are read raw; square/round brackets use
+        // the displayed shape (SquareBrackets, FullWidthParentheses, z symbols).
+        // The displayed length is what counts: z[z] is two units even though
+        // the typed spelling is four characters.
+        let input = if self.raw.chars().count() <= 2 && self.raw.chars().all(|c| "{}<>".contains(c))
+        {
+            self.raw.clone()
+        } else {
+            self.display(false)
+        };
+        (1..=2)
+            .contains(&input.chars().count())
+            .then(|| crate::bracket_candidates::groups(&input).map(|_| input))
+            .flatten()
     }
     fn language_suggestion(&self) -> Option<String> {
         if self.settings.text("DetectionLevel") != "Manual"
@@ -1052,7 +1175,11 @@ impl Session {
         let _romaji = romaji::Scope::new(self.custom_romaji.clone());
         let preview = self.preview_candidates();
         let language_suggestion = self.language_suggestion();
-        let predictions = self.predictions();
+        let prediction_entries = self.prediction_entries();
+        let predictions: Vec<String> = prediction_entries
+            .iter()
+            .map(|entry| entry.text.clone())
+            .collect();
         SessionResult {
             consumed,
             selection_expect: None,
@@ -1061,9 +1188,9 @@ impl Session {
                 None
             } else {
                 Some(View {
-                    text: predictions
+                    text: prediction_entries
                         .get(self.selected_prediction as usize)
-                        .cloned()
+                        .map(Prediction::display)
                         .unwrap_or_else(|| self.display(false)),
                     converting: self.is_converting(),
                     selected_index: preview
@@ -1252,19 +1379,21 @@ impl Session {
     fn commit_with_options(&mut self, space_around: bool, format_phrases: bool) -> SessionResult {
         let _romaji = romaji::Scope::new(self.custom_romaji.clone());
         let mut text = self.display(true);
-        if self.selected_prediction >= 0 {
-            if let Some(prediction) = self.predictions().get(self.selected_prediction as usize) {
-                text = prediction.clone();
-            }
+        let selected_prediction = self.prediction_at(self.selected_prediction);
+        if let Some(entry) = &selected_prediction {
+            text = entry.display();
         }
         let reading = self.reading();
-        let prediction = self.selected_prediction >= 0;
-        let phrase_reading = if prediction {
+        let prediction = selected_prediction.is_some();
+        let remembered = selected_prediction
+            .as_ref()
+            .map_or_else(|| text.clone(), |entry| entry.text.clone());
+        let phrase_reading = if let Some(entry) = &selected_prediction {
             self.state
                 .phrases
                 .iter()
-                .find(|p| p.text == text && p.reading.starts_with(&reading))
-                .map_or_else(|| reading.clone(), |p| p.reading.clone())
+                .find(|p| p.text == entry.text && p.reading.starts_with(&entry.reading))
+                .map_or_else(|| entry.reading.clone(), |p| p.reading.clone())
         } else if self.is_converting() && !self.clauses.is_empty() {
             self.clauses
                 .iter()
@@ -1295,10 +1424,11 @@ impl Session {
                     .chain(&self.live_clauses)
                     .any(|c| crate::time_candidates::is_dynamic_choice(&c.reading, c.text()));
             let remember_phrase = self.settings.boolean("PredictiveCandidates")
+                && !Linguistics::is_version_text(&remembered)
                 && if prediction {
-                    !text.is_ascii()
+                    !remembered.is_ascii()
                 } else {
-                    text.chars().any(crate::linguistics::kanji)
+                    remembered.chars().any(crate::linguistics::kanji)
                         && !phrase_reading.chars().any(|c| c.is_ascii_alphabetic())
                 };
             let mut changes = if dynamic || !remember_phrase {
@@ -1306,7 +1436,7 @@ impl Session {
             } else {
                 vec![Change::Phrase {
                     reading: phrase_reading,
-                    text: text.clone(),
+                    text: remembered,
                 }]
             };
             changes.extend(self.clause_language_changes());
@@ -1663,6 +1793,17 @@ impl Session {
         if self.v130_conversion() {
             return;
         }
+        // A lone bracket or an empty matched pair converts only within its
+        // family; no dictionary or engine candidates are mixed in (#1162).
+        if let Some(input) = self.bracket_input() {
+            if let Some(values) = crate::bracket_candidates::groups(&input) {
+                self.candidates = values;
+                self.selected = 0;
+                self.explicit = None;
+                self.selected_prediction = -1;
+                return;
+            }
+        }
         if !self.live_clauses.is_empty() {
             let clauses = std::mem::take(&mut self.live_clauses);
             self.begin_clauses(clauses);
@@ -1753,7 +1894,21 @@ impl Session {
         unique.extend(emoji);
         unique.extend(crate::number_candidates::candidates(&self.raw));
         crate::math_candidates::augment(&reading, &self.before, &mut unique);
-        if let Some(learned) = self.preferences.selected.get(&reading) {
+        // Markdown rules and emphasis keep the typed half-width spelling as
+        // the first candidate (#1560).
+        if self.horizontal_rule()
+            || self.raw.as_bytes().contains(&b'*') && self.raw.matches('*').count() >= 2
+        {
+            let shown = self.display(true);
+            unique.retain(|candidate| candidate != &shown);
+            unique.insert(0, shown);
+        }
+        if let Some(learned) = self
+            .preferences
+            .selected
+            .get(&reading)
+            .filter(|learned| !Linguistics::is_version_text(learned))
+        {
             if let Some(i) = unique.iter().position(|s| s == learned) {
                 let value = unique.remove(i);
                 unique.insert(0, value);
@@ -2049,7 +2204,12 @@ impl Session {
                 {
                     values.insert(0, user.clone());
                 }
-                if let Some(learned) = self.preferences.selected.get(&clause.reading) {
+                if let Some(learned) = self
+                    .preferences
+                    .selected
+                    .get(&clause.reading)
+                    .filter(|learned| !Linguistics::is_version_text(learned))
+                {
                     values.insert(0, learned.clone());
                 }
                 if let Some(context) = self
@@ -2109,6 +2269,14 @@ impl Session {
                 Vec::new()
             };
             crate::math_candidates::augment(&clause.reading, &preceding, &mut values);
+            // The running app version is a candidate for ばーじょん even when
+            // the engine supplied the clause (v1.5.0, #1272). Older learned
+            // version strings are dropped so an update does not resurrect them.
+            if clause.reading == "ばーじょん" {
+                let current = format!("Meltype-FLASH {}", env!("CARGO_PKG_VERSION"));
+                values.retain(|value| !Linguistics::is_version_text(value) || value == &current);
+                values.push(current);
+            }
             // AddRawCandidates in the original controller places the typed
             // spelling and its fullwidth form after the Japanese alternatives;
             // MoveEmojiLast then moves emoji behind those spellings.
@@ -2180,6 +2348,19 @@ impl Session {
             clause.translations = translations;
             preceding.push_str(clause.text());
             previous_english = false;
+        }
+        // A Markdown rule/front-matter fence keeps the typed hyphens as the
+        // first candidate instead of the kana long-mark spelling (#1560).
+        if self.raw.as_bytes().first() == Some(&b'-')
+            && self.horizontal_rule()
+            && clauses.len() == 1
+        {
+            let shown = self.raw.clone();
+            clauses[0]
+                .candidates
+                .retain(|candidate| candidate != &shown);
+            clauses[0].candidates.insert(0, shown);
+            clauses[0].selected = 0;
         }
         self.rank_clauses(&mut clauses);
         self.live_clauses.clear();
@@ -2534,6 +2715,10 @@ impl Session {
                 self.before.push('　');
                 result.consumed = true;
                 result
+            }
+            0x20 if self.markdown_marker() => {
+                self.explicit = Some(format!("{} ", self.raw));
+                self.commit()
             }
             0x20 if self.raw.is_empty() => {
                 self.correctable.clear();
@@ -2935,7 +3120,15 @@ impl Session {
             _ if ch >= 0x20 && ch != 0x7f => {
                 self.tab_started_conversion = false;
                 // Retain the old commit when a new character starts after conversion.
-                let commits = if self.function_key != 0 && !self.is_converting() {
+                let commits = if self.selected_prediction >= 0
+                    && !self.is_converting()
+                    && self.function_key == 0
+                {
+                    // Typing after Tab-selecting a prediction commits it and
+                    // starts a new composition (#974), instead of dropping
+                    // the selection and keeping the typed reading.
+                    self.commit().commits
+                } else if self.function_key != 0 && !self.is_converting() {
                     // #490/#585: an explicit F6-F10 choice applies to the
                     // current text; the next character starts fresh input.
                     self.commit().commits

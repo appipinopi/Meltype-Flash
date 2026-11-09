@@ -2,13 +2,14 @@
   "manifest_version": 3,
   "name": "Meltype-FLASH for ChromeOS",
   "description": "日本語と英語を自動判定するChromeOS向け日本語入力。",
-  "version": "1.1.0",
-  "version_name": "1.1.0",
+  "version": "1.1.1",
+  "version_name": "1.1.1",
   "minimum_chrome_version": "119",
   "permissions": [
+    "alarms",
     "input",
-    "storage",
-    "offscreen"
+    "offscreen",
+    "storage"
   ],
   "optional_permissions": [
     "tabs",
@@ -53,7 +54,9 @@
     "default_title": "Meltype-FLASHの設定"
   },
   "optional_host_permissions": [
+    "https://api.github.com/*",
     "https://github.com/*",
     "https://release-assets.githubusercontent.com/*"
-  ]
+  ],
+  "update_url": "https://github.com/appipinopi/Meltype-Flash/releases/latest/download/updates.xml"
 }
