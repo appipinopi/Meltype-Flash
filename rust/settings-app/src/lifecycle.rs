@@ -85,6 +85,7 @@ impl Lifecycle {
         self.update_status = "Rust版の配布を確認しています…".into();
         #[cfg(windows)]
         let auto_download = automatic;
+        #[cfg(windows)]
         let include_prerelease = self.prerelease;
         std::thread::spawn(move || {
             #[cfg(windows)]
@@ -124,6 +125,8 @@ impl Lifecycle {
         let (sender, receiver) = std::sync::mpsc::channel();
         self.update = Some(receiver);
         self.update_status = "更新を準備しています。インストール画面で確認してください。".into();
+        #[cfg(windows)]
+        #[cfg(windows)]
         let include_prerelease = self.prerelease;
         std::thread::spawn(move || {
             #[cfg(windows)]
