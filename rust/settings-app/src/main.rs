@@ -223,17 +223,19 @@ impl App {
         // The input test must not write learning or settings to disk.
         let mut test_session = Session::default();
         test_session.settings = settings.clone();
-        // 画面の採取試験は隔離したデータで行うため、同意画面では止めない。
-        let consent_pending = !consent::accepted(&store.directory)
-            && !(cfg!(feature = "visual-test") && std::env::var_os("MELTYPE_UI_CAPTURE").is_some());
+        // 画面の採取試験は隔離したデータで行うため、同意画面とリリースノートでは止めない。
+        let visual_capture =
+            cfg!(feature = "visual-test") && std::env::var_os("MELTYPE_UI_CAPTURE").is_some();
+        let consent_pending = !consent::accepted(&store.directory) && !visual_capture;
         #[cfg(any(windows, target_os = "linux"))]
         if !consent_pending {
             analytics::track("app_open");
         }
         // 新規導入では出さず、前の版から更新したときだけリリースノートを一度出す。
         let first_run = !store.directory.join("config.json").is_file();
-        let release_notes_from_update =
-            !consent_pending && release_notes::take_update_notice(&store.directory, first_run);
+        let release_notes_from_update = !consent_pending
+            && !visual_capture
+            && release_notes::take_update_notice(&store.directory, first_run);
         let release_notes = release_notes_from_update;
         let release_notes_english = crate::i18n::english();
         Self {
@@ -922,43 +924,54 @@ impl App {
                 categories.push(group.clone());
             }
         }
+        let available_width = ui.available_width();
+        let content_width = (available_width - 166.).max(320.);
         ui.horizontal_top(|ui| {
             egui::Frame::NONE
                 .fill(egui::Color32::from_gray(246))
                 .inner_margin(egui::Margin::symmetric(6, 8))
                 .show(ui, |ui| {
                     ui.set_width(146.);
-                    ui.vertical(|ui| {
-                        if ui
-                            .selectable_label(
-                                self.settings_category.is_none(),
-                                i18n::t("すべて"),
-                            )
-                            .clicked()
-                        {
-                            self.settings_category = None;
-                        }
-                        for category in &categories {
-                            let label = category
-                                .split_once(". ")
-                                .map_or(category.as_str(), |(_, label)| label);
-                            let selected =
-                                self.settings_category.as_deref() == Some(category.as_str());
-                            if ui
-                                .selectable_label(selected, i18n::category(label))
-                                .clicked()
-                            {
-                                self.settings_category = Some(category.clone());
-                            }
-                        }
-                    });
+                    egui::ScrollArea::vertical()
+                        .id_salt("settings_categories")
+                        .auto_shrink([false, false])
+                        .show(ui, |ui| {
+                            ui.vertical(|ui| {
+                                if ui
+                                    .selectable_label(
+                                        self.settings_category.is_none(),
+                                        i18n::t("すべて"),
+                                    )
+                                    .clicked()
+                                {
+                                    self.settings_category = None;
+                                }
+                                for category in &categories {
+                                    let label = category
+                                        .split_once(". ")
+                                        .map_or(category.as_str(), |(_, label)| label);
+                                    let selected = self.settings_category.as_deref()
+                                        == Some(category.as_str());
+                                    if ui
+                                        .selectable_label(selected, i18n::category(label))
+                                        .clicked()
+                                    {
+                                        self.settings_category = Some(category.clone());
+                                    }
+                                }
+                            });
+                        });
                 });
             ui.separator();
-            egui::ScrollArea::vertical()
-            .id_salt("settings_body")
-            .auto_shrink([false, false])
-            .show(ui, |ui| {
-                ui.set_width((ui.available_width() - 18.).max(220.));
+            ui.allocate_ui_with_layout(
+                egui::vec2(content_width, ui.available_height()),
+                egui::Layout::top_down(egui::Align::Min),
+                |ui| {
+                    egui::ScrollArea::vertical()
+                    .id_salt("settings_body")
+                    .auto_shrink([false, false])
+                    .show(ui, |ui| {
+                        ui.set_width((content_width - 18.).max(220.));
                 for group_fields in fields.chunk_by(|a, b| a.2 == b.2) {
                     if self
                         .settings_category
@@ -998,7 +1011,13 @@ impl App {
                                     if label.hovered() {
                                         self.help = metadata::description(key).into();
                                     }
-                                    if rules::editor(ui, key, &mut value, &self.settings) {
+                                    let changed = egui::ScrollArea::horizontal()
+                                        .id_salt(("rules-scroll", key))
+                                        .show(ui, |ui| {
+                                            rules::editor(ui, key, &mut value, &self.settings)
+                                        })
+                                        .inner;
+                                    if changed {
                                         self.action(
                                             json!({"op":"settings_set","name":key,"value":value}),
                                         );
@@ -1028,7 +1047,7 @@ impl App {
                                 if key == "AutoUpdate" {
                                     let mut automatic = value.as_bool().unwrap_or(false);
                                     let prior = automatic;
-                                    ui.horizontal(|ui| {
+                                    ui.horizontal_wrapped(|ui| {
                                         ui.label(i18n::t("アップデート方法"));
                                         egui::ComboBox::from_id_salt("update-method")
                                             .selected_text(if automatic { i18n::t("自動") } else { i18n::t("手動") })
@@ -1062,8 +1081,10 @@ impl App {
                                     ui.weak(reason);
                                     ui.disable();
                                 }
+                                let row_width = ui.available_width();
+                                let label_width = (row_width * 0.5 + 4.).min(320.);
+                                let control_width = (row_width - label_width - 8.).max(120.);
                                 let row = ui.horizontal(|ui| {
-                                    let label_width = (ui.available_width() * 0.55 + 4.).min(349.);
                                     let label = ui
                                         .allocate_ui_with_layout(
                                             egui::vec2(label_width, 29.),
@@ -1109,7 +1130,7 @@ impl App {
                                             if let Some(choices) = choices(key) {
                                                 let old = text.clone();
                                                 let combo = egui::ComboBox::from_id_salt(key)
-                                                    .width(250.)
+                                                    .width(control_width)
                                                     .selected_text(metadata::choice(key, text))
                                                     .show_ui(ui, |ui| {
                                                         for choice in choices {
@@ -1143,7 +1164,7 @@ impl App {
                                         );
                                                 }
                                             } else {
-                                                let response = ui.text_edit_singleline(text);
+                                                let response = ui.add(egui::TextEdit::singleline(text).desired_width(control_width));
                                                 if response.changed() {
                                                     self.settings
                                                         .0
@@ -1189,7 +1210,9 @@ impl App {
                 }
                 // Retain the original form's trailing space below the last row.
                 ui.add_space(16.);
-            });
+                    });
+                },
+            );
         });
     }
     #[cfg(any(windows, target_os = "linux", target_os = "macos"))]
