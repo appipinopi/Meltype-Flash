@@ -10,7 +10,6 @@ use meltype_core::{
     storage::Store,
 };
 use std::{
-    fs::{File, OpenOptions},
     io::{self, Read, Write},
     path::{Path, PathBuf},
     sync::{
@@ -152,22 +151,50 @@ pub fn verify_response(opcode: i32, json: &str) -> Result<(), String> {
     Ok(())
 }
 
-fn connect() -> Option<File> {
+/// IPC の読み書き。Windows は名前付きパイプ、macOS/Linux は Unix ドメインソケット。
+trait ReadWrite: Read + Write {}
+impl<T: Read + Write> ReadWrite for T {}
+
+#[cfg(windows)]
+fn connect() -> Option<Box<dyn ReadWrite>> {
+    use std::fs::OpenOptions;
     for index in 0..10 {
         let path = format!(r"\\.\pipe\discord-ipc-{index}");
         if let Ok(file) = OpenOptions::new().read(true).write(true).open(path) {
-            return Some(file);
+            return Some(Box::new(file));
         }
     }
     None
 }
 
-fn send(file: &mut File, opcode: i32, json: &str) -> io::Result<()> {
+#[cfg(unix)]
+fn connect() -> Option<Box<dyn ReadWrite>> {
+    use std::os::unix::net::UnixStream;
+    let mut directories = Vec::new();
+    if let Some(directory) = std::env::var_os("XDG_RUNTIME_DIR") {
+        directories.push(PathBuf::from(directory));
+    }
+    if let Some(directory) = std::env::var_os("TMPDIR") {
+        directories.push(PathBuf::from(directory));
+    }
+    directories.push(PathBuf::from("/tmp"));
+    for directory in directories {
+        for index in 0..10 {
+            let path = directory.join(format!("discord-ipc-{index}"));
+            if let Ok(socket) = UnixStream::connect(path) {
+                return Some(Box::new(socket));
+            }
+        }
+    }
+    None
+}
+
+fn send(file: &mut dyn ReadWrite, opcode: i32, json: &str) -> io::Result<()> {
     file.write_all(&frame(opcode, json))?;
     file.flush()
 }
 
-fn receive(file: &mut File) -> io::Result<String> {
+fn receive(file: &mut dyn ReadWrite) -> io::Result<String> {
     let mut header = [0u8; 8];
     file.read_exact(&mut header)?;
     let opcode = i32::from_le_bytes([header[0], header[1], header[2], header[3]]);
@@ -184,7 +211,7 @@ fn receive(file: &mut File) -> io::Result<String> {
 
 /// 送信の状態。つないでいなければ次回つなぎ直す。
 struct Session {
-    file: File,
+    file: Box<dyn ReadWrite>,
     sent: Option<String>,
     last: Option<(u64, Instant)>,
 }
@@ -244,7 +271,7 @@ impl Presence {
                 } else if session.is_some() {
                     // OFF にしたら表示を消して切る。
                     if let Some(current) = session.as_mut() {
-                        let _ = send(&mut current.file, 1, &set_activity_json(None));
+                        let _ = send(current.file.as_mut(), 1, &set_activity_json(None));
                     }
                     session = None;
                 }
@@ -256,7 +283,7 @@ impl Presence {
                 }
             }
             if let Some(mut session) = session {
-                let _ = send(&mut session.file, 1, &set_activity_json(None));
+                let _ = send(session.file.as_mut(), 1, &set_activity_json(None));
             }
         });
         Self {
@@ -310,8 +337,9 @@ fn send_activity(session: &mut Option<Session>, activity: &str) -> Result<(), St
     if current.sent.as_deref() == Some(activity) {
         return Ok(());
     }
-    send(&mut current.file, 1, &set_activity_json(Some(activity))).map_err(|e| e.to_string())?;
-    receive(&mut current.file).map_err(|e| e.to_string())?;
+    send(current.file.as_mut(), 1, &set_activity_json(Some(activity)))
+        .map_err(|e| e.to_string())?;
+    receive(current.file.as_mut()).map_err(|e| e.to_string())?;
     current.sent = Some(activity.to_owned());
     Ok(())
 }

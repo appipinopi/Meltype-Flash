@@ -207,7 +207,21 @@ if CommandLine.arguments.contains("--self-test") || CommandLine.arguments.contai
     exit(failures == 0 ? 0 : 1)
 }
 
-// 利用状況の集計は、入力メニューで入れた人だけ。ここまでの起動確認・自己診断では送らない。
+// 初回起動の同意。同意するまで入力メソッドを開始せず、利用状況も送らない。
+// ここまでの起動確認・自己診断では送らない。
+if !ConsentStore.accepted {
+    let application = NSApplication.shared
+    application.setActivationPolicy(.accessory)
+    let alert = NSAlert()
+    alert.messageText = "Meltype-FLASH をはじめる前に"
+    alert.informativeText = ConsentStore.text
+    alert.alertStyle = .informational
+    alert.addButton(withTitle: "同意してはじめる")
+    alert.addButton(withTitle: "同意しない")
+    application.activate(ignoringOtherApps: true)
+    guard alert.runModal() == .alertFirstButtonReturn else { exit(0) }
+    ConsentStore.accept()
+}
 FlashAnalytics.start()
 FlashAnalytics.track("app_open")
 

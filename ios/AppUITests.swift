@@ -3,13 +3,18 @@
 import XCTest
 
 final class AppUITests: XCTestCase {
+    private func makeApp() -> XCUIApplication {
+        let app = XCUIApplication()
+        app.launchArguments = ["--uitest-skip-consent"]
+        return app
+    }
     private func capture(_ name: String) {
         let attachment = XCTAttachment(screenshot: XCUIScreen.main.screenshot())
         attachment.name = name; attachment.lifetime = .keepAlways
         add(attachment)
     }
     func testFlickGesturesAndVoicingInDemo() {
-        let app = XCUIApplication()
+        let app = makeApp()
         app.launch(); app.swipeUp()
         let demo = app.buttons["open-flick-demo"]
         XCTAssertTrue(demo.waitForExistence(timeout: 10)); demo.tap()
@@ -37,7 +42,7 @@ final class AppUITests: XCTestCase {
         XCTAssertTrue(app.buttons["open-flick-demo"].waitForExistence(timeout: 5))
     }
     func testDemoAllowsBackGestureOutsideFlickKeys() {
-        let app = XCUIApplication()
+        let app = makeApp()
         app.launch(); app.swipeUp()
         app.buttons["open-flick-demo"].tap()
         let heading = app.staticTexts["タップで「あ」、左へ「い」。"]
@@ -74,7 +79,7 @@ final class AppUITests: XCTestCase {
         XCTFail("Native menu item missing: " + names.joined(separator: ", "))
     }
     func testSelectedTextConversionAndDeletion() {
-        let app = XCUIApplication(); app.launch(); app.swipeUp()
+        let app = makeApp(); app.launch(); app.swipeUp()
         app.buttons["open-flick-demo"].tap()
         XCTAssertTrue(app.buttons["flick-な"].waitForExistence(timeout: 10))
         XCTAssertFalse(app.buttons["keyboard-edit-toggle"].exists)
@@ -99,7 +104,7 @@ final class AppUITests: XCTestCase {
         XCTAssertEqual(output.value as? String, "ニホンご")
     }
     func testNativeCopyDeleteAndPaste() {
-        let app = XCUIApplication(); app.launch(); app.swipeUp()
+        let app = makeApp(); app.launch(); app.swipeUp()
         let output = app.textViews["input-test"]
         output.tap(); output.typeText("hello")
         output.doubleTap()
@@ -112,7 +117,7 @@ final class AppUITests: XCTestCase {
         XCTAssertEqual(output.value as? String, "hello")
     }
     func testHomeInputUsesNativeMeltypeMenu() {
-        let app = XCUIApplication(); app.launch(); app.swipeUp()
+        let app = makeApp(); app.launch(); app.swipeUp()
         let input = app.textViews["input-test"]
         input.tap(); input.typeText("nihongo")
         XCTAssertEqual(input.value as? String, "nihongo")
@@ -130,8 +135,8 @@ final class AppUITests: XCTestCase {
         XCTAssertEqual(input.value as? String, "ニホンゴ")
     }
     func testSetupAndAppearanceScreens() {
-        let app = XCUIApplication()
-        app.launchArguments = ["-AppleLanguages", "(ja)", "-AppleLocale", "ja_JP"]
+        let app = makeApp()
+        app.launchArguments += ["-AppleLanguages", "(ja)", "-AppleLocale", "ja_JP"]
         app.launch()
         XCTAssertTrue(app.buttons["open-settings"].waitForExistence(timeout: 10))
         capture("home-light")

@@ -16,7 +16,7 @@ from pathlib import Path
 
 ROOT = Path(__file__).resolve().parents[1]
 VERSION = "0.2.129"
-FILES = ("manifest.json", "background.mjs", "controller.mjs", "keys.mjs", "site-profiles.mjs", "options.html", "options.mjs", "options.css", "shunti.mjs", "update.mjs", "ai-offscreen.html", "ai-offscreen.mjs", "ai-worker.mjs")
+FILES = ("manifest.json", "background.mjs", "controller.mjs", "keys.mjs", "site-profiles.mjs", "options.html", "options.mjs", "options.css", "analytics.mjs", "shunti.mjs", "update.mjs", "ai-offscreen.html", "ai-offscreen.mjs", "ai-worker.mjs")
 
 
 def build_kanji_dictionary():

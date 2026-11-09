@@ -4,6 +4,7 @@ import {ImeController} from "./controller.mjs";
 import {SiteProfiles} from "./site-profiles.mjs";
 import {ShuntiProxy} from "./shunti.mjs";
 import {cachedUpdate,checkForUpdate,hasUpdatePermission} from "./update.mjs";
+import {track} from "./analytics.mjs";
 let shunti, aiEpoch = 0, aiLifecycle = Promise.resolve();
 function prepareAI(core) {
   const epoch=++aiEpoch, previous=shunti;
@@ -66,10 +67,16 @@ chrome.storage.onChanged?.addListener((changes, area) => {
 });
 if (controller) {
   const ime = chrome.input.ime;
+  let trackedReady = false;
   ime.onActivate.addListener(engine => {
     controller.activate(engine);
     // 入力方法を選んだ時点で準備し、最初の文字に辞書の読み込みを集中させない。
-    controller.ready().catch(error => report(String(error)));
+    controller.ready().then(() => {
+      if (!trackedReady) {
+        trackedReady = true;
+        track("keyboard_ready");
+      }
+    }).catch(error => report(String(error)));
   });
   ime.onDeactivated.addListener(engine => controller.deactivate(engine));
   ime.onFocus.addListener(context => controller.focus(context));

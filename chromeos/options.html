@@ -111,13 +111,18 @@
         <legend>更新</legend>
         <p>現在の版: <span id="current-version">…</span></p>
         <p id="update-status" class="inline-status" role="status" aria-live="polite">まだ確認していません。</p>
-        <button id="update-check" type="button" data-help="GitHubの公開一覧を確認します。更新がある場合は配布ファイルへのリンクを表示します。入力内容は送信しません。">更新を確認</button>
-        <p class="group-description">CRXで導入した場合は、Chromeの拡張機能の更新で新しい版へ自動的に切り替わります。ZIPを手動で読み込んだ場合は、更新の確認後にZIPを取得して再読み込みしてください。設定・学習は拡張機能の削除まで残ります。</p>
+        <div class="update-actions">
+          <button id="update-check" type="button" data-help="GitHubの公開一覧を確認します。更新がある場合は配布ファイルへのリンクを表示します。入力内容は送信しません。">更新を確認</button>
+          <button id="update-zip" type="button" data-help="CRXを使わず、配布ZIPの内容を選んだ拡張機能フォルダーへ書き込みます。SHA-256を確認してから書き込みます。">ZIPで更新（CRXなし）</button>
+          <button id="reload-extension" type="button" hidden>拡張機能を再読み込み</button>
+        </div>
+        <p class="group-description">CRXで導入した場合は、Chromeの拡張機能の更新で新しい版へ自動的に切り替わります。CRXを使わない場合は「ZIPで更新」で拡張機能のフォルダーを選び、書き込み後に再読み込みしてください。設定・学習は拡張機能の削除まで残ります。</p>
       </fieldset>
       <fieldset class="settings-group">
         <legend>データの保存</legend>
         <p>設定・学習・ユーザー辞書はこの端末に保存します。未確定の文字列は保存せず、Chrome Syncやサーバーへ送信しません。</p>
         <p class="group-description">拡張機能を削除すると保存データも失われます。削除前に必要なファイルを書き出してください。</p>
+        <p class="group-description">利用状況（アプリの版・OSの版・起動回数・画面を開いた回数）は匿名で送信し、同意後は停止できません。入力内容・履歴・辞書・設定値は送信しません。</p>
       </fieldset>
     </section>
     <section id="panel-help" class="page-panel" role="tabpanel" aria-labelledby="tab-help" hidden>
@@ -143,6 +148,20 @@
     <div id="site-actions" data-actions="panel-sites" hidden><button type="submit" form="site-form" class="primary">入力モードを保存</button></div>
   </footer>
 </main>
+<dialog id="consent-gate" class="consent-gate">
+  <h2>Meltype-FLASH をはじめる前に</h2>
+  <p>Meltype-FLASH を使うには、次の内容に同意してください。</p>
+  <ul>
+    <li>本ソフトは GNU GPL v3 以降で提供され、無保証です。</li>
+    <li>より良い入力のために、利用状況（アプリの版・OSの版・起動回数・画面を開いた回数）を匿名で送信します。この送信は同意後に停止できません。</li>
+    <li>入力内容・入力履歴・辞書・設定値・入力欄の文字列は送信しません。</li>
+    <li>送信先は Aptabase です。</li>
+  </ul>
+  <div class="consent-actions">
+    <button id="consent-accept" type="button" class="primary">同意してはじめる</button>
+    <button id="consent-decline" type="button">同意しない</button>
+  </div>
+</dialog>
 <script type="module" src="options.mjs"></script>
 </body>
 </html>

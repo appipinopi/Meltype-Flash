@@ -61,7 +61,7 @@ test("real service-worker listeners register before hydration and route keys int
     const result = ime.onKeyEvent.listeners[0]("meltype-rust", {type: "keydown", key: "a", code: "KeyA"}, "first-key");
     assert.equal(result, undefined);
     assert.deepEqual(await acknowledged, {id: "first-key", handled: true});
-    assert.deepEqual(reads, ["snapshot", "sitePreferences"]);
+    assert.deepEqual(reads.slice().sort(), ["analyticsConsentVersion", "sitePreferences", "snapshot"]);
     assert.equal(calls.find(([name]) => name === "setComposition")[1].text, "あ");
     // Legacy ChromeOS places requestId in keyData, with no third argument.
     // Exercise the complete real-WASM -> candidate window -> commit route.

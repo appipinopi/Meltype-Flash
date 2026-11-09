@@ -49,3 +49,6 @@ ios/*.xcodeproj/
 
 # Generated local AI WebAssembly (built from pinned sources)
 chromeos/ai/
+
+# ローカルのビルド・検証の出力 (配布物は dist/ に置く)
+/output/

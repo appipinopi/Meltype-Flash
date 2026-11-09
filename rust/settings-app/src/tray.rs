@@ -29,6 +29,7 @@ pub enum Action {
     Uninstall,
     AutoUpdate,
     CheckUpdates,
+    ReleaseNotes,
     Quit,
     MaintenanceQuit,
     Startup,
@@ -186,6 +187,9 @@ impl Tray {
         let check = MenuItem::new("今すぐ更新を確認", true, None);
         updates.append(&check).map_err(|e| e.to_string())?;
         actions.push((check.id().clone(), Action::CheckUpdates));
+        let notes = MenuItem::new("リリースノート...", true, None);
+        updates.append(&notes).map_err(|e| e.to_string())?;
+        actions.push((notes.id().clone(), Action::ReleaseNotes));
         menu.append(&updates).map_err(|e| e.to_string())?;
         menu.append(&PredefinedMenuItem::separator())
             .map_err(|e| e.to_string())?;

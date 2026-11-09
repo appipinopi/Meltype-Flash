@@ -3,7 +3,7 @@
 <a id="meltype-for-mac"></a>
 <p align="center"><img src="../assets/branding/readme/mac/hero.svg" alt="Meltype-FLASH for Mac" width="1000"></p>
 <p align="center"><b>稲妻のように、言葉の壁を駆け抜ける日本語入力。</b></p>
-<p align="center"><a href="https://github.com/appipinopi/Meltype-Flash/releases/latest"><img src="https://img.shields.io/badge/Flash-v1.1.2-ffe34a" alt="Flash v1.1.2"></a> <img src="https://img.shields.io/badge/status-正式版-666973" alt="正式版"></p>
+<p align="center"><a href="https://github.com/appipinopi/Meltype-Flash/releases/latest"><img src="https://img.shields.io/badge/Flash-v1.1.3-ffe34a" alt="Flash v1.1.3"></a> <img src="https://img.shields.io/badge/status-正式版-666973" alt="正式版"></p>
 <p align="center"><a href="#インストール">ダウンロード・導入</a> · <a href="#使い方">使い方</a> · <a href="#困ったとき">困ったとき</a> · <a href="https://github.com/appipinopi/Meltype-Flash/issues/new/choose">不具合の報告・提案</a></p>
 <p align="center">
   <a href="../rust/WINDOWS-PACKAGE.md"><img src="../assets/branding/readme/cards/os-windows.svg" alt="Windows" width="32%"></a>
@@ -81,7 +81,7 @@ macOSの入力ソースとして動く、Rust版Meltype-FLASHです。共通Core
 入力の判定・変換はローカルのCoreと同梱変換エンジンで行います。学習や辞書などの個人データは上記の保存先に置きます。
 初回の**ソースビルド**では、Rust・Swiftの依存関係や辞書のダウンロードが発生します。
 不具合報告に個人の文章やデータフォルダー全体を添付しないでください。
-入力メニューで「利用状況を匿名で送る」を入れた場合だけ、Aptabaseへ匿名の利用回数（アプリの版・OSの版・起動回数）を送ります。入力内容・入力履歴・辞書・設定値は送りません。既定は有効で、いつでも切れます（切ると次の起動から送りません）。
+初回起動の同意画面で同意したあと、Aptabaseへ匿名の利用回数（アプリの版・OSの版・起動回数）を送ります。入力内容・入力履歴・辞書・設定値は送りません。この送信は設定から停止できません。
 
 <a id="困ったとき"></a>
 <h2><img src="../assets/branding/readme/mac/headings/4466f22d7395.svg" alt="困ったとき" width="1000"></h2>

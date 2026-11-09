@@ -3,7 +3,7 @@
 <a id="meltype-for-android"></a>
 <p align="center"><img src="../assets/branding/readme/android/hero.svg" alt="Meltype-FLASH for Android" width="1000"></p>
 <p align="center"><b>稲妻のように、言葉の壁を駆け抜ける日本語入力。</b></p>
-<p align="center"><a href="https://github.com/appipinopi/Meltype-Flash/releases/latest"><img src="https://img.shields.io/badge/Flash-v1.1.2-ffe34a" alt="Flash v1.1.2"></a> <img src="https://img.shields.io/badge/status-正式版-666973" alt="正式版"></p>
+<p align="center"><a href="https://github.com/appipinopi/Meltype-Flash/releases/latest"><img src="https://img.shields.io/badge/Flash-v1.1.3-ffe34a" alt="Flash v1.1.3"></a> <img src="https://img.shields.io/badge/status-正式版-666973" alt="正式版"></p>
 <p align="center"><a href="#インストール">ダウンロード・導入</a> · <a href="#使い方">使い方</a> · <a href="#困ったとき">困ったとき</a> · <a href="https://github.com/appipinopi/Meltype-Flash/issues/new/choose">不具合の報告・提案</a></p>
 <p align="center">
   <a href="../rust/WINDOWS-PACKAGE.md"><img src="../assets/branding/readme/cards/os-windows.svg" alt="Windows" width="32%"></a>
@@ -79,7 +79,7 @@ debug署名はCIの生成版ごとに変わる場合があるため、別のAPK�
 ネットワーク権限は、AIモデル（shunti）の任意ダウンロードだけに使います。ストレージ全体へのアクセス権限は要求しません。通常の学習・辞書はアプリ専用領域に保存します。
 パスワードや学習禁止欄では保存しない方針です。辞書・バックアップの入出力はAndroidのドキュメント選択を使います。
 復元・学習の全消去は確認画面で内容を確認してから実行します。
-設定画面で「利用状況を匿名で送る」を入れた場合だけ、Aptabaseへ匿名の利用回数（アプリの版・OSの版・起動回数）を送ります。入力内容・入力履歴・辞書・設定値は送りません。既定は有効で、いつでも切れます（切ると次の起動から送りません）。
+初回起動の同意画面で同意したあと、Aptabaseへ匿名の利用回数（アプリの版・OSの版・起動回数）を送ります。入力内容・入力履歴・辞書・設定値は送りません。この送信は設定から停止できません。
 
 <a id="困ったとき"></a>
 <h2><img src="../assets/branding/readme/android/headings/e959b3efbcc9.svg" alt="困ったとき" width="1000"></h2>

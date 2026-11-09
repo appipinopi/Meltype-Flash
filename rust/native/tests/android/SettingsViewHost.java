@@ -27,7 +27,7 @@ public final class SettingsViewHost {
             for(int page=0;page<6;page++)ok(Native.renderSettingsPage(host,Native.settingsPage(session,page)));
             ok(Native.renderSettingsPage(host,Native.settingsPage(session,0)));check(host.actions.isEmpty(),"initial state cannot mutate settings");
             int toggles=0;for(View view:host.body.children)if(view instanceof Switch toggle){toggles++;toggle.performClick();}
-            check(toggles==14&&host.actions.size()==14,"all switch callbacks");String operation=host.actions.get(0);
+            check(toggles==13&&host.actions.size()==13,"all switch callbacks");String operation=host.actions.get(0);
             check(ok(Native.settingsValues(host,operation)).contains("\"checked\":"),"typed switch value");
             check(!ok(Native.settingsValues(host,"{\"action\":\"other\"}")).contains("\"checked\":"),"unrelated operation cannot read toggle value");
             ok(Native.renderSettingsPage(host,Native.settingsPage(session,2)));check(host.field("展開する文字列").lines==2,"multiline field");
@@ -47,7 +47,7 @@ public final class SettingsViewHost {
             ok(Native.renderSettingsPage(host,many.toString()));check(host.body.children.size()==800,"large page refs");
             check(ok(Native.settingsValues(host,"null")).contains("\"f799\":\"v\""),"all fields read");ok(Native.editSettingsFields(host,"{\"f799\":\"last\"}"));
             check(ok(Native.settingsValues(host,"null")).contains("\"f799\":\"last\""),"large page edit refs");
-            System.out.println("Android JNI settings widgets: six native pages, 14 switches/callbacks, Unicode field/save/edit paths, prevalidation/failure recovery, 20 rebuilds and 800-field local refs passed (SDK-shaped host)");
+            System.out.println("Android JNI settings widgets: six native pages, 13 switches/callbacks, Unicode field/save/edit paths, prevalidation/failure recovery, 20 rebuilds and 800-field local refs passed (SDK-shaped host)");
         } finally {
             Native.destroy(session);
             try(var paths=Files.walk(profile)){for(Path path:paths.sorted(java.util.Comparator.reverseOrder()).toList())Files.delete(path);}
