@@ -2444,6 +2444,10 @@ mod tests {
         use eframe::App as _;
         let directory = tempfile::tempdir().unwrap();
         let mut app = App::with_store(Store::new(directory.path()));
+        app.settings
+            .0
+            .insert("UiLanguage".into(), json!("Japanese"));
+        app.opened.0.insert("UiLanguage".into(), json!("Japanese"));
         let mut lifecycle_settings = app.settings.clone();
         lifecycle_settings.set("AutoUpdate", json!(false)).unwrap();
         app.lifecycle = lifecycle::Lifecycle::new(&lifecycle_settings);
