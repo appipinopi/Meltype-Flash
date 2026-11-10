@@ -157,7 +157,7 @@ public final class NativeAndroidTest {
     }
     @Test public void realSettingsActivityConfirmationButtons()throws Throwable {
         Instrumentation instrumentation=InstrumentationRegistry.getInstrumentation();UiAutomation automation=instrumentation.getUiAutomation();
-        SettingsActivity activity=(SettingsActivity)instrumentation.startActivitySync(new Intent(context(),SettingsActivity.class).addFlags(Intent.FLAG_ACTIVITY_NEW_TASK));
+        SettingsActivity activity=(SettingsActivity)instrumentation.startActivitySync(new Intent(context(),SettingsActivity.class).addFlags(Intent.FLAG_ACTIVITY_NEW_TASK).putExtra("moe.meltype.rust.SKIP_CONSENT",true));
         long[] handle={0};
         try(Profile files=new Profile()) {
             ui(()->{
