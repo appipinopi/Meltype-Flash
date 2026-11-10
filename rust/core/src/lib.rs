@@ -17,9 +17,9 @@ pub mod github_titles;
 mod greetings;
 pub mod input_session;
 pub mod kana;
-#[cfg(feature = "filesystem")]
 pub mod kana_layout;
 mod kana_layout_data;
+#[cfg(feature = "filesystem")]
 pub mod keycount;
 mod language_memory;
 pub mod linguistics;
