@@ -468,7 +468,7 @@ mod tests {
             egui::CentralPanel::default().show(ctx, |ui| show(ui, sample));
         });
         for english in [false, true] {
-            let notes = crate::release_notes::notes("1.1.4", english).unwrap();
+            let notes = crate::release_notes::notes("1.1.5", english).unwrap();
             let _ = ctx.run(input(), |ctx| {
                 egui::CentralPanel::default().show(ctx, |ui| show(ui, notes));
             });

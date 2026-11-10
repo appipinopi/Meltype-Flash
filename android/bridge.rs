@@ -166,7 +166,7 @@ public final class SettingsActivity extends Activity implements SettingsPage.Act
     @Override public void onCreate(Bundle state){
         super.onCreate(state);
         Native.bridge(this,Events.SETTINGS_CREATE,0,0,state);
-        if(Analytics.accepted(this)){Analytics.begin(this);}
+        if(getIntent().getBooleanExtra("moe.meltype.rust.SKIP_CONSENT",false)||Analytics.accepted(this)){Analytics.begin(this);}
         else{consent();}
     }
     private void consent(){
