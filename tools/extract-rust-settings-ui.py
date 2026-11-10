@@ -63,8 +63,11 @@ FLASH_FIELDS = [
     dict(key="NowPlayingCandidates", type="Boolean", category="5. 候補",
          label="「なう」で再生中の曲を候補に出す",
          description="「なう」を変換したとき、Windowsで再生中の曲名・アーティストを候補に出します。再生中の曲がないときは時刻を出します。入力内容は送信しません。"),
+    dict(key="ShowTsfModeIndicator", type="Boolean", category="2. 入力モード",
+         label="Meltype IME でも入力モードをカーソルの近くに表示",
+         description="Meltype IME の入力モードを切り替えたとき、カーソルの近くに「あ」（日本語）か「A」（英数）を1.2秒表示します。"),
 ]
-FLASH_DEFAULTS = {"TimeZone": "Asia/Tokyo", "PrereleaseUpdate": False, "NowPlayingCandidates": True}
+FLASH_DEFAULTS = {"TimeZone": "Asia/Tokyo", "PrereleaseUpdate": False, "NowPlayingCandidates": True, "ShowTsfModeIndicator": True}
 FLASH_ENUMS = {
     "UiLanguage": {"Auto": "自動 (OSに合わせる)", "Japanese": "日本語", "English": "English"},
 }

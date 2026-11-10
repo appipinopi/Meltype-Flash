@@ -7,6 +7,7 @@
 #include "LangBar.h"
 #include "TextService.h"
 #include "CandidateWindow.h"
+#include "ModeIndicator.h"
 #include <new>
 #include <cstring>
 
@@ -420,7 +421,7 @@ int RustServiceAbandon(RustServiceState* state,IUnknown* lifetime) {
 static void __cdecl ServiceModeNotice(void*,unsigned int op,int value) {
     try {switch(op) {
         case 0:case 1:ServiceCoreNotice(nullptr,op,value);break;
-        case 2:TipLog(L"入力モードの表示: %s",value?L"英数 (コードの行)":L"日本語");break;
+        case 2:TipLog(L"入力モードの表示: %s",value?L"英数 (コードの行)":L"日本語");ShowModeIndicator(value==0);break;
         case 3:TipLog(L"コードの行: %s",value?L"日本語にしました":L"英数に戻しました");break;
         case 4:{const wchar_t* source=value==3?L"Windows とアプリ":value==1?L"Windows":value==2?L"アプリ":L"無い";TipLog(L"入力欄の種類を読むところ: %s",source);break;}
         case 6:{const wchar_t* reasons[]={nullptr,L"英数",L"Ctrl・Alt・Windows キーを押している",L"この入力欄では使わない",L"英語の単語の続き",L"Meltype.exe が使えない",L"パスワードの入力欄"};if (value>0 && value<ARRAYSIZE(reasons)) TipLog(L"キーを通します: %s",reasons[value]);break;}

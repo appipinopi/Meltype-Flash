@@ -312,5 +312,6 @@
   ],
   "TimeZone": "Asia/Tokyo",
   "PrereleaseUpdate": false,
-  "NowPlayingCandidates": true
+  "NowPlayingCandidates": true,
+  "ShowTsfModeIndicator": true
 }
