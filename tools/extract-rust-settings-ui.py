@@ -66,10 +66,18 @@ FLASH_FIELDS = [
     dict(key="ShowTsfModeIndicator", type="Boolean", category="2. 入力モード",
          label="Meltype IME でも入力モードをカーソルの近くに表示",
          description="Meltype IME の入力モードを切り替えたとき、カーソルの近くに「あ」（日本語）か「A」（英数）を1.2秒表示します。"),
+    dict(key="KanaLayout", type="KanaLayout", category="2. 入力モード",
+         label="かな配列",
+         description="かな入力のときに使う配列です。JISかな・月・花・NICOLA・中指NICOLA・TRONから選びます。月・花は前置シフト、NICOLA系・TRONは親指シフトです。"),
+    dict(key="RomajiLayout", type="RomajiLayout", category="2. 入力モード",
+         label="ローマ字の配列",
+         description="ローマ字入力のときに使う配列です。QWERTYのほか、SKY配列を選べます。"),
 ]
-FLASH_DEFAULTS = {"TimeZone": "Asia/Tokyo", "PrereleaseUpdate": False, "NowPlayingCandidates": True, "ShowTsfModeIndicator": True}
+FLASH_DEFAULTS = {"TimeZone": "Asia/Tokyo", "PrereleaseUpdate": False, "NowPlayingCandidates": True, "ShowTsfModeIndicator": True, "KanaLayout": "Jis", "RomajiLayout": "Qwerty"}
 FLASH_ENUMS = {
     "UiLanguage": {"Auto": "自動 (OSに合わせる)", "Japanese": "日本語", "English": "English"},
+    "KanaLayout": {"Jis": "JIS かな", "Tsuki": "月配列", "Hana": "花配列", "Nicola": "NICOLA (親指シフト)", "NakayubiNicola": "中指NICOLA", "Tron": "TRON 配列"},
+    "RomajiLayout": {"Qwerty": "QWERTY", "Sky": "SKY 配列"},
 }
 for field in FLASH_FIELDS:
     if field["key"] not in {item["key"] for item in fields}:
