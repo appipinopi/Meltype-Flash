@@ -20,6 +20,7 @@ fn number(text: &str) -> Option<u32> {
     }
     digits.parse().ok()
 }
+#[cfg(feature = "filesystem")]
 fn now_playing(directory: &std::path::Path, reading: &str) -> Option<String> {
     if reading != "なう" {
         return None;
@@ -129,7 +130,9 @@ pub fn candidates(reading: &str, now: NaiveDateTime, timezone: &str) -> Vec<Stri
         return vec![];
     }
     // Windows の設定アプリが再生中の曲名を now_playing.txt へ置く。
+    #[allow(unused_mut)]
     let mut media = Vec::new();
+    #[cfg(feature = "filesystem")]
     if let Some(title) = now_playing(&crate::storage::Store::default_directory(), reading) {
         media.push(title);
     }
@@ -213,6 +216,7 @@ mod tests {
     use super::*;
     use chrono::NaiveDate;
 
+    #[cfg(feature = "filesystem")]
     #[test]
     fn now_playing_is_read_only_for_the_now_reading() {
         let directory =
