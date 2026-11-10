@@ -789,30 +789,41 @@ impl Session {
             return;
         }
         self.kana_text.clear();
+        let layout = crate::kana_layout::Layout::parse(self.settings.text("KanaLayout"));
+        let mut engine = crate::kana_layout::Engine::new(layout);
         for (vk, ch, shift) in &self.typed_keys {
-            // Non-JIS keys still pass through CompositionText.Symbol in the
+            // Non-layout keys still pass through CompositionText.Symbol in the
             // original kana input path (e.g. a character-only '-' event).
-            let kana = crate::kana::key(*vk, *shift).unwrap_or(match ch {
+            let fallback = match ch {
                 '-' => 'ー',
                 ',' => '、',
                 '.' => '。',
                 '[' => '「',
                 ']' => '」',
                 _ => *ch,
-            });
-            if "゛゜".contains(kana) {
-                if let Some(combined) = self
-                    .kana_text
-                    .chars()
-                    .next_back()
-                    .and_then(|previous| crate::kana::combine(previous, kana))
-                {
-                    self.kana_text.pop();
-                    self.kana_text.push(combined);
-                    continue;
-                }
+            };
+            let Some(stroke) = engine.down(*vk, *shift) else {
+                self.kana_text.push(fallback);
+                continue;
+            };
+            for _ in 0..stroke.remove_last {
+                self.kana_text.pop();
             }
-            self.kana_text.push(kana);
+            for kana in stroke.kana.chars() {
+                if "゛゜".contains(kana) {
+                    if let Some(combined) = self
+                        .kana_text
+                        .chars()
+                        .next_back()
+                        .and_then(|previous| crate::kana::combine(previous, kana))
+                    {
+                        self.kana_text.pop();
+                        self.kana_text.push(combined);
+                        continue;
+                    }
+                }
+                self.kana_text.push(kana);
+            }
         }
     }
     fn kana_display(&self, final_input: bool) -> String {
@@ -2564,6 +2575,37 @@ impl Session {
         }
         let timeout_edit = self.direct_timeout(now_ms);
         let c = char::from_u32(ch as u32).unwrap();
+        // SKY配列は、物理キーをローマ字の綴りへ読み替える。
+        if !self.uses_kana() && self.settings.text("RomajiLayout") == "Sky" {
+            if let Some(mapped) = crate::kana_layout::sky(vk) {
+                let shift = modifiers & 1 != 0;
+                for character in mapped.chars() {
+                    self.raw.push(character);
+                    self.typed_keys.push((0, character, shift));
+                }
+                return self.result(true);
+            }
+        }
+        // かな配列のキーは、通常のローマ字経路へ流さず、配列の表で処理する。
+        // 共通Coreはキーアップを受け取らないため、親指キーは「先に押してから文字」の順だけ対応する。
+        if self.uses_kana() {
+            let layout = crate::kana_layout::Layout::parse(self.settings.text("KanaLayout"));
+            if layout != crate::kana_layout::Layout::Jis {
+                let shift = modifiers & 1 != 0;
+                let mut engine = crate::kana_layout::Engine::new(layout);
+                for (prior_vk, _ch, prior_shift) in &self.typed_keys {
+                    let _ = engine.down(*prior_vk, *prior_shift);
+                }
+                if let Some(stroke) = engine.down(vk, shift) {
+                    self.typed_keys.push((vk, c, shift));
+                    if !stroke.kana.is_empty() {
+                        self.raw.push(c);
+                    }
+                    self.refresh_kana();
+                    return self.result(true);
+                }
+            }
+        }
         if self.private {
             self.sigil = Default::default();
         }

@@ -65,6 +65,7 @@ pub struct Tray {
     ctx: egui::Context,
     warnings: Vec<String>,
     guid: u128,
+    directory: std::path::PathBuf,
     // Release only after the tray icon, callbacks and hotkeys have been dropped.
     _lock: std::fs::File,
 }
@@ -271,11 +272,27 @@ impl Tray {
             ctx: ctx.clone(),
             warnings,
             guid,
+            directory: store.directory.clone(),
         };
         tray.sync(settings)?;
         Ok(tray)
     }
     pub fn input_status(&self, settings: &Settings, active: bool) {
+        let count = meltype_core::keycount::load(&self.directory);
+        let tooltip = if count.show {
+            let today = count
+                .days
+                .get(&meltype_core::keycount::today())
+                .copied()
+                .unwrap_or(0);
+            format!(
+                "Meltype-FLASH 今日 {} 打",
+                meltype_core::keycount::group(today)
+            )
+        } else {
+            "Meltype-FLASH".to_owned()
+        };
+        let _ = self.icon.set_tooltip(Some(tooltip));
         if settings.boolean("Enabled") && settings.text("Mode") == "Keyboard" {
             let shortcut = settings.toggle_shortcuts_label();
             self.status.set_text(format!(

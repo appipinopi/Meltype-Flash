@@ -481,6 +481,42 @@ fn halfwidth_case_and_jis_kana() {
     assert_eq!(s.commit().commits[0].text, "がた");
 }
 #[test]
+fn kana_layouts_use_prefix_and_thumb_shift() {
+    let mut tsuki = Session::default();
+    tsuki.settings.set("InputStyle", json!("Kana")).unwrap();
+    tsuki.settings.set("KanaLayout", json!("Tsuki")).unwrap();
+    tsuki.key(0x44, 'd' as i32, 0);
+    tsuki.key(0x46, 'f' as i32, 0);
+    assert_eq!(tsuki.commit().commits[0].text, "あ");
+
+    let mut hana = Session::default();
+    hana.settings.set("InputStyle", json!("Kana")).unwrap();
+    hana.settings.set("KanaLayout", json!("Hana")).unwrap();
+    hana.key(0x44, 'd' as i32, 0);
+    hana.key(0x46, 'f' as i32, 0);
+    assert_eq!(hana.commit().commits[0].text, "や");
+
+    let mut nicola = Session::default();
+    nicola.settings.set("InputStyle", json!("Kana")).unwrap();
+    nicola.settings.set("KanaLayout", json!("Nicola")).unwrap();
+    nicola.key(0x1D, 0, 0);
+    nicola.key(0x51, 'q' as i32, 0);
+    assert_eq!(nicola.commit().commits[0].text, "ぁ");
+}
+
+#[test]
+fn sky_layout_maps_physical_keys_to_romaji() {
+    let mut s = Session::default();
+    s.settings.set("RomajiLayout", json!("Sky")).unwrap();
+    s.key(0x4A, 'j' as i32, 0);
+    assert_eq!(s.commit().commits[0].text, "あ");
+    let mut s = Session::default();
+    s.settings.set("RomajiLayout", json!("Sky")).unwrap();
+    s.key(0x59, 'y' as i32, 0);
+    assert_eq!(s.commit().commits[0].text, "うう");
+}
+
+#[test]
 fn snippets_tab_and_private_learning() {
     let mut s = Session::default();
     s.state

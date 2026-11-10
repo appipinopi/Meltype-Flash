@@ -19,7 +19,8 @@
     "9. 更新": "9. Updates",
     "10. アプリ": "10. Apps",
     "11. ログ": "11. Logs",
-    "12. 更新": "12. Updates"
+    "12. 更新": "12. Updates",
+    "13. 打鍵数": "13. Keystrokes"
   },
   "fields": {
     "Enabled": {
@@ -409,6 +410,10 @@
     "ShowTsfModeIndicator": {
       "label": "Show the input mode near the caret in Meltype IME",
       "description": "When the Meltype IME input mode changes, show \"あ\" (Japanese) or \"A\" (alphanumeric) near the caret for 1.2 seconds."
+    },
+    "RomajiLayout": {
+      "label": "Romaji layout",
+      "description": "Layout used for romaji input. Choose QWERTY or the SKY layout."
     }
   },
   "enums": {
@@ -470,6 +475,18 @@
       "Auto": "Auto",
       "Japanese": "日本語",
       "English": "English"
+    },
+    "KanaLayout": {
+      "Jis": "JIS kana",
+      "Tsuki": "Tsuki layout",
+      "Hana": "Hana layout",
+      "Nicola": "NICOLA (thumb shift)",
+      "NakayubiNicola": "Middle-finger NICOLA",
+      "Tron": "TRON layout"
+    },
+    "RomajiLayout": {
+      "Qwerty": "QWERTY",
+      "Sky": "SKY layout"
     }
   },
   "ui": {
