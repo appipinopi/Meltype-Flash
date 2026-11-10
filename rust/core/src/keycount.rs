@@ -21,7 +21,7 @@ pub const LOCK: &str = "keycount.lock";
 
 /// Discord の表示に使う文言の既定値。`{today}` `{total}` `{kpm}` `{elapsed}` `{ai}` を置き換える。
 pub const DEFAULT_DETAILS: &str = "今日 {today} 打";
-pub const DEFAULT_STATE: &str = "合計 {total} 打 · {kpm} 打/分{ai}";
+pub const DEFAULT_STATE: &str = "合計 {total} 打 · {kpm} 打/分";
 pub const DEFAULT_BUTTON: &str = "Meltype";
 pub const DEFAULT_URL: &str = "https://github.com/appipinopi/Meltype-Flash";
 
@@ -34,8 +34,10 @@ pub struct KeyCount {
     pub days: BTreeMap<String, u64>,
     /// 打鍵を数えるか。既定は有効 (設定画面で OFF にできる)。
     pub enabled: bool,
-    /// Discord のステータスに出すか。既定は有効 (設定画面で OFF にできる)。
+    /// Discord のステータスに出すか。既定は無効。
     pub discord: bool,
+    /// トレイのツールチップに打鍵数を出すか。既定は無効。
+    pub show: bool,
     /// Discord の詳細行。
     pub details: String,
     /// Discord の状態行。
@@ -55,11 +57,12 @@ impl Default for KeyCount {
             days: BTreeMap::new(),
             enabled: false,
             discord: false,
+            show: false,
             details: DEFAULT_DETAILS.into(),
             state: DEFAULT_STATE.into(),
             button: DEFAULT_BUTTON.into(),
             url: DEFAULT_URL.into(),
-            ai: true,
+            ai: false,
         }
     }
 }
@@ -104,6 +107,7 @@ pub fn save_settings(directory: &Path, settings: &KeyCount) -> io::Result<()> {
     let mut count = load(directory);
     count.enabled = settings.enabled;
     count.discord = settings.discord;
+    count.show = settings.show;
     count.details = settings.details.clone();
     count.state = settings.state.clone();
     count.button = settings.button.clone();
@@ -169,6 +173,7 @@ impl KeyCounter {
         let count = load(&self.directory);
         self.count.enabled = count.enabled;
         self.count.discord = count.discord;
+        self.count.show = count.show;
         self.count.details = count.details;
         self.count.state = count.state;
         self.count.button = count.button;
@@ -253,9 +258,10 @@ mod tests {
         let count = KeyCount::default();
         assert!(!count.enabled);
         assert!(!count.discord);
-        assert!(count.ai);
+        assert!(!count.show);
+        assert!(!count.ai);
         assert_eq!(count.details, "今日 {today} 打");
-        assert_eq!(count.state, "合計 {total} 打 · {kpm} 打/分{ai}");
+        assert_eq!(count.state, "合計 {total} 打 · {kpm} 打/分");
     }
 
     #[test]

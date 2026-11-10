@@ -747,7 +747,6 @@ impl App {
                 "学習した語",
                 "バックアップ",
                 "入力テスト",
-                "打鍵数",
                 "ログ / 判定理由",
             ]
             .iter()
@@ -921,6 +920,8 @@ impl App {
             .any(|word| self.filter.to_lowercase().contains(word))
         {
             fields.push(("ai-packages".into(), Value::Null, "1a. AI".into()));
+            fields.push(("keycount-discord".into(), Value::Null, "8. 表示".into()));
+            fields.push(("keycount".into(), Value::Null, "13. 打鍵数".into()));
         }
         fields.sort_by(|a, b| a.2.cmp(&b.2));
         let mut categories: Vec<String> = Vec::new();
@@ -999,6 +1000,33 @@ impl App {
                     let group_response = frame.show(ui, |ui| {
                         ui.set_min_width(ui.available_width());
                         for (key, value, _) in group_fields {
+                            if key == "keycount-discord" {
+                                let mut count = meltype_core::keycount::load(&self.store.directory);
+                                let mut changed = false;
+                                ui.horizontal(|ui| {
+                                    ui.label("Discord のステータスに表示する");
+                                    changed |= widgets::toggle(
+                                        ui,
+                                        &mut count.discord,
+                                        "Discord のステータスに表示する",
+                                    )
+                                    .on_hover_text("今日・合計・1 分あたりの回数だけを送ります。打った文字・候補・入力先のアプリ名は送りません。")
+                                    .changed();
+                                });
+                                if changed {
+                                    if let Err(error) = meltype_core::keycount::save_settings(
+                                        &self.store.directory,
+                                        &count,
+                                    ) {
+                                        self.status = error.to_string();
+                                    }
+                                }
+                                continue;
+                            }
+                            if key == "keycount" {
+                                self.keycount(ui);
+                                continue;
+                            }
                             #[cfg(any(windows, target_os = "linux", target_os = "macos"))]
                             if key == "ai-packages" {
                                 self.ai_settings(ui);
@@ -1949,6 +1977,8 @@ fn ui_category(key: &str, original: &str) -> &'static str {
         "LearningEnabled" | "ContextualLearning" => "9. 学習",
         "FileLog" | "LogTypedText" | "LogKeyIntervals" => "11. ログ",
         "AutoUpdate" | "PrereleaseUpdate" => "12. 更新",
+        "keycount-discord" => "8. 表示",
+        "keycount" => "13. 打鍵数",
         _ if original == "7. アプリ" => "10. アプリ",
         _ if original == "8. ログ" => "11. ログ",
         _ if original == "9. 更新" => "12. 更新",
@@ -2099,7 +2129,6 @@ impl App {
         use meltype_core::keycount;
         let mut count = keycount::load(&self.store.directory);
         let mut changed = false;
-        ui.heading("打鍵数");
         ui.weak("打った文字は残さず、合計と日ごとの回数だけを数えます。Discord には今日と合計の回数・1 分あたりの回数だけを送ります。");
         ui.add_space(8.);
         let today = count.days.get(&keycount::today()).copied().unwrap_or(0);
@@ -2120,29 +2149,14 @@ impl App {
             })
             .inner;
         changed |= ui
-            .add_enabled_ui(count.enabled, |ui| {
-                ui.horizontal(|ui| {
-                    ui.label("Discord のステータスに表示する");
-                    widgets::toggle(ui, &mut count.discord, "Discord のステータスに表示する")
-                        .on_hover_text("今日・合計・1 分あたりの回数だけを送ります。打った文字・候補・入力先のアプリ名は送りません。")
-                        .changed()
-                })
-                .inner
+            .horizontal(|ui| {
+                ui.label("打鍵数をトレイに表示する");
+                widgets::toggle(ui, &mut count.show, "打鍵数をトレイに表示する")
+                    .on_hover_text("トレイのツールチップに今日の打鍵数を表示します。")
+                    .changed()
             })
             .inner;
-        changed |= ui
-            .add_enabled_ui(count.discord, |ui| {
-                ui.horizontal(|ui| {
-                    ui.label("AI対応中を表示する");
-                    widgets::toggle(ui, &mut count.ai, "AI対応中を表示する")
-                        .on_hover_text(
-                            "AI (予測変換) が有効なとき、状態の行に「AI対応中」を足します。",
-                        )
-                        .changed()
-                })
-                .inner
-            })
-            .inner;
+        ui.weak("Discord に表示するかどうかは「表示」の設定で切り替えます。");
         ui.add_space(12.);
         ui.label("表示する文言 (Discord のステータス):");
         ui.add_enabled_ui(count.discord, |ui| {
@@ -2162,7 +2176,7 @@ impl App {
                 ui.label("ボタンのリンク先");
                 changed |= ui.text_edit_singleline(&mut count.url).changed();
             });
-            ui.weak("使える置き換え: {today} 今日の回数 / {total} 合計 / {kpm} 1分あたり / {elapsed} 起動からの経過 / {ai} AI対応中");
+            ui.weak("使える置き換え: {today} 今日の回数 / {total} 合計 / {kpm} 1分あたり / {elapsed} 起動からの経過");
             if ui.button("文言を既定値に戻す").clicked() {
                 count.details = keycount::DEFAULT_DETAILS.into();
                 count.state = keycount::DEFAULT_STATE.into();

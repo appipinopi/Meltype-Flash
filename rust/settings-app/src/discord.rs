@@ -400,7 +400,11 @@ mod tests {
 
     #[test]
     fn ai_label_is_appended_when_active_and_enabled() {
-        let mut count = KeyCount::default();
+        let mut count = KeyCount {
+            ai: true,
+            state: "合計 {total} 打{ai}".into(),
+            ..KeyCount::default()
+        };
         let activity = activity_json(&count, Stats { today: 1, total: 2 }, 3, "0:15", true);
         assert!(activity.contains("AI対応中"));
         count.ai = false;
