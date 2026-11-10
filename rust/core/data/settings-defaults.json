@@ -311,5 +311,6 @@
     }
   ],
   "TimeZone": "Asia/Tokyo",
-  "PrereleaseUpdate": false
+  "PrereleaseUpdate": false,
+  "NowPlayingCandidates": true
 }

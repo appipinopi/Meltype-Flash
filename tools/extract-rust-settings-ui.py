@@ -60,8 +60,11 @@ FLASH_FIELDS = [
     dict(key="PrereleaseUpdate", type="Boolean", category="9. 更新",
          label="プレリリース版も自動更新の対象にする",
          description="自動更新で、正式版だけでなくプレリリース版も確認します。既定はOFFです。"),
+    dict(key="NowPlayingCandidates", type="Boolean", category="5. 候補",
+         label="「なう」で再生中の曲を候補に出す",
+         description="「なう」を変換したとき、Windowsで再生中の曲名・アーティストを候補に出します。再生中の曲がないときは時刻を出します。入力内容は送信しません。"),
 ]
-FLASH_DEFAULTS = {"TimeZone": "Asia/Tokyo", "PrereleaseUpdate": False}
+FLASH_DEFAULTS = {"TimeZone": "Asia/Tokyo", "PrereleaseUpdate": False, "NowPlayingCandidates": True}
 FLASH_ENUMS = {
     "UiLanguage": {"Auto": "自動 (OSに合わせる)", "Japanese": "日本語", "English": "English"},
 }

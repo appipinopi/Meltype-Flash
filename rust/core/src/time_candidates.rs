@@ -20,6 +20,15 @@ fn number(text: &str) -> Option<u32> {
     }
     digits.parse().ok()
 }
+fn now_playing(directory: &std::path::Path, reading: &str) -> Option<String> {
+    if reading != "なう" {
+        return None;
+    }
+    let text = std::fs::read_to_string(directory.join("now_playing.txt")).ok()?;
+    let text = text.trim();
+    (!text.is_empty()).then(|| text.to_owned())
+}
+
 fn shape(reading: &str) -> Option<(bool, u32, u32)> {
     if let Some((month, day)) = reading.split_once('/') {
         return Some((true, number(month)?, number(day)?));
@@ -119,6 +128,11 @@ pub fn candidates(reading: &str, now: NaiveDateTime, timezone: &str) -> Vec<Stri
     if !is_now && reading != "きょう" {
         return vec![];
     }
+    // Windows の設定アプリが再生中の曲名を now_playing.txt へ置く。
+    let mut media = Vec::new();
+    if let Some(title) = now_playing(&crate::storage::Store::default_directory(), reading) {
+        media.push(title);
+    }
     let (year, month, day, hour, minute) =
         (now.year(), now.month(), now.day(), now.hour(), now.minute());
     let week = DAYS[now.weekday().num_days_from_sunday() as usize];
@@ -145,7 +159,8 @@ pub fn candidates(reading: &str, now: NaiveDateTime, timezone: &str) -> Vec<Stri
         return values;
     }
     let time = format!("{hour}時{minute}分");
-    vec![
+    let mut values = media;
+    values.extend([
         clock.clone(),
         time.clone(),
         format!(
@@ -157,7 +172,8 @@ pub fn candidates(reading: &str, now: NaiveDateTime, timezone: &str) -> Vec<Stri
         format!("{month_day}({week}) {time}"),
         format!("{date}({week}) {clock}"),
         format!("{slash_date} {clock}"),
-    ]
+    ]);
+    values
 }
 pub fn is_dynamic_choice(reading: &str, text: &str) -> bool {
     ["くりっぷぼーど", "ぺーすと"].contains(&reading)
@@ -196,6 +212,23 @@ pub fn join(clauses: Vec<Clause>) -> Vec<Clause> {
 mod tests {
     use super::*;
     use chrono::NaiveDate;
+
+    #[test]
+    fn now_playing_is_read_only_for_the_now_reading() {
+        let directory =
+            std::env::temp_dir().join(format!("meltype-now-playing-{}", std::process::id()));
+        let _ = std::fs::create_dir_all(&directory);
+        std::fs::write(
+            directory.join("now_playing.txt"),
+            "曲名 - 歌手
+",
+        )
+        .unwrap();
+        assert_eq!(now_playing(&directory, "なう"), Some("曲名 - 歌手".into()));
+        assert_eq!(now_playing(&directory, "いま"), None);
+        assert_eq!(now_playing(&directory, "とけい"), None);
+        let _ = std::fs::remove_dir_all(&directory);
+    }
 
     #[test]
     fn clock_candidates_use_the_configured_timezone() {
