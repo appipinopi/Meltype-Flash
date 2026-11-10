@@ -802,7 +802,7 @@ impl Session {
                 ']' => '」',
                 _ => *ch,
             };
-            let Some(stroke) = engine.down(*vk, *shift) else {
+            let Some(stroke) = engine.down(*vk, *shift, 0) else {
                 self.kana_text.push(fallback);
                 continue;
             };
@@ -2594,9 +2594,9 @@ impl Session {
                 let shift = modifiers & 1 != 0;
                 let mut engine = crate::kana_layout::Engine::new(layout);
                 for (prior_vk, _ch, prior_shift) in &self.typed_keys {
-                    let _ = engine.down(*prior_vk, *prior_shift);
+                    let _ = engine.down(*prior_vk, *prior_shift, 0);
                 }
-                if let Some(stroke) = engine.down(vk, shift) {
+                if let Some(stroke) = engine.down(vk, shift, now_ms) {
                     self.typed_keys.push((vk, c, shift));
                     if !stroke.kana.is_empty() {
                         self.raw.push(c);

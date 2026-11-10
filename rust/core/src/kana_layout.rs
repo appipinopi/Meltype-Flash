@@ -174,6 +174,9 @@ pub struct Engine {
     prefix: usize,
     thumb: i32,
     middle: i32,
+    last_key: i32,
+    last_time: u64,
+    last_shifted: bool,
 }
 
 impl Engine {
@@ -185,11 +188,37 @@ impl Engine {
     }
 
     /// 1 打鍵。None は配列のキーではない (通常の文字・記号として扱う)。
-    pub fn down(&mut self, vk: i32, shift: bool) -> Option<Stroke> {
+    pub fn down(&mut self, vk: i32, shift: bool, time: u64) -> Option<Stroke> {
         if self.layout == Layout::Jis {
-            return kana::key(vk, shift).map(|kana| Stroke::emit(&kana.to_string()));
+            return kana::key(vk, shift).map(|kana| {
+                let stroke = Stroke::emit(&kana.to_string());
+                self.last_key = vk;
+                self.last_time = time;
+                self.last_shifted = false;
+                stroke
+            });
         }
         if self.layout.is_thumb() && matches!(vk, LEFT_THUMB | RIGHT_THUMB) {
+            // 文字キーの直後 (100ms以内) に親指キーを押したら、その文字をシフト面で打ち直す。
+            let face = if vk == LEFT_THUMB { 1 } else { 2 };
+            if !self.last_shifted
+                && self.last_key != 0
+                && time.saturating_sub(self.last_time) <= 100
+            {
+                if let Some(shifted) = faces(self.layout)
+                    .get(face)
+                    .and_then(|face| face.get(&self.last_key))
+                    .copied()
+                {
+                    self.thumb = vk;
+                    self.last_shifted = true;
+                    return Some(Stroke {
+                        consumed: true,
+                        remove_last: 1,
+                        kana: shifted.to_owned(),
+                    });
+                }
+            }
             if self.thumb != vk {
                 self.thumb = vk;
             }
@@ -210,7 +239,7 @@ impl Engine {
                 let face = &table[self.prefix];
                 self.prefix = 0;
                 return Some(match face.get(&vk) {
-                    Some(kana) if !matches!(*kana, "1" | "2") => Stroke::emit(kana),
+                    Some(kana) if !matches!(*kana, "1" | "2") => self.emit(vk, kana, true, time),
                     _ => Stroke::consumed(),
                 });
             }
@@ -218,13 +247,15 @@ impl Engine {
                 self.prefix = plain.unwrap().as_bytes()[0] as usize - b'0' as usize;
                 return Some(Stroke::consumed());
             }
-            return plain.map(Stroke::emit);
+            return plain.map(|kana| self.emit(vk, kana, false, time));
         }
         if self.thumb != 0 {
             let face = if self.thumb == LEFT_THUMB { 1 } else { 2 };
             let kana = table.get(face).and_then(|face| face.get(&vk)).copied();
             self.thumb = 0;
-            return Some(kana.map_or_else(Stroke::consumed, Stroke::emit));
+            return Some(
+                kana.map_or_else(Stroke::consumed, |kana| self.emit(vk, kana, true, time)),
+            );
         }
         if self.layout == Layout::NakayubiNicola && vk == self.middle {
             return Some(Stroke::consumed());
@@ -244,10 +275,17 @@ impl Engine {
             let face = if self.middle == KEY_K { 1 } else { 2 };
             self.middle = 0;
             if let Some(kana) = table.get(face).and_then(|face| face.get(&vk)) {
-                return Some(Stroke::emit(kana));
+                return Some(self.emit(vk, kana, true, time));
             }
         }
-        plain.map(Stroke::emit)
+        plain.map(|kana| self.emit(vk, kana, false, time))
+    }
+
+    fn emit(&mut self, vk: i32, kana: &str, shifted: bool, time: u64) -> Stroke {
+        self.last_key = vk;
+        self.last_time = time;
+        self.last_shifted = shifted;
+        Stroke::emit(kana)
     }
 }
 
@@ -258,23 +296,29 @@ mod tests {
     #[test]
     fn each_layout_maps_a_known_key() {
         assert_eq!(
-            Engine::new(Layout::Jis).down(0x51, false).unwrap().kana,
+            Engine::new(Layout::Jis).down(0x51, false, 0).unwrap().kana,
             "た"
         );
         assert_eq!(
-            Engine::new(Layout::Tsuki).down(0x51, false).unwrap().kana,
+            Engine::new(Layout::Tsuki)
+                .down(0x51, false, 0)
+                .unwrap()
+                .kana,
             "ゅ"
         );
         assert_eq!(
-            Engine::new(Layout::Hana).down(0x51, false).unwrap().kana,
+            Engine::new(Layout::Hana).down(0x51, false, 0).unwrap().kana,
             "ょ"
         );
         assert_eq!(
-            Engine::new(Layout::Nicola).down(0x51, false).unwrap().kana,
+            Engine::new(Layout::Nicola)
+                .down(0x51, false, 0)
+                .unwrap()
+                .kana,
             "。"
         );
         assert_eq!(
-            Engine::new(Layout::Tron).down(0x51, false).unwrap().kana,
+            Engine::new(Layout::Tron).down(0x51, false, 0).unwrap().kana,
             "ら"
         );
     }
@@ -282,17 +326,26 @@ mod tests {
     #[test]
     fn tsuki_and_hana_use_prefix_shift() {
         let mut tsuki = Engine::new(Layout::Tsuki);
-        assert!(tsuki.down(0x44, false).unwrap().kana.is_empty());
-        assert_eq!(tsuki.down(0x46, false).unwrap().kana, "あ");
+        assert!(tsuki.down(0x44, false, 0).unwrap().kana.is_empty());
+        assert_eq!(tsuki.down(0x46, false, 0).unwrap().kana, "あ");
         let mut hana = Engine::new(Layout::Hana);
-        assert!(hana.down(0x44, false).unwrap().kana.is_empty());
-        assert_eq!(hana.down(0x46, false).unwrap().kana, "や");
+        assert!(hana.down(0x44, false, 0).unwrap().kana.is_empty());
+        assert_eq!(hana.down(0x46, false, 0).unwrap().kana, "や");
     }
 
     #[test]
     fn nicola_uses_the_thumb_before_the_character() {
         let mut nicola = Engine::new(Layout::Nicola);
-        assert!(nicola.down(LEFT_THUMB, false).unwrap().kana.is_empty());
-        assert_eq!(nicola.down(0x51, false).unwrap().kana, "ぁ");
+        assert!(nicola.down(LEFT_THUMB, false, 0).unwrap().kana.is_empty());
+        assert_eq!(nicola.down(0x51, false, 0).unwrap().kana, "ぁ");
+    }
+
+    #[test]
+    fn nicola_restrokes_a_character_when_the_thumb_follows_within_100ms() {
+        let mut nicola = Engine::new(Layout::Nicola);
+        assert_eq!(nicola.down(0x51, false, 0).unwrap().kana, "。");
+        let stroke = nicola.down(LEFT_THUMB, false, 50).unwrap();
+        assert_eq!(stroke.remove_last, 1);
+        assert_eq!(stroke.kana, "ぁ");
     }
 }
