@@ -196,7 +196,7 @@ fn issue_935_slash_dates_and_today_include_weekdays_and_validate_leap_days() {
         .unwrap()
         .and_hms_opt(0, 0, 0)
         .unwrap();
-    let today = time::candidates("きょう", now);
+    let today = time::candidates("きょう", now, "Asia/Tokyo");
     assert!(today.contains(&"2026/10/20(火)".into()));
     assert!(today.contains(&"10/20(火)".into()));
 }
@@ -204,12 +204,18 @@ fn issue_935_slash_dates_and_today_include_weekdays_and_validate_leap_days() {
 #[test]
 fn issues_959_1020_name_current_version_and_requested_numeric_candidate() {
     let d = Dictionary::bundled();
-    assert!(d.candidates("めるたいぷ").contains(&"Meltype".into()));
-    assert!(d.candidates("めるたいぷ").contains(&"Meltype-FLASH".into()));
     assert!(d
-        .candidates("ばーじょん")
+        .candidates("めるたいぷ", "Asia/Tokyo")
+        .contains(&"Meltype".into()));
+    assert!(d
+        .candidates("めるたいぷ", "Asia/Tokyo")
+        .contains(&"Meltype-FLASH".into()));
+    assert!(d
+        .candidates("ばーじょん", "Asia/Tokyo")
         .contains(&format!("Meltype-FLASH {}", env!("CARGO_PKG_VERSION"))));
-    assert!(d.candidates("いいよこいよ").contains(&"114514".into()));
+    assert!(d
+        .candidates("いいよこいよ", "Asia/Tokyo")
+        .contains(&"114514".into()));
 }
 
 #[test]
@@ -258,7 +264,9 @@ fn issue_1016_page_keys_move_candidates_without_confirming_or_passing_through() 
 
 #[test]
 fn issue_1076_slash_defaults_to_middle_dot_and_explicit_slash_is_retained() {
-    assert!(Dictionary::bundled().candidates("/").contains(&"・".into()));
+    assert!(Dictionary::bundled()
+        .candidates("/", "Asia/Tokyo")
+        .contains(&"・".into()));
     let mut s = Session::default();
     let result = s.key(0xbf, '/' as i32, 0);
     let mut committed: String = result.commits.iter().map(|e| e.text.as_str()).collect();

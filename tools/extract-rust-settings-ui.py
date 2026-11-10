@@ -54,7 +54,14 @@ FLASH_FIELDS = [
     dict(key="StartConversionAtLastClause", type="Boolean", category="3. 候補",
          label="変換を始めたときに最後の文節を選ぶ",
          description="SpaceやTabで変換を始めたとき、先頭ではなく最後の文節を選んだ状態にします。長い文を後ろから直すときに使います。"),
+    dict(key="TimeZone", type="String", category="1. 全般",
+         label="タイムゾーン",
+         description="「とけい」「じこく」で出す現在時刻のタイムゾーンです。例: Asia/Tokyo, UTC, America/New_York。"),
+    dict(key="PrereleaseUpdate", type="Boolean", category="9. 更新",
+         label="プレリリース版も自動更新の対象にする",
+         description="自動更新で、正式版だけでなくプレリリース版も確認します。既定はOFFです。"),
 ]
+FLASH_DEFAULTS = {"TimeZone": "Asia/Tokyo", "PrereleaseUpdate": False}
 FLASH_ENUMS = {
     "UiLanguage": {"Auto": "自動 (OSに合わせる)", "Japanese": "日本語", "English": "English"},
 }
@@ -103,6 +110,8 @@ assert defaults["ToggleShortcuts"], "Upstream shortcut defaults were not recogni
 defaults["SettingsVersion"] = int(re.search(r"public const int CurrentVersion = (\d+);", source)[1])
 for legacy in ("HankakuTogglesKeyboard", "ToggleKeyboardShortcuts"):
     defaults.pop(legacy, None)
+for key, value in FLASH_DEFAULTS.items():
+    defaults.setdefault(key, value)
 defaults_output = json.dumps(defaults, ensure_ascii=False, indent=2) + "\n"
 parser = argparse.ArgumentParser(description=__doc__)
 parser.add_argument("--check", action="store_true")

@@ -53,8 +53,8 @@ impl Default for KeyCount {
         Self {
             total: 0,
             days: BTreeMap::new(),
-            enabled: true,
-            discord: true,
+            enabled: false,
+            discord: false,
             details: DEFAULT_DETAILS.into(),
             state: DEFAULT_STATE.into(),
             button: DEFAULT_BUTTON.into(),
@@ -249,10 +249,10 @@ mod tests {
     use super::*;
 
     #[test]
-    fn defaults_are_enabled_and_match_the_reference_text() {
+    fn defaults_are_off_and_match_the_reference_text() {
         let count = KeyCount::default();
-        assert!(count.enabled);
-        assert!(count.discord);
+        assert!(!count.enabled);
+        assert!(!count.discord);
         assert!(count.ai);
         assert_eq!(count.details, "今日 {today} 打");
         assert_eq!(count.state, "合計 {total} 打 · {kpm} 打/分{ai}");

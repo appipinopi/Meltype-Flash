@@ -656,6 +656,16 @@ dependencies = [
 ]
 
 [[package]]
+name = "chrono-tz"
+version = "0.10.4"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "a6139a8597ed92cf816dfb33f5dd6cf0bb93a6adc938f11039f371bc5bcd26c3"
+dependencies = [
+ "chrono",
+ "phf",
+]
+
+[[package]]
 name = "clipboard-win"
 version = "5.4.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -2114,7 +2124,7 @@ dependencies = [
 
 [[package]]
 name = "meltype-ai"
-version = "1.1.3"
+version = "1.1.4"
 dependencies = [
  "cc",
  "flate2",
@@ -2130,7 +2140,7 @@ dependencies = [
 
 [[package]]
 name = "meltype-browser"
-version = "1.1.3"
+version = "1.1.4"
 dependencies = [
  "meltype-core",
  "serde",
@@ -2140,7 +2150,7 @@ dependencies = [
 
 [[package]]
 name = "meltype-cli"
-version = "1.1.3"
+version = "1.1.4"
 dependencies = [
  "meltype-core",
  "serde",
@@ -2149,10 +2159,11 @@ dependencies = [
 
 [[package]]
 name = "meltype-core"
-version = "1.1.3"
+version = "1.1.4"
 dependencies = [
  "base64 0.22.1",
  "chrono",
+ "chrono-tz",
  "fs2",
  "fst",
  "json5",
@@ -2167,7 +2178,7 @@ dependencies = [
 
 [[package]]
 name = "meltype-ibus"
-version = "1.1.3"
+version = "1.1.4"
 dependencies = [
  "meltype-core",
  "meltype-native",
@@ -2176,7 +2187,7 @@ dependencies = [
 
 [[package]]
 name = "meltype-ios"
-version = "1.1.3"
+version = "1.1.4"
 dependencies = [
  "meltype-ai",
  "meltype-core",
@@ -2185,7 +2196,7 @@ dependencies = [
 
 [[package]]
 name = "meltype-mac-register"
-version = "1.1.3"
+version = "1.1.4"
 dependencies = [
  "objc2 0.6.5",
  "objc2-foundation 0.3.2",
@@ -2194,7 +2205,7 @@ dependencies = [
 
 [[package]]
 name = "meltype-native"
-version = "1.1.3"
+version = "1.1.4"
 dependencies = [
  "jni 0.21.1",
  "libc",
@@ -2211,7 +2222,7 @@ dependencies = [
 
 [[package]]
 name = "meltype-settings"
-version = "1.1.3"
+version = "1.1.4"
 dependencies = [
  "ab_glyph",
  "chrono",
@@ -2235,7 +2246,7 @@ dependencies = [
 
 [[package]]
 name = "meltype-tip-worker"
-version = "1.1.3"
+version = "1.1.4"
 dependencies = [
  "libc",
  "meltype-native",
@@ -2934,6 +2945,24 @@ dependencies = [
 ]
 
 [[package]]
+name = "phf"
+version = "0.12.1"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "913273894cec178f401a31ec4b656318d95473527be05c0752cc41cdc32be8b7"
+dependencies = [
+ "phf_shared",
+]
+
+[[package]]
+name = "phf_shared"
+version = "0.12.1"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "06005508882fb681fd97892ecff4b7fd0fee13ef1aa569f8695dae7ab9099981"
+dependencies = [
+ "siphasher",
+]
+
+[[package]]
 name = "pin-project"
 version = "1.1.13"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -3161,7 +3190,7 @@ dependencies = [
  "once_cell",
  "socket2",
  "tracing",
- "windows-sys 0.52.0",
+ "windows-sys 0.61.2",
 ]
 
 [[package]]
@@ -3664,6 +3693,12 @@ name = "simdutf8"
 version = "0.1.5"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "e3a9fe34e3e7a50316060351f37187a3f546bce95496156754b601a5fa71b76e"
+
+[[package]]
+name = "siphasher"
+version = "1.0.4"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "33f4fe9184a62d842c9ef383018f3306d8ba224fd9d836f56d7288308847c256"
 
 [[package]]
 name = "slab"

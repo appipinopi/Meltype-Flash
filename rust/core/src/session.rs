@@ -1154,7 +1154,10 @@ impl Session {
                     .get(&reading)
                     .cloned()
                     .unwrap_or_default();
-                values.extend(self.candidate_sources.candidates(&reading));
+                values.extend(
+                    self.candidate_sources
+                        .candidates(&reading, self.settings.text("TimeZone")),
+                );
                 let mut unique = Vec::new();
                 for value in values {
                     if !unique.contains(&value) {
@@ -1865,8 +1868,14 @@ impl Session {
             // callbacks. With no converter result, preserve the complete reading.
             candidates.push(reading.clone());
         } else {
-            candidates.extend(self.dictionary().candidates(&self.display(true)));
-            candidates.extend(self.dictionary().candidates(&reading));
+            candidates.extend(
+                self.dictionary()
+                    .candidates(&self.display(true), self.settings.text("TimeZone")),
+            );
+            candidates.extend(
+                self.dictionary()
+                    .candidates(&reading, self.settings.text("TimeZone")),
+            );
             candidates.extend(Linguistics::bundled().words(&reading));
             candidates.extend(self.clipboard_candidates(&reading));
             if let Some(context) =
@@ -2190,7 +2199,10 @@ impl Session {
                 values.push(standalone.clone());
             }
             if !self.external_converter_only {
-                values.extend(self.candidate_sources.candidates(&clause.reading));
+                values.extend(
+                    self.candidate_sources
+                        .candidates(&clause.reading, self.settings.text("TimeZone")),
+                );
                 values.extend(self.clipboard_candidates(&clause.reading));
                 // MeaningDictionary supplies annotations in the original, not
                 // extra conversion candidates. Adding its reverse readings
@@ -2461,7 +2473,10 @@ impl Session {
             .unwrap_or_default();
         candidates.extend(external);
         if !self.external_converter_only {
-            candidates.extend(self.dictionary().candidates(&reading));
+            candidates.extend(
+                self.dictionary()
+                    .candidates(&reading, self.settings.text("TimeZone")),
+            );
             candidates.extend(Linguistics::bundled().words(&reading));
         }
         if let Some(learned) = self.preferences.selected.get(&reading) {

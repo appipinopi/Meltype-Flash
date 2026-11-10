@@ -309,5 +309,7 @@
       "Key": 192,
       "Modifiers": 4
     }
-  ]
+  ],
+  "TimeZone": "Asia/Tokyo",
+  "PrereleaseUpdate": false
 }

@@ -116,7 +116,9 @@ fn requested_dictionary_candidates_are_available_without_fixing_one_homophone() 
         ("いしゅー", "issues"),
     ] {
         assert!(
-            d.candidates(reading).iter().any(|word| word == expected),
+            d.candidates(reading, "Asia/Tokyo")
+                .iter()
+                .any(|word| word == expected),
             "{reading}: {expected}"
         );
     }

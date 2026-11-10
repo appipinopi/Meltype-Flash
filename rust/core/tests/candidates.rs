@@ -18,7 +18,7 @@ fn upstream_date_and_clock_formats_validate_calendar_and_fullwidth_digits() {
         .and_hms_opt(17, 22, 0)
         .unwrap();
     assert_eq!(
-        time::candidates("きょう", now),
+        time::candidates("きょう", now, "Asia/Tokyo"),
         [
             "2026年10月9日",
             "2026年10月9日(金)",
@@ -33,7 +33,7 @@ fn upstream_date_and_clock_formats_validate_calendar_and_fullwidth_digits() {
         ]
     );
     assert_eq!(
-        time::candidates("いま", now),
+        time::candidates("いま", now, "Asia/Tokyo"),
         [
             "17:22",
             "17時22分",
@@ -116,12 +116,12 @@ fn emoji_and_ascii_supplementary_words_follow_normal_kana_candidates() {
     let d = Dictionary::bundled();
     assert_eq!(d.convert("すし"), "すし");
     assert_eq!(d.convert("ぺん"), "ぺん");
-    let candidates = d.candidates("すし");
+    let candidates = d.candidates("すし", "Asia/Tokyo");
     let emoji = d.emoji("すし");
     assert!(!emoji.is_empty());
     assert_eq!(&candidates[candidates.len() - emoji.len()..], emoji);
     assert!(!emoji.contains(&candidates[0]));
-    let candidates = d.candidates("ぺん");
+    let candidates = d.candidates("ぺん", "Asia/Tokyo");
     assert!(
         candidates.iter().position(|s| s == "ぺん").unwrap()
             < candidates.iter().position(|s| s == "PEN").unwrap()
