@@ -771,7 +771,9 @@ impl Session {
         {
             return raw.into();
         }
-        if Dictionary::uses_scored(self.settings.boolean("ScoredSegmentation")) {
+        if self.settings.boolean("ReadingLattice") {
+            dictionary.composition_lattice(raw, final_input, &self.before, &self.after, level)
+        } else if Dictionary::uses_scored(self.settings.boolean("ScoredSegmentation")) {
             dictionary.composition_scored_units(
                 raw,
                 final_input,

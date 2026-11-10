@@ -6,6 +6,7 @@ use std::{
     sync::{Arc, OnceLock},
 };
 mod composition;
+mod lattice;
 mod scored;
 
 #[derive(Clone)]

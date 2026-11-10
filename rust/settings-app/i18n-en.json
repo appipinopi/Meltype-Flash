@@ -414,6 +414,10 @@
     "RomajiLayout": {
       "label": "Romaji layout",
       "description": "Layout used for romaji input. Choose QWERTY or the SKY layout."
+    },
+    "ReadingLattice": {
+      "label": "Use ReadingLattice for Japanese/English boundaries",
+      "description": "Builds a lattice of Japanese words, English words, and unknown words, then chooses the lowest-cost Japanese/English boundary. Experimental port of the upstream 1.5.0 rewrite."
     }
   },
   "enums": {

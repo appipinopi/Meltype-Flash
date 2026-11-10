@@ -1917,7 +1917,8 @@ fn ui_category(key: &str, original: &str) -> &'static str {
         | "SigilWordsDirect"
         | "EnglishFirstInput"
         | "AutoCorrectAfterCommit"
-        | "LaughterAfterKana" => "3. 判定",
+        | "LaughterAfterKana"
+        | "ReadingLattice" => "3. 判定",
         "NumberKeysSelectCandidates"
         | "EnterCommitsAsShown"
         | "ShowCandidatesWhileTyping"

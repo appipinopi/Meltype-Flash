@@ -72,8 +72,11 @@ FLASH_FIELDS = [
     dict(key="RomajiLayout", type="RomajiLayout", category="2. 入力モード",
          label="ローマ字の配列",
          description="ローマ字入力のときに使う配列です。QWERTYのほか、SKY配列を選べます。"),
+    dict(key="ReadingLattice", type="Boolean", category="3. 判定",
+         label="ReadingLatticeで日英を判定",
+         description="日本語の語・英単語・未知語をラティスにして、日英の区切りを選びます。上流1.5.0の判定の作り直しをFlashの辞書へ接続した試験版です。"),
 ]
-FLASH_DEFAULTS = {"TimeZone": "Asia/Tokyo", "PrereleaseUpdate": False, "NowPlayingCandidates": True, "ShowTsfModeIndicator": True, "KanaLayout": "Jis", "RomajiLayout": "Qwerty"}
+FLASH_DEFAULTS = {"TimeZone": "Asia/Tokyo", "PrereleaseUpdate": False, "NowPlayingCandidates": True, "ShowTsfModeIndicator": True, "KanaLayout": "Jis", "RomajiLayout": "Qwerty", "ReadingLattice": False}
 FLASH_ENUMS = {
     "UiLanguage": {"Auto": "自動 (OSに合わせる)", "Japanese": "日本語", "English": "English"},
     "KanaLayout": {"Jis": "JIS かな", "Tsuki": "月配列", "Hana": "花配列", "Nicola": "NICOLA (親指シフト)", "NakayubiNicola": "中指NICOLA", "Tron": "TRON 配列"},
