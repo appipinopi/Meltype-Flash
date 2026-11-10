@@ -23,7 +23,7 @@ foreach ($arch in 'x64','x86') {
     Copy-Item -LiteralPath (Join-Path $root "native/tip/bin/rust-$arch/MeltypeTip.dll") -Destination $out
     Copy-Item -LiteralPath $native -Destination (Join-Path $out 'meltype_native.dll')
     Copy-Item -LiteralPath (Join-Path (Split-Path $native) 'meltype-tip-worker.exe') -Destination $out
-    $objects = @('Dll','TextService','RustPipe','Json') | ForEach-Object { '"' + (Join-Path $root "native/tip/obj/rust-$arch/$_.obj") + '"' }
+    $objects = @('Dll','TextService','RustPipe','Json','ModeIndicator') | ForEach-Object { '"' + (Join-Path $root "native/tip/obj/rust-$arch/$_.obj") + '"' }
     $vcarch = if ($arch -eq 'x64') { 'x64' } else { 'x64_x86' }
     foreach ($test in 'service_state_host','json_host','edit_session_host','commit_batch_host','candidate_view_host','fields_host','edit_events_host','keys_host','mode_host','transport_host','key_edit_host','native_key_owner_host','selection_host','apply_reply_host') {
         $source = Join-Path $PSScriptRoot "$test.cpp"

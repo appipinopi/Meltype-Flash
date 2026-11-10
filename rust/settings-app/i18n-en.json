@@ -401,6 +401,14 @@
     "PrereleaseUpdate": {
       "label": "Include pre-releases in automatic updates",
       "description": "Automatic update checks include pre-release versions as well as stable releases. Off by default."
+    },
+    "NowPlayingCandidates": {
+      "label": "Offer the now-playing song for \"なう\"",
+      "description": "When converting \"なう\", offer the title and artist of the song playing in Windows. If nothing is playing, show the time as before. Typed text is not sent."
+    },
+    "ShowTsfModeIndicator": {
+      "label": "Show the input mode near the caret in Meltype IME",
+      "description": "When the Meltype IME input mode changes, show \"あ\" (Japanese) or \"A\" (alphanumeric) near the caret for 1.2 seconds."
     }
   },
   "enums": {

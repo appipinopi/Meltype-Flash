@@ -34,7 +34,15 @@ unsafe extern "C" fn scope(data: *mut c_void, op: u32, value: i32) {
     }
 }
 unsafe extern "C" fn mode_changed(data: *mut c_void, english: i32) {
-    log(data, 5, english);
+    // 設定で「あ / A」の表示を切れる。読めないときは表示しない。
+    let enabled =
+        meltype_core::storage::Store::new(meltype_core::storage::Store::default_directory())
+            .settings()
+            .map(|settings| settings.boolean("ShowTsfModeIndicator"))
+            .unwrap_or(false);
+    if enabled {
+        log(data, 5, english);
+    }
 }
 unsafe extern "C" fn read(data: *mut c_void) -> u32 {
     let s = (*data.cast::<Owner>()).state;

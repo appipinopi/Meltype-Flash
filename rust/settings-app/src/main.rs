@@ -17,6 +17,8 @@ mod lifecycle;
 mod markdown;
 mod metadata;
 #[cfg(windows)]
+mod now_playing;
+#[cfg(windows)]
 mod portable_keyboard;
 mod release_notes;
 mod rules;
@@ -45,6 +47,9 @@ fn main() -> eframe::Result {
         Store::default_directory(),
         Store::new(Store::default_directory()),
     );
+    // Windows の再生中メディアを「なう」候補用に書き出す。
+    #[cfg(windows)]
+    let _now_playing = now_playing::NowPlaying::start(Store::new(Store::default_directory()));
     let resident = cfg!(windows)
         && std::env::args().any(|a| matches!(a.as_str(), "--tray" | "--portable-keyboard"));
     let options = eframe::NativeOptions {
