@@ -119,7 +119,6 @@ pub struct AsyncConversion {
     pub error: Option<String>,
 }
 
-
 /// One converter segment. Reading boundaries are Unicode scalar boundaries.
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct Clause {
@@ -2749,7 +2748,13 @@ impl Session {
             return self.result(false);
         }
         self.record_key_interval(vk, now_ms);
-        self.key_events.push(KeyEvent { vk, ch, modifiers, is_up: false, now_ms });
+        self.key_events.push(KeyEvent {
+            vk,
+            ch,
+            modifiers,
+            is_up: false,
+            now_ms,
+        });
         self.key_time_ms = now_ms;
         if self.direct && modifiers & 15 != 0 && !self.direct_pending.is_empty() {
             self.direct_pending.clear();
@@ -2870,8 +2875,11 @@ impl Session {
                 if self.kana_engine.is_none() || self.kana_engine_layout != layout {
                     let mut engine = crate::kana_layout::Engine::new(layout);
                     for ev in &self.key_events[..self.key_events.len().saturating_sub(1)] {
-                        if ev.is_up { let _ = engine.up(ev.vk); }
-                        else { let _ = engine.down(ev.vk, ev.modifiers & 1 != 0, ev.now_ms); }
+                        if ev.is_up {
+                            let _ = engine.up(ev.vk);
+                        } else {
+                            let _ = engine.down(ev.vk, ev.modifiers & 1 != 0, ev.now_ms);
+                        }
                     }
                     self.kana_engine = Some(engine);
                     self.kana_engine_layout = layout;
@@ -4110,7 +4118,7 @@ impl Session {
 
     pub fn skk_key_input(&mut self, _vk: i32, ch: i32) {
         // Minimal SKK: space converts, uppercase continues reading
-        if self.skk.mode == crate::skk::Mode::Direct && ch >= 0x41 && ch <= 0x5A {
+        if self.skk.mode == crate::skk::Mode::Direct && (0x41..=0x5A).contains(&ch) {
             // Uppercase romaji in direct mode starts SKK preedit
             self.skk.mode = crate::skk::Mode::Preedit;
             self.skk.reading = std::char::from_u32(ch as u32).unwrap_or('?').to_string();
@@ -4128,4 +4136,3 @@ impl Session {
         }
     }
 }
-

@@ -23,10 +23,7 @@ fn completed_request_applies_and_clears_state() {
         session.async_conversion().unwrap().phase,
         AsyncConversionPhase::Ready
     );
-    assert!(session.try_apply_async_conversion(
-        "はし",
-        vec!["橋".into(), "箸".into()]
-    ));
+    assert!(session.try_apply_async_conversion("はし", vec!["橋".into(), "箸".into()]));
     assert!(session.is_converting());
     assert!(session.async_conversion().is_none());
 }
@@ -54,10 +51,7 @@ fn cancellation_and_timeout_never_apply_results() {
     assert!(session.async_conversion().is_none());
     assert!(!session.try_apply_async_conversion("はし", vec!["橋".into()]));
 
-    session
-        .settings
-        .set("ImeTimeoutMs", json!(50))
-        .unwrap();
+    session.settings.set("ImeTimeoutMs", json!(50)).unwrap();
     type_text(&mut session, "kaki");
     let id = session.begin_async_conversion("かき", "");
     let requested = session.async_conversion().unwrap().requested_ms;

@@ -32,7 +32,9 @@ struct State {
 impl Drop for State {
     fn drop(&mut self) {
         if self.async_timer != 0 {
-            unsafe { g_source_remove(self.async_timer); }
+            unsafe {
+                g_source_remove(self.async_timer);
+            }
         }
         native::meltype_destroy(self.session);
     }
@@ -136,7 +138,9 @@ impl State {
     }
     fn cancel_async_timer(&mut self) {
         if self.async_timer != 0 {
-            unsafe { g_source_remove(self.async_timer); }
+            unsafe {
+                g_source_remove(self.async_timer);
+            }
             self.async_timer = 0;
         }
     }
@@ -149,7 +153,13 @@ impl State {
             session: self.session,
         });
         self.async_timer = unsafe {
-            g_timeout_add_full(0, 10, Some(poll_async), Box::into_raw(poll).cast(), Some(free_async))
+            g_timeout_add_full(
+                0,
+                10,
+                Some(poll_async),
+                Box::into_raw(poll).cast(),
+                Some(free_async),
+            )
         };
     }
     fn hide(&mut self, engine: Obj) {
@@ -430,7 +440,9 @@ unsafe extern "C" fn poll_async(data: Obj) -> i32 {
             s.schedule_async_poll(poll.engine);
         });
     } else {
-        with(poll.engine, |s| { s.async_timer = 0; });
+        with(poll.engine, |s| {
+            s.async_timer = 0;
+        });
     }
     0
 }

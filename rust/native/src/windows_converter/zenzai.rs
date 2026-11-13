@@ -138,7 +138,12 @@ struct Server {
     process: Arc<Mutex<Option<Process>>>,
 }
 impl Server {
-    fn start(server: PathBuf, model: PathBuf, device: &str, zenz_tokenizer: bool) -> io::Result<Self> {
+    fn start(
+        server: PathBuf,
+        model: PathBuf,
+        device: &str,
+        zenz_tokenizer: bool,
+    ) -> io::Result<Self> {
         let port = TcpListener::bind((Ipv4Addr::LOCALHOST, 0))?
             .local_addr()?
             .port();
@@ -316,7 +321,12 @@ impl Zenzai {
             return;
         };
         let result = if server.is_file() && model.is_file() {
-            Server::start(server.clone(), model.clone(), &self.device, self.zenz_tokenizer)
+            Server::start(
+                server.clone(),
+                model.clone(),
+                &self.device,
+                self.zenz_tokenizer,
+            )
         } else {
             Err(io::Error::new(
                 io::ErrorKind::NotFound,

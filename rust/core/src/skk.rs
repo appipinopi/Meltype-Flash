@@ -27,7 +27,9 @@ impl Dictionary {
             if line.is_empty() || line.starts_with(';') {
                 continue;
             }
-            let Some(space) = line.find(' ') else { continue };
+            let Some(space) = line.find(' ') else {
+                continue;
+            };
             let (reading, rest) = line.split_at(space);
             let reading = reading.trim();
             let rest = rest.trim();
@@ -49,7 +51,10 @@ impl Dictionary {
                 candidates.push(cand.to_string());
             }
             if !candidates.is_empty() {
-                entries.entry(reading.to_string()).or_default().extend(candidates);
+                entries
+                    .entry(reading.to_string())
+                    .or_default()
+                    .extend(candidates);
             }
         }
         // dedupe per reading
@@ -120,12 +125,7 @@ impl Dictionary {
     #[cfg(feature = "filesystem")]
     pub fn load_dir(dir: &Path) -> Self {
         let mut dictionary = Self::new();
-        for name in [
-            "skk-jisyo.txt",
-            "skk-jisyo.utf8",
-            "SKK-JISYO.L",
-            "skk.txt",
-        ] {
+        for name in ["skk-jisyo.txt", "skk-jisyo.utf8", "SKK-JISYO.L", "skk.txt"] {
             if let Ok(text) = std::fs::read_to_string(dir.join(name)) {
                 dictionary.merge(&Self::parse(&text));
             }
@@ -234,7 +234,10 @@ impl State {
                 }
             }
             Mode::Register => {
-                format!("[辞書登録] {}: {}", self.register_reading, self.register_text)
+                format!(
+                    "[辞書登録] {}: {}",
+                    self.register_reading, self.register_text
+                )
             }
         }
     }
@@ -429,11 +432,15 @@ mod tests {
 
     #[test]
     fn merge_keeps_base_order_and_puts_user_first() {
-        let mut base = Dictionary::parse("あ /亜/阿/
-");
-        let user = Dictionary::parse("あ /唖/
+        let mut base = Dictionary::parse(
+            "あ /亜/阿/
+",
+        );
+        let user = Dictionary::parse(
+            "あ /唖/
 かk /書/
-");
+",
+        );
         base.merge(&user);
         assert_eq!(
             base.lookup("あ"),
@@ -503,10 +510,18 @@ mod tests {
     #[test]
     fn load_dir_user_save_round_trip() {
         let dir = tempfile::tempdir().unwrap();
-        std::fs::write(dir.path().join("skk-jisyo.txt"), "あ /亜/阿/
-").unwrap();
-        std::fs::write(dir.path().join("skk-user-jisyo.txt"), "あ /唖/
-").unwrap();
+        std::fs::write(
+            dir.path().join("skk-jisyo.txt"),
+            "あ /亜/阿/
+",
+        )
+        .unwrap();
+        std::fs::write(
+            dir.path().join("skk-user-jisyo.txt"),
+            "あ /唖/
+",
+        )
+        .unwrap();
         let mut dictionary = Dictionary::load_dir(dir.path());
         let user = Dictionary::load_user(dir.path());
         dictionary.merge_front(&user);

@@ -1095,7 +1095,10 @@ pub extern "C" fn meltype_async_enabled(handle: *mut c_void) -> i32 {
     sessions()
         .lock()
         .ok()
-        .and_then(|all| all.get(&(handle as usize)).map(|s| s.settings.boolean("AsyncConversion")))
+        .and_then(|all| {
+            all.get(&(handle as usize))
+                .map(|s| s.settings.boolean("AsyncConversion"))
+        })
         .unwrap_or(false) as i32
 }
 
@@ -1151,8 +1154,9 @@ pub extern "C" fn meltype_async_ready(handle: *mut c_void) -> i32 {
         .ok()
         .and_then(|all| {
             all.get(&(handle as usize)).map(|s| {
-                s.async_conversion()
-                    .is_some_and(|ac| ac.phase == meltype_core::session::AsyncConversionPhase::Ready)
+                s.async_conversion().is_some_and(|ac| {
+                    ac.phase == meltype_core::session::AsyncConversionPhase::Ready
+                })
             })
         })
         .unwrap_or(false) as i32
@@ -1214,8 +1218,8 @@ pub unsafe extern "C" fn meltype_complete_async_conversion(
     id: u64,
     candidates: *const c_char,
 ) -> i32 {
-    let Some(candidates) = read(candidates)
-        .and_then(|text| serde_json::from_str::<Vec<String>>(&text).ok())
+    let Some(candidates) =
+        read(candidates).and_then(|text| serde_json::from_str::<Vec<String>>(&text).ok())
     else {
         return 0;
     };
@@ -1271,8 +1275,8 @@ pub unsafe extern "C" fn meltype_apply_async_conversion(
     let Some(reading) = read(reading) else {
         return 0;
     };
-    let Some(candidates) = read(candidates)
-        .and_then(|text| serde_json::from_str::<Vec<String>>(&text).ok())
+    let Some(candidates) =
+        read(candidates).and_then(|text| serde_json::from_str::<Vec<String>>(&text).ok())
     else {
         return 0;
     };
@@ -1684,14 +1688,8 @@ mod async_conversion_tests {
             let handle = meltype_create();
             assert!(!handle.is_null());
             for c in "hashi".chars() {
-                let pointer = meltype_handle_key(
-                    handle,
-                    0,
-                    c as i32,
-                    0,
-                    std::ptr::null(),
-                    std::ptr::null(),
-                );
+                let pointer =
+                    meltype_handle_key(handle, 0, c as i32, 0, std::ptr::null(), std::ptr::null());
                 if !pointer.is_null() {
                     libc::free(pointer.cast());
                 }
@@ -1711,7 +1709,9 @@ mod async_conversion_tests {
                 serde_json::from_slice(CStr::from_ptr(pointer).to_bytes()).unwrap();
             libc::free(pointer.cast());
             assert_eq!(value["view"]["converting"], true);
-            assert!(value["view"]["candidates"].as_array().is_some_and(|c| !c.is_empty()));
+            assert!(value["view"]["candidates"]
+                .as_array()
+                .is_some_and(|c| !c.is_empty()));
             meltype_destroy(handle);
         }
     }

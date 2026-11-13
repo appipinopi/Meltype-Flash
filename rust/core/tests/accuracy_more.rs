@@ -6,9 +6,18 @@ use serde_json::json;
 fn run(text: &str) -> String {
     let mut session = Session::default();
     session.settings.set("ReadingLattice", json!(true)).unwrap();
-    session.settings.set("LiveConversion", json!(false)).unwrap();
-    session.settings.set("PredictiveCandidates", json!(false)).unwrap();
-    session.settings.set("LearningEnabled", json!(false)).unwrap();
+    session
+        .settings
+        .set("LiveConversion", json!(false))
+        .unwrap();
+    session
+        .settings
+        .set("PredictiveCandidates", json!(false))
+        .unwrap();
+    session
+        .settings
+        .set("LearningEnabled", json!(false))
+        .unwrap();
     for c in text.chars() {
         session.key(0, c as i32, 0);
     }
@@ -119,7 +128,10 @@ fn urls_emails_paths_and_files_are_preserved() {
 fn learned_and_user_dictionary_weights() {
     let mut session = Session::default();
     session.settings.set("ReadingLattice", json!(true)).unwrap();
-    session.settings.set("LiveConversion", json!(false)).unwrap();
+    session
+        .settings
+        .set("LiveConversion", json!(false))
+        .unwrap();
     session
         .preferences
         .user_dictionary
@@ -131,11 +143,13 @@ fn learned_and_user_dictionary_weights() {
 
     let mut session = Session::default();
     session.settings.set("ReadingLattice", json!(true)).unwrap();
-    session.settings.set("LiveConversion", json!(false)).unwrap();
+    session
+        .settings
+        .set("LiveConversion", json!(false))
+        .unwrap();
     session.preferences.english.insert("github".into(), false);
     for c in "github".chars() {
         session.key(0, c as i32, 0);
     }
     assert_ne!(session.commit().commits[0].text, "github");
 }
-

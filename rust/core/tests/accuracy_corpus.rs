@@ -6,9 +6,18 @@ use serde_json::json;
 fn run(text: &str) -> String {
     let mut session = Session::default();
     session.settings.set("ReadingLattice", json!(true)).unwrap();
-    session.settings.set("LiveConversion", json!(false)).unwrap();
-    session.settings.set("PredictiveCandidates", json!(false)).unwrap();
-    session.settings.set("LearningEnabled", json!(false)).unwrap();
+    session
+        .settings
+        .set("LiveConversion", json!(false))
+        .unwrap();
+    session
+        .settings
+        .set("PredictiveCandidates", json!(false))
+        .unwrap();
+    session
+        .settings
+        .set("LearningEnabled", json!(false))
+        .unwrap();
     for c in text.chars() {
         session.key(0, c as i32, 0);
     }
@@ -74,8 +83,14 @@ fn accuracy_corpus_matches_expected() {
         // Mixed sentences
         ("sorehaAI", "それはAI"),
         ("ashitahaAIgahairimasu", "あしたはAIがはいります"),
-        ("watashihagithubwotsukatteimasu", "わたしはgithubをつかっています"),
-        ("kaigihadockerdeokonaimashita", "かいぎはdockerでおこないました"),
+        (
+            "watashihagithubwotsukatteimasu",
+            "わたしはgithubをつかっています",
+        ),
+        (
+            "kaigihadockerdeokonaimashita",
+            "かいぎはdockerでおこないました",
+        ),
         ("PDFwookurimasu", "PDFをおくります"),
         ("URLwoshirasetekudasai", "URLをしらせてください"),
         // Domains, files, versions, tokens
@@ -90,9 +105,11 @@ fn accuracy_corpus_matches_expected() {
         ("1.5.0-preview.3", "1.5.0-preview.3"),
         ("abc123", "abc123"),
         ("konnnichihaexample.com", "こんにちはexample.com"),
-        ("kyouhaiitenkidesuiPhone15", "きょうはいいてんきですiPhone15"),
+        (
+            "kyouhaiitenkidesuiPhone15",
+            "きょうはいいてんきですiPhone15",
+        ),
     ] {
         assert_eq!(run(text), expected, "input: {text}");
     }
 }
-

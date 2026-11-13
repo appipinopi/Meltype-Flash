@@ -9,9 +9,8 @@ fn empty() -> (BTreeMap<String, bool>, BTreeMap<String, Vec<String>>) {
 #[test]
 fn kana_units_segment_japanese() {
     let (learned, user) = empty();
-    let text = Dictionary::bundled().composition_lattice_kana(
-        "hs", "はし", true, "", "", "Balanced", &learned, &user,
-    );
+    let text = Dictionary::bundled()
+        .composition_lattice_kana("hs", "はし", true, "", "", "Balanced", &learned, &user);
     assert_eq!(text, "はし");
 }
 

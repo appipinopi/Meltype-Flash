@@ -5,12 +5,7 @@
 //! applies the returned SessionResult through the existing edit-session bridge.
 use super::*;
 use crate::tsf::edit_session;
-use std::{
-    cell::RefCell,
-    collections::HashMap,
-    ffi::c_char,
-    ptr,
-};
+use std::{cell::RefCell, collections::HashMap, ffi::c_char, ptr};
 use windows::Win32::{
     Foundation::{HWND, S_OK},
     UI::{
@@ -120,7 +115,7 @@ pub(super) unsafe fn cancel(state: *mut ServiceState) {
     }
 }
 
-unsafe extern "system" fn timer(_: HWND, _: u32, id: usize, _: u32) -> () {
+unsafe extern "system" fn timer(_: HWND, _: u32, id: usize, _: u32) {
     let _ = KillTimer(HWND(std::ptr::null_mut()), id);
     let entry = TIMERS.with(|timers| timers.borrow_mut().remove(&id));
     let Some(entry) = entry else {
@@ -151,10 +146,7 @@ unsafe extern "system" fn timer(_: HWND, _: u32, id: usize, _: u32) -> () {
     if ok == 0 || reply.is_empty() {
         return;
     }
-    let apply = Box::new(Apply {
-        entry,
-        reply,
-    });
+    let apply = Box::new(Apply { entry, reply });
     let status = edit_session::meltype_tsf_request_edit_session(
         entry.context,
         (*entry.state).client,

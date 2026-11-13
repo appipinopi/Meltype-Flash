@@ -59,7 +59,6 @@ fn reading_lattice_is_deterministic_for_mixed_input() {
     }
 }
 
-
 #[test]
 fn mixed_input_comparison_is_deterministic_and_preserves_ascii_tokens() {
     // Both implementations must preserve opaque ASCII tokens and agree on
@@ -79,8 +78,16 @@ fn mixed_input_comparison_is_deterministic_and_preserves_ascii_tokens() {
     for text in ["google", "github", "HelloWorld", "sorehaAI"] {
         let lattice = run(text, true, false);
         let scored = run(text, false, true);
-        assert_eq!(lattice, run(text, true, false), "{text}: lattice deterministic");
-        assert_eq!(scored, run(text, false, true), "{text}: scored deterministic");
+        assert_eq!(
+            lattice,
+            run(text, true, false),
+            "{text}: lattice deterministic"
+        );
+        assert_eq!(
+            scored,
+            run(text, false, true),
+            "{text}: scored deterministic"
+        );
         assert!(!lattice.is_empty(), "{text}: lattice non-empty");
         assert!(!scored.is_empty(), "{text}: scored non-empty");
     }
@@ -120,10 +127,7 @@ fn japanese_and_forced_spans_mix() {
 #[test]
 fn learned_english_is_honored_by_the_lattice() {
     let mut session = Session::default();
-    session
-        .settings
-        .set("ReadingLattice", json!(true))
-        .unwrap();
+    session.settings.set("ReadingLattice", json!(true)).unwrap();
     session
         .settings
         .set("LiveConversion", json!(false))
@@ -138,10 +142,7 @@ fn learned_english_is_honored_by_the_lattice() {
 #[test]
 fn non_ascii_raw_is_preserved_or_composed_without_panicking() {
     let mut session = Session::default();
-    session
-        .settings
-        .set("ReadingLattice", json!(true))
-        .unwrap();
+    session.settings.set("ReadingLattice", json!(true)).unwrap();
     session
         .settings
         .set("LiveConversion", json!(false))
@@ -151,7 +152,6 @@ fn non_ascii_raw_is_preserved_or_composed_without_panicking() {
     }
     assert_eq!(session.commit().commits[0].text, "日本語");
 }
-
 
 #[test]
 fn domain_and_prerelease_rules_are_prioritized() {

@@ -35,8 +35,8 @@ pub mod session;
 pub mod settings;
 pub mod settings_schema;
 pub mod shortcuts;
-pub mod skk;
 mod sigil;
+pub mod skk;
 pub mod spelling;
 #[cfg(feature = "filesystem")]
 pub mod storage;

@@ -296,7 +296,8 @@ impl Engine {
             self.thumb_used = false;
             return tap;
         }
-        if self.layout == Layout::NakayubiNicola && matches!(vk, KEY_D | KEY_K) && self.middle == vk {
+        if self.layout == Layout::NakayubiNicola && matches!(vk, KEY_D | KEY_K) && self.middle == vk
+        {
             self.middle = 0;
             self.middle_used = false;
         }

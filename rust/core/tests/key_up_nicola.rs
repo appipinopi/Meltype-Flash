@@ -4,14 +4,8 @@ use serde_json::json;
 
 fn nicola() -> Session {
     let mut session = Session::default();
-    session
-        .settings
-        .set("InputStyle", json!("Kana"))
-        .unwrap();
-    session
-        .settings
-        .set("KanaLayout", json!("Nicola"))
-        .unwrap();
+    session.settings.set("InputStyle", json!("Kana")).unwrap();
+    session.settings.set("KanaLayout", json!("Nicola")).unwrap();
     session
         .settings
         .set("LiveConversion", json!(false))

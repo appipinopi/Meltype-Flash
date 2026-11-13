@@ -4,10 +4,7 @@ use serde_json::json;
 
 fn skk() -> Session {
     let mut session = Session::default();
-    session
-        .settings
-        .set("SkkMode", json!(true))
-        .unwrap();
+    session.settings.set("SkkMode", json!(true)).unwrap();
     session
         .settings
         .set("LiveConversion", json!(false))

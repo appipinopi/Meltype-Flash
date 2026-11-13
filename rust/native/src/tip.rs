@@ -209,26 +209,24 @@ unsafe fn request_inner(connection: *mut c_void, request: *const c_char) -> Opti
                 s.result(false)
             })
         }
-        "async_poll_apply" => {
-            run(handle, |s| {
+        "async_poll_apply" => run(handle, |s| {
+            if let Some(ac) = s.async_conversion() {
+                let id = ac.id;
+                let reading = ac.reading.clone();
+                let phase = ac.phase;
+                if phase == meltype_core::session::AsyncConversionPhase::Pending {
+                    let candidates = s.dictionary_candidates(&reading);
+                    s.complete_async_conversion(id, candidates);
+                }
                 if let Some(ac) = s.async_conversion() {
-                    let id = ac.id;
-                    let reading = ac.reading.clone();
-                    let phase = ac.phase;
-                    if phase == meltype_core::session::AsyncConversionPhase::Pending {
-                        let candidates = s.dictionary_candidates(&reading);
-                        s.complete_async_conversion(id, candidates);
-                    }
-                    if let Some(ac) = s.async_conversion() {
-                        if ac.phase == meltype_core::session::AsyncConversionPhase::Ready {
-                            let candidates = ac.candidates.first().cloned().unwrap_or_default();
-                            s.try_apply_async_conversion(&reading, candidates);
-                        }
+                    if ac.phase == meltype_core::session::AsyncConversionPhase::Ready {
+                        let candidates = ac.candidates.first().cloned().unwrap_or_default();
+                        s.try_apply_async_conversion(&reading, candidates);
                     }
                 }
-                s.result(true)
-            })
-        }
+            }
+            s.result(true)
+        }),
         "async_begin" => {
             let reading = request["reading"].as_str().unwrap_or("").to_owned();
             let context = request["context"].as_str().unwrap_or("").to_owned();
@@ -310,7 +308,11 @@ unsafe fn request_inner(connection: *mut c_void, request: *const c_char) -> Opti
         let active = super::sessions()
             .lock()
             .ok()
-            .and_then(|all| all.get(&(handle as usize)).map(|s| s.settings.boolean("AsyncConversion") && s.async_conversion().is_some()))
+            .and_then(|all| {
+                all.get(&(handle as usize)).map(|s| {
+                    s.settings.boolean("AsyncConversion") && s.async_conversion().is_some()
+                })
+            })
             .unwrap_or(false);
         value["asyncActive"] = json!(active);
     }

@@ -24,9 +24,9 @@ const TECH_ENGLISH_BOOST: f64 = 0.8;
 // often also romaji-readable, so prefer the English spelling in context.
 const TECH_ENGLISH: &[&str] = &[
     "main", "push", "pull", "commit", "merge", "branch", "issue", "repo", "release", "deploy",
-    "test", "build", "server", "client", "app", "api", "bug", "fix", "log", "file", "user",
-    "code", "line", "page", "link", "site", "tool", "mode", "type", "size", "style", "image",
-    "video", "music", "data", "date", "time", "cache", "token", "query", "table", "index",
+    "test", "build", "server", "client", "app", "api", "bug", "fix", "log", "file", "user", "code",
+    "line", "page", "link", "site", "tool", "mode", "type", "size", "style", "image", "video",
+    "music", "data", "date", "time", "cache", "token", "query", "table", "index",
 ];
 const SWITCH_COST: f64 = 1.0;
 const SENTENCE_SWITCH_COST: f64 = 2.0;
@@ -43,8 +43,19 @@ const PARTICLES: &[&str] = &[
 ];
 
 const SURU_FORMS: &[&str] = &[
-    "する", "すれ", "した", "して", "しま", "しな", "しよ", "しと", "しちゃ", "しろ", "され",
-    "させ", "せず",
+    "する",
+    "すれ",
+    "した",
+    "して",
+    "しま",
+    "しな",
+    "しよ",
+    "しと",
+    "しちゃ",
+    "しろ",
+    "され",
+    "させ",
+    "せず",
 ];
 
 fn is_noun_particle(kana: &str) -> bool {
@@ -61,7 +72,10 @@ fn is_kana_text(text: &str) -> bool {
 }
 
 fn is_small_kana(c: char) -> bool {
-    matches!(c, 'ぁ' | 'ぃ' | 'ぅ' | 'ぇ' | 'ぉ' | 'ゃ' | 'ゅ' | 'ょ' | 'ゎ')
+    matches!(
+        c,
+        'ぁ' | 'ぃ' | 'ぅ' | 'ぇ' | 'ぉ' | 'ゃ' | 'ゅ' | 'ょ' | 'ゎ'
+    )
 }
 
 fn unknown_kana_cost(kana: &str) -> f64 {
@@ -85,24 +99,54 @@ const HYPHEN_PREFIXES: &[&str] = &[
 ];
 
 const HYPHENATED_WORDS: &[&str] = &[
-    "bio-break", "co-op", "re-do", "x-ray", "t-shirt", "wi-fi", "hi-fi", "lo-fi", "sci-fi",
-    "e-book", "e-sports", "k-pop", "j-pop", "j-rock", "j-core", "p-hub", "talk-admin", "r-18",
-    "sub-6", "gpt-6.7", "a-z", "u-turn", "check-in", "log-in", "sign-in", "add-on", "plug-in",
-    "built-in", "follow-up", "set-up", "pop-up", "drop-down", "blu-ray", "binge-watch",
+    "bio-break",
+    "co-op",
+    "re-do",
+    "x-ray",
+    "t-shirt",
+    "wi-fi",
+    "hi-fi",
+    "lo-fi",
+    "sci-fi",
+    "e-book",
+    "e-sports",
+    "k-pop",
+    "j-pop",
+    "j-rock",
+    "j-core",
+    "p-hub",
+    "talk-admin",
+    "r-18",
+    "sub-6",
+    "gpt-6.7",
+    "a-z",
+    "u-turn",
+    "check-in",
+    "log-in",
+    "sign-in",
+    "add-on",
+    "plug-in",
+    "built-in",
+    "follow-up",
+    "set-up",
+    "pop-up",
+    "drop-down",
+    "blu-ray",
+    "binge-watch",
     "ad-blocker",
 ];
 
 const TOP_LEVEL_DOMAINS: &[&str] = &[
-    "ai", "app", "au", "biz", "ca", "cn", "co", "com", "de", "dev", "edu", "eu", "fr", "gg",
-    "gov", "info", "in", "io", "jp", "kr", "me", "moe", "net", "org", "uk", "us", "xyz",
+    "ai", "app", "au", "biz", "ca", "cn", "co", "com", "de", "dev", "edu", "eu", "fr", "gg", "gov",
+    "info", "in", "io", "jp", "kr", "me", "moe", "net", "org", "uk", "us", "xyz",
 ];
 
 const FILE_EXTENSIONS: &[&str] = &[
-    "a", "ace", "ada", "ado", "ann", "ape", "ase", "dae", "di", "do", "fifo", "fon", "geo",
-    "go", "ifo", "ii", "ini", "ino", "ipa", "iso", "jade", "ko", "ma", "metadata", "midi",
-    "mime", "mo", "mobi", "o", "oga", "ora", "oso", "otio", "po", "pyo", "ra", "re", "rego",
-    "rei", "resi", "ru", "sami", "so", "suo", "tese", "ufo", "vue", "dll", "json", "txt",
-    "md", "html", "css", "js", "ts", "rs", "py", "exe", "zip", "png", "jpg", "gif", "pdf",
+    "a", "ace", "ada", "ado", "ann", "ape", "ase", "dae", "di", "do", "fifo", "fon", "geo", "go",
+    "ifo", "ii", "ini", "ino", "ipa", "iso", "jade", "ko", "ma", "metadata", "midi", "mime", "mo",
+    "mobi", "o", "oga", "ora", "oso", "otio", "po", "pyo", "ra", "re", "rego", "rei", "resi", "ru",
+    "sami", "so", "suo", "tese", "ufo", "vue", "dll", "json", "txt", "md", "html", "css", "js",
+    "ts", "rs", "py", "exe", "zip", "png", "jpg", "gif", "pdf",
 ];
 
 fn ascii_alnum(c: char) -> bool {
@@ -152,7 +196,9 @@ fn email_end(raw: &str, start: usize) -> Option<usize> {
         return None;
     }
     let domain_start = local_end + 1;
-    let domain_end = consume_while(raw, domain_start, |c| ascii_alnum(c) || c == '.' || c == '-');
+    let domain_end = consume_while(raw, domain_start, |c| {
+        ascii_alnum(c) || c == '.' || c == '-'
+    });
     let domain = &raw[domain_start..domain_end];
     let dot = domain.rfind('.')?;
     known_domain_suffix(&domain[dot + 1..]).then_some(domain_end)
@@ -170,7 +216,7 @@ fn tag_end(raw: &str, start: usize) -> Option<usize> {
     if raw.as_bytes().get(start) != Some(&b'#') {
         return None;
     }
-    let end = consume_while(raw, start + 1, |c| ascii_word(c));
+    let end = consume_while(raw, start + 1, ascii_word);
     (end > start + 1).then_some(end)
 }
 
@@ -178,7 +224,7 @@ fn dotfile_end(raw: &str, start: usize) -> Option<usize> {
     if raw.as_bytes().get(start) != Some(&b'.') {
         return None;
     }
-    let name_end = consume_while(raw, start + 1, |c| ascii_word(c));
+    let name_end = consume_while(raw, start + 1, ascii_word);
     (name_end > start + 1).then_some(name_end)
 }
 
@@ -206,12 +252,8 @@ fn domain_end(raw: &str, start: usize, known_stem: &impl Fn(&str) -> bool) -> Op
     known_domain_suffix(&raw[suffix_start..suffix_end]).then_some(suffix_end)
 }
 
-fn hyphenated_end(
-    raw: &str,
-    start: usize,
-    known_stem: &impl Fn(&str) -> bool,
-) -> Option<usize> {
-    let end = consume_while(raw, start, |c| ascii_word(c));
+fn hyphenated_end(raw: &str, start: usize, known_stem: &impl Fn(&str) -> bool) -> Option<usize> {
+    let end = consume_while(raw, start, ascii_word);
     if end == start {
         return None;
     }
@@ -236,17 +278,17 @@ fn hyphenated_end(
 fn numeronym_end(raw: &str, start: usize) -> Option<usize> {
     let head_end = consume_while(raw, start, |c| c.is_ascii_alphabetic());
     let head = &raw[start..head_end];
-    if head.len() < 1 || head.len() > 2 {
+    if head.is_empty() || head.len() > 2 {
         return None;
     }
     let digit_end = consume_while(raw, head_end, |c| c.is_ascii_digit());
     let digits = &raw[head_end..digit_end];
-    if digits.len() < 1 || digits.len() > 2 {
+    if digits.is_empty() || digits.len() > 2 {
         return None;
     }
     let tail_end = consume_while(raw, digit_end, |c| c.is_ascii_alphabetic());
     let tail = &raw[digit_end..tail_end];
-    if tail.len() < 1 || tail.len() > 3 {
+    if tail.is_empty() || tail.len() > 3 {
         return None;
     }
     let word = &raw[start..tail_end];
@@ -302,9 +344,27 @@ fn proper_noun_with_digits_end(raw: &str, start: usize) -> Option<usize> {
 }
 
 const PRERELEASE_NAMES: &[&str] = &[
-    "alpha", "beta", "canary", "dev", "edge", "experimental", "final", "hotfix", "insiders",
-    "lts", "next", "nightly", "pre", "preview", "rc", "release", "snapshot", "stable", "test",
-    "twilight", "unstable",
+    "alpha",
+    "beta",
+    "canary",
+    "dev",
+    "edge",
+    "experimental",
+    "final",
+    "hotfix",
+    "insiders",
+    "lts",
+    "next",
+    "nightly",
+    "pre",
+    "preview",
+    "rc",
+    "release",
+    "snapshot",
+    "stable",
+    "test",
+    "twilight",
+    "unstable",
 ];
 
 fn prerelease_end(raw: &str, start: usize) -> Option<usize> {
@@ -387,10 +447,7 @@ fn dot_suffix_end(raw: &str, start: usize, known_stem: &impl Fn(&str) -> bool) -
         return None;
     }
     let lower = name.to_ascii_lowercase();
-    let last = lower
-        .rsplit(['.', '/'])
-        .next()
-        .unwrap_or("");
+    let last = lower.rsplit(['.', '/']).next().unwrap_or("");
     let known = |label: &str| known_domain_suffix(label) || known_file_extension(label);
     let separators = lower.matches(['.', '/', '_', '+', '-']).count();
     let stem = lower.split(['.', '/']).next().unwrap_or("");
@@ -440,7 +497,11 @@ fn contraction_end(raw: &str, start: usize) -> Option<usize> {
     valid.then_some(suffix_end)
 }
 
-fn forced_english_end(raw: &str, start: usize, known_stem: &impl Fn(&str) -> bool) -> Option<usize> {
+fn forced_english_end(
+    raw: &str,
+    start: usize,
+    known_stem: &impl Fn(&str) -> bool,
+) -> Option<usize> {
     url_end(raw, start)
         .or_else(|| email_end(raw, start))
         .or_else(|| user_name_end(raw, start))
@@ -542,9 +603,7 @@ fn sorted_phrases() -> &'static Vec<String> {
 
 fn has_prefix(words: &[String], value: &str) -> bool {
     let index = words.partition_point(|word| word.as_str() < value);
-    words
-        .get(index)
-        .is_some_and(|word| word.starts_with(value))
+    words.get(index).is_some_and(|word| word.starts_with(value))
 }
 
 fn common_has_prefix(value: &str) -> bool {
@@ -645,6 +704,7 @@ impl Dictionary {
 
     /// Lattice with the session's learned English and user dictionary. This is
     /// the entry point used by `Session::detect_composition`.
+    #[allow(clippy::too_many_arguments)]
     pub fn composition_lattice_with_learning(
         &self,
         raw: &str,
@@ -689,7 +749,10 @@ impl Dictionary {
             return self.composition(raw, final_input, before, after, level);
         }
 
-        let preceding = before.chars().last().is_some_and(|c| c.is_ascii_alphabetic());
+        let preceding = before
+            .chars()
+            .last()
+            .is_some_and(|c| c.is_ascii_alphabetic());
         let following = after.chars().next().map(|c| c.is_ascii_alphabetic());
         let english_sentence = english_sentence(before);
         let start = State {
@@ -751,13 +814,12 @@ impl Dictionary {
                     if !span.bytes().all(|b| b.is_ascii_alphabetic()) {
                         break;
                     }
-                    let japanese = if next == index + 1
-                        || self.japanese_has_prefix(span, user_dictionary)
-                    {
-                        self.japanese_edge(span, user_dictionary)
-                    } else {
-                        None
-                    };
+                    let japanese =
+                        if next == index + 1 || self.japanese_has_prefix(span, user_dictionary) {
+                            self.japanese_edge(span, user_dictionary)
+                        } else {
+                            None
+                        };
                     if let Some((kana, cost, particle)) = japanese {
                         let letters = span.chars().any(|c| c.is_ascii_alphabetic());
                         offer_edge(
@@ -841,9 +903,7 @@ impl Dictionary {
         edges.reverse();
         let mut output = String::new();
         for edge in edges {
-            if edge.english || edge.neutral {
-                output.push_str(&raw[edge.start..edge.end]);
-            } else if edge.kana.is_empty() {
+            if edge.english || edge.neutral || edge.kana.is_empty() {
                 output.push_str(&raw[edge.start..edge.end]);
             } else if let Some(word) = user_dictionary
                 .get(&edge.kana)
@@ -872,6 +932,7 @@ impl Dictionary {
     /// Kana-input lattice: Japanese units are kana characters and English
     /// units come from the physical alphabet keys. Boundaries are kana units,
     /// matching upstream's `kanaInput` rule.
+    #[allow(clippy::too_many_arguments)]
     pub fn composition_lattice_kana(
         &self,
         raw: &str,
@@ -903,7 +964,10 @@ impl Dictionary {
         if n == 0 {
             return self.composition_kana(raw, kana, final_input, before, after, level);
         }
-        let preceding = before.chars().last().is_some_and(|c| c.is_ascii_alphabetic());
+        let preceding = before
+            .chars()
+            .last()
+            .is_some_and(|c| c.is_ascii_alphabetic());
         let following = after.chars().next().map(|c| c.is_ascii_alphabetic());
         let english_sentence = english_sentence(before);
         let start = State {
@@ -940,8 +1004,8 @@ impl Dictionary {
                 let state = State::from_key(state_key);
                 let raw_unit = &raw[raw_offsets[index]..raw_offsets[index + 1]];
                 let kana_unit = &kana[kana_offsets[index]..kana_offsets[index + 1]];
-                let neutral = !is_kana_text(kana_unit)
-                    && !raw_unit.bytes().all(|b| b.is_ascii_alphabetic());
+                let neutral =
+                    !is_kana_text(kana_unit) && !raw_unit.bytes().all(|b| b.is_ascii_alphabetic());
                 if neutral {
                     offer_edge(
                         &mut best,
@@ -966,7 +1030,9 @@ impl Dictionary {
                     let kana_span = &kana[kana_offsets[index]..kana_offsets[next]];
                     let japanese = if next == index + 1
                         || common_has_prefix(kana_span)
-                        || user_dictionary.keys().any(|reading| reading.starts_with(kana_span))
+                        || user_dictionary
+                            .keys()
+                            .any(|reading| reading.starts_with(kana_span))
                     {
                         self.japanese_edge_kana(kana_span, user_dictionary)
                     } else {
@@ -993,22 +1059,22 @@ impl Dictionary {
                     }
                     if raw_span.bytes().all(|b| b.is_ascii_alphabetic()) {
                         if let Some(cost) = self.english_edge(raw_span, learned_english) {
-                        offer_edge(
-                            &mut best,
-                            next,
-                            index,
-                            state,
-                            &from,
-                            Edge {
-                                start: raw_offsets[index],
-                                end: raw_offsets[next],
-                                english: true,
-                                ..Edge::default()
-                            },
-                            cost,
-                            raw,
-                            english_sentence,
-                        );
+                            offer_edge(
+                                &mut best,
+                                next,
+                                index,
+                                state,
+                                &from,
+                                Edge {
+                                    start: raw_offsets[index],
+                                    end: raw_offsets[next],
+                                    english: true,
+                                    ..Edge::default()
+                                },
+                                cost,
+                                raw,
+                                english_sentence,
+                            );
                         }
                     }
                 }
@@ -1088,9 +1154,7 @@ impl Dictionary {
         let phrase = phrase_readings().contains(kana);
         let user = user_dictionary.contains_key(kana);
         let katakana = katakana_readings().contains(kana) || brand_readings().contains(kana);
-        let cost = if particle {
-            0.8
-        } else if user {
+        let cost = if particle || user {
             0.8
         } else if known || phrase {
             JAPANESE_WORD_COST
@@ -1134,6 +1198,7 @@ impl Dictionary {
     /// Mixed ASCII input: keep forced English spans (URLs, domains, files,
     /// usernames, hyphenated words, numeronyms, versions, tags) and run the
     /// lattice only on alphabetic runs.
+    #[allow(clippy::too_many_arguments)]
     fn composition_mixed(
         &self,
         raw: &str,
@@ -1149,18 +1214,15 @@ impl Dictionary {
         while at < raw.len() {
             let c = raw[at..].chars().next().unwrap();
             if c.is_ascii_digit() {
-                let number_end = consume_while(raw, at, |c| {
-                    c.is_ascii_digit() || c == ','
-                });
+                let number_end = consume_while(raw, at, |c| c.is_ascii_digit() || c == ',');
                 if number_end > at {
                     if let Some(next) = raw[number_end..].chars().next() {
                         if next.is_ascii_alphabetic() {
-                            let unit_end = consume_while(raw, number_end, |c| {
-                                c.is_ascii_alphabetic()
-                            });
-                            if let Some(counter) =
-                                Self::numeric_counter(&raw[number_end..unit_end].to_ascii_lowercase())
-                            {
+                            let unit_end =
+                                consume_while(raw, number_end, |c| c.is_ascii_alphabetic());
+                            if let Some(counter) = Self::numeric_counter(
+                                &raw[number_end..unit_end].to_ascii_lowercase(),
+                            ) {
                                 output.push_str(&raw[at..number_end]);
                                 output.push_str(counter);
                                 at = unit_end;
@@ -1254,7 +1316,9 @@ impl Dictionary {
             return false;
         }
         common_has_prefix(&kana)
-            || user_dictionary.keys().any(|reading| reading.starts_with(&kana))
+            || user_dictionary
+                .keys()
+                .any(|reading| reading.starts_with(&kana))
     }
 
     fn japanese_edge(
@@ -1283,9 +1347,7 @@ impl Dictionary {
         let phrase = phrase_readings().contains(&kana);
         let user = user_dictionary.contains_key(&kana);
         let katakana = katakana_readings().contains(&kana) || brand_readings().contains(&kana);
-        let cost = if particle {
-            0.8
-        } else if user {
+        let cost = if particle || user {
             0.8
         } else if known || phrase {
             JAPANESE_WORD_COST
@@ -1300,11 +1362,7 @@ impl Dictionary {
         Some((kana, cost, particle))
     }
 
-    fn english_edge(
-        &self,
-        span: &str,
-        learned_english: &BTreeMap<String, bool>,
-    ) -> Option<f64> {
+    fn english_edge(&self, span: &str, learned_english: &BTreeMap<String, bool>) -> Option<f64> {
         // Short all-uppercase tokens are acronyms (AI, IT, UI, SNS, API).
         // Prefer them over a Japanese reading such as あい.
         if span.chars().count() <= 4 && span.chars().all(|c| c.is_ascii_uppercase()) {
@@ -1315,17 +1373,16 @@ impl Dictionary {
         if learned == Some(false) {
             return None;
         }
-        let known = learned == Some(true)
-            || self.is_english(&lower)
-            || self.is_common_english(&lower);
+        let known =
+            learned == Some(true) || self.is_english(&lower) || self.is_common_english(&lower);
         let upper = span.chars().any(|c| c.is_ascii_uppercase());
         if upper && !known {
             // Name-like spelling: Tanaka, McKinsey, iPhone, GitHub-like words.
             let mut chars = span.chars();
             let first = chars.next()?;
             let rest_lower = chars.all(|c| c.is_ascii_lowercase());
-            let camel = span.chars().skip(1).any(|c| c.is_ascii_uppercase())
-                && span.chars().count() <= 16;
+            let camel =
+                span.chars().skip(1).any(|c| c.is_ascii_uppercase()) && span.chars().count() <= 16;
             if span.chars().count() < 3 || !(first.is_ascii_uppercase() || camel) {
                 return None;
             }
@@ -1388,7 +1445,7 @@ fn doubled_at(text: &str, position: usize) -> bool {
     let bytes = text.as_bytes();
     position + 1 < bytes.len()
         && bytes[position].is_ascii_alphabetic()
-        && bytes[position].to_ascii_lowercase() == bytes[position + 1].to_ascii_lowercase()
+        && bytes[position].eq_ignore_ascii_case(&bytes[position + 1])
 }
 
 fn spelled_sokuons(text: &str, start: usize, end: usize) -> f64 {
@@ -1397,17 +1454,14 @@ fn spelled_sokuons(text: &str, start: usize, end: usize) -> f64 {
     let mut i = start;
     while i + 3 <= end {
         if matches!(bytes[i].to_ascii_lowercase(), b'l' | b'x')
-            && bytes[i + 1].to_ascii_lowercase() == b't'
+            && bytes[i + 1].eq_ignore_ascii_case(&b't')
         {
-            let tail = if bytes[i + 2].to_ascii_lowercase() == b's' {
+            let tail = if bytes[i + 2].eq_ignore_ascii_case(&b's') {
                 i + 4
             } else {
                 i + 3
             };
-            if tail <= end
-                && bytes[tail - 1].to_ascii_lowercase() == b'u'
-                && tail < bytes.len()
-            {
+            if tail <= end && bytes[tail - 1].eq_ignore_ascii_case(&b'u') && tail < bytes.len() {
                 count += 1.0;
             }
         }
@@ -1543,9 +1597,7 @@ fn offer_edge(
                 particle: edge.particle,
                 all_english: previous.all_english && !edge.letters,
                 previous_english: false,
-                sokuon: japanese
-                    && edge.kana.ends_with('っ')
-                    && doubled_at(text, edge.end - 1),
+                sokuon: japanese && edge.kana.ends_with('っ') && doubled_at(text, edge.end - 1),
                 context_switch: previous.context_switch,
             },
         )

@@ -4,8 +4,8 @@
 //! Raw COM/subscription slots retain their TSF lifecycle ownership policy.
 //! Key/resume/abandoned state, SID, transport and UI tokens are freed by Drop.
 mod activate;
-mod async_poll;
 mod apply;
+mod async_poll;
 mod commit;
 mod core;
 mod deactivate;
