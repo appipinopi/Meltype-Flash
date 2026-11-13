@@ -27,9 +27,13 @@ struct State {
     predicting: bool,
     count: usize,
     timer: u32,
+    async_timer: u32,
 }
 impl Drop for State {
     fn drop(&mut self) {
+        if self.async_timer != 0 {
+            unsafe { g_source_remove(self.async_timer); }
+        }
         native::meltype_destroy(self.session);
     }
 }
@@ -79,6 +83,7 @@ unsafe extern "C" fn initialize(engine: Obj, _class: Obj) {
             predicting: false,
             count: 0,
             timer: 0,
+            async_timer: 0,
         };
         native::meltype_set_direct_detection(state.session, 1);
         native::meltype_set_can_move_caret(state.session, 0);
@@ -129,8 +134,27 @@ impl State {
             self.timer = 0;
         }
     }
+    fn cancel_async_timer(&mut self) {
+        if self.async_timer != 0 {
+            unsafe { g_source_remove(self.async_timer); }
+            self.async_timer = 0;
+        }
+    }
+    fn schedule_async_poll(&mut self, engine: Obj) {
+        if self.async_timer != 0 {
+            return;
+        }
+        let poll = Box::new(AsyncPoll {
+            engine: unsafe { g_object_ref(engine) },
+            session: self.session,
+        });
+        self.async_timer = unsafe {
+            g_timeout_add_full(0, 10, Some(poll_async), Box::into_raw(poll).cast(), Some(free_async))
+        };
+    }
     fn hide(&mut self, engine: Obj) {
         self.cancel_timer();
+        self.cancel_async_timer();
         unsafe {
             if self.preedit {
                 ibus_engine_update_preedit_text_with_mode(engine, text(""), 0, 0, 0);
@@ -317,6 +341,14 @@ impl State {
         }
     }
     fn key(&mut self, engine: Obj, vk: i32, ch: i32, modifiers: i32) -> bool {
+        if native::meltype_async_enabled(self.session) != 0
+            && native::meltype_async_can_begin(self.session) != 0
+            && matches!(vk, 0x20 | 0x1c)
+        {
+            native::meltype_begin_async_from_session(self.session);
+            self.schedule_async_poll(engine);
+            return true;
+        }
         self.sync_attributes();
         let surrounding = if self.preedit {
             None
@@ -375,6 +407,37 @@ unsafe extern "C" fn free_meaning(data: Obj) {
     let meaning = Box::from_raw(data.cast::<Meaning>());
     g_object_unref(meaning.engine);
 }
+struct AsyncPoll {
+    engine: Obj,
+    session: Obj,
+}
+unsafe extern "C" fn poll_async(data: Obj) -> i32 {
+    let poll = &*data.cast::<AsyncPoll>();
+    if native::meltype_async_ready(poll.session) != 0 {
+        let response = result(native::meltype_poll_async_conversion(poll.session));
+        with(poll.engine, |s| {
+            s.async_timer = 0;
+            if let Some(response) = response {
+                s.apply(poll.engine, Some(response));
+            }
+            if native::meltype_async_pending(poll.session) != 0 {
+                s.schedule_async_poll(poll.engine);
+            }
+        });
+    } else if native::meltype_async_pending(poll.session) != 0 {
+        with(poll.engine, |s| {
+            s.async_timer = 0;
+            s.schedule_async_poll(poll.engine);
+        });
+    } else {
+        with(poll.engine, |s| { s.async_timer = 0; });
+    }
+    0
+}
+unsafe extern "C" fn free_async(data: Obj) {
+    let poll = Box::from_raw(data.cast::<AsyncPoll>());
+    g_object_unref(poll.engine);
+}
 unsafe extern "C" fn process_key(
     engine: Obj,
     keyval: u32,
@@ -383,6 +446,22 @@ unsafe extern "C" fn process_key(
     _data: Obj,
 ) -> i32 {
     if state & (1 << 30) != 0 {
+        // IBus reports key release with IBUS_RELEASE_MASK. Forward it to the
+        // core so NICOLA press/release-order chording and thumb taps work.
+        with(engine, |s| {
+            if s.session.is_null() {
+                return 0;
+            }
+            if let Some((vk, ch)) = crate::keys::translate(keyval, ibus_keyval_to_unicode(keyval)) {
+                result_free(native::meltype_handle_key_up(
+                    s.session,
+                    vk,
+                    ch,
+                    crate::keys::modifiers(state),
+                ));
+            }
+            0
+        });
         return 0;
     }
     with(engine, |s| {

@@ -1906,7 +1906,7 @@ fn toggle_shortcuts_editor(
 /// 保存する設定の分類 (settings-ui.json) は変えない。
 fn ui_category(key: &str, original: &str) -> &'static str {
     match key {
-        "ToggleShortcuts" | "ConvertKeysSwitchKeyboard" | "AltKeysSwitchKeyboard" => {
+        "ToggleShortcuts" | "ConvertKeysSwitchKeyboard" | "AltKeysSwitchKeyboard" | "SkkMode" => {
             "2. 入力モード"
         }
         "DetectionLevel"
@@ -1920,6 +1920,7 @@ fn ui_category(key: &str, original: &str) -> &'static str {
         | "LaughterAfterKana"
         | "ReadingLattice" => "3. 判定",
         "NumberKeysSelectCandidates"
+        | "AsyncConversion"
         | "EnterCommitsAsShown"
         | "ShowCandidatesWhileTyping"
         | "LiveConversion"

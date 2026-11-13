@@ -13,6 +13,10 @@ export function translateKey(event) {
     (event.altKey || event.altgrKey ? 4 : 0) | (event.metaKey ? 8 : 0);
   // JISの半角/全角はBackquoteと同じ位置だが、文字の ` とは別のキー。
   const mode = modeKeys[event.key] ?? (code === "Lang5" ? "toggle" : undefined) ??
+    // ChromeOS may report the JIS 半角/全角 key as key=Unidentified/Process with
+    // code=Backquote. Treat only those IME names as the mode key; a real ` key
+    // still keeps its character.
+    (code === "Backquote" && ["Unidentified", "Process", "Compose", ""].includes(event.key ?? "") ? "toggle" : undefined) ??
     (code === "Backquote" && event.altKey && !event.altgrKey && modifiers === 4 ? "toggle" : undefined);
   if (mode) return {vk: 243, character: 0, modifiers, mode};
   let vk = named[code];

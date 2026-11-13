@@ -1,3 +1,16 @@
+# Meltype-FLASH v1.1.7
+
+- ChromeOSで半角/全角キーのkeyup名が変わっても所有状態を解除し、次の半角/全角で日本語へ戻れるようにしました。`key=Unidentified` / `code=Backquote` もモードキーとして扱います。
+- Windows TSFのRustコア経路に非同期変換のタイマーを追加しました。Space/変換キーで待たずに戻り、結果到着後に候補表示を更新します（設定「変換を非同期で行う」、既定OFF）。
+- IBus / macOSにも非同期変換のポーリング経路を接続しました。
+- **AIモデルに Gamma・Qwen・Shion を追加しました。** Zenzai と同じ llama-server / GGUF の経路で扱います。モデルカタログにURL・SHA-256・サイズを登録し、設定画面から導入できます。
+- SKKライク入力の設定「SKKライクな入力を使う」を設定画面へ追加しました。SKK候補は既存の候補ウィンドウへ表示されます。
+- ReadingLatticeの精度を改善しました。英語短縮形、日本語の活用形、数字+助数詞（3月・1人・10時など）、メール・URL・ファイル名・パス、ドメイン・バージョン接尾辞、頭字語、ユーザー学習英語・ユーザー辞書の重みを追加しました。
+- `katakana.txt` / `readings-extra.txt` のライセンス表示を追加しました。
+- Zenzaiの `--device`（使うGPU）設定を追加しました。既定は空（CPU/既定GPU）です。
+
+---
+
 # Meltype-FLASH v1.1.6
 
 - かな入力の配列を追加しました。設定の「かな配列」で、JISかな・月配列・花配列・NICOLA・中指NICOLA・TRON配列を選べます。月・花は前置シフト、NICOLA系・TRONは親指シフトです。

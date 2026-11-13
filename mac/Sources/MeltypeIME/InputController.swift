@@ -57,17 +57,40 @@ final class MeltypeInputController: IMKInputController, ModeServiceTarget {
         }
     }
 
+    private var asyncTimer: Timer?
+
     deinit {
+        asyncTimer?.invalidate()
         if let dictionaryObserver { NotificationCenter.default.removeObserver(dictionaryObserver) }
         NativeCore.shared.destroySession(session)
     }
 
     override func recognizedEvents(_ sender: Any!) -> Int {
-        Int(NSEvent.EventTypeMask.keyDown.rawValue)
+        Int(NSEvent.EventTypeMask.keyDown.rawValue | NSEvent.EventTypeMask.keyUp.rawValue)
     }
 
     override func handle(_ event: NSEvent!, client sender: Any!) -> Bool {
-        guard let event, event.type == .keyDown, let client = sender as? IMKTextInput else { return false }
+        guard let event, let client = sender as? IMKTextInput else { return false }
+        if event.type == .keyUp {
+            guard let vk = KeyMapping.virtualKey(for: event) else { return false }
+            let scalars = Array((event.characters ?? "").unicodeScalars)
+            let character: Int32 = scalars.count == 1 ? Int32(scalars[0].value) : 0
+            NativeCore.shared.handleKeyUp(
+                session,
+                vk: vk,
+                character: character,
+                modifiers: KeyMapping.modifiers(for: event.modifierFlags)
+            )
+            return false
+        }
+        guard event.type == .keyDown else { return false }
+        let keyCode = Int(event.keyCode)
+        if NativeCore.shared.asyncEnabled(session), hasMarkedText,
+           keyCode == kVK_Space || keyCode == kVK_Return {
+            _ = NativeCore.shared.beginAsync(session)
+            scheduleAsyncPoll(client)
+            return true
+        }
         if event.keyCode == kVK_Space, event.characters == "　" || event.characters == "\u{00A0}",
            event.modifierFlags.intersection([.command, .control]).isEmpty {
             apply(NativeCore.shared.commit(session), to: client)
@@ -113,6 +136,23 @@ final class MeltypeInputController: IMKInputController, ModeServiceTarget {
         }
         apply(result, to: client)
         return result.consumed
+    }
+
+    private func scheduleAsyncPoll(_ client: IMKTextInput) {
+        asyncTimer?.invalidate()
+        asyncTimer = Timer.scheduledTimer(withTimeInterval: 0.01, repeats: false) { [weak self] _ in
+            guard let self else { return }
+            if NativeCore.shared.asyncReady(self.session) {
+                if let result = NativeCore.shared.pollAsync(self.session) {
+                    self.apply(result, to: client)
+                }
+                self.asyncTimer = nil
+            } else if NativeCore.shared.asyncPending(self.session) {
+                self.scheduleAsyncPoll(client)
+            } else {
+                self.asyncTimer = nil
+            }
+        }
     }
 
     /// フォーカスが外れた・クリックで別の場所に移ったときなど。未確定の内容をそのまま確定する。

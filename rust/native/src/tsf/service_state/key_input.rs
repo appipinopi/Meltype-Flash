@@ -200,6 +200,17 @@ unsafe extern "C" fn pass(data: *mut c_void, reason: u32) {
         relay(data, 6, reason as i32);
     }
 }
+unsafe extern "C" fn up_event(data: *mut c_void, _context: *mut c_void, key: u32) {
+    let o = &*data.cast::<Owner>();
+    let _ = super::key_work::run_up(
+        o.state,
+        o.lifetime,
+        o.worker,
+        key,
+        o.adapter,
+        o.notice,
+    );
+}
 unsafe extern "C" fn would(
     data: *mut c_void,
     context: *mut c_void,
@@ -369,6 +380,7 @@ pub unsafe extern "C" fn meltype_tsf_service_key_event(
         composing: Some(composing),
         toggle: Some(toggle),
         handle: Some(handle),
+        up: Some(up_event),
     };
     key_state::meltype_tsf_key_event((*state).keys, kind, context, key, message, &entry)
 }

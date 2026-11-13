@@ -11,14 +11,20 @@ pub enum AiModel {
     Shunti,
     Jinen,
     Kanakanji,
+    Gamma,
+    Qwen,
+    Shion,
 }
 impl AiModel {
-    pub const ALL: [Self; 5] = [
+    pub const ALL: [Self; 8] = [
         Self::None,
         Self::Zenz,
         Self::Jinen,
         Self::Kanakanji,
         Self::Shunti,
+        Self::Gamma,
+        Self::Qwen,
+        Self::Shion,
     ];
     pub fn parse(value: &str) -> Option<Self> {
         match value {
@@ -27,6 +33,9 @@ impl AiModel {
             "Shunti" => Some(Self::Shunti),
             "Jinen" => Some(Self::Jinen),
             "Kanakanji" => Some(Self::Kanakanji),
+            "Gamma" => Some(Self::Gamma),
+            "Qwen" => Some(Self::Qwen),
+            "Shion" => Some(Self::Shion),
             _ => None,
         }
     }
@@ -37,6 +46,9 @@ impl AiModel {
             Self::Shunti => "Shunti",
             Self::Jinen => "Jinen",
             Self::Kanakanji => "Kanakanji",
+            Self::Gamma => "Gamma",
+            Self::Qwen => "Qwen",
+            Self::Shion => "Shion",
         }
     }
     pub fn label(self) -> &'static str {
@@ -46,10 +58,16 @@ impl AiModel {
             Self::Shunti => "shuntelligence",
             Self::Jinen => "Jinen",
             Self::Kanakanji => "kanakanji-edge",
+            Self::Gamma => "Gamma",
+            Self::Qwen => "Qwen",
+            Self::Shion => "Shion",
         }
     }
     pub fn is_gguf(self) -> bool {
-        matches!(self, Self::Zenz | Self::Jinen | Self::Kanakanji)
+        matches!(
+            self,
+            Self::Zenz | Self::Jinen | Self::Kanakanji | Self::Gamma | Self::Qwen | Self::Shion
+        )
     }
     pub fn selected(settings: &Settings) -> Self {
         Self::parse(settings.text("AiModel")).unwrap_or_else(|| {

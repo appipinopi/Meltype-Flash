@@ -229,3 +229,17 @@ test("ChatGPTの混在文をCtrl+Enterで確定し、受理後だけ送信キー
     assert.deepEqual(f.errors, []);
   } finally { f.core.free(); }
 });
+
+test("半角/全角のkeyup名が変わっても所有を解除し、次で日本語に戻せる", async () => {
+  const f = fixture();
+  try {
+    await f.key("ZenkakuHankaku", "Backquote");
+    assert.equal(f.core.is_direct(), true);
+    // ChromeOS: keyup may arrive as Unidentified with an empty code.
+    f.controller.key("test", {key: "Unidentified", code: "", type: "keyup"}, "weird-up");
+    await f.controller.queue;
+    await f.key("ZenkakuHankaku", "Backquote");
+    assert.equal(f.core.is_direct(), false);
+    assert.deepEqual(f.errors, []);
+  } finally { f.core.free(); }
+});

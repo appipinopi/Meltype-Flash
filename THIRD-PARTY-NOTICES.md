@@ -69,6 +69,21 @@ Meltype のソースコード (このリポジトリ) には、他者の著作�
 
 ローマ字の打ち間違いを直すときに、直した読みがよく使う語になるかを調べるのに使います。JMdict のよく使う語 (同じ印) の読みと活用の種類を `tools/make-readings.mjs` で取り出して作りました。著作権・ライセンスは英訳の候補と同じ (EDRDG、CC BY-SA 4.0) で、この派生データも CC BY-SA 4.0 です。
 
+### カタカナで書く語の読み (dictionaries/katakana.txt)
+
+カタカナ語を日本語の語として読むために使います。JMdict のカタカナだけの読みを基にしています。
+
+- 著作権: Electronic Dictionary Research and Development Group (EDRDG)
+- ライセンス: [Creative Commons Attribution-ShareAlike 4.0 International (CC BY-SA 4.0)](https://creativecommons.org/licenses/by-sa/4.0/)。EDRDG のライセンスの説明: https://www.edrdg.org/edrdg/licence.html
+- この派生データ (dictionaries/katakana.txt) も CC BY-SA 4.0 です。
+
+### 補足の読み (dictionaries/readings-extra.txt)
+
+`readings.txt` に無い話し言葉・略した言い方の読みを補います。
+
+- 著作権: Meltype の contributors
+- ライセンス: GPL-3.0-or-later（リポジトリ本体と同じ）
+
 ### 英字で書く語の候補 (dictionaries/loanwords.txt)
 
 リナックス → Linux のように、カタカナで打った語の候補に英字の書き方を出すのに使います。JMdict の英字で書く語 (Ｌｉｎｕｘ、ＧＨＱ) の書き方とカタカナの読みを `tools/make-loanwords.mjs` で取り出して作りました。著作権・ライセンスは英訳の候補と同じ (EDRDG、CC BY-SA 4.0) で、この派生データも CC BY-SA 4.0 です。

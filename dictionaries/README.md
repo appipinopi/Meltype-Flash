@@ -13,6 +13,7 @@
 - `greetings.txt`: 予測変換に出す定型句を `読み<TAB>語句<TAB>出し始める読み` で書きます。
 - `contexts.txt`: `読み 候補 : 文脈の語`。同点の場合は先のルールが優先されます。
 - 意味・翻訳・読みなどの生成辞書は、各txt冒頭の出典と対応する `tools/make-*.mjs` を確認してください。既存のライセンス・出典表記を保持してください。
+- `katakana.txt` は JMdict 由来のカタカナ読み (CC BY-SA 4.0)、`readings-extra.txt` は補足の読み (GPL-3.0-or-later) です。詳細は `THIRD-PARTY-NOTICES.md` を参照してください。
 
 変更後は `cargo test -p meltype-core` と候補互換試験を実行してください。ビルド時FSTはUTF-8の全バイトと行順を保持するため、表示順を変える編集もレビュー対象です。元版と意図的に異なる候補を追加した場合、Rust出力をそのまま元版の期待値へ書き換えないでください。
 

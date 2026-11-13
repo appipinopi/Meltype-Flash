@@ -4,6 +4,7 @@
 //! Raw COM/subscription slots retain their TSF lifecycle ownership policy.
 //! Key/resume/abandoned state, SID, transport and UI tokens are freed by Drop.
 mod activate;
+mod async_poll;
 mod apply;
 mod commit;
 mod core;
@@ -142,6 +143,7 @@ impl Default for ServiceState {
 impl Drop for ServiceState {
     fn drop(&mut self) {
         unsafe {
+            async_poll::cancel(self as *mut ServiceState);
             self.shutdown_phase = 2;
             self.deactivated = true;
             key_state::meltype_tsf_key_state_destroy(

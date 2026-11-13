@@ -797,7 +797,7 @@ impl Settings {
                     "AppProfile".into(),
                     kind.get("Base").cloned().unwrap_or(json!("General")),
                 );
-                for key in ["DetectionLevel", "LiveConversion", "StartInEnglish"] {
+                for key in ["DetectionLevel", "LiveConversion", "StartInEnglish", ""] {
                     if let Some(v) = kind.get(key).filter(|v| !v.is_null()) {
                         settings.0.insert(key.into(), v.clone());
                     }
@@ -816,6 +816,6 @@ impl Settings {
         let explicit = self
             .application_rule(process, crate::app_identity::Platform::current())
             .is_some();
-        json!({"enabled":app.boolean("Enabled") && !(self.boolean("StopInGames")&&looks_like_game&&!explicit),"profile":app.text("AppProfile"),"level":app.text("DetectionLevel"),"live":app.boolean("LiveConversion"),"startInEnglish":app.boolean("StartInEnglish")})
+        json!({"enabled":app.boolean("Enabled") && !(self.boolean("StopInGames")&&looks_like_game&&!explicit),"profile":app.text("AppProfile"),"level":app.text("DetectionLevel"),"live":app.boolean("LiveConversion"),"startInEnglish":app.boolean("StartInEnglish"),})
     }
 }

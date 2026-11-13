@@ -159,6 +159,18 @@ private:
     void SetAttribute(TfEditCookie ec, ITfContext* context, ITfRange* range, TfGuidAtom atom);
     // 未確定の内容を確定する (フォーカスが移った・英数にしたなど)。非同期の編集セッションで行う
     void CommitAsync(bool keepAppCaret);
+#ifdef MELTYPE_RUST_CORE
+    // Non-blocking conversion: Space/Convert starts a worker request and a
+    // thread timer applies the result when it is ready.
+    bool BeginAsync(ITfContext* context);
+    void PollAsync();
+    void CancelAsync();
+    static VOID CALLBACK AsyncTimerProc(HWND, UINT, UINT_PTR, DWORD);
+    bool RequestRaw(const std::string& json, std::string& raw, JsonValue& reply, DWORD timeoutMs = 800);
+    UINT_PTR asyncTimer_ = 0;
+    bool asyncActive_ = false;
+    ITfContext* asyncContext_ = nullptr;
+#endif
     // 同期で確定する。できなければ false。keepAppCaret: キャレットを動かさず、前の語も確定し直さない
     bool CommitNow(bool keepAppCaret = false);
     // 確定できない前の入力欄の変換中の文字を手放す
