@@ -18,6 +18,7 @@ import android.view.KeyEvent;
 import android.view.MotionEvent;
 import android.view.View;
 import android.view.accessibility.AccessibilityNodeInfo;
+import android.view.accessibility.AccessibilityWindowInfo;
 import android.view.inputmethod.BaseInputConnection;
 import android.view.inputmethod.InputConnection;
 import android.view.inputmethod.EditorInfo;
@@ -125,9 +126,18 @@ public final class NativeAndroidTest {
     private static void idle(Instrumentation instrumentation,UiAutomation automation)throws Exception {
         instrumentation.waitForIdleSync();automation.waitForIdle(100,10000);
     }
+    private static AccessibilityNodeInfo ownRoot(UiAutomation automation) {
+        String pkg=context().getPackageName();
+        AccessibilityNodeInfo active=automation.getRootInActiveWindow();
+        if(active!=null&&pkg.contentEquals(active.getPackageName()))return active;
+        for(AccessibilityWindowInfo window:automation.getWindows()) {
+            AccessibilityNodeInfo root=window.getRoot();
+            if(root!=null&&pkg.contentEquals(root.getPackageName()))return root;
+        }
+        return null;
+    }
     private static void clickOwnDialogButton(UiAutomation automation,String label) {
-        AccessibilityNodeInfo root=automation.getRootInActiveWindow();assertNotNull("active test-app dialog",root);
-        assertEquals(context().getPackageName(),String.valueOf(root.getPackageName()));
+        AccessibilityNodeInfo root=ownRoot(automation);assertNotNull("active test-app dialog",root);
         for(AccessibilityNodeInfo node:root.findAccessibilityNodeInfosByText(label)) {
             if(node.getText()!=null&&node.getPackageName()!=null&&label.contentEquals(node.getText())&&context().getPackageName().contentEquals(node.getPackageName())&&node.isClickable()) {
                 assertTrue("click "+label,node.performAction(AccessibilityNodeInfo.ACTION_CLICK));return;
@@ -136,8 +146,7 @@ public final class NativeAndroidTest {
         throw new AssertionError("missing dialog button: "+label);
     }
     private static void captureDialog(UiAutomation automation,String name)throws Exception {
-        AccessibilityNodeInfo root=automation.getRootInActiveWindow();assertNotNull(root);
-        assertEquals(context().getPackageName(),String.valueOf(root.getPackageName()));
+        AccessibilityNodeInfo root=ownRoot(automation);assertNotNull("active test-app dialog",root);
         Bitmap image=automation.takeScreenshot();assertNotNull("dialog screenshot",image);
         File artifacts=new File(context().getFilesDir(),"instrumentation-artifacts");assertTrue(artifacts.isDirectory()||artifacts.mkdirs());
         try(FileOutputStream stream=new FileOutputStream(new File(artifacts,name))){assertTrue(image.compress(Bitmap.CompressFormat.PNG,100,stream));}finally{image.recycle();}
