@@ -317,13 +317,6 @@
       "description": "zenz のモデルファイル (例: zenz-v3.1-small の ggml-model-Q5_K_M.gguf) の場所。「Zenzai を使う」が ON のときに使います。"
     },
     {
-      "key": "ZenzaiDevice",
-      "type": "String",
-      "category": "1. 全般",
-      "label": "Zenzai: 使う GPU",
-      "description": "llama-server に渡す --device の値です。空なら CPU/既定の GPU を使います。"
-    },
-    {
       "key": "TranslationCandidates",
       "type": "Boolean",
       "category": "1. 全般",
@@ -681,6 +674,13 @@
       "description": "日本語の語・英単語・未知語をラティスにして、日英の区切りを選びます。上流1.5.0の判定の作り直しをFlashの辞書へ接続した試験版です。"
     },
     {
+      "key": "ZenzaiDevice",
+      "type": "String",
+      "category": "4. 変換",
+      "label": "Zenzai: 使う GPU",
+      "description": "llama-server に渡す --device の値です。空なら CPU/既定の GPU を使います。"
+    },
+    {
       "key": "SkkMode",
       "type": "Boolean",
       "category": "2. 入力モード",
@@ -692,7 +692,7 @@
       "type": "Boolean",
       "category": "4. 変換",
       "label": "変換を非同期で行う",
-      "description": "変換キーの入力時に待たずに戻り、結果が届いてから候補表示を更新します。現在は同梱辞書の簡易な非同期変換に対応しています。既定はオフです。"
+      "description": "変換キーの入力時に待たずに戻り、結果が届いてから候補表示を更新します。Windows TSF・IBus・macOSに対応します。既定はオフです。"
     }
   ],
   "enums": {

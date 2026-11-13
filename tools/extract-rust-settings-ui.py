@@ -75,6 +75,15 @@ FLASH_FIELDS = [
     dict(key="ReadingLattice", type="Boolean", category="3. 判定",
          label="ReadingLatticeで日英を判定",
          description="日本語の語・英単語・未知語をラティスにして、日英の区切りを選びます。上流1.5.0の判定の作り直しをFlashの辞書へ接続した試験版です。"),
+    dict(key="ZenzaiDevice", type="String", category="4. 変換",
+         label="Zenzai: 使う GPU",
+         description="llama-server に渡す --device の値です。空なら CPU/既定の GPU を使います。"),
+    dict(key="SkkMode", type="Boolean", category="2. 入力モード",
+         label="SKKライクな入力を使う",
+         description="大文字で▽開始、Spaceで▼変換、Enterで確定します。送り仮名と辞書登録にも対応します。小文字は通常のローマ字・かな入力へそのまま流れます。"),
+    dict(key="AsyncConversion", type="Boolean", category="4. 変換",
+         label="変換を非同期で行う",
+         description="変換キーの入力時に待たずに戻り、結果が届いてから候補表示を更新します。Windows TSF・IBus・macOSに対応します。既定はオフです。"),
 ]
 FLASH_DEFAULTS = {"TimeZone": "Asia/Tokyo", "PrereleaseUpdate": False, "NowPlayingCandidates": True, "ShowTsfModeIndicator": True, "KanaLayout": "Jis", "RomajiLayout": "Qwerty", "ReadingLattice": False}
 FLASH_ENUMS = {
