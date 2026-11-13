@@ -13,6 +13,12 @@ private typealias InitFunction = @convention(c) (ClausesCallback, CandidatesCall
 private typealias CreateFunction = @convention(c) () -> UnsafeMutableRawPointer?
 private typealias DestroyFunction = @convention(c) (UnsafeMutableRawPointer?) -> Void
 private typealias HandleKeyFunction = @convention(c) (UnsafeMutableRawPointer?, Int32, Int32, Int32, UnsafePointer<CChar>?, UnsafePointer<CChar>?) -> UnsafeMutablePointer<CChar>?
+private typealias HandleKeyUpFunction = @convention(c) (UnsafeMutableRawPointer?, Int32, Int32, Int32) -> UnsafeMutablePointer<CChar>?
+private typealias AsyncEnabledFunction = @convention(c) (UnsafeMutableRawPointer?) -> Int32
+private typealias AsyncBeginFunction = @convention(c) (UnsafeMutableRawPointer?) -> UInt64
+private typealias AsyncPendingFunction = @convention(c) (UnsafeMutableRawPointer?) -> Int32
+private typealias AsyncReadyFunction = @convention(c) (UnsafeMutableRawPointer?) -> Int32
+private typealias AsyncPollFunction = @convention(c) (UnsafeMutableRawPointer?) -> UnsafeMutablePointer<CChar>?
 private typealias CommitFunction = @convention(c) (UnsafeMutableRawPointer?) -> UnsafeMutablePointer<CChar>?
 private typealias SelectFunction = @convention(c) (UnsafeMutableRawPointer?, Int32) -> UnsafeMutablePointer<CChar>?
 private typealias SetDirectFunction = @convention(c) (UnsafeMutableRawPointer?, Int32) -> Void
@@ -125,6 +131,12 @@ final class NativeCore {
     private let createFunction: CreateFunction?
     private let destroyFunction: DestroyFunction?
     private let handleKeyFunction: HandleKeyFunction?
+    private let handleKeyUpFunction: HandleKeyUpFunction?
+    private let asyncEnabledFunction: AsyncEnabledFunction?
+    private let asyncBeginFunction: AsyncBeginFunction?
+    private let asyncPendingFunction: AsyncPendingFunction?
+    private let asyncReadyFunction: AsyncReadyFunction?
+    private let asyncPollFunction: AsyncPollFunction?
     private let commitFunction: CommitFunction?
     private let selectFunction: SelectFunction?
     private let setDirectFunction: SetDirectFunction?
@@ -166,6 +178,12 @@ final class NativeCore {
 #else
         handleKeyFunction = symbol("meltype_handle_key", as: HandleKeyFunction.self)
 #endif
+        handleKeyUpFunction = symbol("meltype_handle_key_up", as: HandleKeyUpFunction.self)
+        asyncEnabledFunction = symbol("meltype_async_enabled", as: AsyncEnabledFunction.self)
+        asyncBeginFunction = symbol("meltype_begin_async_from_session", as: AsyncBeginFunction.self)
+        asyncPendingFunction = symbol("meltype_async_pending", as: AsyncPendingFunction.self)
+        asyncReadyFunction = symbol("meltype_async_ready", as: AsyncReadyFunction.self)
+        asyncPollFunction = symbol("meltype_poll_async_conversion", as: AsyncPollFunction.self)
         commitFunction = symbol("meltype_commit", as: CommitFunction.self)
 #if MELTYPE_RUST_CORE
         selectFunction = symbol("meltype_macos_select_candidate", as: SelectFunction.self)
@@ -195,6 +213,33 @@ final class NativeCore {
             withOptionalCString(after) { afterPointer in
                 decode(handleKeyFunction(session, vk, character, modifiers, beforePointer, afterPointer))
             }
+        }
+    }
+
+    func asyncEnabled(_ session: UnsafeMutableRawPointer?) -> Bool {
+        asyncEnabledFunction?(session) == 1
+    }
+
+    func beginAsync(_ session: UnsafeMutableRawPointer?) -> UInt64 {
+        asyncBeginFunction?(session) ?? 0
+    }
+
+    func asyncPending(_ session: UnsafeMutableRawPointer?) -> Bool {
+        asyncPendingFunction?(session) == 1
+    }
+
+    func asyncReady(_ session: UnsafeMutableRawPointer?) -> Bool {
+        asyncReadyFunction?(session) == 1
+    }
+
+    func pollAsync(_ session: UnsafeMutableRawPointer?) -> SessionResult? {
+        asyncPollFunction.flatMap { decode($0(session)) }
+    }
+
+    func handleKeyUp(_ session: UnsafeMutableRawPointer?, vk: Int32, character: Int32, modifiers: Int32) {
+        guard let handleKeyUpFunction else { return }
+        if let pointer = handleKeyUpFunction(session, vk, character, modifiers) {
+            freeFunction?(pointer)
         }
     }
 

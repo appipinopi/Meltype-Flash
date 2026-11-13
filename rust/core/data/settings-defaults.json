@@ -299,6 +299,7 @@
   "UseZenzai": false,
   "ZenzaiServerPath": "",
   "ZenzaiModelPath": "",
+  "ZenzaiDevice": "",
   "ZSymbols": true,
   "ToggleShortcuts": [
     {
@@ -315,5 +316,6 @@
   "NowPlayingCandidates": true,
   "ShowTsfModeIndicator": true,
   "KanaLayout": "Jis",
-  "RomajiLayout": "Qwerty"
+  "RomajiLayout": "Qwerty",
+  "ReadingLattice": false
 }

@@ -32,6 +32,18 @@ void *meltype_create_at(const char *directory);
 char *meltype_control(void *, const char *request_json);
 void meltype_destroy(void *);
 char *meltype_handle_key(void *, int32_t vk, int32_t scalar, int32_t modifiers, const char *before, const char *after);
+char *meltype_handle_key_up(void *, int32_t vk, int32_t scalar, int32_t modifiers);
+uint64_t meltype_begin_async_conversion(void *, const char *reading, const char *context);
+int32_t meltype_complete_async_conversion(void *, uint64_t id, const char *candidates_json);
+int32_t meltype_cancel_async_conversion(void *);
+int32_t meltype_timeout_async_conversion(void *, uint64_t now_ms);
+int32_t meltype_apply_async_conversion(void *, const char *reading, const char *candidates_json);
+int32_t meltype_async_enabled(void *);
+uint64_t meltype_begin_async_from_session(void *);
+int32_t meltype_async_pending(void *);
+int32_t meltype_async_can_begin(void *);
+int32_t meltype_async_ready(void *);
+char *meltype_poll_async_conversion(void *);
 char *meltype_commit(void *);
 /* Record the displayed preedit after a host has committed it on focus loss.
  * The host must not apply the returned text again. No backward edit is made. */
@@ -539,7 +551,7 @@ int32_t meltype_tsf_core_request(const uint8_t *input,uint32_t length,uint32_t t
    Dispatch never unwinds or retains Call; callbacks remain valid until destroy.
    Interface lookup is borrowed and does not AddRef. */
 typedef struct MeltypeTsfServiceCall {
-    uint32_t op;void *a;void *b;void *c;uintptr_t n1;intptr_t n2;
+    uint32_t op;void *a;void *b;void *c;uintptr_t n1;intptr_t n2;uint8_t is_up;
 } MeltypeTsfServiceCall;
 void *meltype_tsf_service_com_create(void *owner,int32_t (*dispatch)(void *,const MeltypeTsfServiceCall *),void (*destroy)(void *));
 void *meltype_tsf_service_com_interface(void *root,const void *iid);

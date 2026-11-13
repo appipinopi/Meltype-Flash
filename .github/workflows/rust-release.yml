@@ -194,8 +194,8 @@ jobs:
           PYTHONUTF8: '1'
           BENCHMARK_BASELINE: ${{ inputs.benchmark_baseline }}
         run: |
-          git fetch --no-tags https://github.com/yksr-melt/Meltype.git 36a7c0d9900dff1f41099be027af98bd072ea68a
-          python tools/compare-rust-benchmarks.py --build --with-csharp --csharp-ref 36a7c0d9900dff1f41099be027af98bd072ea68a --fetch-tags --baseline-ref "$BENCHMARK_BASELINE" --output dist/release-benchmark --samples 3 --warmups 1 --rounds 9
+          git fetch --tags https://github.com/yksr-melt/Meltype.git
+          python tools/compare-rust-benchmarks.py --build --with-csharp --fetch-tags --baseline-ref "$BENCHMARK_BASELINE" --output dist/release-benchmark --samples 3 --warmups 1 --rounds 9
           python -m pip install --disable-pip-version-check matplotlib==3.10.8 numpy==2.4.2
           python tools/plot-windows-benchmark.py dist/release-benchmark/report.json --output dist/release-benchmark/charts
       - uses: actions/upload-artifact@v4

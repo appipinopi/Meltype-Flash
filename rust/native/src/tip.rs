@@ -84,7 +84,20 @@ unsafe fn request_inner(connection: *mut c_void, request: *const c_char) -> Opti
     if !sessions.contains_key(sid) {
         if request["composing"] == true
             || sessions.len() >= 16
-            || !["key", "mode", "toggle", "reconvert"].contains(&op)
+            || ![
+                "key",
+                "mode",
+                "toggle",
+                "reconvert",
+                "async_begin",
+                "async_complete",
+                "async_cancel",
+                "async_poll",
+                "async_apply",
+                "async_begin_session",
+                "async_poll_apply",
+            ]
+            .contains(&op)
         {
             return Some(inactive());
         }
@@ -101,7 +114,26 @@ unsafe fn request_inner(connection: *mut c_void, request: *const c_char) -> Opti
             .and_then(|n| i32::try_from(n).ok())
             .unwrap_or(0)
     };
+    let strings = |name: &str| -> Vec<String> {
+        request[name]
+            .as_array()
+            .map(|values| {
+                values
+                    .iter()
+                    .filter_map(|value| value.as_str().map(str::to_owned))
+                    .collect()
+            })
+            .unwrap_or_default()
+    };
     set(handle, |s| {
+        if op.starts_with("async_") {
+            return;
+        }
+        if op == "key" && request["is_up"] == true {
+            // A release must not rewrite process/direct/caret metadata that
+            // the preceding key-down established.
+            return;
+        }
         s.set_process(request["process"].as_str().unwrap_or(""));
         if matches!(op, "key" | "reconvert") {
             s.no_learning = request["private"] == true;
@@ -137,23 +169,98 @@ unsafe fn request_inner(connection: *mut c_void, request: *const c_char) -> Opti
             )
         }
         "key" => {
-            #[cfg(not(test))]
-            if request["private"] != true {
-                count_key();
+            if request["is_up"] == true {
+                // Key-up: record the release in the core session for
+                // NICOLA press/release-order chording and replay. Do not
+                // touch direct mode, key counting or caret metadata.
+                let now_ms = request["now_ms"].as_u64().unwrap_or(0);
+                run(handle, |s| {
+                    s.key_up_at(number("vk"), number("ch"), number("mods"), now_ms)
+                })
+            } else {
+                #[cfg(not(test))]
+                if request["private"] != true {
+                    count_key();
+                }
+                meltype_set_direct(handle, i32::from(request["direct"] == true));
+                let before = request["before"]
+                    .as_str()
+                    .and_then(|s| CString::new(s).ok());
+                let after = request["after"].as_str().and_then(|s| CString::new(s).ok());
+                meltype_handle_key(
+                    handle,
+                    number("vk"),
+                    number("ch"),
+                    number("mods"),
+                    before.as_ref().map_or(std::ptr::null(), |s| s.as_ptr()),
+                    after.as_ref().map_or(std::ptr::null(), |s| s.as_ptr()),
+                )
             }
-            meltype_set_direct(handle, i32::from(request["direct"] == true));
-            let before = request["before"]
-                .as_str()
-                .and_then(|s| CString::new(s).ok());
-            let after = request["after"].as_str().and_then(|s| CString::new(s).ok());
-            meltype_handle_key(
-                handle,
-                number("vk"),
-                number("ch"),
-                number("mods"),
-                before.as_ref().map_or(std::ptr::null(), |s| s.as_ptr()),
-                after.as_ref().map_or(std::ptr::null(), |s| s.as_ptr()),
-            )
+        }
+        "async_begin_session" => {
+            let active = request["private"] != true
+                && request["composing"] != true
+                && request["sid"].as_str().is_some();
+            run(handle, |s| {
+                if active && s.settings.boolean("AsyncConversion") && !s.raw().is_empty() {
+                    let reading = s.reading();
+                    s.begin_async_conversion(&reading, "");
+                }
+                s.result(false)
+            })
+        }
+        "async_poll_apply" => run(handle, |s| {
+            if let Some(ac) = s.async_conversion() {
+                let id = ac.id;
+                let reading = ac.reading.clone();
+                let phase = ac.phase;
+                if phase == meltype_core::session::AsyncConversionPhase::Pending {
+                    let candidates = s.dictionary_candidates(&reading);
+                    s.complete_async_conversion(id, candidates);
+                }
+                if let Some(ac) = s.async_conversion() {
+                    if ac.phase == meltype_core::session::AsyncConversionPhase::Ready {
+                        let candidates = ac.candidates.first().cloned().unwrap_or_default();
+                        s.try_apply_async_conversion(&reading, candidates);
+                    }
+                }
+            }
+            s.result(true)
+        }),
+        "async_begin" => {
+            let reading = request["reading"].as_str().unwrap_or("").to_owned();
+            let context = request["context"].as_str().unwrap_or("").to_owned();
+            run(handle, |s| {
+                s.begin_async_conversion(&reading, &context);
+                s.result(false)
+            })
+        }
+        "async_complete" => {
+            let id = request["id"].as_u64().unwrap_or(0);
+            let candidates = strings("candidates");
+            run(handle, |s| {
+                let ok = s.complete_async_conversion(id, candidates);
+                s.result(ok)
+            })
+        }
+        "async_cancel" => run(handle, |s| {
+            s.cancel_async_conversion();
+            s.result(true)
+        }),
+        "async_poll" => {
+            let now_ms = request["now_ms"].as_u64().unwrap_or(0);
+            run(handle, |s| {
+                let phase = s.timeout_async_conversion(now_ms);
+                s.result(phase.is_some())
+            })
+        }
+        "async_apply" => {
+            let reading = request["reading"].as_str().unwrap_or("").to_owned();
+            let candidates = strings("candidates");
+            run(handle, |s| {
+                let ok = s.try_apply_async_conversion(&reading, candidates);
+                s.result(ok)
+            })
         }
         "commit" => meltype_commit(handle),
         "reset" => run(handle, |s| {
@@ -197,6 +304,46 @@ unsafe fn request_inner(connection: *mut c_void, request: *const c_char) -> Opti
     value["fullWidthSpace"] = json!(active && settings.boolean("FullWidthSpaceByDefault"));
     value["switchToJapanese"] = json!(switched);
     value["directEnglishWord"] = json!(english_word);
+    if op == "async_begin_session" {
+        let active = super::sessions()
+            .lock()
+            .ok()
+            .and_then(|all| {
+                all.get(&(handle as usize)).map(|s| {
+                    s.settings.boolean("AsyncConversion") && s.async_conversion().is_some()
+                })
+            })
+            .unwrap_or(false);
+        value["asyncActive"] = json!(active);
+    }
+    if op == "async_begin" {
+        let id = super::sessions()
+            .lock()
+            .ok()
+            .and_then(|all| {
+                all.get(&(handle as usize))
+                    .and_then(|s| s.async_conversion().map(|ac| ac.id))
+            })
+            .unwrap_or(0);
+        value["asyncId"] = json!(id);
+    }
+    if op == "async_poll" {
+        let phase = super::sessions()
+            .lock()
+            .ok()
+            .and_then(|all| {
+                all.get(&(handle as usize))
+                    .and_then(|s| s.async_conversion().map(|ac| ac.phase))
+            })
+            .map_or("idle", |phase| match phase {
+                meltype_core::session::AsyncConversionPhase::Idle => "idle",
+                meltype_core::session::AsyncConversionPhase::Pending => "pending",
+                meltype_core::session::AsyncConversionPhase::Ready => "ready",
+                meltype_core::session::AsyncConversionPhase::Cancelled => "cancelled",
+                meltype_core::session::AsyncConversionPhase::TimedOut => "timed_out",
+            });
+        value["asyncPhase"] = json!(phase);
+    }
     Some(value.to_string())
 }
 #[cfg(test)]
@@ -299,6 +446,70 @@ mod tests {
                 call("mode", json!({"before":"// comment "}))["english"],
                 false
             );
+            meltype_tip_destroy(connection);
+        }
+    }
+    #[test]
+    fn async_conversion_ops_round_trip_and_timeout() {
+        unsafe {
+            let connection = meltype_tip_create();
+            let call = |request: Value| -> Value {
+                let request = CString::new(request.to_string()).unwrap();
+                serde_json::from_str(
+                    &take(meltype_tip_request(connection, request.as_ptr())).unwrap(),
+                )
+                .unwrap()
+            };
+            for c in "hashi".chars() {
+                call(json!({"op":"key","sid":"async","vk":0,"ch":c as i32}));
+            }
+            let begin = call(json!({
+                "op":"async_begin","sid":"async","reading":"はし","context":""
+            }));
+            let id = begin["asyncId"].as_u64().unwrap();
+            assert!(id > 0);
+            let complete = call(json!({
+                "op":"async_complete","sid":"async","id":id,"candidates":["橋","箸"]
+            }));
+            assert_eq!(complete["consumed"], true);
+            let apply = call(json!({
+                "op":"async_apply","sid":"async","reading":"はし","candidates":["橋","箸"]
+            }));
+            assert_eq!(apply["consumed"], true);
+            assert_eq!(apply["view"]["converting"], true);
+
+            let begin = call(json!({
+                "op":"async_begin","sid":"async","reading":"かき","context":""
+            }));
+            let id = begin["asyncId"].as_u64().unwrap();
+            let poll = call(json!({
+                "op":"async_poll","sid":"async","now_ms":1000000
+            }));
+            assert_eq!(poll["asyncPhase"], "timed_out");
+            let complete = call(json!({
+                "op":"async_complete","sid":"async","id":id,"candidates":["柿"]
+            }));
+            assert_eq!(complete["consumed"], false);
+            let apply = call(json!({
+                "op":"async_apply","sid":"async","reading":"かき","candidates":["柿"]
+            }));
+            assert_eq!(apply["consumed"], false);
+            meltype_tip_destroy(connection);
+        }
+    }
+    #[test]
+    fn key_up_event_reaches_core_without_consuming() {
+        unsafe {
+            let connection = meltype_tip_create();
+            let request = CString::new(
+                json!({"op":"key","sid":"up","vk":28,"ch":0,"is_up":true}).to_string(),
+            )
+            .unwrap();
+            let value: Value = serde_json::from_str(
+                &take(meltype_tip_request(connection, request.as_ptr())).unwrap(),
+            )
+            .unwrap();
+            assert_eq!(value["consumed"], false);
             meltype_tip_destroy(connection);
         }
     }

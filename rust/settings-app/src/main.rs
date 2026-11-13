@@ -855,15 +855,12 @@ impl App {
         });
         ui.add_space(8.);
         ui.horizontal_wrapped(|ui| {
-            for (key, label) in [
-                ("SettingsShowHelp", "下部に説明を表示"),
-                ("SettingsWheelChangesValue", "マウスホイールで値を変更"),
-            ] {
-                let mut enabled = self.settings.boolean(key);
-                ui.label(i18n::t(label));
-                if widgets::toggle(ui, &mut enabled, i18n::t(label)).changed() {
-                    self.action(json!({"op":"settings_set","name":key,"value":enabled}));
-                }
+            let key = "SettingsWheelChangesValue";
+            let label = "マウスホイールで値を変更";
+            let mut enabled = self.settings.boolean(key);
+            ui.label(i18n::t(label));
+            if widgets::toggle(ui, &mut enabled, i18n::t(label)).changed() {
+                self.action(json!({"op":"settings_set","name":key,"value":enabled}));
             }
         });
         if self.show_all {
@@ -1235,6 +1232,7 @@ impl App {
                                         )
                                     };
                                 }
+                                row.response.on_hover_text(&self.help);
                             });
                         }
                     });
@@ -1908,7 +1906,7 @@ fn toggle_shortcuts_editor(
 /// 保存する設定の分類 (settings-ui.json) は変えない。
 fn ui_category(key: &str, original: &str) -> &'static str {
     match key {
-        "ToggleShortcuts" | "ConvertKeysSwitchKeyboard" | "AltKeysSwitchKeyboard" => {
+        "ToggleShortcuts" | "ConvertKeysSwitchKeyboard" | "AltKeysSwitchKeyboard" | "SkkMode" => {
             "2. 入力モード"
         }
         "DetectionLevel"
@@ -1919,8 +1917,10 @@ fn ui_category(key: &str, original: &str) -> &'static str {
         | "SigilWordsDirect"
         | "EnglishFirstInput"
         | "AutoCorrectAfterCommit"
-        | "LaughterAfterKana" => "3. 判定",
+        | "LaughterAfterKana"
+        | "ReadingLattice" => "3. 判定",
         "NumberKeysSelectCandidates"
+        | "AsyncConversion"
         | "EnterCommitsAsShown"
         | "ShowCandidatesWhileTyping"
         | "LiveConversion"
@@ -2475,25 +2475,6 @@ impl eframe::App for App {
                             }
                         });
                 });
-            // Bottom panels reserve space in insertion order: explanation,
-            // detection test, then action buttons, as in the original form.
-            if self.settings.boolean("SettingsShowHelp") {
-                let font = egui::TextStyle::Body.resolve(&ctx.style());
-                let height = 82.;
-                egui::TopBottomPanel::bottom("help")
-                    .exact_height(height)
-                    .resizable(false)
-                    .show(ctx, |ui| {
-                        let mut text = egui::text::LayoutJob::simple(
-                            self.help.clone(),
-                            font,
-                            ui.visuals().weak_text_color(),
-                            ui.available_width(),
-                        );
-                        text.wrap.max_rows = 4;
-                        ui.add(egui::Label::new(text)).on_hover_text(&self.help);
-                    });
-            }
         }
         egui::CentralPanel::default().show(ctx, |ui| {
             // Register the background before its children. context_menu upgrades
@@ -2797,7 +2778,10 @@ mod tests {
         draw(vec![]);
         let point = ctx
             .data(|data| {
-                data.get_temp::<egui::Rect>(egui::Id::new(("toggle_rect", "下部に説明を表示")))
+                data.get_temp::<egui::Rect>(egui::Id::new((
+                    "toggle_rect",
+                    "マウスホイールで値を変更",
+                )))
             })
             .unwrap()
             .center();
@@ -2817,7 +2801,7 @@ mod tests {
             modifiers: egui::Modifiers::NONE,
         }]);
         assert!(
-            !app.settings.boolean("SettingsShowHelp"),
+            !app.settings.boolean("SettingsWheelChangesValue"),
             "mouse click did not change the switch"
         );
     }

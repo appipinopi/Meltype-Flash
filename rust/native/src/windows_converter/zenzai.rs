@@ -138,7 +138,12 @@ struct Server {
     process: Arc<Mutex<Option<Process>>>,
 }
 impl Server {
-    fn start(server: PathBuf, model: PathBuf, zenz_tokenizer: bool) -> io::Result<Self> {
+    fn start(
+        server: PathBuf,
+        model: PathBuf,
+        device: &str,
+        zenz_tokenizer: bool,
+    ) -> io::Result<Self> {
         let port = TcpListener::bind((Ipv4Addr::LOCALHOST, 0))?
             .local_addr()?
             .port();
@@ -154,6 +159,7 @@ impl Server {
             result.cancelled.clone(),
             result.process.clone(),
         );
+        let device = device.to_owned();
         std::thread::Builder::new()
             .name("meltype-zenzai-start".into())
             .spawn(move || {
@@ -180,6 +186,9 @@ impl Server {
                         .stdin(Stdio::null())
                         .stdout(Stdio::null())
                         .stderr(Stdio::null());
+                    if !device.trim().is_empty() {
+                        command.args(["--device", device.trim()]);
+                    }
                     if zenz_tokenizer {
                         command.args(["--override-kv", "tokenizer.ggml.pre=str:gpt-2"]);
                     }
@@ -250,6 +259,7 @@ pub(crate) struct Zenzai {
     paths: Option<(PathBuf, PathBuf)>,
     variant: String,
     protocol: String,
+    device: String,
     zenz_tokenizer: bool,
     server: Option<Server>,
     cache: Cache,
@@ -283,11 +293,13 @@ impl Zenzai {
         );
         let variant = spec.map(|m| m.id.clone()).unwrap_or_default();
         let protocol = spec.map(|m| m.protocol.clone()).unwrap_or_default();
-        if self.paths != paths || self.variant != variant {
+        let device = settings.text("ZenzaiDevice").trim().to_owned();
+        if self.paths != paths || self.variant != variant || self.device != device {
             *self = Self {
                 paths,
                 variant,
                 protocol,
+                device,
                 zenz_tokenizer: spec.is_some_and(|m| m.family == "Zenz"),
                 ..Self::default()
             };
@@ -309,7 +321,12 @@ impl Zenzai {
             return;
         };
         let result = if server.is_file() && model.is_file() {
-            Server::start(server.clone(), model.clone(), self.zenz_tokenizer)
+            Server::start(
+                server.clone(),
+                model.clone(),
+                &self.device,
+                self.zenz_tokenizer,
+            )
         } else {
             Err(io::Error::new(
                 io::ErrorKind::NotFound,
@@ -994,7 +1011,7 @@ class Handler(http.server.BaseHTTPRequestHandler):
 http.server.HTTPServer(('127.0.0.1', int(sys.argv[sys.argv.index('--port') + 1])), Handler).serve_forever()
 "#).unwrap();
         std::fs::set_permissions(&script, std::fs::Permissions::from_mode(0o755)).unwrap();
-        let server = Server::start(script, directory.path().join("model"), true).unwrap();
+        let server = Server::start(script, directory.path().join("model"), "", true).unwrap();
         let deadline = Instant::now() + Duration::from_secs(5);
         while server.state.load(Ordering::Acquire) == 0 {
             assert!(Instant::now() < deadline);

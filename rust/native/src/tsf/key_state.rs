@@ -522,6 +522,7 @@ pub struct Entry {
     pub(super) composing: Option<unsafe extern "C" fn(*mut c_void) -> i32>,
     pub(super) toggle: Option<unsafe extern "C" fn(*mut c_void, *mut c_void)>,
     pub(super) handle: Option<unsafe extern "C" fn(*mut c_void, *mut c_void, u32, u16)>,
+    pub(super) up: Option<unsafe extern "C" fn(*mut c_void, *mut c_void, u32)>,
 }
 /// kind: 0=test down,1=down,2=test up,3=up. Return whether the key is consumed.
 /// Callbacks run with no state borrow; owner/context survive reentrant actions.
@@ -550,6 +551,16 @@ pub unsafe extern "C" fn meltype_tsf_key_event(
                 let down = s.book.down[key as usize];
                 if kind == 3 {
                     s.book.down[key as usize] = false;
+                }
+                drop(s);
+                // Key-up is forwarded to the core session once, only when the
+                // matching key-down was actually consumed by this service.
+                if kind == 3 && down {
+                    if let Some(c) = entry.as_ref().copied() {
+                        if let Some(up) = c.up {
+                            up(c.owner, context, key);
+                        }
+                    }
                 }
                 return down;
             }

@@ -1080,6 +1080,216 @@ pub unsafe extern "C" fn meltype_reconvert_selection(
     result
 }
 /// # Safety
+/// handle must be a live session token. Calls for one session must be serialized.
+#[no_mangle]
+pub unsafe extern "C" fn meltype_handle_key_up(
+    handle: *mut c_void,
+    vk: i32,
+    ch: i32,
+    modifiers: i32,
+) -> *mut c_char {
+    run(handle, |s| s.key_up(vk, ch, modifiers))
+}
+#[no_mangle]
+pub extern "C" fn meltype_async_enabled(handle: *mut c_void) -> i32 {
+    sessions()
+        .lock()
+        .ok()
+        .and_then(|all| {
+            all.get(&(handle as usize))
+                .map(|s| s.settings.boolean("AsyncConversion"))
+        })
+        .unwrap_or(false) as i32
+}
+
+#[no_mangle]
+pub extern "C" fn meltype_begin_async_from_session(handle: *mut c_void) -> u64 {
+    let Ok(mut all) = sessions().lock() else {
+        return 0;
+    };
+    let Some(session) = all.get_mut(&(handle as usize)) else {
+        return 0;
+    };
+    let reading = session.reading();
+    let id = session.begin_async_conversion(&reading, "");
+    let reading = reading.clone();
+    let key = handle as usize;
+    drop(all);
+    // Prototype producer: the bundled/user dictionary is consulted off the
+    // input thread. A real host can call meltype_complete_async_conversion
+    // with an external engine result instead.
+    std::thread::spawn(move || {
+        std::thread::sleep(std::time::Duration::from_millis(10));
+        let Ok(mut all) = sessions().lock() else {
+            return;
+        };
+        let Some(session) = all.get_mut(&key) else {
+            return;
+        };
+        let Some(ac) = session.async_conversion() else {
+            return;
+        };
+        if ac.id != id {
+            return;
+        }
+        let candidates = session.dictionary_candidates(&reading);
+        session.complete_async_conversion(id, candidates);
+    });
+    id
+}
+
+#[no_mangle]
+pub extern "C" fn meltype_async_can_begin(handle: *mut c_void) -> i32 {
+    sessions()
+        .lock()
+        .ok()
+        .and_then(|all| all.get(&(handle as usize)).map(|s| !s.raw().is_empty()))
+        .unwrap_or(false) as i32
+}
+
+#[no_mangle]
+pub extern "C" fn meltype_async_ready(handle: *mut c_void) -> i32 {
+    sessions()
+        .lock()
+        .ok()
+        .and_then(|all| {
+            all.get(&(handle as usize)).map(|s| {
+                s.async_conversion().is_some_and(|ac| {
+                    ac.phase == meltype_core::session::AsyncConversionPhase::Ready
+                })
+            })
+        })
+        .unwrap_or(false) as i32
+}
+
+#[no_mangle]
+pub extern "C" fn meltype_async_pending(handle: *mut c_void) -> i32 {
+    sessions()
+        .lock()
+        .ok()
+        .and_then(|all| {
+            all.get(&(handle as usize))
+                .map(|s| s.async_conversion().is_some())
+        })
+        .unwrap_or(false) as i32
+}
+
+/// Apply a ready async result and return the updated SessionResult JSON.
+#[no_mangle]
+pub extern "C" fn meltype_poll_async_conversion(handle: *mut c_void) -> *mut c_char {
+    run(handle, |session| {
+        if let Some(ac) = session.async_conversion() {
+            if ac.phase == meltype_core::session::AsyncConversionPhase::Ready {
+                let reading = ac.reading.clone();
+                let candidates = ac.candidates.first().cloned().unwrap_or_default();
+                session.try_apply_async_conversion(&reading, candidates);
+            }
+        }
+        session.result(true)
+    })
+}
+
+/// # Safety
+/// reading/context, when non-null, are valid NUL-terminated UTF-8.
+#[no_mangle]
+pub unsafe extern "C" fn meltype_begin_async_conversion(
+    handle: *mut c_void,
+    reading: *const c_char,
+    context: *const c_char,
+) -> u64 {
+    let Some(reading) = read(reading) else {
+        return 0;
+    };
+    let context = read(context).unwrap_or_default();
+    sessions()
+        .lock()
+        .ok()
+        .and_then(|mut all| {
+            all.get_mut(&(handle as usize))
+                .map(|s| s.begin_async_conversion(&reading, &context))
+        })
+        .unwrap_or(0)
+}
+/// # Safety
+/// candidates is a JSON array of strings. Returns 1 on success.
+#[no_mangle]
+pub unsafe extern "C" fn meltype_complete_async_conversion(
+    handle: *mut c_void,
+    id: u64,
+    candidates: *const c_char,
+) -> i32 {
+    let Some(candidates) =
+        read(candidates).and_then(|text| serde_json::from_str::<Vec<String>>(&text).ok())
+    else {
+        return 0;
+    };
+    sessions()
+        .lock()
+        .ok()
+        .and_then(|mut all| {
+            all.get_mut(&(handle as usize))
+                .map(|s| s.complete_async_conversion(id, candidates))
+        })
+        .unwrap_or(false) as i32
+}
+#[no_mangle]
+pub extern "C" fn meltype_cancel_async_conversion(handle: *mut c_void) -> i32 {
+    sessions()
+        .lock()
+        .ok()
+        .and_then(|mut all| {
+            all.get_mut(&(handle as usize)).map(|s| {
+                s.cancel_async_conversion();
+                true
+            })
+        })
+        .unwrap_or(false) as i32
+}
+/// Returns 0 idle, 1 pending, 2 ready, 3 cancelled, 4 timed out.
+#[no_mangle]
+pub extern "C" fn meltype_timeout_async_conversion(handle: *mut c_void, now_ms: u64) -> i32 {
+    sessions()
+        .lock()
+        .ok()
+        .and_then(|mut all| {
+            all.get_mut(&(handle as usize))
+                .and_then(|s| s.timeout_async_conversion(now_ms))
+        })
+        .map_or(0, |phase| match phase {
+            meltype_core::session::AsyncConversionPhase::Idle => 0,
+            meltype_core::session::AsyncConversionPhase::Pending => 1,
+            meltype_core::session::AsyncConversionPhase::Ready => 2,
+            meltype_core::session::AsyncConversionPhase::Cancelled => 3,
+            meltype_core::session::AsyncConversionPhase::TimedOut => 4,
+        })
+}
+/// # Safety
+/// reading and candidates are valid NUL-terminated UTF-8; candidates is a JSON
+/// array of strings. Returns 1 when the result was applied.
+#[no_mangle]
+pub unsafe extern "C" fn meltype_apply_async_conversion(
+    handle: *mut c_void,
+    reading: *const c_char,
+    candidates: *const c_char,
+) -> i32 {
+    let Some(reading) = read(reading) else {
+        return 0;
+    };
+    let Some(candidates) =
+        read(candidates).and_then(|text| serde_json::from_str::<Vec<String>>(&text).ok())
+    else {
+        return 0;
+    };
+    sessions()
+        .lock()
+        .ok()
+        .and_then(|mut all| {
+            all.get_mut(&(handle as usize))
+                .map(|s| s.try_apply_async_conversion(&reading, candidates))
+        })
+        .unwrap_or(false) as i32
+}
+/// # Safety
 /// before must be a valid NUL-terminated UTF-8 snapshot of text before the caret.
 #[no_mangle]
 pub unsafe extern "C" fn meltype_undo_commit(
@@ -1463,6 +1673,46 @@ mod tests {
                 meltype_set_application(std::ptr::null_mut(), std::ptr::null()),
                 -1
             );
+        }
+    }
+}
+
+#[cfg(test)]
+mod async_conversion_tests {
+    use super::*;
+    use std::time::Duration;
+
+    #[test]
+    fn async_dictionary_producer_reaches_poll_and_apply() {
+        unsafe {
+            let handle = meltype_create();
+            assert!(!handle.is_null());
+            for c in "hashi".chars() {
+                let pointer =
+                    meltype_handle_key(handle, 0, c as i32, 0, std::ptr::null(), std::ptr::null());
+                if !pointer.is_null() {
+                    libc::free(pointer.cast());
+                }
+            }
+            let id = meltype_begin_async_from_session(handle);
+            assert!(id > 0);
+            for _ in 0..50 {
+                if meltype_async_ready(handle) != 0 {
+                    break;
+                }
+                std::thread::sleep(Duration::from_millis(5));
+            }
+            assert!(meltype_async_ready(handle) != 0, "async result not ready");
+            let pointer = meltype_poll_async_conversion(handle);
+            assert!(!pointer.is_null());
+            let value: serde_json::Value =
+                serde_json::from_slice(CStr::from_ptr(pointer).to_bytes()).unwrap();
+            libc::free(pointer.cast());
+            assert_eq!(value["view"]["converting"], true);
+            assert!(value["view"]["candidates"]
+                .as_array()
+                .is_some_and(|c| !c.is_empty()));
+            meltype_destroy(handle);
         }
     }
 }

@@ -1,0 +1,12 @@
+[
+  { "name": "konnnichiha", "text": "konnnichiha", "expected": "こんにちは" },
+  { "name": "ohayougozaimasu", "text": "ohayougozaimasu", "expected": "おはようございます" },
+  { "name": "kyouhaiitenkidesu", "text": "kyouhaiitenkidesu", "expected": "きょうはいいてんきです" },
+  { "name": "toukyou", "text": "toukyou", "expected": "とうきょう" },
+  { "name": "hashi", "text": "hashi", "expected": "はし" },
+  { "name": "nihongonyuuryoku", "text": "nihongonyuuryoku", "expected": "にほんごにゅうりょく" },
+  { "name": "soreha", "text": "soreha", "expected": "それは" },
+  { "name": "ganbarimashou", "text": "ganbarimashou", "expected": "がんばりましょう" },
+  { "name": "arigatougozaimasu", "text": "arigatougozaimasu", "expected": "ありがとうございます" },
+  { "name": "tsukue", "text": "tsukue", "expected": "つくえ" }
+]

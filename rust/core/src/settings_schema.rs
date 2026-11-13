@@ -10,6 +10,8 @@ pub const OPTIONAL_BOOLEANS: &[&str] = &[
     "NumpadDirect",
     "MuhenkanKatakanaCycle",
     "SpaceAroundNumbers",
+    "SkkMode",
+    "AsyncConversion",
 ];
 
 pub fn metadata() -> &'static Value {
@@ -35,8 +37,8 @@ pub fn metadata() -> &'static Value {
                 }));
             }
         }
-        data["enums"]["AiModel"] = json!({"None":"使用しない","Zenz":"Zenz","Shunti":"shuntelligence","Jinen":"Jinen","Kanakanji":"kanakanji-edge"});
-        data["fields"].as_array_mut().unwrap().push(json!({"key":"AiModel","type":"AiModel","category":"1a. AI","label":"AIモデル","description":"使用しない・Zenz・Jinen・kanakanji-edge・shuntelligenceから選択します。導入とパスは選択したモデルだけ表示します。"}));
+        data["enums"]["AiModel"] = json!({"None":"使用しない","Zenz":"Zenz","Shunti":"shuntelligence","Jinen":"Jinen","Kanakanji":"kanakanji-edge","Gamma":"Gamma","Qwen":"Qwen","Shion":"Shion"});
+        data["fields"].as_array_mut().unwrap().push(json!({"key":"AiModel","type":"AiModel","category":"1a. AI","label":"AIモデル","description":"使用しない・Zenz・Jinen・kanakanji-edge・shuntelligence・Gamma・Qwen・Shionから選択します。導入とパスは選択したモデルだけ表示します。"}));
         data
     })
 }
@@ -77,7 +79,7 @@ pub fn schema() -> Value {
     }
     properties.insert(
         "AiModel".into(),
-        json!({"type":"string","enum":["None","Zenz","Shunti"],"title":"AIモデル"}),
+        json!({"type":"string","enum":["None","Zenz","Shunti","Jinen","Kanakanji","Gamma","Qwen","Shion"],"title":"AIモデル"}),
     );
     properties.insert(
         "UseShunti".into(),

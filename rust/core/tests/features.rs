@@ -505,6 +505,14 @@ fn kana_layouts_use_prefix_and_thumb_shift() {
 }
 
 #[test]
+fn reading_lattice_keeps_mixed_japanese_and_english_boundaries() {
+    let mut s = Session::default();
+    s.settings.set("ReadingLattice", json!(true)).unwrap();
+    type_text(&mut s, "kyouhagoogledekensaku");
+    assert_eq!(s.display(false), "きょうはgoogleでけんさく");
+}
+
+#[test]
 fn sky_layout_maps_physical_keys_to_romaji() {
     let mut s = Session::default();
     s.settings.set("RomajiLayout", json!("Sky")).unwrap();

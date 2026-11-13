@@ -86,6 +86,39 @@ pub struct Preferences {
     pub user_dictionary: BTreeMap<String, Vec<String>>,
 }
 
+/// A recorded key event for replay and NICOLA press/release handling.
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct KeyEvent {
+    pub vk: i32,
+    pub ch: i32,
+    pub modifiers: i32,
+    pub is_up: bool,
+    pub now_ms: u64,
+}
+
+/// Async conversion request state machine (feature 3).
+#[derive(Debug, Clone, Copy, Serialize, Deserialize, PartialEq, Eq)]
+#[serde(rename_all = "snake_case")]
+pub enum AsyncConversionPhase {
+    Idle,
+    Pending,
+    Ready,
+    Cancelled,
+    TimedOut,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct AsyncConversion {
+    pub id: u64,
+    pub reading: String,
+    pub context: String,
+    pub requested_ms: u64,
+    pub phase: AsyncConversionPhase,
+    pub candidates: Vec<Vec<String>>,
+    pub error: Option<String>,
+}
+
 /// One converter segment. Reading boundaries are Unicode scalar boundaries.
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct Clause {
@@ -214,6 +247,14 @@ pub struct Session {
     key_time_ms: u64,
     interval_last_ms: Option<u64>,
     key_intervals: std::collections::VecDeque<serde_json::Value>,
+    key_events: Vec<KeyEvent>,
+    kana_engine: Option<crate::kana_layout::Engine>,
+    kana_engine_layout: crate::kana_layout::Layout,
+    async_conversion: Option<AsyncConversion>,
+    next_async_conversion_id: u64,
+    skk: crate::skk::State,
+    skk_dictionary: crate::skk::Dictionary,
+    skk_user: crate::skk::Dictionary,
     direct_pending: String,
     direct_last_key_ms: Option<u64>,
     #[cfg(feature = "filesystem")]
@@ -278,6 +319,14 @@ impl Default for Session {
             key_time_ms: 0,
             interval_last_ms: None,
             key_intervals: Default::default(),
+            key_events: Vec::new(),
+            kana_engine: None,
+            kana_engine_layout: crate::kana_layout::Layout::Jis,
+            async_conversion: None,
+            next_async_conversion_id: 1,
+            skk: Default::default(),
+            skk_dictionary: crate::skk::Dictionary::new(),
+            skk_user: crate::skk::Dictionary::new(),
             direct_pending: String::new(),
             direct_last_key_ms: None,
             #[cfg(feature = "filesystem")]
@@ -307,6 +356,10 @@ impl Session {
         let profile_dictionary =
             Dictionary::profile(&store.directory.join("dictionaries"), custom_romaji.clone());
         hook_session.set_model(state.prefix_model.clone());
+        let skk_directory = store.directory.join("dictionaries");
+        let skk_user = crate::skk::Dictionary::load_user(&skk_directory);
+        let mut skk_dictionary = crate::skk::Dictionary::load_dir(&skk_directory);
+        skk_dictionary.merge_front(&skk_user);
         Ok(Self {
             profile_dictionary,
             candidate_sources,
@@ -321,6 +374,8 @@ impl Session {
             selected_prediction: -1,
             custom_romaji,
             storage_error,
+            skk_dictionary,
+            skk_user,
             ..Default::default()
         })
     }
@@ -375,6 +430,10 @@ impl Session {
                     &store.directory.join("dictionaries"),
                     self.custom_romaji.clone(),
                 );
+                let skk_directory = store.directory.join("dictionaries");
+                self.skk_user = crate::skk::Dictionary::load_user(&skk_directory);
+                self.skk_dictionary = crate::skk::Dictionary::load_dir(&skk_directory);
+                self.skk_dictionary.merge_front(&self.skk_user);
             }
         }
         Ok(())
@@ -771,7 +830,17 @@ impl Session {
         {
             return raw.into();
         }
-        if Dictionary::uses_scored(self.settings.boolean("ScoredSegmentation")) {
+        if self.settings.boolean("ReadingLattice") {
+            dictionary.composition_lattice_with_learning(
+                raw,
+                final_input,
+                &self.before,
+                &self.after,
+                level,
+                &self.preferences.english,
+                &self.preferences.user_dictionary,
+            )
+        } else if Dictionary::uses_scored(self.settings.boolean("ScoredSegmentation")) {
             dictionary.composition_scored_units(
                 raw,
                 final_input,
@@ -790,6 +859,50 @@ impl Session {
         }
         self.kana_text.clear();
         let layout = crate::kana_layout::Layout::parse(self.settings.text("KanaLayout"));
+        if layout != crate::kana_layout::Layout::Jis {
+            // Replay the full down/up event stream so NICOLA hold state and
+            // thumb taps are reflected exactly as they were typed.
+            let mut engine = crate::kana_layout::Engine::new(layout);
+            for event in &self.key_events {
+                if event.is_up {
+                    let _ = engine.up(event.vk);
+                    continue;
+                }
+                let ch = char::from_u32(event.ch as u32).unwrap_or(' ');
+                let fallback = match ch {
+                    '-' => 'ー',
+                    ',' => '、',
+                    '.' => '。',
+                    '[' => '「',
+                    ']' => '」',
+                    _ => ch,
+                };
+                let Some(stroke) = engine.down(event.vk, event.modifiers & 1 != 0, event.now_ms)
+                else {
+                    self.kana_text.push(fallback);
+                    continue;
+                };
+                for _ in 0..stroke.remove_last {
+                    self.kana_text.pop();
+                }
+                for kana in stroke.kana.chars() {
+                    if "゛゜".contains(kana) {
+                        if let Some(combined) = self
+                            .kana_text
+                            .chars()
+                            .next_back()
+                            .and_then(|previous| crate::kana::combine(previous, kana))
+                        {
+                            self.kana_text.pop();
+                            self.kana_text.push(combined);
+                            continue;
+                        }
+                    }
+                    self.kana_text.push(kana);
+                }
+            }
+            return;
+        }
         let mut engine = crate::kana_layout::Engine::new(layout);
         for (vk, ch, shift) in &self.typed_keys {
             // Non-layout keys still pass through CompositionText.Symbol in the
@@ -802,7 +915,7 @@ impl Session {
                 ']' => '」',
                 _ => *ch,
             };
-            let Some(stroke) = engine.down(*vk, *shift) else {
+            let Some(stroke) = engine.down(*vk, *shift, 0) else {
                 self.kana_text.push(fallback);
                 continue;
             };
@@ -828,21 +941,43 @@ impl Session {
     }
     fn kana_display(&self, final_input: bool) -> String {
         let _memory = self.language_scope();
-        self.dictionary().composition_kana(
-            &self.raw,
-            &self.kana_text,
-            final_input,
-            &self.before,
-            &self.after,
-            if self.balanced_override {
-                "Balanced"
-            } else {
-                self.settings.text("DetectionLevel")
-            },
-        )
+        let level = if self.balanced_override {
+            "Balanced"
+        } else {
+            self.settings.text("DetectionLevel")
+        };
+        if self.settings.boolean("ReadingLattice") {
+            self.dictionary().composition_lattice_kana(
+                &self.raw,
+                &self.kana_text,
+                final_input,
+                &self.before,
+                &self.after,
+                level,
+                &self.preferences.english,
+                &self.preferences.user_dictionary,
+            )
+        } else {
+            self.dictionary().composition_kana(
+                &self.raw,
+                &self.kana_text,
+                final_input,
+                &self.before,
+                &self.after,
+                level,
+            )
+        }
     }
     fn uses_kana(&self) -> bool {
         self.settings.text("InputStyle") == "Kana"
+    }
+    fn looks_like_path(text: &str) -> bool {
+        text.starts_with('/')
+            && text.len() > 1
+            && text[1..].chars().any(|c| c == '/' || c == '.')
+            && text
+                .chars()
+                .all(|c| c.is_ascii_alphanumeric() || "/._-~\\".contains(c))
     }
     fn romaji_fix(&self) -> Option<crate::typo::Fix> {
         if self.v130.enter_as_shown
@@ -900,13 +1035,20 @@ impl Session {
         if let Some(text) = &self.explicit {
             return text.clone();
         }
+        if self.skk.is_active() {
+            return self.skk.display();
+        }
         if !self.clauses.is_empty() {
             return self.clauses.iter().map(Clause::text).collect();
         }
         if let Some(text) = self.candidates.get(self.selected) {
             return text.clone();
         }
-        if self.v130.slash_at_start && self.raw.starts_with('/') && self.function_key == 0 {
+        if self.v130.slash_at_start
+            && self.raw.starts_with('/')
+            && self.function_key == 0
+            && !Self::looks_like_path(&self.raw)
+        {
             return self
                 .punctuate(self.detect_composition(&format!("・{}", &self.raw[1..]), final_input));
         }
@@ -1187,6 +1329,28 @@ impl Session {
     }
     pub fn result(&self, consumed: bool) -> SessionResult {
         let _romaji = romaji::Scope::new(self.custom_romaji.clone());
+        if self.skk.is_active() {
+            return SessionResult {
+                consumed,
+                selection_expect: None,
+                commits: vec![],
+                view: Some(View {
+                    text: self.skk.display(),
+                    converting: self.skk.mode == crate::skk::Mode::Convert,
+                    selected_index: self.skk.selected,
+                    selected_clause: 0,
+                    hint: String::new(),
+                    candidates: self.skk.candidates.clone(),
+                    clauses: vec![],
+                    meaning: None,
+                    suggestion: None,
+                    predictions: vec![],
+                    selected_prediction: -1,
+                    typed: None,
+                    notes: vec![],
+                }),
+            };
+        }
         let preview = self.preview_candidates();
         let language_suggestion = self.language_suggestion();
         let prediction_entries = self.prediction_entries();
@@ -1314,6 +1478,7 @@ impl Session {
         self.raw.clear();
         self.edited_units = None;
         self.typed_keys.clear();
+        self.key_events.clear();
         self.candidates.clear();
         self.clauses.clear();
         self.live_clauses.clear();
@@ -1326,6 +1491,9 @@ impl Session {
         self.balanced_override = false;
         self.case_cycle = 0;
         self.kana_text.clear();
+        self.kana_engine = None;
+        self.async_conversion = None;
+        self.skk.reset();
     }
     /// A host such as IBus has already committed its displayed preedit on
     /// focus loss. Record that exact text, without finalizing pending letters,
@@ -1384,6 +1552,19 @@ impl Session {
         result.consumed = false;
         result
     }
+    fn commit_skk_text(&mut self, text: String) -> SessionResult {
+        self.reset();
+        self.before.push_str(&text);
+        let mut result = self.result(true);
+        result.commits.push(TextEdit {
+            text,
+            delete_before: 0,
+            caret_back: 0,
+            expect: None,
+        });
+        result
+    }
+
     pub fn commit(&mut self) -> SessionResult {
         self.commit_with_spacing(self.settings.boolean("SpaceAroundEnglish"))
     }
@@ -2567,6 +2748,13 @@ impl Session {
             return self.result(false);
         }
         self.record_key_interval(vk, now_ms);
+        self.key_events.push(KeyEvent {
+            vk,
+            ch,
+            modifiers,
+            is_up: false,
+            now_ms,
+        });
         self.key_time_ms = now_ms;
         if self.direct && modifiers & 15 != 0 && !self.direct_pending.is_empty() {
             self.direct_pending.clear();
@@ -2575,6 +2763,17 @@ impl Session {
         }
         let timeout_edit = self.direct_timeout(now_ms);
         let c = char::from_u32(ch as u32).unwrap();
+        if self.settings.boolean("SkkMode") && !self.private && modifiers & 14 == 0 {
+            match self.skk.handle_key(ch, &self.skk_dictionary) {
+                crate::skk::Action::Pass => {}
+                crate::skk::Action::Consumed => return self.result(true),
+                crate::skk::Action::Commit(text) => return self.commit_skk_text(text),
+                crate::skk::Action::Register { reading, text } => {
+                    self.skk_register(&reading, &text);
+                    return self.commit_skk_text(text);
+                }
+            }
+        }
         // SKY配列は、物理キーをローマ字の綴りへ読み替える。
         if !self.uses_kana() && self.settings.text("RomajiLayout") == "Sky" {
             if let Some(mapped) = crate::kana_layout::sky(vk) {
@@ -2587,18 +2786,28 @@ impl Session {
             }
         }
         // かな配列のキーは、通常のローマ字経路へ流さず、配列の表で処理する。
-        // 共通Coreはキーアップを受け取らないため、親指キーは「先に押してから文字」の順だけ対応する。
         if self.uses_kana() {
             let layout = crate::kana_layout::Layout::parse(self.settings.text("KanaLayout"));
+            let shift = modifiers & 1 != 0;
             if layout != crate::kana_layout::Layout::Jis {
-                let shift = modifiers & 1 != 0;
-                let mut engine = crate::kana_layout::Engine::new(layout);
-                for (prior_vk, _ch, prior_shift) in &self.typed_keys {
-                    let _ = engine.down(*prior_vk, *prior_shift);
+                if self.kana_engine.is_none() || self.kana_engine_layout != layout {
+                    let mut engine = crate::kana_layout::Engine::new(layout);
+                    // replay prior events except current down to rebuild hold state
+                    let prior = self.key_events.len().saturating_sub(1);
+                    for ev in &self.key_events[..prior] {
+                        if ev.is_up {
+                            let _ = engine.up(ev.vk);
+                        } else {
+                            let _ = engine.down(ev.vk, ev.modifiers & 1 != 0, ev.now_ms);
+                        }
+                    }
+                    self.kana_engine = Some(engine);
+                    self.kana_engine_layout = layout;
                 }
-                if let Some(stroke) = engine.down(vk, shift) {
+                let stroke = self.kana_engine.as_mut().unwrap().down(vk, shift, now_ms);
+                if let Some(stroke) = stroke {
                     self.typed_keys.push((vk, c, shift));
-                    if !stroke.kana.is_empty() {
+                    if !stroke.kana.is_empty() || stroke.remove_last > 0 {
                         self.raw.push(c);
                     }
                     self.refresh_kana();
@@ -2642,6 +2851,74 @@ impl Session {
         }
         result
     }
+
+    /// Key-up event. Records the event for replay; composition logic is primarily key-down driven.
+    pub fn key_up(&mut self, vk: i32, ch: i32, modifiers: i32) -> SessionResult {
+        let now_ms = self.clock.elapsed().as_millis().min(u64::MAX as u128) as u64;
+        self.key_up_at(vk, ch, modifiers, now_ms)
+    }
+
+    /// Monotonic milliseconds, for hosts with an event clock and deterministic replay tests.
+    pub fn key_up_at(&mut self, vk: i32, ch: i32, modifiers: i32, now_ms: u64) -> SessionResult {
+        self.key_events.push(KeyEvent {
+            vk,
+            ch,
+            modifiers,
+            is_up: true,
+            now_ms,
+        });
+        self.key_time_ms = now_ms;
+        // NICOLA/かな配列: 親指キーのタップ(無変換/変換)を押下・解放順で判定
+        if self.uses_kana() {
+            let layout = crate::kana_layout::Layout::parse(self.settings.text("KanaLayout"));
+            if layout != crate::kana_layout::Layout::Jis {
+                if self.kana_engine.is_none() || self.kana_engine_layout != layout {
+                    let mut engine = crate::kana_layout::Engine::new(layout);
+                    for ev in &self.key_events[..self.key_events.len().saturating_sub(1)] {
+                        if ev.is_up {
+                            let _ = engine.up(ev.vk);
+                        } else {
+                            let _ = engine.down(ev.vk, ev.modifiers & 1 != 0, ev.now_ms);
+                        }
+                    }
+                    self.kana_engine = Some(engine);
+                    self.kana_engine_layout = layout;
+                }
+                if let Some(tap_vk) = self.kana_engine.as_mut().unwrap().up(vk) {
+                    // タップ -> 無変換/変換の通常キー動作として処理
+                    return self.key_inner(tap_vk, 0, modifiers);
+                }
+            }
+        }
+        self.result(false)
+    }
+
+    /// Recorded key events in order, for replay.
+    pub fn key_events(&self) -> &[KeyEvent] {
+        &self.key_events
+    }
+
+    /// Replay recorded key events into a fresh-equivalent session state.
+    pub fn replay_key_events(&mut self) -> Vec<SessionResult> {
+        let events = self.key_events.clone();
+        self.reset();
+        self.key_events.clear();
+        let mut results = Vec::with_capacity(events.len());
+        for event in events {
+            let result = if event.is_up {
+                self.key_up_at(event.vk, event.ch, event.modifiers, event.now_ms)
+            } else {
+                self.key_at(event.vk, event.ch, event.modifiers, event.now_ms)
+            };
+            // key_at/key_up_at record again; keep the single replayed event.
+            if self.key_events.last() != Some(&event) {
+                self.key_events.push(event);
+            }
+            results.push(result);
+        }
+        results
+    }
+
     fn key_inner(&mut self, vk: i32, ch: i32, modifiers: i32) -> SessionResult {
         if let Some(result) = self.detect_direct(vk, ch, modifiers) {
             return result;
@@ -3711,5 +3988,151 @@ impl Session {
                 before: self.before.clone(),
             },
         );
+    }
+}
+
+/// Async conversion management (feature 3).
+impl Session {
+    pub fn begin_async_conversion(&mut self, reading: &str, context: &str) -> u64 {
+        let id = self.next_async_conversion_id;
+        self.next_async_conversion_id += 1;
+        self.async_conversion = Some(AsyncConversion {
+            id,
+            reading: reading.to_string(),
+            context: context.to_string(),
+            requested_ms: self.clock.elapsed().as_millis().min(u64::MAX as u128) as u64,
+            phase: AsyncConversionPhase::Pending,
+            candidates: Vec::new(),
+            error: None,
+        });
+        id
+    }
+
+    pub fn cancel_async_conversion(&mut self) {
+        if let Some(ac) = self.async_conversion.as_mut() {
+            ac.phase = AsyncConversionPhase::Cancelled;
+        }
+        self.async_conversion = None;
+    }
+
+    pub fn async_conversion(&self) -> Option<&AsyncConversion> {
+        self.async_conversion.as_ref()
+    }
+
+    /// Mark a pending request as complete. Returns false for an unknown or
+    /// already-finished request so stale replies cannot replace newer input.
+    pub fn complete_async_conversion(&mut self, id: u64, candidates: Vec<String>) -> bool {
+        if let Some(ac) = self.async_conversion.as_mut() {
+            if ac.id == id
+                && matches!(
+                    ac.phase,
+                    AsyncConversionPhase::Pending | AsyncConversionPhase::Ready
+                )
+            {
+                ac.candidates = vec![candidates];
+                ac.phase = AsyncConversionPhase::Ready;
+                return true;
+            }
+        }
+        false
+    }
+
+    /// Advance a pending request to TimedOut after `ImeTimeoutMs` (default
+    /// 300ms). Returns the current phase, if a request exists.
+    pub fn timeout_async_conversion(&mut self, now_ms: u64) -> Option<AsyncConversionPhase> {
+        let configured = self.settings.integer("ImeTimeoutMs");
+        let timeout = if configured > 0 {
+            configured as u64
+        } else {
+            300
+        };
+        if let Some(ac) = self.async_conversion.as_mut() {
+            if ac.phase == AsyncConversionPhase::Pending
+                && now_ms.saturating_sub(ac.requested_ms) >= timeout
+            {
+                ac.phase = AsyncConversionPhase::TimedOut;
+            }
+            return Some(ac.phase);
+        }
+        None
+    }
+
+    pub fn try_apply_async_conversion(&mut self, reading: &str, candidates: Vec<String>) -> bool {
+        let Some(ac) = self.async_conversion.as_ref() else {
+            return false;
+        };
+        if !matches!(
+            ac.phase,
+            AsyncConversionPhase::Pending | AsyncConversionPhase::Ready
+        ) || ac.reading != reading
+        {
+            return false;
+        }
+        self.async_conversion = None;
+        let clause = Clause::new(reading.to_string(), candidates);
+        self.begin_clauses(vec![clause])
+    }
+
+    /// Candidates for an SKK reading (with or without okurigana marker).
+    /// Candidates the bundled/user dictionary can produce for a reading.
+    /// Used by the async conversion prototype when no external engine is attached.
+    pub fn dictionary_candidates(&self, reading: &str) -> Vec<String> {
+        self.local_clause(reading.to_owned()).candidates
+    }
+
+    pub fn skk_lookup(&self, reading: &str) -> &[String] {
+        self.skk_dictionary.lookup(reading)
+    }
+
+    /// Register a word in the in-memory SKK dictionary and persist the user
+    /// dictionary when a filesystem store is available.
+    pub fn skk_register(&mut self, reading: &str, candidate: &str) -> bool {
+        if reading.is_empty() || candidate.is_empty() {
+            return false;
+        }
+        self.skk_dictionary.register(reading, candidate);
+        self.skk_user.register(reading, candidate);
+        #[cfg(feature = "filesystem")]
+        if let Some(store) = &self.store {
+            let path = store
+                .directory
+                .join("dictionaries")
+                .join("skk-user-jisyo.txt");
+            if self.skk_user.save(&path).is_err() {
+                return false;
+            }
+        }
+        true
+    }
+
+    /// SKK-related operations
+    pub fn skk_mode_toggle(&mut self) {
+        self.skk.mode = match self.skk.mode {
+            crate::skk::Mode::Direct => crate::skk::Mode::Preedit,
+            crate::skk::Mode::Preedit => crate::skk::Mode::Okurigana,
+            crate::skk::Mode::Okurigana => crate::skk::Mode::Convert,
+            crate::skk::Mode::Convert => crate::skk::Mode::Register,
+            crate::skk::Mode::Register => crate::skk::Mode::Direct,
+        };
+    }
+
+    pub fn skk_key_input(&mut self, _vk: i32, ch: i32) {
+        // Minimal SKK: space converts, uppercase continues reading
+        if self.skk.mode == crate::skk::Mode::Direct && (0x41..=0x5A).contains(&ch) {
+            // Uppercase romaji in direct mode starts SKK preedit
+            self.skk.mode = crate::skk::Mode::Preedit;
+            self.skk.reading = std::char::from_u32(ch as u32).unwrap_or('?').to_string();
+            self.skk.pending_romaji = std::char::from_u32(ch as u32).unwrap_or('?').to_string();
+        } else if self.skk.mode == crate::skk::Mode::Preedit && ch == 0x20 {
+            // Space converts
+            self.skk.mode = crate::skk::Mode::Convert;
+            self.skk.candidates = self.skk_dictionary.lookup(&self.skk.reading).to_vec();
+            self.skk.selected = 0;
+        } else if self.skk.mode == crate::skk::Mode::Okurigana && ch == 0x20 {
+            // Space finalizes okurigana
+            self.skk.mode = crate::skk::Mode::Convert;
+            self.skk.candidates = self.skk_dictionary.lookup(&self.skk.lookup_key()).to_vec();
+            self.skk.selected = 0;
+        }
     }
 }

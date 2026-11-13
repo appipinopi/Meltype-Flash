@@ -45,6 +45,9 @@ pub fn key(family: AiModel) -> &'static str {
         AiModel::Jinen => "JinenModelVariant",
         AiModel::Kanakanji => "KanakanjiModelVariant",
         AiModel::Shunti => "ShuntiModelVariant",
+        AiModel::Gamma => "GammaModelVariant",
+        AiModel::Qwen => "QwenModelVariant",
+        AiModel::Shion => "ShionModelVariant",
         AiModel::None => "",
     }
 }
@@ -54,6 +57,9 @@ pub fn selected(settings: &Settings, family: AiModel) -> Option<&'static Model> 
         AiModel::Jinen => "jinen-v2-small-q5_k_m",
         AiModel::Kanakanji => "kanakanji-edge-33m-q8_0",
         AiModel::Shunti => "shunti-v7-s8p",
+        AiModel::Gamma => "gamma-3-1b-q4_k_m",
+        AiModel::Qwen => "qwen2.5-0.5b-instruct-q4_k_m",
+        AiModel::Shion => "shion-qwen2.5-0.5b-q4_k_m",
         AiModel::None => return None,
     };
     find(settings.text(key(family)))

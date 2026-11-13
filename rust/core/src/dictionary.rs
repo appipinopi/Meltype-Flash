@@ -6,6 +6,8 @@ use std::{
     sync::{Arc, OnceLock},
 };
 mod composition;
+mod lattice;
+mod packed_words;
 mod scored;
 
 #[derive(Clone)]
@@ -241,6 +243,7 @@ impl Dictionary {
                 kana_words: Arc::new(
                     crate::system_data::text("readings.txt")
                         .lines()
+                        .chain(crate::system_data::text("readings-extra.txt").lines())
                         .filter(|l| !l.starts_with('#'))
                         .filter_map(|l| l.split_whitespace().next())
                         .map(str::to_owned)
@@ -1379,6 +1382,10 @@ impl Dictionary {
     }
     pub fn known_english(&self, raw: &str) -> bool {
         self.is_english(raw) || self.spell_word(raw)
+    }
+    /// english-readable.txt の「ローマ字としても読めるが英語で打つことの多い語」。
+    pub fn is_readable_english(&self, raw: &str) -> bool {
+        self.readable_english.contains(&raw.to_ascii_lowercase())
     }
     pub fn is_english(&self, raw: &str) -> bool {
         self.english.contains(&raw.to_ascii_lowercase())

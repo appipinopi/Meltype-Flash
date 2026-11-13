@@ -18,6 +18,9 @@ fn value(address: u64) -> &'static str {
 pub(crate) fn text(name: &'static str) -> &'static str {
     value(archive().get(name).expect("required system dictionary"))
 }
+pub(crate) fn try_text(name: &'static str) -> Option<&'static str> {
+    archive().get(name).map(value)
+}
 #[cfg(test)]
 mod tests {
     #[test]

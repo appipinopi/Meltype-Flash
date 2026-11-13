@@ -9,7 +9,7 @@
 
 本家 [Meltype](https://github.com/yksr-melt/Meltype) を参照して開発している、Rust版の日本語入力です。
 Windows・Mac・Linux・Android・ChromeOS・iOSで共通の入力コアを使います。
-**Flash 1.1.6です。環境によって変換エンジン・設定・学習・操作が異なります。本家C#版と全機能・精度が同じことを示す版番号ではありません。**
+**Flash 1.1.7です。環境によって変換エンジン・設定・学習・操作が異なります。本家C#版と全機能・精度が同じことを示す版番号ではありません。**
 
 <p align="center">
 <a href="https://github.com/appipinopi/Meltype-Flash/releases/latest"><b>ダウンロード</b></a> ·
@@ -52,8 +52,8 @@ Windows・Mac・Linux・Android・ChromeOS・iOSで共通の入力コアを使�
 </p>
 <!-- meltype-flash-os-navigation:end -->
 
-このソースに対応するリリースは [v1.1.6](https://github.com/appipinopi/Meltype-Flash/releases/tag/flash-v1.1.6) です。
-版番号は`1.1.6`です。かな入力の配列（JISかな・月・花・NICOLA・中指NICOLA・TRON）とSKY配列を追加し、打鍵数を設定画面へ移動しました。表示設定でDiscord表示、打鍵数でトレイ表示を切り替えられます。Windowsの「なう」の再生中曲候補とIMEの「あ / A」表示も含みます。今回はリリースCIで上流C#・前版・今回のRustを比較するベンチマークを実行し、結果をリリース本文へ掲載します。[変更と確認範囲](rust/RELEASE-NOTES.md)を参照してください。iOSの実機導入には署名が必要です。AIモデルは本体と別ダウンロードです。公開状況と配布物は上のリリースページで確認してください。
+このソースに対応するリリースは [v1.1.7](https://github.com/appipinopi/Meltype-Flash/releases/tag/flash-v1.1.7) です。
+版番号は`1.1.7`です。ChromeOSの半角/全角キーを修正し、非同期変換（Windows TSF・IBus・macOS）、SKKライク入力の設定、ReadingLatticeの精度改善、Gamma・Qwen・ShionのAIモデル追加、ZenzaiのGPU設定を含みます。今回はリリースCIで上流C#・前版・今回のRustを比較するベンチマークを実行し、結果をリリース本文へ掲載します。[変更と確認範囲](rust/RELEASE-NOTES.md)を参照してください。iOSの実機導入には署名が必要です。AIモデルは本体と別ダウンロードです。公開状況と配布物は上のリリースページで確認してください。
 [配布ファイルの選び方](rust/DOWNLOADS.md) で、OSとCPUに合うファイルを選んでください。
 ZIP・APK・IPAは互換ではありません。本家のC#版の配布ファイルをFlash用として案内していません。
 

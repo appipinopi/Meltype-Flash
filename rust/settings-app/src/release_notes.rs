@@ -10,6 +10,8 @@ use std::path::{Path, PathBuf};
 
 pub const VERSION: &str = env!("CARGO_PKG_VERSION");
 const FILE: &str = "release-notes.json";
+const JA_1_1_7: &str = include_str!("../../release-notes/1.1.7.ja.md");
+const EN_1_1_7: &str = include_str!("../../release-notes/1.1.7.en.md");
 const JA_1_1_6: &str = include_str!("../../release-notes/1.1.6.ja.md");
 const EN_1_1_6: &str = include_str!("../../release-notes/1.1.6.en.md");
 const JA_1_1_5: &str = include_str!("../../release-notes/1.1.5.ja.md");
@@ -24,6 +26,7 @@ const EN_1_1_2: &str = include_str!("../../release-notes/1.1.2.en.md");
 /// その版のリリースノート。同梱していなければ None。
 pub fn notes(version: &str, english: bool) -> Option<&'static str> {
     match version {
+        "1.1.7" => Some(if english { EN_1_1_7 } else { JA_1_1_7 }),
         "1.1.6" => Some(if english { EN_1_1_6 } else { JA_1_1_6 }),
         "1.1.5" => Some(if english { EN_1_1_5 } else { JA_1_1_5 }),
         "1.1.4" => Some(if english { EN_1_1_4 } else { JA_1_1_4 }),
@@ -87,12 +90,12 @@ mod tests {
 
     #[test]
     fn notes_exist_in_both_languages() {
-        let japanese = notes("1.1.6", false).unwrap();
-        let english = notes("1.1.6", true).unwrap();
+        let japanese = notes("1.1.7", false).unwrap();
+        let english = notes("1.1.7", true).unwrap();
         assert!(japanese.contains("Meltype-FLASH"));
         assert!(english.contains("Meltype-FLASH"));
         assert!(notes("0.0.0", false).is_none());
-        assert!(release_url("1.1.6").ends_with("/flash-v1.1.6"));
+        assert!(release_url("1.1.7").ends_with("/flash-v1.1.7"));
     }
 
     #[test]

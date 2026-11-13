@@ -3,8 +3,8 @@
 //! かな入力の配列。上流 v1.5.0 の KanaLayout.cs の表を使う。
 //!
 //! 月・花は前置シフト、NICOLA・中指NICOLA・TRON は親指シフト。
-//! 共通Coreはキーアップを受け取らないため、いまは文字キーの後に親指キーを押す
-//! 同時打鍵には未対応。親指キーを先に押してから文字キーを押す形で使う。
+//! NICOLA系は押下・解放順で同時打鍵を確定する（キーアップAPI対応）。
+//! 親指キーのタップ（同時打鍵に使われなかった解放）は無変換/変換として扱える。
 use crate::kana;
 use crate::kana_layout_data;
 use std::collections::HashMap;
@@ -115,8 +115,8 @@ const ROWS: [&[i32]; 4] = [
     ],
 ];
 
-const LEFT_THUMB: i32 = 0x1D;
-const RIGHT_THUMB: i32 = 0x1C;
+pub const LEFT_THUMB: i32 = 0x1D; // 無変換
+pub const RIGHT_THUMB: i32 = 0x1C; // 変換
 const KEY_D: i32 = 0x44;
 const KEY_K: i32 = 0x4B;
 
@@ -168,12 +168,16 @@ fn is_left_hand(vk: i32) -> bool {
     })
 }
 
-#[derive(Default)]
+#[derive(Default, Clone)]
 pub struct Engine {
     layout: Layout,
     prefix: usize,
     thumb: i32,
+    thumb_used: bool,
     middle: i32,
+    middle_used: bool,
+    /// 文字キーが押されたまま（未解放）で、親指シフト面への打ち直しが可能な状態。
+    pending_upgrade_key: Option<i32>,
 }
 
 impl Engine {
@@ -185,14 +189,31 @@ impl Engine {
     }
 
     /// 1 打鍵。None は配列のキーではない (通常の文字・記号として扱う)。
-    pub fn down(&mut self, vk: i32, shift: bool) -> Option<Stroke> {
+    pub fn down(&mut self, vk: i32, shift: bool, _time: u64) -> Option<Stroke> {
         if self.layout == Layout::Jis {
             return kana::key(vk, shift).map(|kana| Stroke::emit(&kana.to_string()));
         }
         if self.layout.is_thumb() && matches!(vk, LEFT_THUMB | RIGHT_THUMB) {
-            if self.thumb != vk {
-                self.thumb = vk;
+            let face = if vk == LEFT_THUMB { 1 } else { 2 };
+            // 押下・解放順: 文字キーがまだ解放されていなければシフト面で打ち直す。
+            if let Some(pending) = self.pending_upgrade_key {
+                if let Some(shifted) = faces(self.layout)
+                    .get(face)
+                    .and_then(|f| f.get(&pending))
+                    .copied()
+                {
+                    self.thumb = vk;
+                    self.thumb_used = true;
+                    self.pending_upgrade_key = None;
+                    return Some(Stroke {
+                        consumed: true,
+                        remove_last: 1,
+                        kana: shifted.to_owned(),
+                    });
+                }
             }
+            self.thumb = vk;
+            self.thumb_used = false;
             return Some(Stroke::consumed());
         }
         if shift {
@@ -210,7 +231,10 @@ impl Engine {
                 let face = &table[self.prefix];
                 self.prefix = 0;
                 return Some(match face.get(&vk) {
-                    Some(kana) if !matches!(*kana, "1" | "2") => Stroke::emit(kana),
+                    Some(kana) if !matches!(*kana, "1" | "2") => {
+                        self.pending_upgrade_key = None;
+                        Stroke::emit(kana)
+                    }
                     _ => Stroke::consumed(),
                 });
             }
@@ -218,36 +242,66 @@ impl Engine {
                 self.prefix = plain.unwrap().as_bytes()[0] as usize - b'0' as usize;
                 return Some(Stroke::consumed());
             }
+            self.pending_upgrade_key = Some(vk);
             return plain.map(Stroke::emit);
         }
         if self.thumb != 0 {
+            self.thumb_used = true;
             let face = if self.thumb == LEFT_THUMB { 1 } else { 2 };
             let kana = table.get(face).and_then(|face| face.get(&vk)).copied();
             self.thumb = 0;
+            self.thumb_used = false;
+            self.pending_upgrade_key = None;
             return Some(kana.map_or_else(Stroke::consumed, Stroke::emit));
         }
-        if self.layout == Layout::NakayubiNicola && vk == self.middle {
-            return Some(Stroke::consumed());
-        }
-        if self.layout == Layout::NakayubiNicola && vk == KEY_D && self.middle == 0 {
-            self.middle = KEY_D;
-            return Some(Stroke::consumed());
-        }
-        if self.layout == Layout::NakayubiNicola && vk == KEY_K && self.middle == 0 {
-            self.middle = KEY_K;
-            return Some(Stroke::consumed());
-        }
-        if self.layout == Layout::NakayubiNicola
-            && self.middle != 0
-            && is_left_hand(vk) == (self.middle == KEY_K)
-        {
-            let face = if self.middle == KEY_K { 1 } else { 2 };
-            self.middle = 0;
-            if let Some(kana) = table.get(face).and_then(|face| face.get(&vk)) {
-                return Some(Stroke::emit(kana));
+        if self.layout == Layout::NakayubiNicola {
+            if vk == self.middle {
+                return Some(Stroke::consumed());
+            }
+            if vk == KEY_D && self.middle == 0 {
+                self.middle = KEY_D;
+                self.middle_used = false;
+                return Some(Stroke::consumed());
+            }
+            if vk == KEY_K && self.middle == 0 {
+                self.middle = KEY_K;
+                self.middle_used = false;
+                return Some(Stroke::consumed());
+            }
+            if self.middle != 0 && is_left_hand(vk) == (self.middle == KEY_K) {
+                let face = if self.middle == KEY_K { 1 } else { 2 };
+                self.middle_used = true;
+                let kana = table.get(face).and_then(|face| face.get(&vk)).copied();
+                self.middle = 0;
+                self.middle_used = false;
+                self.pending_upgrade_key = None;
+                if let Some(kana) = kana {
+                    return Some(Stroke::emit(kana));
+                }
+                return Some(Stroke::consumed());
             }
         }
+        self.pending_upgrade_key = Some(vk);
         plain.map(Stroke::emit)
+    }
+
+    /// キー解放。親指キーが同時打鍵に使われなかった場合、タップ(無変換/変換)として VK を返す。
+    pub fn up(&mut self, vk: i32) -> Option<i32> {
+        if Some(vk) == self.pending_upgrade_key {
+            self.pending_upgrade_key = None;
+        }
+        if self.layout.is_thumb() && matches!(vk, LEFT_THUMB | RIGHT_THUMB) && self.thumb == vk {
+            let tap = if self.thumb_used { None } else { Some(vk) };
+            self.thumb = 0;
+            self.thumb_used = false;
+            return tap;
+        }
+        if self.layout == Layout::NakayubiNicola && matches!(vk, KEY_D | KEY_K) && self.middle == vk
+        {
+            self.middle = 0;
+            self.middle_used = false;
+        }
+        None
     }
 }
 
@@ -258,23 +312,29 @@ mod tests {
     #[test]
     fn each_layout_maps_a_known_key() {
         assert_eq!(
-            Engine::new(Layout::Jis).down(0x51, false).unwrap().kana,
+            Engine::new(Layout::Jis).down(0x51, false, 0).unwrap().kana,
             "た"
         );
         assert_eq!(
-            Engine::new(Layout::Tsuki).down(0x51, false).unwrap().kana,
+            Engine::new(Layout::Tsuki)
+                .down(0x51, false, 0)
+                .unwrap()
+                .kana,
             "ゅ"
         );
         assert_eq!(
-            Engine::new(Layout::Hana).down(0x51, false).unwrap().kana,
+            Engine::new(Layout::Hana).down(0x51, false, 0).unwrap().kana,
             "ょ"
         );
         assert_eq!(
-            Engine::new(Layout::Nicola).down(0x51, false).unwrap().kana,
+            Engine::new(Layout::Nicola)
+                .down(0x51, false, 0)
+                .unwrap()
+                .kana,
             "。"
         );
         assert_eq!(
-            Engine::new(Layout::Tron).down(0x51, false).unwrap().kana,
+            Engine::new(Layout::Tron).down(0x51, false, 0).unwrap().kana,
             "ら"
         );
     }
@@ -282,17 +342,47 @@ mod tests {
     #[test]
     fn tsuki_and_hana_use_prefix_shift() {
         let mut tsuki = Engine::new(Layout::Tsuki);
-        assert!(tsuki.down(0x44, false).unwrap().kana.is_empty());
-        assert_eq!(tsuki.down(0x46, false).unwrap().kana, "あ");
+        assert!(tsuki.down(0x44, false, 0).unwrap().kana.is_empty());
+        assert_eq!(tsuki.down(0x46, false, 0).unwrap().kana, "あ");
         let mut hana = Engine::new(Layout::Hana);
-        assert!(hana.down(0x44, false).unwrap().kana.is_empty());
-        assert_eq!(hana.down(0x46, false).unwrap().kana, "や");
+        assert!(hana.down(0x44, false, 0).unwrap().kana.is_empty());
+        assert_eq!(hana.down(0x46, false, 0).unwrap().kana, "や");
     }
 
     #[test]
     fn nicola_uses_the_thumb_before_the_character() {
         let mut nicola = Engine::new(Layout::Nicola);
-        assert!(nicola.down(LEFT_THUMB, false).unwrap().kana.is_empty());
-        assert_eq!(nicola.down(0x51, false).unwrap().kana, "ぁ");
+        assert!(nicola.down(LEFT_THUMB, false, 0).unwrap().kana.is_empty());
+        assert_eq!(nicola.down(0x51, false, 0).unwrap().kana, "ぁ");
+    }
+
+    #[test]
+    fn nicola_restrokes_a_character_when_the_thumb_follows_before_release() {
+        let mut nicola = Engine::new(Layout::Nicola);
+        assert_eq!(nicola.down(0x51, false, 0).unwrap().kana, "。");
+        let stroke = nicola.down(LEFT_THUMB, false, 500).unwrap();
+        assert_eq!(stroke.remove_last, 1);
+        assert_eq!(stroke.kana, "ぁ");
+        assert_eq!(nicola.up(LEFT_THUMB), None);
+        nicola.up(0x51);
+    }
+
+    #[test]
+    fn nicola_does_not_restroke_after_char_release() {
+        let mut nicola = Engine::new(Layout::Nicola);
+        assert_eq!(nicola.down(0x51, false, 0).unwrap().kana, "。");
+        nicola.up(0x51);
+        let stroke = nicola.down(LEFT_THUMB, false, 50).unwrap();
+        assert!(stroke.kana.is_empty());
+        assert_eq!(nicola.up(LEFT_THUMB), Some(LEFT_THUMB));
+    }
+
+    #[test]
+    fn nicola_thumb_tap_detected_on_release() {
+        let mut nicola = Engine::new(Layout::Nicola);
+        assert!(nicola.down(RIGHT_THUMB, false, 0).unwrap().kana.is_empty());
+        assert_eq!(nicola.up(RIGHT_THUMB), Some(RIGHT_THUMB));
+        assert!(nicola.down(LEFT_THUMB, false, 0).unwrap().kana.is_empty());
+        assert_eq!(nicola.up(LEFT_THUMB), Some(LEFT_THUMB));
     }
 }
