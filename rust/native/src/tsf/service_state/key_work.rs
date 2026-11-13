@@ -189,6 +189,10 @@ pub(super) unsafe fn run_up(
     if state.is_null() || lifetime.is_null() || worker.is_null() {
         return E_INVALIDARG;
     }
+    // Key-up is only meaningful for an active composition/held-key chord.
+    if (*state).composition.is_null() {
+        return S_OK;
+    }
     let sid = CStr::from_ptr(meltype_tsf_service_sid(state)).to_string_lossy();
     let process = String::from_utf16_lossy(&process::name());
     let request = serde_json::json!({
