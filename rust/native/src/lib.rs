@@ -1515,11 +1515,8 @@ mod tests {
     use super::*;
     #[test]
     fn stable_product_version_and_report_endpoint_use_flash_identity() {
-        assert_eq!(version_label("1.0.0"), "v0001.0000.0000");
-        assert_eq!(
-            version_label("0.1.0-pre.7"),
-            "v0000.0001.0000-pre.7-rust-preview"
-        );
+        assert_eq!(version_label("1.0.0"), "v1.0.0");
+        assert_eq!(version_label("0.1.0-pre.7"), "v0.1.0-pre.7-rust-preview");
         unsafe {
             assert_eq!(
                 take(meltype_version()).as_deref(),
