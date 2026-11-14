@@ -18,7 +18,10 @@ pub enum Action {
     Mode(String),
     Help,
     Page(usize),
+    KeyCount,
+    AutoDetection,
     Profile(String),
+    #[allow(dead_code)]
     Level(String),
     Folder,
     About,
@@ -50,8 +53,8 @@ pub struct Tray {
     status: MenuItem,
     ime_mode: CheckMenuItem,
     keyboard_mode: CheckMenuItem,
-    levels: Vec<(String, CheckMenuItem)>,
-    level_menu: Submenu,
+    auto_detection: CheckMenuItem,
+    zenzai: MenuItem,
     auto_update: CheckMenuItem,
     profiles: Submenu,
     profile_items: Vec<(String, CheckMenuItem)>,
@@ -83,6 +86,7 @@ impl Tray {
             .map_err(|_| "トレイは既に起動しています。設定画面を開きました。".to_owned())?;
         let menu = Menu::new();
         let status = MenuItem::new("Meltype-FLASH", false, None);
+        let zenzai = MenuItem::new("Zenzai", false, None);
         let enabled = CheckMenuItem::new(
             "Meltype-FLASH を有効にする",
             true,
@@ -90,6 +94,7 @@ impl Tray {
             None,
         );
         menu.append(&status).map_err(|e| e.to_string())?;
+        menu.append(&zenzai).map_err(|e| e.to_string())?;
         menu.append(&PredefinedMenuItem::separator())
             .map_err(|e| e.to_string())?;
         menu.append(&enabled).map_err(|e| e.to_string())?;
@@ -110,21 +115,15 @@ impl Tray {
         menu.append(&keyboard_mode).map_err(|e| e.to_string())?;
         actions.push((ime_mode.id().clone(), Action::Mode("Tsf".into())));
         actions.push((keyboard_mode.id().clone(), Action::Mode("Keyboard".into())));
-        let level_menu = Submenu::new("自動判定の強さ", true);
-        let mut levels = vec![];
-        for (name, label) in [
-            ("Aggressive", "積極的"),
-            ("Balanced", "標準"),
-            ("Conservative", "慎重"),
-            ("Manual", "手動 (提案のみ)"),
-        ] {
-            let item =
-                CheckMenuItem::new(label, true, settings.text("DetectionLevel") == name, None);
-            level_menu.append(&item).map_err(|e| e.to_string())?;
-            actions.push((item.id().clone(), Action::Level(name.into())));
-            levels.push((name.into(), item));
-        }
-        menu.append(&level_menu).map_err(|e| e.to_string())?;
+        // 本家と同じ並び: 自動判定の ON/OFF は、動作モードのすぐ後ろに置く。
+        let auto_detection = CheckMenuItem::new(
+            "英語 / 日本語を自動で判定する",
+            true,
+            settings.text("DetectionLevel") != "Manual",
+            None,
+        );
+        menu.append(&auto_detection).map_err(|e| e.to_string())?;
+        actions.push((auto_detection.id().clone(), Action::AutoDetection));
         let profiles = Submenu::new("プロファイル", true);
         menu.append(&profiles).map_err(|e| e.to_string())?;
         let startup_item = CheckMenuItem::new("Windows の起動時に起動", false, false, None);
@@ -161,6 +160,7 @@ impl Tray {
             ("直した誤判定を報告...", Action::Corrections),
             ("Meltype-FLASH について...", Action::About),
             ("学習した語...", Action::Page(3)),
+            ("打鍵数...", Action::KeyCount),
         ] {
             let item = MenuItem::new(label, true, None);
             menu.append(&item).map_err(|e| e.to_string())?;
@@ -257,8 +257,8 @@ impl Tray {
             status,
             ime_mode,
             keyboard_mode,
-            levels,
-            level_menu,
+            auto_detection,
+            zenzai,
             auto_update,
             profiles,
             profile_items: vec![],
@@ -323,7 +323,7 @@ impl Tray {
         self.keyboard_mode
             .set_checked(settings.text("Mode") == "Keyboard");
         self.status.set_text(if !enabled {
-            "Meltype-FLASH: 一時停止".to_owned()
+            "一時停止中".to_owned()
         } else if settings.text("Mode") == "Keyboard" {
             let shortcut = settings.toggle_shortcuts_label();
             format!("Meltype-FLASH キーボード ({shortcut} で入力ON/OFF)")
@@ -337,15 +337,19 @@ impl Tray {
             self.last_enabled = enabled;
         }
         self.auto_update.set_checked(settings.boolean("AutoUpdate"));
-        self.level_menu.set_text(format!(
-            "自動判定の強さ: {}",
-            crate::metadata::choice("DetectionLevel", settings.text("DetectionLevel"))
-        ));
+        self.auto_detection
+            .set_checked(settings.text("DetectionLevel") != "Manual");
+        self.zenzai.set_text(if !settings.boolean("UseZenzai") {
+            "Zenzai: 使っていません".to_owned()
+        } else if settings.text("ZenzaiServerPath").is_empty()
+            || settings.text("ZenzaiModelPath").is_empty()
+        {
+            "Zenzai: 設定を確認".to_owned()
+        } else {
+            "Zenzai: 使えます".to_owned()
+        });
         self.profiles
             .set_text(format!("プロファイル: {}", settings.text("ActiveProfile")));
-        for (name, item) in &self.levels {
-            item.set_checked(name == settings.text("DetectionLevel"));
-        }
         let names: Vec<String> = settings.0["Profiles"]
             .as_array()
             .into_iter()
@@ -469,6 +473,14 @@ pub fn write_action(store: &Store, action: &Action) -> Result<(), String> {
                 }
                 settings.set("Mode", serde_json::json!(mode))
             }
+            Action::AutoDetection => settings.set(
+                "DetectionLevel",
+                serde_json::json!(if settings.text("DetectionLevel") == "Manual" {
+                    "Balanced"
+                } else {
+                    "Manual"
+                }),
+            ),
             Action::Level(level) => settings.set("DetectionLevel", serde_json::json!(level)),
             _ => Ok(()),
         })

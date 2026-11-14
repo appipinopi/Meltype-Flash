@@ -1479,10 +1479,11 @@ pub extern "C" fn meltype_version() -> *mut c_char {
     allocate(&version_label(env!("CARGO_PKG_VERSION")))
 }
 fn version_label(version: &str) -> String {
+    let shown = meltype_core::version::display(version);
     if version.contains('-') {
-        format!("{version}-rust-preview")
+        format!("{shown}-rust-preview")
     } else {
-        version.to_owned()
+        shown
     }
 }
 #[no_mangle]
@@ -1514,8 +1515,11 @@ mod tests {
     use super::*;
     #[test]
     fn stable_product_version_and_report_endpoint_use_flash_identity() {
-        assert_eq!(version_label("1.0.0"), "1.0.0");
-        assert_eq!(version_label("0.1.0-pre.7"), "0.1.0-pre.7-rust-preview");
+        assert_eq!(version_label("1.0.0"), "v0001.0000.0000");
+        assert_eq!(
+            version_label("0.1.0-pre.7"),
+            "v0000.0001.0000-pre.7-rust-preview"
+        );
         unsafe {
             assert_eq!(
                 take(meltype_version()).as_deref(),

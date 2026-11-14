@@ -43,7 +43,11 @@ jobs:
           test "$GITHUB_REPOSITORY" = appipinopi/Meltype-Flash
           test "$GITHUB_REF" = refs/heads/rust
           VERSION=$(python3 -c 'import tomllib; print(tomllib.load(open("Cargo.toml", "rb"))["workspace"]["package"]["version"])')
-          test "$VERSION" = "$(echo "${TAG#flash-v}" | sed 's/-preview\./-pre./')"
+          TAG_VERSION="${TAG#flash-v}"
+          CORE="${TAG_VERSION%%-*}"
+          SUFFIX="${TAG_VERSION#"$CORE"}"
+          NORMALIZED=$(python3 -c 'import sys; core=sys.argv[1]; print(".".join(str(int(part)) for part in core.split(".")))' "$CORE")
+          test "$VERSION" = "$NORMALIZED${SUFFIX//-preview./-pre.}"
   windows:
     needs: validate
     runs-on: windows-latest
@@ -321,10 +325,11 @@ jobs:
           KEY="$RUNNER_TEMP/chromeos-crx-key.pem"
           printf '%s' "$CHROMEOS_CRX_KEY" | base64 -d > "$KEY"
           chmod 600 "$KEY"
+          VERSION=$(python3 -c 'import tomllib; print(tomllib.load(open("Cargo.toml", "rb"))["workspace"]["package"]["version"])')
           python3 tools/make-chromeos-crx.py \
             --zip artifacts/Meltype-ChromeOS-preview/chromeos-preview.zip \
             --key "$KEY" \
-            --version "${TAG#flash-v}" \
+            --version "$VERSION" \
             --tag "$TAG" \
             --output release-assets
           rm -f "$KEY"

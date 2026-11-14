@@ -859,6 +859,25 @@ impl Dictionary {
                             english_sentence,
                         );
                     }
+                    if let Some((kana, cost, particle)) = self.japanese_origin_edge(span) {
+                        offer_edge(
+                            &mut best,
+                            next,
+                            index,
+                            state,
+                            &from,
+                            Edge {
+                                start: offsets[index],
+                                end: offsets[next],
+                                kana,
+                                particle,
+                                ..Edge::default()
+                            },
+                            cost,
+                            raw,
+                            english_sentence,
+                        );
+                    }
                 }
             }
         }
@@ -1069,6 +1088,25 @@ impl Dictionary {
                                     start: raw_offsets[index],
                                     end: raw_offsets[next],
                                     english: true,
+                                    ..Edge::default()
+                                },
+                                cost,
+                                raw,
+                                english_sentence,
+                            );
+                        }
+                        if let Some((kana, cost, particle)) = self.japanese_origin_edge(raw_span) {
+                            offer_edge(
+                                &mut best,
+                                next,
+                                index,
+                                state,
+                                &from,
+                                Edge {
+                                    start: raw_offsets[index],
+                                    end: raw_offsets[next],
+                                    kana,
+                                    particle,
                                     ..Edge::default()
                                 },
                                 cost,
@@ -1362,6 +1400,19 @@ impl Dictionary {
         Some((kana, cost, particle))
     }
 
+    /// 日本語に由来する英単語 (sushi・matcha など) は、ローマ字で読んだかなも
+    /// 日本語の語として並べる。上流1.5.1の ReadingLattice と同じ扱い。
+    fn japanese_origin_edge(&self, span: &str) -> Option<(String, f64, bool)> {
+        if !span.bytes().all(|b| b.is_ascii_lowercase()) || !self.is_japanese_origin(span) {
+            return None;
+        }
+        let kana = romaji::hiragana(span, true);
+        if !is_kana_text(&kana) {
+            return None;
+        }
+        Some((kana.clone(), JAPANESE_WORD_COST, is_noun_particle(&kana)))
+    }
+
     fn english_edge(&self, span: &str, learned_english: &BTreeMap<String, bool>) -> Option<f64> {
         // Short all-uppercase tokens are acronyms (AI, IT, UI, SNS, API).
         // Prefer them over a Japanese reading such as あい.
@@ -1373,8 +1424,9 @@ impl Dictionary {
         if learned == Some(false) {
             return None;
         }
-        let known =
-            learned == Some(true) || self.is_english(&lower) || self.is_common_english(&lower);
+        let known = learned == Some(true)
+            || self.known_english(&lower)
+            || self.is_common_english(&lower);
         let upper = span.chars().any(|c| c.is_ascii_uppercase());
         if upper && !known {
             // Name-like spelling: Tanaka, McKinsey, iPhone, GitHub-like words.
@@ -1398,7 +1450,7 @@ impl Dictionary {
             }
         }
         if known {
-            Some(if learned == Some(true) {
+            Some(if learned == Some(true) || self.spell_word(&lower) {
                 0.6
             } else if TECH_ENGLISH.contains(&lower.as_str()) {
                 TECH_ENGLISH_BOOST

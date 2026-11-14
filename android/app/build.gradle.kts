@@ -17,8 +17,8 @@ android {
         applicationId = "moe.meltype.rust"
         minSdk = 26
         targetSdk = 35
-        versionCode = 21
-        versionName = "1.1.7"
+        versionCode = 22
+        versionName = "1.1.18"
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
         ndk { abiFilters += listOf("arm64-v8a", "x86_64") }
     }

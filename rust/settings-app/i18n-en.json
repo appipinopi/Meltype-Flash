@@ -383,10 +383,6 @@
       "label": "Disable z symbol shortcuts",
       "description": "Disable symbol input such as z. z/ and zh."
     },
-    "NumpadDirect": {
-      "label": "Commit numpad input directly",
-      "description": "Commit numpad digits and operators directly; the current text is committed first. Windows only."
-    },
     "MuhenkanKatakanaCycle": {
       "label": "Cycle katakana with Muhenkan",
       "description": "Cycle full-width katakana, half-width katakana, and hiragana with the Muhenkan key while typing."

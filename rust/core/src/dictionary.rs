@@ -380,6 +380,7 @@ impl Dictionary {
             chrono::Local::now().naive_local(),
             timezone,
         ));
+        values.extend(crate::currency::candidates(reading));
         if reading == "ばーじょん" {
             values.push(format!("Meltype-FLASH {}", env!("CARGO_PKG_VERSION")));
         }

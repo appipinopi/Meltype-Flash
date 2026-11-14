@@ -50,7 +50,7 @@ fn v140_shortcuts_migrate_legacy_settings_profiles_and_import_once() {
         .to_string(),
     )
     .unwrap();
-    assert_eq!(settings.integer("SettingsVersion"), 7);
+    assert_eq!(settings.integer("SettingsVersion"), 8);
     assert_eq!(
         settings.toggle_shortcuts(),
         vec![

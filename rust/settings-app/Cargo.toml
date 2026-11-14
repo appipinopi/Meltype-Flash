@@ -17,6 +17,7 @@ serde_json.workspace = true
 sha2 = "0.10"
 tempfile = "3"
 chrono = { version = "0.4", default-features = false, features = ["clock"] }
+chrono-tz = "0.10"
 eframe = { version = "=0.31.1", default-features = false, features = ["glow", "default_fonts", "x11", "wayland", "accesskit"] }
 rfd = "=0.17.2"
 # リリースノートの Markdown。HTML 変換は使わない。

@@ -309,6 +309,7 @@ impl Sources {
             chrono::Local::now().naive_local(),
             timezone,
         ));
+        words.extend(crate::currency::candidates(reading));
         words.extend(self.emoji(reading));
         words
     }

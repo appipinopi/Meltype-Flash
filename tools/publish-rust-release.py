@@ -229,7 +229,10 @@ def main():
     if args.publish:
         head = subprocess.check_output(["git", "rev-parse", "HEAD"], encoding="utf-8").strip()
         version = tomllib.loads(Path("Cargo.toml").read_text(encoding="utf-8"))["workspace"]["package"]["version"]
-        if head != args.sha or args.tag != "flash-v" + version.replace("-pre.", "-preview."):
+        tag_version = args.tag.removeprefix("flash-v")
+        core = tag_version.split("-")[0]
+        normalized = ".".join(str(int(part)) for part in core.split(".")) + tag_version[len(core):].replace("-preview.", "-pre.")
+        if head != args.sha or normalized != version:
             raise ValueError("タグ・ソースの版・実行元コミットが一致しません")
     validate_assets(args.assets)
     benchmark = None
