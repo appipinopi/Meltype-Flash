@@ -1424,9 +1424,8 @@ impl Dictionary {
         if learned == Some(false) {
             return None;
         }
-        let known = learned == Some(true)
-            || self.known_english(&lower)
-            || self.is_common_english(&lower);
+        let known =
+            learned == Some(true) || self.known_english(&lower) || self.is_common_english(&lower);
         let upper = span.chars().any(|c| c.is_ascii_uppercase());
         if upper && !known {
             // Name-like spelling: Tanaka, McKinsey, iPhone, GitHub-like words.

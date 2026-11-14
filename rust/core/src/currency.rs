@@ -64,10 +64,7 @@ impl Rates {
             }
         }
         if rates.len() > 1 {
-            Some(Self {
-                date: date?,
-                rates,
-            })
+            Some(Self { date: date?, rates })
         } else {
             None
         }
@@ -135,9 +132,8 @@ pub fn parse(reading: &str) -> Option<Parsed> {
     if whole.is_empty()
         || whole.len() > 12
         || !whole.bytes().all(|b| b.is_ascii_digit())
-        || fraction.is_some_and(|f| {
-            f.is_empty() || f.len() > 4 || !f.bytes().all(|b| b.is_ascii_digit())
-        })
+        || fraction
+            .is_some_and(|f| f.is_empty() || f.len() > 4 || !f.bytes().all(|b| b.is_ascii_digit()))
     {
         return None;
     }
@@ -148,7 +144,9 @@ pub fn parse(reading: &str) -> Option<Parsed> {
     } else {
         (1.0, rest)
     };
-    let (from_part, to_part) = rest.split_once('を').map_or((rest, None), |(a, b)| (a, Some(b)));
+    let (from_part, to_part) = rest
+        .split_once('を')
+        .map_or((rest, None), |(a, b)| (a, Some(b)));
     let from = currency(from_part)?;
     let to = match to_part {
         Some(target) => {
@@ -305,7 +303,10 @@ KRW\t1600.5
                 to: Some(("EUR", "ユーロ"))
             })
         );
-        assert_eq!(parse("10000えんをどるに").unwrap().to, Some(("USD", "ドル")));
+        assert_eq!(
+            parse("10000えんをどるに").unwrap().to,
+            Some(("USD", "ドル"))
+        );
         assert_eq!(parse("5かなだどる").unwrap().from, ("CAD", "カナダドル"));
         assert_eq!(
             parse("１２．５ぽんど"),

@@ -2154,7 +2154,12 @@ fn keyboard_limitation(key: &str) -> Option<&'static str> {
 fn time_zones() -> &'static [&'static str] {
     static ZONES: std::sync::OnceLock<Vec<&'static str>> = std::sync::OnceLock::new();
     ZONES
-        .get_or_init(|| chrono_tz::TZ_VARIANTS.iter().map(|zone| zone.name()).collect())
+        .get_or_init(|| {
+            chrono_tz::TZ_VARIANTS
+                .iter()
+                .map(|zone| zone.name())
+                .collect()
+        })
         .as_slice()
 }
 fn choices(key: &str) -> Option<&'static [&'static str]> {

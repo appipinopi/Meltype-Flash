@@ -784,11 +784,9 @@ impl Session {
         } else if self.uses_kana() {
             self.kana_display(true)
         } else {
-            self.conversion_reading_without_user_dictionary
-                .set(true);
+            self.conversion_reading_without_user_dictionary.set(true);
             let reading = self.mixed_reading(true);
-            self.conversion_reading_without_user_dictionary
-                .set(false);
+            self.conversion_reading_without_user_dictionary.set(false);
             reading
         }
     }
@@ -840,10 +838,7 @@ impl Session {
         }
         if self.settings.boolean("ReadingLattice") {
             let empty_dictionary = std::collections::BTreeMap::new();
-            let user_dictionary = if self
-                .conversion_reading_without_user_dictionary
-                .get()
-            {
+            let user_dictionary = if self.conversion_reading_without_user_dictionary.get() {
                 &empty_dictionary
             } else {
                 &self.preferences.user_dictionary
