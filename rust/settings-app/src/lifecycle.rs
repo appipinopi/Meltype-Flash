@@ -228,7 +228,10 @@ impl Lifecycle {
                 [480., 280.],
                 |ui| {
                     ui.heading("Meltype-FLASH");
-                    ui.label(format!("バージョン {} (Rust版)", env!("CARGO_PKG_VERSION")));
+                    ui.label(format!(
+                        "バージョン {} (Rust版)",
+                        meltype_core::version::display(env!("CARGO_PKG_VERSION"))
+                    ));
                     ui.label("雪解けのように、半角/全角の壁を溶かす日本語入力。");
                     ui.add_space(12.);
                     ui.label("参照元: Meltype 1.3.0 / Yukishiro・lnkiai ほか");
@@ -253,7 +256,10 @@ impl Lifecycle {
                 "Meltype-FLASH 更新",
                 [560., 340.],
                 |ui| {
-                    ui.label(format!("現在のバージョン: {}", env!("CARGO_PKG_VERSION")));
+                    ui.label(format!(
+                        "現在のバージョン: {}",
+                        meltype_core::version::display(env!("CARGO_PKG_VERSION"))
+                    ));
                     ui.label(if cfg!(target_os = "linux") {
                         "Linux用パッケージを確認し、システムのインストール画面で更新します。"
                     } else {

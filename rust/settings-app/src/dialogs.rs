@@ -51,7 +51,7 @@ pub struct Dialogs {
 fn environment(settings: &Settings) -> String {
     format!(
         "Meltype-FLASH {}\nOS: {} ({})\n動作モード: {}\n自動判定の強さ: {}",
-        env!("CARGO_PKG_VERSION"),
+        meltype_core::version::display(env!("CARGO_PKG_VERSION")),
         std::env::consts::OS,
         std::env::consts::ARCH,
         settings.text("Mode"),

@@ -7,7 +7,6 @@ use std::sync::OnceLock;
 
 pub const OPTIONAL_BOOLEANS: &[&str] = &[
     "DisableZShortcuts",
-    "NumpadDirect",
     "MuhenkanKatakanaCycle",
     "SpaceAroundNumbers",
     "SkkMode",
@@ -25,7 +24,6 @@ pub fn metadata() -> &'static Value {
         for (key, label, description) in [
             ("SpaceAroundNumbers", "日本語と半角数字の間に空白を入れる", "確定時に日本語と半角数字の境界へ半角空白を追加します。英数字の識別子・URL・ファイル名は対象外です。既定はオフです。"),
             ("DisableZShortcuts", "z記号変換を無効にする", "z.・z/・zhなどによる記号入力を無効にします。既定はオフです。"),
-            ("NumpadDirect", "テンキーを直接確定する", "テンキーの数字と演算記号を直接確定します。入力中の文は先に確定します。Windows用。既定はオフです。"),
             ("MuhenkanKatakanaCycle", "無変換でカタカナを切り替える", "入力中の無変換キーで全角カタカナ→半角カタカナ→ひらがなを切り替えます。キーの役割を分ける設定より優先します。既定はオフです。"),
         ] {
             let fields = data["fields"].as_array_mut().unwrap();

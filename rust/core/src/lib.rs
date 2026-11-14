@@ -11,6 +11,7 @@ mod composition_units;
 pub mod context;
 #[cfg(feature = "filesystem")]
 pub mod control;
+pub mod currency;
 pub mod detection;
 pub mod dictionary;
 pub mod github_titles;
@@ -47,6 +48,7 @@ mod system_data;
 pub mod time_candidates;
 pub mod typo;
 pub mod user_dictionary;
+pub mod version;
 pub use session::{Session, SessionResult};
 
 #[cfg(windows)]

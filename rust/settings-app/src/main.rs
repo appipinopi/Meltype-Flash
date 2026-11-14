@@ -649,6 +649,23 @@ impl App {
                     ctx.send_viewport_cmd(egui::ViewportCommand::Minimized(false));
                     ctx.send_viewport_cmd(egui::ViewportCommand::Focus);
                 }
+                tray::Action::KeyCount => {
+                    // 本家と同じく、トレイから打鍵数の画面を開く。
+                    if ctx.input(|i| i.viewport().minimized.unwrap_or(false))
+                        || self.settings.0 == self.opened.0
+                    {
+                        self.settings = settings.clone();
+                        self.opened = settings.clone();
+                        self.test_session.settings = settings.clone();
+                    }
+                    self.page = 0;
+                    self.settings_category = Some("13. 打鍵数".into());
+                    self.filter.clear();
+                    self.discard = false;
+                    ctx.send_viewport_cmd(egui::ViewportCommand::Visible(true));
+                    ctx.send_viewport_cmd(egui::ViewportCommand::Minimized(false));
+                    ctx.send_viewport_cmd(egui::ViewportCommand::Focus);
+                }
                 tray::Action::Report => self.dialogs.open_report(&self.store),
                 tray::Action::Corrections => self.dialogs.corrections = true,
                 tray::Action::Backup(restore) => {
@@ -740,6 +757,7 @@ impl App {
     }
     fn navigation(&mut self, ui: &mut egui::Ui) {
         ui.horizontal_wrapped(|ui| {
+            ui.spacing_mut().item_spacing.x = 14.;
             for (page, title) in [
                 "設定",
                 "ユーザー辞書",
@@ -747,7 +765,7 @@ impl App {
                 "学習した語",
                 "バックアップ",
                 "入力テスト",
-                "ログ / 判定理由",
+                "打鍵数",
             ]
             .iter()
             .enumerate()
@@ -916,11 +934,12 @@ impl App {
             .iter()
             .any(|word| self.filter.to_lowercase().contains(word))
         {
-            fields.push(("ai-packages".into(), Value::Null, "1a. AI".into()));
+            fields.push(("ai-packages".into(), Value::Null, "4. 変換".into()));
             fields.push(("keycount-discord".into(), Value::Null, "8. 表示".into()));
             fields.push(("keycount".into(), Value::Null, "13. 打鍵数".into()));
         }
-        fields.sort_by(|a, b| a.2.cmp(&b.2));
+        // 本家と同じ数字の順に並べる。文字列の順だと 10. アプリ が 2. 入力モード より前になる。
+        fields.sort_by(|a, b| category_order(&a.2).cmp(&category_order(&b.2)));
         let mut categories: Vec<String> = Vec::new();
         for (_, _, group) in &fields {
             if categories.last() != Some(group) {
@@ -1827,24 +1846,28 @@ impl App {
                 ui.label(format!("もしかして: {suggestion}"));
             }
             egui::ScrollArea::vertical().show(ui, |ui| {
-                for (i, candidate) in view.candidates.iter().enumerate() {
-                    if ui.button(candidate).clicked() {
-                        let result = self.test_session.select(i);
-                        let expected = result
-                            .commits
-                            .iter()
-                            .map(|entry| entry.text.as_str())
-                            .collect::<String>();
-                        self.dialogs
-                            .record(&self.test_raw, &view.text, &expected, 0);
-                        self.test_raw.clear();
-                        self.status = result
-                            .commits
-                            .iter()
-                            .map(|e| e.text.as_str())
-                            .collect::<String>();
+                ui.horizontal_wrapped(|ui| {
+                    ui.spacing_mut().item_spacing.x = 6.0;
+                    ui.spacing_mut().item_spacing.y = 4.0;
+                    for (i, candidate) in view.candidates.iter().enumerate() {
+                        if ui.button(candidate).clicked() {
+                            let result = self.test_session.select(i);
+                            let expected = result
+                                .commits
+                                .iter()
+                                .map(|entry| entry.text.as_str())
+                                .collect::<String>();
+                            self.dialogs
+                                .record(&self.test_raw, &view.text, &expected, 0);
+                            self.test_raw.clear();
+                            self.status = result
+                                .commits
+                                .iter()
+                                .map(|e| e.text.as_str())
+                                .collect::<String>();
+                        }
                     }
-                }
+                });
             });
         }
     }
@@ -1985,6 +2008,31 @@ fn ui_category(key: &str, original: &str) -> &'static str {
         _ => "1. 全般",
     }
 }
+/// 設定の分類を本家と同じ順に並べるための並び順。
+fn category_order(category: &str) -> (u32, &str) {
+    let number = match category {
+        "1. 全般" => 1,
+        "2. 入力モード" => 2,
+        "3. 判定" => 3,
+        "5. 候補" => 4,
+        "6. 記号・スペース" => 5,
+        "4. 変換" => 6,
+        "7. キー操作" => 7,
+        "9. 学習" => 8,
+        "8. 表示" => 9,
+        "12. 更新" => 10,
+        "10. アプリ" => 11,
+        "11. ログ" => 12,
+        "13. 打鍵数" => 13,
+        _ => {
+            let digits = category
+                .find(|c: char| !c.is_ascii_digit())
+                .unwrap_or(category.len());
+            category[..digits].parse().unwrap_or(u32::MAX - 1)
+        }
+    };
+    (number, category)
+}
 fn visible_by_default(key: &str) -> bool {
     supported(key)
         || key == "ToggleShortcuts"
@@ -2103,6 +2151,17 @@ fn keyboard_limitation(key: &str) -> Option<&'static str> {
         _ => None,
     }
 }
+fn time_zones() -> &'static [&'static str] {
+    static ZONES: std::sync::OnceLock<Vec<&'static str>> = std::sync::OnceLock::new();
+    ZONES
+        .get_or_init(|| {
+            chrono_tz::TZ_VARIANTS
+                .iter()
+                .map(|zone| zone.name())
+                .collect()
+        })
+        .as_slice()
+}
 fn choices(key: &str) -> Option<&'static [&'static str]> {
     Some(match key {
         "DetectionLevel" => &["Aggressive", "Balanced", "Conservative", "Manual"],
@@ -2120,6 +2179,8 @@ fn choices(key: &str) -> Option<&'static [&'static str]> {
         "CompositionSize" => &["Auto", "Small", "Medium", "Large", "ExtraLarge", "Huge"],
         "CompositionTheme" => &["Dark", "Light", "System"],
         "CompositionOpacity" => &["Opaque", "Percent90", "Percent80", "Percent70"],
+        "UiLanguage" => &["Auto", "Japanese", "English"],
+        "TimeZone" => time_zones(),
         _ => return None,
     })
 }
@@ -2158,32 +2219,12 @@ impl App {
             .inner;
         ui.weak("Discord に表示するかどうかは「表示」の設定で切り替えます。");
         ui.add_space(12.);
-        ui.label("表示する文言 (Discord のステータス):");
-        ui.add_enabled_ui(count.discord, |ui| {
-            ui.horizontal(|ui| {
-                ui.label("詳細の行");
-                changed |= ui.text_edit_singleline(&mut count.details).changed();
-            });
-            ui.horizontal(|ui| {
-                ui.label("状態の行");
-                changed |= ui.text_edit_singleline(&mut count.state).changed();
-            });
-            ui.horizontal(|ui| {
-                ui.label("ボタンの文字");
-                changed |= ui.text_edit_singleline(&mut count.button).changed();
-            });
-            ui.horizontal(|ui| {
-                ui.label("ボタンのリンク先");
-                changed |= ui.text_edit_singleline(&mut count.url).changed();
-            });
-            ui.weak("使える置き換え: {today} 今日の回数 / {total} 合計 / {kpm} 1分あたり / {elapsed} 起動からの経過");
-            if ui.button("文言を既定値に戻す").clicked() {
-                count.details = keycount::DEFAULT_DETAILS.into();
-                count.state = keycount::DEFAULT_STATE.into();
-                count.button = keycount::DEFAULT_BUTTON.into();
-                count.url = keycount::DEFAULT_URL.into();
-                changed = true;
-            }
+        ui.label("表示する文言 (Discord のステータス・変更できません):");
+        ui.indent("fixed-keycount-wording", |ui| {
+            ui.label(format!("詳細の行: {}", keycount::DEFAULT_DETAILS));
+            ui.label(format!("状態の行: {}", keycount::DEFAULT_STATE));
+            ui.label(format!("ボタンの文字: {}", keycount::DEFAULT_BUTTON));
+            ui.label(format!("ボタンのリンク先: {}", keycount::DEFAULT_URL));
         });
         ui.add_space(12.);
         if ui.button("数えた分をリセット").clicked() {
@@ -2370,7 +2411,10 @@ impl eframe::App for App {
             .show(ctx, |ui| {
                 #[cfg(target_os = "linux")]
                 ui.horizontal_wrapped(|ui| {
-                    ui.label(format!("Meltype-FLASH {}", env!("CARGO_PKG_VERSION")));
+                    ui.label(format!(
+                        "Meltype-FLASH {}",
+                        meltype_core::version::display(env!("CARGO_PKG_VERSION"))
+                    ));
                     if ui.button(i18n::t("アップデート")).clicked() {
                         self.lifecycle.updates = true;
                     }

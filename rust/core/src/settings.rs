@@ -214,8 +214,10 @@ impl Settings {
                 }
             }
         }
+        // version < 8: ReadingLattice と SpaceAroundEnglish は試験版・上流と同じく
+        // 既定では有効にしない。既存設定の値はそのまま保つ。
         normalize_toggle_shortcuts(&mut loaded, &mut Vec::new());
-        loaded.insert("SettingsVersion".into(), json!(7));
+        loaded.insert("SettingsVersion".into(), json!(8));
         defaults.0.extend(loaded);
         defaults.normalize();
         Ok((defaults, migrate))

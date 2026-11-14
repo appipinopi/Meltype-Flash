@@ -18,6 +18,10 @@ fn run(text: &str) -> String {
         .settings
         .set("LearningEnabled", json!(false))
         .unwrap();
+    session
+        .settings
+        .set("SpaceAroundEnglish", json!(false))
+        .unwrap();
     for c in text.chars() {
         session.key(0, c as i32, 0);
     }

@@ -48,7 +48,10 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
         return Ok(());
     }
     if args.first().is_some_and(|a| a == "--version") {
-        println!("Meltype-FLASH {}", env!("CARGO_PKG_VERSION"));
+        println!(
+            "Meltype-FLASH {}",
+            meltype_core::version::display(env!("CARGO_PKG_VERSION"))
+        );
         return Ok(());
     }
     if args.first().is_some_and(|a| a == "--convert") {

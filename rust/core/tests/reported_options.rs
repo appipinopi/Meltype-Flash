@@ -120,7 +120,8 @@ fn issue_1113_muhenkan_cycles_width_without_committing_or_changing_default() {
 }
 
 #[test]
-fn issue_460_numpad_direct_confirms_preedit_then_one_ascii_character() {
+fn issue_460_empty_numpad_passes_through_but_composing_numpad_is_input() {
+    // 上流1.5.1: 何も打っていないときのテンキーは変換ボックスに入れない。
     for (vk, c) in [
         (0x60, '0'),
         (0x69, '9'),
@@ -131,27 +132,20 @@ fn issue_460_numpad_direct_confirms_preedit_then_one_ascii_character() {
         (0x6f, '/'),
     ] {
         let mut s = Session::default();
-        s.settings.set("NumpadDirect", json!(true)).unwrap();
-        type_text(&mut s, "kyou");
         let result = s.key(vk, c as i32, 0);
-        assert!(result.consumed);
-        assert_eq!(
-            result
-                .commits
-                .iter()
-                .map(|e| e.text.as_str())
-                .collect::<Vec<_>>(),
-            ["きょう", &c.to_string()]
-        );
+        assert!(!result.consumed, "numpad {vk:#x} must pass through");
+        assert!(result.commits.is_empty());
         assert!(s.raw().is_empty());
-        assert!(s.commit().commits.is_empty());
     }
+    // 入力中は変換ボックスに入れる (3 + ji → 3時)。
     let mut s = Session::default();
-    s.settings.set("NumpadDirect", json!(true)).unwrap();
-    assert!(s.key(0x31, '1' as i32, 0).commits.is_empty());
-    assert_eq!(s.raw(), "1");
+    type_text(&mut s, "kyou");
+    let result = s.key(0x63, '3' as i32, 0);
+    assert!(result.consumed);
+    assert_eq!(s.raw(), "kyou3");
+    // 上の段の数字は今までどおり変換ボックスに入れる。
     let mut s = Session::default();
-    assert!(s.key(0x61, '1' as i32, 0).commits.is_empty());
+    assert!(s.key(0x31, '1' as i32, 0).consumed);
     assert_eq!(s.raw(), "1");
 }
 

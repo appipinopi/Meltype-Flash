@@ -257,6 +257,8 @@ pub struct Session {
     skk_user: crate::skk::Dictionary,
     direct_pending: String,
     direct_last_key_ms: Option<u64>,
+    /// 変換エンジンへ渡す読みには、ユーザー辞書の置換を混ぜない。
+    conversion_reading_without_user_dictionary: std::cell::Cell<bool>,
     #[cfg(feature = "filesystem")]
     hook_session: crate::input_session::InputSession,
 }
@@ -329,6 +331,7 @@ impl Default for Session {
             skk_user: crate::skk::Dictionary::new(),
             direct_pending: String::new(),
             direct_last_key_ms: None,
+            conversion_reading_without_user_dictionary: std::cell::Cell::new(false),
             #[cfg(feature = "filesystem")]
             hook_session: Default::default(),
         }
@@ -781,7 +784,10 @@ impl Session {
         } else if self.uses_kana() {
             self.kana_display(true)
         } else {
-            self.mixed_reading(true)
+            self.conversion_reading_without_user_dictionary.set(true);
+            let reading = self.mixed_reading(true);
+            self.conversion_reading_without_user_dictionary.set(false);
+            reading
         }
     }
     fn mixed_reading(&self, final_input: bool) -> String {
@@ -831,6 +837,12 @@ impl Session {
             return raw.into();
         }
         if self.settings.boolean("ReadingLattice") {
+            let empty_dictionary = std::collections::BTreeMap::new();
+            let user_dictionary = if self.conversion_reading_without_user_dictionary.get() {
+                &empty_dictionary
+            } else {
+                &self.preferences.user_dictionary
+            };
             dictionary.composition_lattice_with_learning(
                 raw,
                 final_input,
@@ -838,7 +850,7 @@ impl Session {
                 &self.after,
                 level,
                 &self.preferences.english,
-                &self.preferences.user_dictionary,
+                user_dictionary,
             )
         } else if Dictionary::uses_scored(self.settings.boolean("ScoredSegmentation")) {
             dictionary.composition_scored_units(
@@ -2959,6 +2971,12 @@ impl Session {
         {
             return self.commit();
         }
+        // 上流1.5.1: 何も打っていないときのテンキーは変換ボックスに入れず、そのままアプリへ渡す。
+        // 入力中は今までどおり変換ボックスに入れる (3 + ji → 3時)。
+        if self.raw.is_empty() && modifiers & 14 == 0 && matches!(vk, 0x60..=0x6F) {
+            self.correctable.clear();
+            return self.result(false);
+        }
         if modifiers & 14 != 0
             || self.direct && !reconverting
             || self.private
@@ -2972,25 +2990,6 @@ impl Session {
             let mut result = self.commit();
             self.correctable.clear();
             result.consumed = false;
-            return result;
-        }
-        if self.settings.boolean("NumpadDirect")
-            && matches!(vk, 0x60..=0x69 | 0x6a | 0x6b | 0x6d..=0x6f)
-            && matches!(
-                char::from_u32(ch as u32),
-                Some('0'..='9' | '*' | '+' | '-' | '.' | '/')
-            )
-        {
-            let mut result = self.commit();
-            let text = char::from_u32(ch as u32).unwrap().to_string();
-            self.before.push_str(&text);
-            result.commits.push(TextEdit {
-                text,
-                delete_before: 0,
-                caret_back: 0,
-                expect: None,
-            });
-            result.consumed = true;
             return result;
         }
         if self.is_converting()

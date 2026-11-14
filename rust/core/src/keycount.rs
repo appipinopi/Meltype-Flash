@@ -76,12 +76,24 @@ pub fn today() -> String {
     chrono::Local::now().format("%Y-%m-%d").to_string()
 }
 
+impl KeyCount {
+    /// Discord に出す文言は決まったものだけを使う (設定画面から変えられない)。
+    fn fix_wording(&mut self) {
+        self.details = DEFAULT_DETAILS.into();
+        self.state = DEFAULT_STATE.into();
+        self.button = DEFAULT_BUTTON.into();
+        self.url = DEFAULT_URL.into();
+    }
+}
+
 /// 保存してある打鍵数を読む。無い・壊れているときは既定値。
 pub fn load(directory: &Path) -> KeyCount {
-    fs::read(path(directory))
+    let mut count: KeyCount = fs::read(path(directory))
         .ok()
         .and_then(|bytes| serde_json::from_slice(&bytes).ok())
-        .unwrap_or_default()
+        .unwrap_or_default();
+    count.fix_wording();
+    count
 }
 
 fn lock(directory: &Path) -> io::Result<File> {
@@ -108,10 +120,7 @@ pub fn save_settings(directory: &Path, settings: &KeyCount) -> io::Result<()> {
     count.enabled = settings.enabled;
     count.discord = settings.discord;
     count.show = settings.show;
-    count.details = settings.details.clone();
-    count.state = settings.state.clone();
-    count.button = settings.button.clone();
-    count.url = settings.url.clone();
+    count.fix_wording();
     count.ai = settings.ai;
     write(directory, &count)
 }
@@ -288,10 +297,10 @@ mod tests {
         assert_eq!(merged.total, 4);
         assert_eq!(merged.days["2026-02-14"], 3);
         assert_eq!(merged.days["2026-02-15"], 1);
-        // 数える側はフラグや文言を書き換えない。
+        // 数える側はフラグや文言を書き換えない。文言は決まったものだけを使う。
         assert!(merged.enabled);
         assert!(merged.discord);
-        assert_eq!(merged.details, "きょう {today}");
+        assert_eq!(merged.details, DEFAULT_DETAILS);
     }
 
     #[test]
@@ -355,12 +364,12 @@ mod tests {
         counter.flush().unwrap();
         assert_eq!(load(directory.path()).total, 1);
 
-        // 文言の変更も次の打鍵で反映される。
+        // 保存した文言に関係なく、決まった文言だけを使う。
         settings.details = "きょう {today}".into();
         save_settings(directory.path(), &settings).unwrap();
         counter.refresh_if_changed();
         let count = load(directory.path());
-        assert_eq!(count.details, "きょう {today}");
+        assert_eq!(count.details, DEFAULT_DETAILS);
         assert!(count.enabled);
     }
 }
