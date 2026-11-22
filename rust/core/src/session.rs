@@ -3505,8 +3505,9 @@ impl Session {
                         self.case_cycle = 0;
                     }
                     let mut output = render(self.case_cycle);
-                    if !(self.settings.boolean("AlphanumericKeyStartsAsTyped") && !same_mode)
-                        && (same_mode || before.as_deref() == Some(output.as_str()))
+                    if same_mode
+                        || (!self.settings.boolean("AlphanumericKeyStartsAsTyped")
+                            && before.as_deref() == Some(output.as_str()))
                     {
                         // Try all three cases: one-letter/uppercase/numeric
                         // inputs can have identical visible representations.

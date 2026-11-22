@@ -276,6 +276,7 @@ fn scheduled_enabled(bytes: &[u8]) -> Result<bool, String> {
         .descendants()
         .find(|node| node.has_tag_name("Settings"))
         .ok_or("起動設定の状態がありません")?;
+    #[allow(clippy::nonminimal_bool)]
     Ok(!settings
         .children()
         .find(|node| node.has_tag_name("Enabled"))

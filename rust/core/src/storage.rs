@@ -47,6 +47,7 @@ impl Drop for Lock {
 mod state;
 pub use state::{Change, LanguageEntry, Phrase, State};
 
+#[allow(clippy::type_complexity)]
 static PENDING_WRITE: OnceLock<Mutex<Option<(std::thread::ThreadId, JoinHandle<()>)>>> =
     OnceLock::new();
 

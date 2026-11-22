@@ -1,3 +1,4 @@
+#![allow(dead_code, clippy::all)]
 // SPDX-License-Identifier: GPL-3.0-or-later
 //! Ultra-high-precision FastIPC benchmark client written in 100% Rust.
 //! Measures:

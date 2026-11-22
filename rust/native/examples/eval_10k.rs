@@ -1,3 +1,4 @@
+#![allow(dead_code)]
 #[path = "../src/windows_converter/system.rs"]
 mod system;
 

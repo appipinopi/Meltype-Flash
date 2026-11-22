@@ -1,4 +1,5 @@
 // SPDX-License-Identifier: GPL-3.0-or-later
+#![allow(dead_code, clippy::all)]
 //! 649-case comprehensive matrix benchmark for Meltype-Flash.
 //! Target: 90%+ accuracy, <0.2ms engine latency, <40MB RAM.
 
