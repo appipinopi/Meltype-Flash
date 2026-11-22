@@ -82,6 +82,11 @@ def update_existing_release(release, title, body, original_assets):
     return updated
 
 
+def source_version(sha):
+    manifest = subprocess.check_output(["git", "show", f"{sha}:Cargo.toml"], encoding="utf-8")
+    return tomllib.loads(manifest)["workspace"]["package"]["version"]
+
+
 def normalize_markdown(text):
     text = text.replace("\r", "")
     text = re.sub(r"(?m)^(\|[^\n]*\|)\n+(?=\|)", r"\1\n", text)
@@ -268,7 +273,8 @@ def main():
         parser.error("完全なコミットSHAが必要です")
     if args.publish:
         head = subprocess.check_output(["git", "rev-parse", "HEAD"], encoding="utf-8").strip()
-        version = tomllib.loads(Path("Cargo.toml").read_text(encoding="utf-8"))["workspace"]["package"]["version"]
+        version = (source_version(args.sha) if args.update_existing else
+                   tomllib.loads(Path("Cargo.toml").read_text(encoding="utf-8"))["workspace"]["package"]["version"])
         tag_version = args.tag.removeprefix("flash-v")
         core = tag_version.split("-")[0]
         normalized = ".".join(str(int(part)) for part in core.split(".")) + tag_version[len(core):].replace("-preview.", "-pre.")
