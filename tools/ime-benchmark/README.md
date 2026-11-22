@@ -56,10 +56,11 @@ python tools/ime-benchmark/run_benchmark.py --version HEAD
 
 ## コーパス
 
-- `data/ime_benchmark_2026-11.jsonl` / `.csv`:
+- `data/ime_benchmark_2026-11.part*.jsonl` (3分割、全10,000件):
   基本変換1000・複合語1000・固有名詞1000・難読趣味ネットスラング750・
-  英日混在2000・特殊入力2000・実用文章2250 の全10,000件。
+  英日混在2000・特殊入力2000・実用文章2250。
   各行は `input` (ひらがな読み) と `expected` (期待する変換結果) のペア。
+  GitHubのファイルサイズ制限のため分割してあり、測定時は自動で結合されます。
 - `generate_benchmark.py`: コーパスの生成スクリプト。月替わりで
   `--month 2026-12` のように実行すると、シードが変わった新しいセットを生成します。
 - `kana2romaji.py`: 読み→ローマ字変換。エンジン自身のローマ字表
