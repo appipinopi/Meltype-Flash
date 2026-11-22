@@ -1,1 +1,70 @@
-Ly8gU1BEWC1MaWNlbnNlLUlkZW50aWZpZXI6IEdQTC0zLjAtb3ItbGF0ZXIKLy8gQ29weXJpZ2h0IChDKSAyMDI2IGFwcGlwaW5vcGkKLy8hIElNReODmeODs+ODgeODnuODvOOCr+eUqOODqeODs+ODiuODvOOAggovLyEKLy8hIOS9v+OBhOaWuTogY2FyZ28gcnVuIC0tcmVsZWFzZSAtcCBtZWx0eXBlLWNvcmUgLS1leGFtcGxlIGltZV9iZW5jaG1hcmsgLS0gPGNhc2VzLmpzb25sPiA8b3V0Lmpzb25sPgovLyEgY2FzZXMuanNvbmw6IDHooYwx5Lu2IHsiaWQiOjEsInR5cGVkIjoia3lvdWhhLi4uIn0KLy8hIG91dC5qc29ubDogICAx6KGMMeS7tiB7ImlkIjoxLCJhY3R1YWwiOiLjgY3jgofjgYbjga8uLi4ifQovLyEKLy8hIHF1YWxpdHkucnMg44Go5ZCM44GY5omL6aCG44GnIFNlc3Npb24g44Gr44Kt44O844KS6YCB44KK44CB56K65a6a44GX44Gf5paH5a2X5YiX44KS6ZuG44KB44KL44CCCi8vISB0b29scy9pbWUtYmVuY2htYXJrL3J1bl9iZW5jaG1hcmsucHkg44GL44KJ44CB5a++6LGh44OQ44O844K444On44Oz44Gu44K944O844K544G4Ci8vISDjgZPjga7jg5XjgqHjgqTjg6vjgpLlt67jgZfovrzjgpPjgafjg5Pjg6vjg4njgZXjgozjgosgKOaXp+ODkOODvOOCuOODp+ODs+OBrua4rOWumueUqCnjgIIKdXNlIG1lbHR5cGVfY29yZTo6e3Nlc3Npb246OlRleHRFZGl0LCBTZXNzaW9ufTsKdXNlIHNlcmRlX2pzb246Ontqc29uLCBWYWx1ZX07CnVzZSBzdGQ6OmlvOjpXcml0ZTsKCmZuIGFwcGx5KHRleHQ6ICZtdXQgU3RyaW5nLCBlZGl0OiBUZXh0RWRpdCkgLT4gUmVzdWx0PCgpLCBCb3g8ZHluIHN0ZDo6ZXJyb3I6OkVycm9yPj4gewogICAgaWYgbGV0IFNvbWUoZXhwZWN0ZWQpID0gZWRpdC5leHBlY3QgewogICAgICAgIGlmICF0ZXh0LmVuZHNfd2l0aCgmZXhwZWN0ZWQpIHx8IGV4cGVjdGVkLmVuY29kZV91dGYxNigpLmNvdW50KCkgIT0gZWRpdC5kZWxldGVfYmVmb3JlIHsKICAgICAgICAgICAgcmV0dXJuIEVycigiaG9zdCByZWplY3RlZCBhbiBpbnZhbGlkIHJlcGxhY2VtZW50Ii5pbnRvKCkpOwogICAgICAgIH0KICAgICAgICB0ZXh0LnRydW5jYXRlKHRleHQubGVuKCkgLSBleHBlY3RlZC5sZW4oKSk7CiAgICB9IGVsc2UgaWYgZWRpdC5kZWxldGVfYmVmb3JlICE9IDAgewogICAgICAgIHJldHVybiBFcnIoInVuZ3VhcmRlZCBiYWNrd2FyZCBkZWxldGlvbiIuaW50bygpKTsKICAgIH0KICAgIHRleHQucHVzaF9zdHIoJmVkaXQudGV4dCk7CiAgICBPaygoKSkKfQoKZm4gcnVuX2Nhc2UodHlwZWQ6ICZzdHIpIC0+IFJlc3VsdDxTdHJpbmcsIEJveDxkeW4gc3RkOjplcnJvcjo6RXJyb3I+PiB7CiAgICBsZXQgbXV0IHNlc3Npb24gPSBTZXNzaW9uOjpkZWZhdWx0KCk7CiAgICBzZXNzaW9uLmNhbl9kZWxldGUgPSB0cnVlOwogICAgc2Vzc2lvbgogICAgICAgIC5zZXR0aW5ncwogICAgICAgIC5zZXQoIlByZWRpY3RpdmVDYW5kaWRhdGVzIiwganNvbiEoZmFsc2UpKT87CiAgICBzZXNzaW9uLnNldF9jb250ZXh0KFNvbWUoIiIpLCBOb25lKTsKICAgIGxldCBtdXQgYWN0dWFsID0gU3RyaW5nOjpuZXcoKTsKICAgIGZvciBjIGluIHR5cGVkLmNoYXJzKCkgewogICAgICAgIGxldCB2ayA9IGlmIGMgPT0gJyAnIHsgMzIgfSBlbHNlIHsgMCB9OwogICAgICAgIGxldCByZXN1bHQgPSBzZXNzaW9uLmtleSh2aywgYyBhcyBpMzIsIDApOwogICAgICAgIGZvciBlZGl0IGluIHJlc3VsdC5jb21taXRzIHsKICAgICAgICAgICAgYXBwbHkoJm11dCBhY3R1YWwsIGVkaXQpPzsKICAgICAgICB9CiAgICAgICAgaWYgIXJlc3VsdC5jb25zdW1lZCB7CiAgICAgICAgICAgIGFjdHVhbC5wdXNoKGMpOwogICAgICAgIH0KICAgIH0KICAgIGZvciBlZGl0IGluIHNlc3Npb24uY29tbWl0KCkuY29tbWl0cyB7CiAgICAgICAgYXBwbHkoJm11dCBhY3R1YWwsIGVkaXQpPzsKICAgIH0KICAgIE9rKGFjdHVhbCkKfQoKZm4gbWFpbigpIC0+IFJlc3VsdDwoKSwgQm94PGR5biBzdGQ6OmVycm9yOjpFcnJvcj4+IHsKICAgIGxldCBhcmdzOiBWZWM8U3RyaW5nPiA9IHN0ZDo6ZW52OjphcmdzKCkuY29sbGVjdCgpOwogICAgbGV0IGNhc2VzX3BhdGggPSBhcmdzLmdldCgxKS5va19vcigidXNhZ2U6IGltZV9iZW5jaG1hcmsgPGNhc2VzLmpzb25sPiA8b3V0Lmpzb25sPiIpPzsKICAgIGxldCBvdXRfcGF0aCA9IGFyZ3MuZ2V0KDIpLm9rX29yKCJ1c2FnZTogaW1lX2JlbmNobWFyayA8Y2FzZXMuanNvbmw+IDxvdXQuanNvbmw+Iik/OwogICAgbGV0IHRleHQgPSBzdGQ6OmZzOjpyZWFkX3RvX3N0cmluZyhjYXNlc19wYXRoKT87CiAgICBsZXQgbXV0IG91dCA9IHN0ZDo6ZnM6OkZpbGU6OmNyZWF0ZShvdXRfcGF0aCk/OwogICAgZm9yIGxpbmUgaW4gdGV4dC5saW5lcygpIHsKICAgICAgICBpZiBsaW5lLnRyaW0oKS5pc19lbXB0eSgpIHsKICAgICAgICAgICAgY29udGludWU7CiAgICAgICAgfQogICAgICAgIGxldCBjYXNlOiBWYWx1ZSA9IHNlcmRlX2pzb246OmZyb21fc3RyKGxpbmUpPzsKICAgICAgICBsZXQgaWQgPSBjYXNlWyJpZCJdLmFzX3U2NCgpLnVud3JhcF9vcigwKTsKICAgICAgICBsZXQgdHlwZWQgPSBjYXNlWyJ0eXBlZCJdLmFzX3N0cigpLnVud3JhcF9vcigiIik7CiAgICAgICAgbGV0IGFjdHVhbCA9IHJ1bl9jYXNlKHR5cGVkKS51bndyYXBfb3JfZWxzZSh8ZXwgZm9ybWF0ISgiPGVycm9yOiB7ZX0+IikpOwogICAgICAgIHdyaXRlbG4hKG91dCwgInt9IiwganNvbiEoeyJpZCI6IGlkLCAiYWN0dWFsIjogYWN0dWFsfSkpPzsKICAgIH0KICAgIE9rKCgpKQp9Cg==
+// SPDX-License-Identifier: GPL-3.0-or-later
+// Copyright (C) 2026 appipinopi
+//! IMEベンチマーク用ランナー。
+//!
+//! 使い方: cargo run --release -p meltype-core --example ime_benchmark -- <cases.jsonl> <out.jsonl>
+//! cases.jsonl: 1行1件 {"id":1,"typed":"kyouha..."}
+//! out.jsonl:   1行1件 {"id":1,"actual":"きょうは..."}
+//!
+//! quality.rs と同じ手順で Session にキーを送り、確定した文字列を集める。
+//! tools/ime-benchmark/run_benchmark.py から、対象バージョンのソースへ
+//! このファイルを差し込んでビルドされる (旧バージョンの測定用)。
+use meltype_core::{session::TextEdit, Session};
+use serde_json::{json, Value};
+use std::io::Write;
+
+fn apply(text: &mut String, edit: TextEdit) -> Result<(), Box<dyn std::error::Error>> {
+    if let Some(expected) = edit.expect {
+        if !text.ends_with(&expected) || expected.encode_utf16().count() != edit.delete_before {
+            return Err("host rejected an invalid replacement".into());
+        }
+        text.truncate(text.len() - expected.len());
+    } else if edit.delete_before != 0 {
+        return Err("unguarded backward deletion".into());
+    }
+    text.push_str(&edit.text);
+    Ok(())
+}
+
+fn run_case(typed: &str) -> Result<String, Box<dyn std::error::Error>> {
+    let mut session = Session::default();
+    session.can_delete = true;
+    session
+        .settings
+        .set("PredictiveCandidates", json!(false))?;
+    session.set_context(Some(""), None);
+    let mut actual = String::new();
+    for c in typed.chars() {
+        let vk = if c == ' ' { 32 } else { 0 };
+        let result = session.key(vk, c as i32, 0);
+        for edit in result.commits {
+            apply(&mut actual, edit)?;
+        }
+        if !result.consumed {
+            actual.push(c);
+        }
+    }
+    for edit in session.commit().commits {
+        apply(&mut actual, edit)?;
+    }
+    Ok(actual)
+}
+
+fn main() -> Result<(), Box<dyn std::error::Error>> {
+    let args: Vec<String> = std::env::args().collect();
+    let cases_path = args.get(1).ok_or("usage: ime_benchmark <cases.jsonl> <out.jsonl>")?;
+    let out_path = args.get(2).ok_or("usage: ime_benchmark <cases.jsonl> <out.jsonl>")?;
+    let text = std::fs::read_to_string(cases_path)?;
+    let mut out = std::fs::File::create(out_path)?;
+    for line in text.lines() {
+        if line.trim().is_empty() {
+            continue;
+        }
+        let case: Value = serde_json::from_str(line)?;
+        let id = case["id"].as_u64().unwrap_or(0);
+        let typed = case["typed"].as_str().unwrap_or("");
+        let actual = run_case(typed).unwrap_or_else(|e| format!("<error: {e}>"));
+        writeln!(out, "{}", json!({"id": id, "actual": actual}))?;
+    }
+    Ok(())
+}
