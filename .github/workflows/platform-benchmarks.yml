@@ -66,6 +66,7 @@ jobs:
           path: |
             output/platform-benchmark/*-quality.json
             output/platform-benchmark/**/report.json
+            output/platform-benchmark/**/accuracy.json
             output/platform-benchmark/**/resources.json
             output/platform-benchmark/**/charts/**
             output/platform-benchmark/**/coverage/**

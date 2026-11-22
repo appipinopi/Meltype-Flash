@@ -208,13 +208,14 @@ jobs:
           python -m pip install --disable-pip-version-check matplotlib==3.10.8 numpy==2.4.2
           python tools/plot-windows-benchmark.py dist/release-benchmark/report.json --output dist/release-benchmark/charts
       - uses: actions/upload-artifact@v4
-        if: ${{ !inputs.skip_benchmark }}
+        if: ${{ always() && !inputs.skip_benchmark && hashFiles('dist/release-benchmark/report.json') != '' }}
         with:
           name: release-benchmark
           retention-days: 1
           if-no-files-found: error
           path: |
             dist/release-benchmark/report.json
+            dist/release-benchmark/accuracy.json
             dist/release-benchmark/charts/*.png
             dist/release-benchmark/charts/*.svg
             dist/release-benchmark/charts/README.md

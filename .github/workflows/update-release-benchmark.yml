@@ -65,12 +65,15 @@ jobs:
           print(module.csharp_release())
           PY
           )
-          UPDATE=$(python3 - "$RUNNER_TEMP/release.json" "$CSHARP_REF" "$MANUAL" <<'PY'
+          CORPUS_SHA=$(sha256sum rust/core/data/strict-accuracy.json | cut -d' ' -f1)
+          UPDATE=$(python3 - "$RUNNER_TEMP/release.json" "$CSHARP_REF" "$MANUAL" "$CORPUS_SHA" <<'PY'
           import json, re, sys
           release = json.load(open(sys.argv[1], encoding="utf-8"))
           body = release.get("body", "")
           manual = sys.argv[3].lower() == "true"
           missing = ("今回は依頼者の指定によりベンチマークを実施していません。" in body
+                     or "## 固定文の精度" not in body
+                     or sys.argv[4] not in body
                      or f"C# {sys.argv[2]}" not in body
                      or len(re.findall(r"!\[[^\]]*\]\([^)]*\.png\)", body)) < 10
                      or len(re.findall(r"\[拡大表示（SVG）\]\([^)]*\.svg\)", body)) < 10)
@@ -122,3 +125,13 @@ jobs:
         run: |
           SOURCE_SHA=$(git rev-parse "$TAG^{commit}")
           python tools/publish-rust-release.py --tag "$TAG" --sha "$SOURCE_SHA" --assets release-assets --benchmark dist/release-benchmark --output dist/release-body.md --publish --update-existing
+      - uses: actions/upload-artifact@v4
+        if: ${{ always() && hashFiles('dist/release-benchmark/accuracy.json') != '' }}
+        with:
+          name: release-benchmark-accuracy-and-raw-data
+          retention-days: 30
+          if-no-files-found: error
+          path: |
+            dist/release-benchmark/report.json
+            dist/release-benchmark/accuracy.json
+            dist/release-benchmark/accuracy-cases.json
