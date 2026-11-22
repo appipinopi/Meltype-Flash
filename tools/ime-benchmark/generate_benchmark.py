@@ -1,4 +1,6 @@
 #!/usr/bin/env python3
+# SPDX-License-Identifier: GPL-3.0-or-later
+# Copyright (C) 2026 appipinopi
 # -*- coding: utf-8 -*-
 """
 IMEベンチマーク文章ジェネレータ (Meltype-FLASH向け)
