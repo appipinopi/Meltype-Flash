@@ -1,1 +1,311 @@
-IyEvdXNyL2Jpbi9lbnYgcHl0aG9uMwojIFNQRFgtTGljZW5zZS1JZGVudGlmaWVyOiBHUEwtMy4wLW9yLWxhdGVyCiMgQ29weXJpZ2h0IChDKSAyMDI2IGFwcGlwaW5vcGkKIiIiSU1F44OZ44Oz44OB44Oe44O844KvICgx5LiH5paH44Kz44O844OR44K5KSDjga7muKzlrprjg7vmr5TovIPjgrnjgq/jg6rjg5fjg4jjgIIKCuODkOODvOOCuOODp+ODs+OBruaMh+WumuaWueazlSAoLS12ZXJzaW9uIC8gLS1jb21wYXJlKToKICBsYXRlc3RyZWxlYXNlICAgICAg5pyA5paw44Gu5q2j5byP44Oq44Oq44O844K5CiAgbGF0ZXN0cmVsZWFzZS0xICAgIDHjgaTliY3jga7mraPlvI/jg6rjg6rjg7zjgrkgKGxhdGVzdHJlbGVhc2UtMiDjga8y44Gk5YmNKQogIDEuMS4yNiAvIHYxLjEuMjYgLyBmbGFzaC12MS4xLjI2IC8gZmxhc2gtdjAwMDEuMDAwMS4wMDI2ICDjgZ3jga7jg5Djg7zjgrjjg6fjg7MKICBIRUFEICAgICAgICAgICAgICAg54++5Zyo44Gu44OB44Kn44OD44Kv44Ki44Km44OIICjplovnmbrkuK3jga7muKzlrprnlKgpCiAgVVJM5b2i5byP44KC5Y+vOiBodHRwczovL2dpdGh1Yi5jb20vYXBwaXBpbm9waS9NZWx0eXBlLUZsYXNoL2xhdGVzdHJlbGVhc2UKICAgICAgICAgICAgICAgaHR0cHM6Ly9naXRodWIuY29tL2FwcGlwaW5vcGkvTWVsdHlwZS1GbGFzaC9sYXRlc3RyZWxlYXNlLTEKICAgICAgICAgICAgICAgaHR0cHM6Ly9naXRodWIuY29tL2FwcGlwaW5vcGkvTWVsdHlwZS1GbGFzaC9yZWxlYXNlcy90YWcvZmxhc2gtdjAwMDEuMDAwMS4wMDI2CgrmuKzlrprjga8y5bGkOgogIExheWVyIEEgKOOBi+OBqik6IOiqreOBv+OCkuODreODvOODnuWtl+OBp+aJk+OBoeOAgeOCs+OCouOBrueiuuWumuaWh+Wtl+WIl+OBjOiqreOBvyAo44Gy44KJ44GM44GqKSDjgagKICAgICAgICAgICAgICAgICAg5LiA6Ie044GZ44KL44GL44CC44Gp44Gu44OQ44O844K444On44Oz44Gn44KC5ris5a6a44Gn44GN44KL44CCCiAgTGF5ZXIgQiAo5ryi5a2X44GL44Gq5Lqk44GY44KKKTog5aSJ5o+b44Kz44Oe44Oz44OJICgtLWNvbnZlcnRlci1jbWQpIOOBjOioreWumuOBleOCjOOBn+aZguOBoOOBkeOAgQogICAgICAgICAgICAgICAgICBleHBlY3RlZCAo5ryi5a2X44GL44Gq5Lqk44GY44KK5paHKSDjgajjga7kuIDoh7TjgpLmuKzjgovjgILmnKroqK3lrprjgarjgonjgIzmnKrmuKzlrprjgI3jgIIKCuWHuuWKmzogcmVwb3J0Lmpzb24gKOapn+aisOWPr+iqrSkg44GoIHJlcG9ydC5tZCAo44Kr44OG44K044Oq5Yil5q+U6LyD6KGoKeOAggpHaXRIdWIgQWN0aW9ucyDjgafjga8gcmVwb3J0Lm1kIOOCkiBTdGVwIFN1bW1hcnkg44Gr5Ye644GZ44CCCiIiIgppbXBvcnQgYXJncGFyc2UKaW1wb3J0IGpzb24KaW1wb3J0IG9zCmltcG9ydCByZQppbXBvcnQgc2h1dGlsCmltcG9ydCBzdWJwcm9jZXNzCmltcG9ydCBzeXMKaW1wb3J0IHRhcmZpbGUKaW1wb3J0IGlvCmltcG9ydCB1cmxsaWIucmVxdWVzdApmcm9tIHBhdGhsaWIgaW1wb3J0IFBhdGgKCnN5cy5wYXRoLmluc2VydCgwLCBzdHIoUGF0aChfX2ZpbGVfXykucGFyZW50KSkKZnJvbSBrYW5hMnJvbWFqaSBpbXBvcnQgY29udmVydCBhcyBrYW5hX2NvbnZlcnQgICMgbm9xYTogRTQwMgoKUk9PVCA9IFBhdGgoX19maWxlX18pLnJlc29sdmUoKS5wYXJlbnRzWzJdCkRFRkFVTFRfQ09SUFVTID0gUGF0aChfX2ZpbGVfXykucGFyZW50IC8gImRhdGEiIC8gImltZV9iZW5jaG1hcmtfMjAyNi0xMS5qc29ubCIKUkVQT19TTFVHID0gImFwcGlwaW5vcGkvTWVsdHlwZS1GbGFzaCIKUlVOTkVSX0VYQU1QTEUgPSBST09UIC8gInJ1c3QiIC8gImNvcmUiIC8gImV4YW1wbGVzIiAvICJpbWVfYmVuY2htYXJrLnJzIgoKIyAtLS0tLS0tLS0tLS0tLS0tIOODkOODvOOCuOODp+ODs+aMh+WumuOBruino+axuiAtLS0tLS0tLS0tLS0tLS0tCgpkZWYgX3ZlcnNpb25fa2V5KHRhZyk6CiAgICAiIiInZmxhc2gtdjAwMDEuMDAwMS4wMDI2JyAtPiAoMSwgMSwgMjYpIiIiCiAgICBtID0gcmUuc2VhcmNoKHInKFxkKylcLihcZCspXC4oXGQrKScsIHRhZyBvciAiIikKICAgIHJldHVybiB0dXBsZShpbnQoeCkgZm9yIHggaW4gbS5ncm91cHMoKSkgaWYgbSBlbHNlIE5vbmUKCgpkZWYgZmV0Y2hfcmVsZWFzZXMocmVwbz1SRVBPX1NMVUcpOgogICAgIiIiR2l0SHViIEFQSeOBi+OCieato+W8j+ODquODquODvOOCuSAoZHJhZnQvcHJlcmVsZWFzZemZpOOBjykg44KS5paw44GX44GE6aCG44Gr6L+U44GZ44CC5aSx5pWX44GX44Gf44KJIGdpdCB0YWcg44Gn5Luj5pu/44CCIiIiCiAgICB1cmwgPSBmImh0dHBzOi8vYXBpLmdpdGh1Yi5jb20vcmVwb3Mve3JlcG99L3JlbGVhc2VzP3Blcl9wYWdlPTEwMCIKICAgIHRyeToKICAgICAgICByZXEgPSB1cmxsaWIucmVxdWVzdC5SZXF1ZXN0KHVybCwgaGVhZGVycz17IlVzZXItQWdlbnQiOiAiaW1lLWJlbmNobWFyayIsICJBY2NlcHQiOiAiYXBwbGljYXRpb24vdm5kLmdpdGh1Yitqc29uIn0pCiAgICAgICAgd2l0aCB1cmxsaWIucmVxdWVzdC51cmxvcGVuKHJlcSwgdGltZW91dD0zMCkgYXMgcmVzOgogICAgICAgICAgICBkYXRhID0ganNvbi5sb2FkKHJlcykKICAgICAgICByZWxzID0gW3IgZm9yIHIgaW4gZGF0YSBpZiBub3Qgci5nZXQoImRyYWZ0IikgYW5kIG5vdCByLmdldCgicHJlcmVsZWFzZSIpIGFuZCBfdmVyc2lvbl9rZXkoci5nZXQoInRhZ19uYW1lIikpXQogICAgICAgIHJlbHMuc29ydChrZXk9bGFtYmRhIHI6IHIuZ2V0KCJwdWJsaXNoZWRfYXQiKSBvciAiIiwgcmV2ZXJzZT1UcnVlKQogICAgICAgIHJldHVybiBbeyJ0YWciOiByWyJ0YWdfbmFtZSJdLCAidmVyc2lvbiI6IF92ZXJzaW9uX2tleShyWyJ0YWdfbmFtZSJdKSwgInB1Ymxpc2hlZF9hdCI6IHIuZ2V0KCJwdWJsaXNoZWRfYXQiKX0gZm9yIHIgaW4gcmVsc10KICAgIGV4Y2VwdCBFeGNlcHRpb246CiAgICAgICAgcGFzcwogICAgIyDjg5Xjgqnjg7zjg6vjg5Djg4Pjgq86IOODreODvOOCq+ODq+OBriBnaXQgdGFnCiAgICB0cnk6CiAgICAgICAgb3V0ID0gc3VicHJvY2Vzcy5jaGVja19vdXRwdXQoWyJnaXQiLCAidGFnIiwgIi1sIiwgImZsYXNoLXYqIl0sIGN3ZD1ST09ULCB0ZXh0PVRydWUpCiAgICAgICAgdGFncyA9IFt0LnN0cmlwKCkgZm9yIHQgaW4gb3V0LnNwbGl0bGluZXMoKSBpZiBfdmVyc2lvbl9rZXkodC5zdHJpcCgpKV0KICAgICAgICB0YWdzLnNvcnQoa2V5PV92ZXJzaW9uX2tleSwgcmV2ZXJzZT1UcnVlKQogICAgICAgIHJldHVybiBbeyJ0YWciOiB0LCAidmVyc2lvbiI6IF92ZXJzaW9uX2tleSh0KSwgInB1Ymxpc2hlZF9hdCI6IE5vbmV9IGZvciB0IGluIHRhZ3NdCiAgICBleGNlcHQgRXhjZXB0aW9uOgogICAgICAgIHJldHVybiBbXQoKCmRlZiBub3JtYWxpemVfc3BlYyhzcGVjKToKICAgICIiIlVSTOOChOijhemjvuOCkuWPluOCiumZpOOBjeOAgeino+axuueUqOOBrue0oOOBruaMh+WumuaWh+Wtl+WIl+OBq+OBmeOCi+OAgiIiIgogICAgcyA9IChzcGVjIG9yICIiKS5zdHJpcCgpCiAgICBpZiAiZ2l0aHViLmNvbSIgaW4gczoKICAgICAgICBwYXJ0cyA9IFtwIGZvciBwIGluIHMuc3BsaXQoIi8iKSBpZiBwXQogICAgICAgICMgcmVsZWFzZXMvdGFnLzx0YWc+IOW9ouW8jwogICAgICAgIGlmICJ0YWciIGluIHBhcnRzOgogICAgICAgICAgICByZXR1cm4gcGFydHNbcGFydHMuaW5kZXgoInRhZyIpICsgMV0KICAgICAgICBzID0gcGFydHNbLTFdCiAgICByZXR1cm4gcwoKCmRlZiByZXNvbHZlX3NwZWMoc3BlYywgcmVsZWFzZXM9Tm9uZSk6CiAgICAiIiLmjIflrprmloflrZfliJcgLT4ge3NwZWMsIHRhZywgdmVyc2lvbiwgcHVibGlzaGVkX2F0fSDjgIJIRUFEIOOBruWgtOWQiOOBryB0YWc9Tm9uZeOAgiIiIgogICAgcmF3ID0gbm9ybWFsaXplX3NwZWMoc3BlYykKICAgIGlmIHJhdy51cHBlcigpID09ICJIRUFEIjoKICAgICAgICByZXR1cm4geyJzcGVjIjogIkhFQUQiLCAidGFnIjogTm9uZSwgInZlcnNpb24iOiBOb25lLCAicHVibGlzaGVkX2F0IjogTm9uZX0KICAgIGlmIHJlbGVhc2VzIGlzIE5vbmU6CiAgICAgICAgcmVsZWFzZXMgPSBmZXRjaF9yZWxlYXNlcygpCiAgICBpZiBub3QgcmVsZWFzZXM6CiAgICAgICAgcmFpc2UgVmFsdWVFcnJvcigi44Oq44Oq44O844K55LiA6Kan44KS5Y+W5b6X44Gn44GN44G+44Gb44KT44Gn44GX44GfIChHaXRIdWIgQVBJIC8gZ2l0IHRhZyDjga7kuKHmlrnjgavlpLHmlZcpIikKICAgIG0gPSByZS5mdWxsbWF0Y2gociJsYXRlc3RyZWxlYXNlKD86LShcZCspKT8iLCByYXcsIHJlLklHTk9SRUNBU0UpCiAgICBpZiBtOgogICAgICAgIGlkeCA9IGludChtLmdyb3VwKDEpIG9yIDApCiAgICAgICAgaWYgaWR4ID49IGxlbihyZWxlYXNlcyk6CiAgICAgICAgICAgIHJhaXNlIFZhbHVlRXJyb3IoZiJsYXRlc3RyZWxlYXNlLXtpZHh9IOOBr+WtmOWcqOOBl+OBvuOBm+OCkyAo44Oq44Oq44O844K544GvIHtsZW4ocmVsZWFzZXMpfSDku7YpIikKICAgICAgICByID0gcmVsZWFzZXNbaWR4XQogICAgICAgIHJldHVybiB7InNwZWMiOiByYXcsICoqcn0KICAgIGtleSA9IF92ZXJzaW9uX2tleShyYXcpCiAgICBpZiBrZXk6CiAgICAgICAgZm9yIHIgaW4gcmVsZWFzZXM6CiAgICAgICAgICAgIGlmIHJbInZlcnNpb24iXSA9PSBrZXk6CiAgICAgICAgICAgICAgICByZXR1cm4geyJzcGVjIjogcmF3LCAqKnJ9CiAgICAgICAgcmFpc2UgVmFsdWVFcnJvcihmIuODkOODvOOCuOODp+ODsyB7cmF3fSDjga7jg6rjg6rjg7zjgrnjgYzopovjgaTjgYvjgorjgb7jgZvjgpMiKQogICAgIyDjgr/jgrDlkI3jgZ3jga7jgb7jgb4KICAgIGZvciByIGluIHJlbGVhc2VzOgogICAgICAgIGlmIHJbInRhZyJdID09IHJhdzoKICAgICAgICAgICAgcmV0dXJuIHsic3BlYyI6IHJhdywgKipyfQogICAgcmFpc2UgVmFsdWVFcnJvcihmIuODkOODvOOCuOODp+ODs+aMh+WumuOCkuino+mHiOOBp+OBjeOBvuOBm+OCkzoge3NwZWMhcn0iKQoKCiMgLS0tLS0tLS0tLS0tLS0tLSDmjqHngrkgLS0tLS0tLS0tLS0tLS0tLQoKZGVmIGVkaXRfZGlzdGFuY2UoYSwgYik6CiAgICBpZiBhID09IGI6CiAgICAgICAgcmV0dXJuIDAKICAgIHByZXZpb3VzID0gbGlzdChyYW5nZShsZW4oYikgKyAxKSkKICAgIGZvciBpLCBjYSBpbiBlbnVtZXJhdGUoYSwgMSk6CiAgICAgICAgY3VycmVudCA9IFtpXQogICAgICAgIGZvciBqLCBjYiBpbiBlbnVtZXJhdGUoYiwgMSk6CiAgICAgICAgICAgIGN1cnJlbnQuYXBwZW5kKG1pbihjdXJyZW50Wy0xXSArIDEsIHByZXZpb3VzW2pdICsgMSwgcHJldmlvdXNbaiAtIDFdICsgKGNhICE9IGNiKSkpCiAgICAgICAgcHJldmlvdXMgPSBjdXJyZW50CiAgICByZXR1cm4gcHJldmlvdXNbLTFdCgoKZGVmIHNjb3JlKGNhc2VzLCBhY3R1YWxzLCB0YXJnZXRfa2V5KToKICAgICIiImNhc2VzOiBbe2lkLCBjYXRlZ29yeSwgLi4ufV0sIGFjdHVhbHM6IHtpZDogc3RyfSAtPiDjgqvjg4bjgrTjg6rliKXpm4boqIgiIiIKICAgIHBlciA9IHt9CiAgICBmb3IgY2FzZSBpbiBjYXNlczoKICAgICAgICBjYXQgPSBjYXNlWyJjYXRlZ29yeSJdCiAgICAgICAgYnVja2V0ID0gcGVyLnNldGRlZmF1bHQoY2F0LCB7ImV4YWN0IjogMCwgInRvdGFsIjogMCwgImNoYXJzIjogMCwgImVycm9ycyI6IDB9KQogICAgICAgIGV4cGVjdGVkID0gY2FzZVt0YXJnZXRfa2V5XQogICAgICAgIGFjdHVhbCA9IGFjdHVhbHMuZ2V0KGNhc2VbImlkIl0sICIiKQogICAgICAgIGJ1Y2tldFsidG90YWwiXSArPSAxCiAgICAgICAgYnVja2V0WyJleGFjdCJdICs9IGludChhY3R1YWwgPT0gZXhwZWN0ZWQpCiAgICAgICAgYnVja2V0WyJjaGFycyJdICs9IGxlbihleHBlY3RlZCkKICAgICAgICBidWNrZXRbImVycm9ycyJdICs9IGVkaXRfZGlzdGFuY2UoYWN0dWFsLCBleHBlY3RlZCkKICAgIGZvciBidWNrZXQgaW4gcGVyLnZhbHVlcygpOgogICAgICAgIGJ1Y2tldFsiZXhhY3RfYWNjdXJhY3kiXSA9IGJ1Y2tldFsiZXhhY3QiXSAvIGJ1Y2tldFsidG90YWwiXSBpZiBidWNrZXRbInRvdGFsIl0gZWxzZSAwLjAKICAgICAgICBidWNrZXRbImNoYXJhY3Rlcl9hY2N1cmFjeSJdID0gMSAtIGJ1Y2tldFsiZXJyb3JzIl0gLyBtYXgoYnVja2V0WyJjaGFycyJdLCAxKQogICAgdG90YWwgPSB7ImV4YWN0Ijogc3VtKGJbImV4YWN0Il0gZm9yIGIgaW4gcGVyLnZhbHVlcygpKSwgInRvdGFsIjogc3VtKGJbInRvdGFsIl0gZm9yIGIgaW4gcGVyLnZhbHVlcygpKSwKICAgICAgICAgICAgICJjaGFycyI6IHN1bShiWyJjaGFycyJdIGZvciBiIGluIHBlci52YWx1ZXMoKSksICJlcnJvcnMiOiBzdW0oYlsiZXJyb3JzIl0gZm9yIGIgaW4gcGVyLnZhbHVlcygpKX0KICAgIHRvdGFsWyJleGFjdF9hY2N1cmFjeSJdID0gdG90YWxbImV4YWN0Il0gLyB0b3RhbFsidG90YWwiXSBpZiB0b3RhbFsidG90YWwiXSBlbHNlIDAuMAogICAgdG90YWxbImNoYXJhY3Rlcl9hY2N1cmFjeSJdID0gMSAtIHRvdGFsWyJlcnJvcnMiXSAvIG1heCh0b3RhbFsiY2hhcnMiXSwgMSkKICAgIHJldHVybiB7InBlcl9jYXRlZ29yeSI6IHBlciwgInRvdGFsIjogdG90YWx9CgoKIyAtLS0tLS0tLS0tLS0tLS0tIOa4rOWumiAtLS0tLS0tLS0tLS0tLS0tCgpkZWYgcHJlcGFyZV9jYXNlcyhjb3JwdXNfcGF0aCk6CiAgICByb3dzID0gW2pzb24ubG9hZHMobGluZSkgZm9yIGxpbmUgaW4gUGF0aChjb3JwdXNfcGF0aCkucmVhZF90ZXh0KGVuY29kaW5nPSJ1dGYtOCIpLnNwbGl0bGluZXMoKSBpZiBsaW5lLnN0cmlwKCldCiAgICBjYXNlcyA9IFtdCiAgICBmb3Igcm93IGluIHJvd3M6CiAgICAgICAgdHlwZWQsIGthbmFfdGFyZ2V0ID0ga2FuYV9jb252ZXJ0KHJvd1siaW5wdXQiXSkKICAgICAgICBjYXNlcy5hcHBlbmQoeyJpZCI6IHJvd1siaWQiXSwgImNhdGVnb3J5Ijogcm93WyJjYXRlZ29yeSJdLCAic3ViY2F0ZWdvcnkiOiByb3cuZ2V0KCJzdWJjYXRlZ29yeSIsICIiKSwKICAgICAgICAgICAgICAgICAgICAgICJ0eXBlZCI6IHR5cGVkLCAia2FuYV90YXJnZXQiOiBrYW5hX3RhcmdldCwgImV4cGVjdGVkIjogcm93WyJleHBlY3RlZCJdLCAiaW5wdXQiOiByb3dbImlucHV0Il19KQogICAgcmV0dXJuIGNhc2VzCgoKZGVmIGV4dHJhY3RfcmVmKHJlZiwgZGVzdCk6CiAgICAiIiJnaXQgYXJjaGl2ZSDjgaflr77osaHjg6rjg5Pjgrjjg6fjg7Pjga7jgr3jg7zjgrnjgpLlj5bjgorlh7rjgZkgKOaXouWtmOODmeODs+ODgeODnuODvOOCr+OBqOWQjOOBmOaWueW8jynjgIIiIiIKICAgIGRlc3QubWtkaXIocGFyZW50cz1UcnVlKQogICAgYXJjaGl2ZSA9IHN1YnByb2Nlc3MuY2hlY2tfb3V0cHV0KFsiZ2l0IiwgImFyY2hpdmUiLCByZWZdLCBjd2Q9Uk9PVCkKICAgIHdpdGggdGFyZmlsZS5vcGVuKGZpbGVvYmo9aW8uQnl0ZXNJTyhhcmNoaXZlKSkgYXMgZmlsZXM6CiAgICAgICAgZmlsZXMuZXh0cmFjdGFsbChkZXN0LCBmaWx0ZXI9ImRhdGEiKQoKCmRlZiBtZWFzdXJlKHJlc29sdmVkLCBjYXNlcywgd29ya2RpciwgY29udmVydGVyX2NtZD1Ob25lKToKICAgICIiIjHjg5Djg7zjgrjjg6fjg7PliIbjgpLmuKzlrprjgZfjgIFMYXllciBBICjjgajlj6/og73jgarjgokgTGF5ZXIgQikg44Gu6ZuG6KiI44KS6L+U44GZ44CCIiIiCiAgICBsYWJlbCA9IHJlc29sdmVkWyJ0YWciXSBvciAiSEVBRCIKICAgIHNyYyA9IHdvcmtkaXIgLyBmInNyYy17bGFiZWx9IgogICAgaWYgcmVzb2x2ZWRbInRhZyJdOgogICAgICAgIGV4dHJhY3RfcmVmKHJlc29sdmVkWyJ0YWciXSwgc3JjKQogICAgZWxzZToKICAgICAgICBzcmMgPSBST09UCiAgICAjIOODqeODs+ODiuODvOOCkuWvvuixoeOCveODvOOCueOBuOW3ruOBl+i+vOOCgCAo5pen44K/44Kw44Gr44Gv54Sh44GE44Gf44KBKQogICAgZXhhbXBsZV9kZXN0ID0gc3JjIC8gInJ1c3QiIC8gImNvcmUiIC8gImV4YW1wbGVzIiAvICJpbWVfYmVuY2htYXJrLnJzIgogICAgaWYgUlVOTkVSX0VYQU1QTEUucmVzb2x2ZSgpICE9IGV4YW1wbGVfZGVzdC5yZXNvbHZlKCkgYW5kIGV4YW1wbGVfZGVzdC5wYXJlbnQuZXhpc3RzKCk6CiAgICAgICAgc2h1dGlsLmNvcHlmaWxlKFJVTk5FUl9FWEFNUExFLCBleGFtcGxlX2Rlc3QpCiAgICBjYXNlc19wYXRoID0gd29ya2RpciAvIGYiY2FzZXMte2xhYmVsfS5qc29ubCIKICAgIHdpdGggY2FzZXNfcGF0aC5vcGVuKCJ3IiwgZW5jb2Rpbmc9InV0Zi04IikgYXMgZjoKICAgICAgICBmb3IgYyBpbiBjYXNlczoKICAgICAgICAgICAgZi53cml0ZShqc29uLmR1bXBzKHsiaWQiOiBjWyJpZCJdLCAidHlwZWQiOiBjWyJ0eXBlZCJdfSwgZW5zdXJlX2FzY2lpPUZhbHNlKSArICJcbiIpCiAgICBvdXRfcGF0aCA9IHdvcmtkaXIgLyBmImFjdHVhbC17bGFiZWx9Lmpzb25sIgogICAgY21kID0gWyJjYXJnbyIsICJydW4iLCAiLS1yZWxlYXNlIiwgIi0tbG9ja2VkIiwgIi1wIiwgIm1lbHR5cGUtY29yZSIsICItLWV4YW1wbGUiLCAiaW1lX2JlbmNobWFyayIsCiAgICAgICAgICAgIi0tIiwgc3RyKGNhc2VzX3BhdGgpLCBzdHIob3V0X3BhdGgpXQogICAgc3VicHJvY2Vzcy5ydW4oY21kLCBjd2Q9c3JjLCBjaGVjaz1UcnVlKQogICAgYWN0dWFscyA9IHt9CiAgICBmb3IgbGluZSBpbiBvdXRfcGF0aC5yZWFkX3RleHQoZW5jb2Rpbmc9InV0Zi04Iikuc3BsaXRsaW5lcygpOgogICAgICAgIGlmIGxpbmUuc3RyaXAoKToKICAgICAgICAgICAgcm93ID0ganNvbi5sb2FkcyhsaW5lKQogICAgICAgICAgICBhY3R1YWxzW3Jvd1siaWQiXV0gPSByb3dbImFjdHVhbCJdCiAgICByZXN1bHQgPSB7InZlcnNpb24iOiByZXNvbHZlZCwgImxheWVyX2Ffa2FuYSI6IHNjb3JlKGNhc2VzLCBhY3R1YWxzLCAia2FuYV90YXJnZXQiKSwgImxheWVyX2Jfa2FuamkiOiBOb25lfQogICAgaWYgY29udmVydGVyX2NtZDoKICAgICAgICBjb252X2luID0gd29ya2RpciAvIGYiY29udi1pbi17bGFiZWx9Lmpzb25sIgogICAgICAgIGNvbnZfb3V0ID0gd29ya2RpciAvIGYiY29udi1vdXQte2xhYmVsfS5qc29ubCIKICAgICAgICB3aXRoIGNvbnZfaW4ub3BlbigidyIsIGVuY29kaW5nPSJ1dGYtOCIpIGFzIGY6CiAgICAgICAgICAgIGZvciBjIGluIGNhc2VzOgogICAgICAgICAgICAgICAgZi53cml0ZShqc29uLmR1bXBzKHsiaWQiOiBjWyJpZCJdLCAiaW5wdXQiOiBjWyJpbnB1dCJdfSwgZW5zdXJlX2FzY2lpPUZhbHNlKSArICJcbiIpCiAgICAgICAgd2l0aCBjb252X2luLm9wZW4oZW5jb2Rpbmc9InV0Zi04IikgYXMgZmluLCBjb252X291dC5vcGVuKCJ3IiwgZW5jb2Rpbmc9InV0Zi04IikgYXMgZm91dDoKICAgICAgICAgICAgc3VicHJvY2Vzcy5ydW4oY29udmVydGVyX2NtZCwgc2hlbGw9VHJ1ZSwgc3RkaW49ZmluLCBzdGRvdXQ9Zm91dCwgY2hlY2s9VHJ1ZSkKICAgICAgICBjb252X2FjdHVhbHMgPSB7fQogICAgICAgIGZvciBsaW5lIGluIGNvbnZfb3V0LnJlYWRfdGV4dChlbmNvZGluZz0idXRmLTgiKS5zcGxpdGxpbmVzKCk6CiAgICAgICAgICAgIGlmIGxpbmUuc3RyaXAoKToKICAgICAgICAgICAgICAgIHJvdyA9IGpzb24ubG9hZHMobGluZSkKICAgICAgICAgICAgICAgIGNvbnZfYWN0dWFsc1tyb3dbImlkIl1dID0gcm93WyJhY3R1YWwiXQogICAgICAgIHJlc3VsdFsibGF5ZXJfYl9rYW5qaSJdID0gc2NvcmUoY2FzZXMsIGNvbnZfYWN0dWFscywgImV4cGVjdGVkIikKICAgIHJldHVybiByZXN1bHQKCgojIC0tLS0tLS0tLS0tLS0tLS0g6KGo44Gu55Sf5oiQIC0tLS0tLS0tLS0tLS0tLS0KCmRlZiBfcGN0KHgpOgogICAgcmV0dXJuIGYie3ggKiAxMDA6LjJmfSUiCgoKZGVmIG1ha2VfdGFibGUocmVzdWx0cyk6CiAgICAiIiJyZXN1bHRzOiBbbWVhc3VyZSgpIOOBrui/lOOCiuWApCwgLi4uXSAo5YWI6aCt44GM5Li75a++6LGh44CB5q6L44KK44GM5q+U6LyD5a++6LGhKSIiIgogICAgbGluZXMgPSBbXQogICAgbmFtZXMgPSBbKHJbInZlcnNpb24iXVsidGFnIl0gb3IgIkhFQUQiKSBmb3IgciBpbiByZXN1bHRzXQogICAgbGluZXMuYXBwZW5kKCIjIyBJTUXjg5njg7Pjg4Hjg57jg7zjgq/ntZDmnpwgKDHkuIfmlofjgrPjg7zjg5HjgrkpIikKICAgIGxpbmVzLmFwcGVuZCgiIikKICAgIGxpbmVzLmFwcGVuZCgiTGF5ZXIgQTog6Kqt44G/44KS44Ot44O844Oe5a2X5YWl5Yqb44GX44CB44Kz44Ki44Gu56K65a6a5paH5a2X5YiX44GM6Kqt44G/ICjjgbLjgonjgYzjgaopIOOBqOS4gOiHtOOBl+OBn+WJsuWQiCIpCiAgICBsaW5lcy5hcHBlbmQoIiIpCiAgICBoZWFkZXIgPSAifCDjgqvjg4bjgrTjg6ogfCDku7bmlbAgfCAiICsgIiB8ICIuam9pbihmIntufSDlrozlhajkuIDoh7QgfCB7bn0g5paH5a2X57K+5bqmIiBmb3IgbiBpbiBuYW1lcykgKyAoIiB8IM6U5a6M5YWo5LiA6Ie0IHwiIGlmIGxlbihyZXN1bHRzKSA+IDEgZWxzZSAiIHwiKQogICAgbGluZXMuYXBwZW5kKGhlYWRlcikKICAgIGxpbmVzLmFwcGVuZCgifC0tLXwtLS06fCIgKyAiLS0tOnwiICogKGxlbihuYW1lcykgKiAyKSArICgiLS0tOnwiIGlmIGxlbihyZXN1bHRzKSA+IDEgZWxzZSAiIikpCiAgICBjYXRzID0gbGlzdChyZXN1bHRzWzBdWyJsYXllcl9hX2thbmEiXVsicGVyX2NhdGVnb3J5Il0ua2V5cygpKQogICAgZm9yIGNhdCBpbiBjYXRzICsgWyJfX3RvdGFsX18iXToKICAgICAgICBpZiBjYXQgPT0gIl9fdG90YWxfXyI6CiAgICAgICAgICAgIGxhYmVsLCByb3cwID0gIioq5YWo5L2TKioiLCByZXN1bHRzWzBdWyJsYXllcl9hX2thbmEiXVsidG90YWwiXQogICAgICAgICAgICBjZWxscyA9IFtdCiAgICAgICAgICAgIGZvciByIGluIHJlc3VsdHM6CiAgICAgICAgICAgICAgICBiID0gclsibGF5ZXJfYV9rYW5hIl1bInRvdGFsIl0KICAgICAgICAgICAgICAgIGNlbGxzICs9IFtfcGN0KGJbImV4YWN0X2FjY3VyYWN5Il0pLCBfcGN0KGJbImNoYXJhY3Rlcl9hY2N1cmFjeSJdKV0KICAgICAgICAgICAgZGVsdGEgPSAiIgogICAgICAgICAgICBpZiBsZW4ocmVzdWx0cykgPiAxOgogICAgICAgICAgICAgICAgZCA9IHJlc3VsdHNbMF1bImxheWVyX2Ffa2FuYSJdWyJ0b3RhbCJdWyJleGFjdF9hY2N1cmFjeSJdIC0gcmVzdWx0c1sxXVsibGF5ZXJfYV9rYW5hIl1bInRvdGFsIl1bImV4YWN0X2FjY3VyYWN5Il0KICAgICAgICAgICAgICAgIGRlbHRhID0gZiIqKntkICogMTAwOisuMmZ9cHQqKiIKICAgICAgICAgICAgbGluZXMuYXBwZW5kKGYifCB7bGFiZWx9IHwge3JvdzBbJ3RvdGFsJ119IHwgIiArICIgfCAiLmpvaW4oY2VsbHMpICsgZiIgfCB7ZGVsdGF9IHwiIGlmIGRlbHRhIGVsc2UgZiJ8IHtsYWJlbH0gfCB7cm93MFsndG90YWwnXX0gfCAiICsgIiB8ICIuam9pbihjZWxscykgKyAiIHwiKQogICAgICAgIGVsc2U6CiAgICAgICAgICAgIHJvdzAgPSByZXN1bHRzWzBdWyJsYXllcl9hX2thbmEiXVsicGVyX2NhdGVnb3J5Il1bY2F0XQogICAgICAgICAgICBjZWxscyA9IFtdCiAgICAgICAgICAgIGZvciByIGluIHJlc3VsdHM6CiAgICAgICAgICAgICAgICBiID0gclsibGF5ZXJfYV9rYW5hIl1bInBlcl9jYXRlZ29yeSJdLmdldChjYXQsIHsiZXhhY3RfYWNjdXJhY3kiOiAwLCAiY2hhcmFjdGVyX2FjY3VyYWN5IjogMH0pCiAgICAgICAgICAgICAgICBjZWxscyArPSBbX3BjdChiWyJleGFjdF9hY2N1cmFjeSJdKSwgX3BjdChiWyJjaGFyYWN0ZXJfYWNjdXJhY3kiXSldCiAgICAgICAgICAgIGRlbHRhID0gIiIKICAgICAgICAgICAgaWYgbGVuKHJlc3VsdHMpID4gMToKICAgICAgICAgICAgICAgIGQgPSByb3cwWyJleGFjdF9hY2N1cmFjeSJdIC0gcmVzdWx0c1sxXVsibGF5ZXJfYV9rYW5hIl1bInBlcl9jYXRlZ29yeSJdLmdldChjYXQsIHsiZXhhY3RfYWNjdXJhY3kiOiAwfSlbImV4YWN0X2FjY3VyYWN5Il0KICAgICAgICAgICAgICAgIGRlbHRhID0gZiJ7ZCAqIDEwMDorLjJmfXB0IgogICAgICAgICAgICBsaW5lcy5hcHBlbmQoZiJ8IHtjYXR9IHwge3JvdzBbJ3RvdGFsJ119IHwgIiArICIgfCAiLmpvaW4oY2VsbHMpICsgKGYiIHwge2RlbHRhfSB8IiBpZiBsZW4ocmVzdWx0cykgPiAxIGVsc2UgIiB8IikpCiAgICBsaW5lcy5hcHBlbmQoIiIpCiAgICAjIExheWVyIEIKICAgIGxpbmVzLmFwcGVuZCgiTGF5ZXIgQjog5ryi5a2X44GL44Gq5Lqk44GY44KK5paHIChleHBlY3RlZCkg44Go44Gu5a6M5YWo5LiA6Ie0IikKICAgIGxpbmVzLmFwcGVuZCgiIikKICAgIGlmIGFsbChyWyJsYXllcl9iX2thbmppIl0gZm9yIHIgaW4gcmVzdWx0cyk6CiAgICAgICAgbGluZXMuYXBwZW5kKCJ8IOODkOODvOOCuOODp+ODsyB8IOWujOWFqOS4gOiHtCB8IOaWh+Wtl+eyvuW6piB8IikKICAgICAgICBsaW5lcy5hcHBlbmQoInwtLS18LS0tOnwtLS06fCIpCiAgICAgICAgZm9yIHIgaW4gcmVzdWx0czoKICAgICAgICAgICAgdCA9IHJbImxheWVyX2Jfa2FuamkiXVsidG90YWwiXQogICAgICAgICAgICBsaW5lcy5hcHBlbmQoZiJ8IHtyWyd2ZXJzaW9uJ11bJ3RhZyddIG9yICdIRUFEJ30gfCB7X3BjdCh0WydleGFjdF9hY2N1cmFjeSddKX0gKHt0WydleGFjdCddfS97dFsndG90YWwnXX0pIHwge19wY3QodFsnY2hhcmFjdGVyX2FjY3VyYWN5J10pfSB8IikKICAgIGVsc2U6CiAgICAgICAgbGluZXMuYXBwZW5kKCLmnKrmuKzlrpogKOWkieaPm+OCs+ODnuODs+ODiSAtLWNvbnZlcnRlci1jbWQgLyDnkrDlooPlpInmlbAgSU1FX0JFTkNIX0NPTlZFUlRFUl9DTUQg44GM5pyq6Kit5a6a44Gu44Gf44KBKeOAgiIKICAgICAgICAgICAgICAgICAgICAgIkFJ44Oi44OH44Or562J44Gu5aSJ5o+b5bGk44KS44Kz44Oe44Oz44OJ44Go44GX44Gm5o6l57aa44GZ44KL44Go5ris5a6a44Gn44GN44G+44GZ44CCIikKICAgIGxpbmVzLmFwcGVuZCgiIikKICAgIHJldHVybiAiXG4iLmpvaW4obGluZXMpCgoKZGVmIG1haW4oKToKICAgIGFwID0gYXJncGFyc2UuQXJndW1lbnRQYXJzZXIoZGVzY3JpcHRpb249X19kb2NfXykKICAgIGFwLmFkZF9hcmd1bWVudCgiLS12ZXJzaW9uIiwgZGVmYXVsdD0ibGF0ZXN0cmVsZWFzZSIsIGhlbHA9Iua4rOWumuOBmeOCi+ODkOODvOOCuOODp+ODs+aMh+WumiAo5pei5a6aOiBsYXRlc3RyZWxlYXNlKSIpCiAgICBhcC5hZGRfYXJndW1lbnQoIi0tY29tcGFyZSIsIGRlZmF1bHQ9Tm9uZSwgaGVscD0i5q+U6LyD44GZ44KL44OQ44O844K444On44Oz5oyH5a6aICjkvos6IGxhdGVzdHJlbGVhc2UtMSnjgILnnIHnlaXmmYLjga/mr5TovIPjgarjgZciKQogICAgYXAuYWRkX2FyZ3VtZW50KCItLWNvcnB1cyIsIGRlZmF1bHQ9c3RyKERFRkFVTFRfQ09SUFVTKSkKICAgIGFwLmFkZF9hcmd1bWVudCgiLS1vdXRwdXQiLCBkZWZhdWx0PSJpbWUtYmVuY2htYXJrLW91dHB1dCIsIGhlbHA9IuWHuuWKm+ODh+OCo+ODrOOCr+ODiOODqiIpCiAgICBhcC5hZGRfYXJndW1lbnQoIi0tY29udmVydGVyLWNtZCIsIGRlZmF1bHQ9b3MuZW52aXJvbi5nZXQoIklNRV9CRU5DSF9DT05WRVJURVJfQ01EIiksIGhlbHA9IkxheWVyIELnlKjlpInmj5vjgrPjg57jg7Pjg4kgKEpTT05M5YWl5Ye65YqbKSIpCiAgICBhcC5hZGRfYXJndW1lbnQoIi0tcmVzb2x2ZS1vbmx5IiwgYWN0aW9uPSJzdG9yZV90cnVlIiwgaGVscD0i44OQ44O844K444On44Oz6Kej5rG644Gg44GR6KGM44Gj44Gm6KGo56S644GZ44KLIikKICAgIGFwLmFkZF9hcmd1bWVudCgiLS1naXRodWItc3VtbWFyeSIsIGRlZmF1bHQ9b3MuZW52aXJvbi5nZXQoIkdJVEhVQl9TVEVQX1NVTU1BUlkiKSwgaGVscD0i6KGo44KS6L+96KiY44GZ44KL44OV44Kh44Kk44OrIikKICAgIGFyZ3MgPSBhcC5wYXJzZV9hcmdzKCkKCiAgICByZWxlYXNlcyA9IGZldGNoX3JlbGVhc2VzKCkKICAgIG1haW5fcmVzb2x2ZWQgPSByZXNvbHZlX3NwZWMoYXJncy52ZXJzaW9uLCByZWxlYXNlcykKICAgIGNvbXBhcmVfcmVzb2x2ZWQgPSByZXNvbHZlX3NwZWMoYXJncy5jb21wYXJlLCByZWxlYXNlcykgaWYgYXJncy5jb21wYXJlIGVsc2UgTm9uZQogICAgcHJpbnQoZiJ2ZXJzaW9uOiB7YXJncy52ZXJzaW9ufSAtPiB7bWFpbl9yZXNvbHZlZFsndGFnJ10gb3IgJ0hFQUQnfSIpCiAgICBpZiBjb21wYXJlX3Jlc29sdmVkOgogICAgICAgIHByaW50KGYiY29tcGFyZToge2FyZ3MuY29tcGFyZX0gLT4ge2NvbXBhcmVfcmVzb2x2ZWRbJ3RhZyddIG9yICdIRUFEJ30iKQogICAgaWYgYXJncy5yZXNvbHZlX29ubHk6CiAgICAgICAgcmV0dXJuCgogICAgY2FzZXMgPSBwcmVwYXJlX2Nhc2VzKGFyZ3MuY29ycHVzKQogICAgb3V0cHV0ID0gUGF0aChhcmdzLm91dHB1dCkKICAgIG91dHB1dC5ta2RpcihwYXJlbnRzPVRydWUsIGV4aXN0X29rPVRydWUpCiAgICB3b3JrZGlyID0gb3V0cHV0IC8gIndvcmsiCiAgICB3b3JrZGlyLm1rZGlyKGV4aXN0X29rPVRydWUpCiAgICByZXN1bHRzID0gW21lYXN1cmUobWFpbl9yZXNvbHZlZCwgY2FzZXMsIHdvcmtkaXIsIGFyZ3MuY29udmVydGVyX2NtZCldCiAgICBpZiBjb21wYXJlX3Jlc29sdmVkOgogICAgICAgIHJlc3VsdHMuYXBwZW5kKG1lYXN1cmUoY29tcGFyZV9yZXNvbHZlZCwgY2FzZXMsIHdvcmtkaXIsIGFyZ3MuY29udmVydGVyX2NtZCkpCiAgICByZXBvcnQgPSB7ImNvcnB1cyI6IHN0cihQYXRoKGFyZ3MuY29ycHVzKS5uYW1lKSwgImNhc2VfY291bnQiOiBsZW4oY2FzZXMpLCAicmVzdWx0cyI6IHJlc3VsdHN9CiAgICAob3V0cHV0IC8gInJlcG9ydC5qc29uIikud3JpdGVfdGV4dChqc29uLmR1bXBzKHJlcG9ydCwgZW5zdXJlX2FzY2lpPUZhbHNlLCBpbmRlbnQ9MikgKyAiXG4iLCBlbmNvZGluZz0idXRmLTgiKQogICAgdGFibGUgPSBtYWtlX3RhYmxlKHJlc3VsdHMpCiAgICAob3V0cHV0IC8gInJlcG9ydC5tZCIpLndyaXRlX3RleHQodGFibGUgKyAiXG4iLCBlbmNvZGluZz0idXRmLTgiKQogICAgcHJpbnQodGFibGUpCiAgICBpZiBhcmdzLmdpdGh1Yl9zdW1tYXJ5OgogICAgICAgIHdpdGggb3BlbihhcmdzLmdpdGh1Yl9zdW1tYXJ5LCAiYSIsIGVuY29kaW5nPSJ1dGYtOCIpIGFzIGY6CiAgICAgICAgICAgIGYud3JpdGUodGFibGUgKyAiXG4iKQoKCmlmIF9fbmFtZV9fID09ICJfX21haW5fXyI6CiAgICBtYWluKCkK
+#!/usr/bin/env python3
+# SPDX-License-Identifier: GPL-3.0-or-later
+# Copyright (C) 2026 appipinopi
+"""IMEベンチマーク (1万文コーパス) の測定・比較スクリプト。
+
+バージョンの指定方法 (--version / --compare):
+  latestrelease      最新の正式リリース
+  latestrelease-1    1つ前の正式リリース (latestrelease-2 は2つ前)
+  1.1.26 / v1.1.26 / flash-v1.1.26 / flash-v0001.0001.0026  そのバージョン
+  HEAD               現在のチェックアウト (開発中の測定用)
+  URL形式も可: https://github.com/appipinopi/Meltype-Flash/latestrelease
+               https://github.com/appipinopi/Meltype-Flash/latestrelease-1
+               https://github.com/appipinopi/Meltype-Flash/releases/tag/flash-v0001.0001.0026
+
+測定は2層:
+  Layer A (かな): 読みをローマ字で打ち、コアの確定文字列が読み (ひらがな) と
+                  一致するか。どのバージョンでも測定できる。
+  Layer B (漢字かな交じり): 変換コマンド (--converter-cmd) が設定された時だけ、
+                  expected (漢字かな交じり文) との一致を測る。未設定なら「未測定」。
+
+出力: report.json (機械可読) と report.md (カテゴリ別比較表)。
+GitHub Actions では report.md を Step Summary に出す。
+"""
+import argparse
+import json
+import os
+import re
+import shutil
+import subprocess
+import sys
+import tarfile
+import io
+import urllib.request
+from pathlib import Path
+
+sys.path.insert(0, str(Path(__file__).parent))
+from kana2romaji import convert as kana_convert  # noqa: E402
+
+ROOT = Path(__file__).resolve().parents[2]
+DEFAULT_CORPUS = Path(__file__).parent / "data" / "ime_benchmark_2026-11.jsonl"
+REPO_SLUG = "appipinopi/Meltype-Flash"
+RUNNER_EXAMPLE = ROOT / "rust" / "core" / "examples" / "ime_benchmark.rs"
+
+# ---------------- バージョン指定の解決 ----------------
+
+def _version_key(tag):
+    """'flash-v0001.0001.0026' -> (1, 1, 26)"""
+    m = re.search(r'(\d+)\.(\d+)\.(\d+)', tag or "")
+    return tuple(int(x) for x in m.groups()) if m else None
+
+
+def fetch_releases(repo=REPO_SLUG):
+    """GitHub APIから正式リリース (draft/prerelease除く) を新しい順に返す。失敗したら git tag で代替。"""
+    url = f"https://api.github.com/repos/{repo}/releases?per_page=100"
+    try:
+        req = urllib.request.Request(url, headers={"User-Agent": "ime-benchmark", "Accept": "application/vnd.github+json"})
+        with urllib.request.urlopen(req, timeout=30) as res:
+            data = json.load(res)
+        rels = [r for r in data if not r.get("draft") and not r.get("prerelease") and _version_key(r.get("tag_name"))]
+        rels.sort(key=lambda r: r.get("published_at") or "", reverse=True)
+        return [{"tag": r["tag_name"], "version": _version_key(r["tag_name"]), "published_at": r.get("published_at")} for r in rels]
+    except Exception:
+        pass
+    # フォールバック: ローカルの git tag
+    try:
+        out = subprocess.check_output(["git", "tag", "-l", "flash-v*"], cwd=ROOT, text=True)
+        tags = [t.strip() for t in out.splitlines() if _version_key(t.strip())]
+        tags.sort(key=_version_key, reverse=True)
+        return [{"tag": t, "version": _version_key(t), "published_at": None} for t in tags]
+    except Exception:
+        return []
+
+
+def normalize_spec(spec):
+    """URLや装飾を取り除き、解決用の素の指定文字列にする。"""
+    s = (spec or "").strip()
+    if "github.com" in s:
+        parts = [p for p in s.split("/") if p]
+        # releases/tag/<tag> 形式
+        if "tag" in parts:
+            return parts[parts.index("tag") + 1]
+        s = parts[-1]
+    return s
+
+
+def resolve_spec(spec, releases=None):
+    """指定文字列 -> {spec, tag, version, published_at} 。HEAD の場合は tag=None。"""
+    raw = normalize_spec(spec)
+    if raw.upper() == "HEAD":
+        return {"spec": "HEAD", "tag": None, "version": None, "published_at": None}
+    if releases is None:
+        releases = fetch_releases()
+    if not releases:
+        raise ValueError("リリース一覧を取得できませんでした (GitHub API / git tag の両方に失敗)")
+    m = re.fullmatch(r"latestrelease(?:-(\d+))?", raw, re.IGNORECASE)
+    if m:
+        idx = int(m.group(1) or 0)
+        if idx >= len(releases):
+            raise ValueError(f"latestrelease-{idx} は存在しません (リリースは {len(releases)} 件)")
+        r = releases[idx]
+        return {"spec": raw, **r}
+    key = _version_key(raw)
+    if key:
+        for r in releases:
+            if r["version"] == key:
+                return {"spec": raw, **r}
+        raise ValueError(f"バージョン {raw} のリリースが見つかりません")
+    # タグ名そのまま
+    for r in releases:
+        if r["tag"] == raw:
+            return {"spec": raw, **r}
+    raise ValueError(f"バージョン指定を解釈できません: {spec!r}")
+
+
+# ---------------- 採点 ----------------
+
+def edit_distance(a, b):
+    if a == b:
+        return 0
+    previous = list(range(len(b) + 1))
+    for i, ca in enumerate(a, 1):
+        current = [i]
+        for j, cb in enumerate(b, 1):
+            current.append(min(current[-1] + 1, previous[j] + 1, previous[j - 1] + (ca != cb)))
+        previous = current
+    return previous[-1]
+
+
+def score(cases, actuals, target_key):
+    """cases: [{id, category, ...}], actuals: {id: str} -> カテゴリ別集計"""
+    per = {}
+    for case in cases:
+        cat = case["category"]
+        bucket = per.setdefault(cat, {"exact": 0, "total": 0, "chars": 0, "errors": 0})
+        expected = case[target_key]
+        actual = actuals.get(case["id"], "")
+        bucket["total"] += 1
+        bucket["exact"] += int(actual == expected)
+        bucket["chars"] += len(expected)
+        bucket["errors"] += edit_distance(actual, expected)
+    for bucket in per.values():
+        bucket["exact_accuracy"] = bucket["exact"] / bucket["total"] if bucket["total"] else 0.0
+        bucket["character_accuracy"] = 1 - bucket["errors"] / max(bucket["chars"], 1)
+    total = {"exact": sum(b["exact"] for b in per.values()), "total": sum(b["total"] for b in per.values()),
+             "chars": sum(b["chars"] for b in per.values()), "errors": sum(b["errors"] for b in per.values())}
+    total["exact_accuracy"] = total["exact"] / total["total"] if total["total"] else 0.0
+    total["character_accuracy"] = 1 - total["errors"] / max(total["chars"], 1)
+    return {"per_category": per, "total": total}
+
+
+# ---------------- 測定 ----------------
+
+def prepare_cases(corpus_path):
+    rows = [json.loads(line) for line in Path(corpus_path).read_text(encoding="utf-8").splitlines() if line.strip()]
+    cases = []
+    for row in rows:
+        typed, kana_target = kana_convert(row["input"])
+        cases.append({"id": row["id"], "category": row["category"], "subcategory": row.get("subcategory", ""),
+                      "typed": typed, "kana_target": kana_target, "expected": row["expected"], "input": row["input"]})
+    return cases
+
+
+def extract_ref(ref, dest):
+    """git archive で対象リビジョンのソースを取り出す (既存ベンチマークと同じ方式)。"""
+    dest.mkdir(parents=True)
+    archive = subprocess.check_output(["git", "archive", ref], cwd=ROOT)
+    with tarfile.open(fileobj=io.BytesIO(archive)) as files:
+        files.extractall(dest, filter="data")
+
+
+def measure(resolved, cases, workdir, converter_cmd=None):
+    """1バージョン分を測定し、Layer A (と可能なら Layer B) の集計を返す。"""
+    label = resolved["tag"] or "HEAD"
+    src = workdir / f"src-{label}"
+    if resolved["tag"]:
+        extract_ref(resolved["tag"], src)
+    else:
+        src = ROOT
+    # ランナーを対象ソースへ差し込む (旧タグには無いため)
+    example_dest = src / "rust" / "core" / "examples" / "ime_benchmark.rs"
+    if RUNNER_EXAMPLE.resolve() != example_dest.resolve() and example_dest.parent.exists():
+        shutil.copyfile(RUNNER_EXAMPLE, example_dest)
+    cases_path = workdir / f"cases-{label}.jsonl"
+    with cases_path.open("w", encoding="utf-8") as f:
+        for c in cases:
+            f.write(json.dumps({"id": c["id"], "typed": c["typed"]}, ensure_ascii=False) + "\n")
+    out_path = workdir / f"actual-{label}.jsonl"
+    cmd = ["cargo", "run", "--release", "--locked", "-p", "meltype-core", "--example", "ime_benchmark",
+           "--", str(cases_path), str(out_path)]
+    subprocess.run(cmd, cwd=src, check=True)
+    actuals = {}
+    for line in out_path.read_text(encoding="utf-8").splitlines():
+        if line.strip():
+            row = json.loads(line)
+            actuals[row["id"]] = row["actual"]
+    result = {"version": resolved, "layer_a_kana": score(cases, actuals, "kana_target"), "layer_b_kanji": None}
+    if converter_cmd:
+        conv_in = workdir / f"conv-in-{label}.jsonl"
+        conv_out = workdir / f"conv-out-{label}.jsonl"
+        with conv_in.open("w", encoding="utf-8") as f:
+            for c in cases:
+                f.write(json.dumps({"id": c["id"], "input": c["input"]}, ensure_ascii=False) + "\n")
+        with conv_in.open(encoding="utf-8") as fin, conv_out.open("w", encoding="utf-8") as fout:
+            subprocess.run(converter_cmd, shell=True, stdin=fin, stdout=fout, check=True)
+        conv_actuals = {}
+        for line in conv_out.read_text(encoding="utf-8").splitlines():
+            if line.strip():
+                row = json.loads(line)
+                conv_actuals[row["id"]] = row["actual"]
+        result["layer_b_kanji"] = score(cases, conv_actuals, "expected")
+    return result
+
+
+# ---------------- 表の生成 ----------------
+
+def _pct(x):
+    return f"{x * 100:.2f}%"
+
+
+def make_table(results):
+    """results: [measure() の返り値, ...] (先頭が主対象、残りが比較対象)"""
+    lines = []
+    names = [(r["version"]["tag"] or "HEAD") for r in results]
+    lines.append("## IMEベンチマーク結果 (1万文コーパス)")
+    lines.append("")
+    lines.append("Layer A: 読みをローマ字入力し、コアの確定文字列が読み (ひらがな) と一致した割合")
+    lines.append("")
+    header = "| カテゴリ | 件数 | " + " | ".join(f"{n} 完全一致 | {n} 文字精度" for n in names) + (" | Δ完全一致 |" if len(results) > 1 else " |")
+    lines.append(header)
+    lines.append("|---|---:|" + "---:|" * (len(names) * 2) + ("---:|" if len(results) > 1 else ""))
+    cats = list(results[0]["layer_a_kana"]["per_category"].keys())
+    for cat in cats + ["__total__"]:
+        if cat == "__total__":
+            label, row0 = "**全体**", results[0]["layer_a_kana"]["total"]
+            cells = []
+            for r in results:
+                b = r["layer_a_kana"]["total"]
+                cells += [_pct(b["exact_accuracy"]), _pct(b["character_accuracy"])]
+            delta = ""
+            if len(results) > 1:
+                d = results[0]["layer_a_kana"]["total"]["exact_accuracy"] - results[1]["layer_a_kana"]["total"]["exact_accuracy"]
+                delta = f"**{d * 100:+.2f}pt**"
+            lines.append(f"| {label} | {row0['total']} | " + " | ".join(cells) + f" | {delta} |" if delta else f"| {label} | {row0['total']} | " + " | ".join(cells) + " |")
+        else:
+            row0 = results[0]["layer_a_kana"]["per_category"][cat]
+            cells = []
+            for r in results:
+                b = r["layer_a_kana"]["per_category"].get(cat, {"exact_accuracy": 0, "character_accuracy": 0})
+                cells += [_pct(b["exact_accuracy"]), _pct(b["character_accuracy"])]
+            delta = ""
+            if len(results) > 1:
+                d = row0["exact_accuracy"] - results[1]["layer_a_kana"]["per_category"].get(cat, {"exact_accuracy": 0})["exact_accuracy"]
+                delta = f"{d * 100:+.2f}pt"
+            lines.append(f"| {cat} | {row0['total']} | " + " | ".join(cells) + (f" | {delta} |" if len(results) > 1 else " |"))
+    lines.append("")
+    # Layer B
+    lines.append("Layer B: 漢字かな交じり文 (expected) との完全一致")
+    lines.append("")
+    if all(r["layer_b_kanji"] for r in results):
+        lines.append("| バージョン | 完全一致 | 文字精度 |")
+        lines.append("|---|---:|---:|")
+        for r in results:
+            t = r["layer_b_kanji"]["total"]
+            lines.append(f"| {r['version']['tag'] or 'HEAD'} | {_pct(t['exact_accuracy'])} ({t['exact']}/{t['total']}) | {_pct(t['character_accuracy'])} |")
+    else:
+        lines.append("未測定 (変換コマンド --converter-cmd / 環境変数 IME_BENCH_CONVERTER_CMD が未設定のため)。"
+                     "AIモデル等の変換層をコマンドとして接続すると測定できます。")
+    lines.append("")
+    return "\n".join(lines)
+
+
+def main():
+    ap = argparse.ArgumentParser(description=__doc__)
+    ap.add_argument("--version", default="latestrelease", help="測定するバージョン指定 (既定: latestrelease)")
+    ap.add_argument("--compare", default=None, help="比較するバージョン指定 (例: latestrelease-1)。省略時は比較なし")
+    ap.add_argument("--corpus", default=str(DEFAULT_CORPUS))
+    ap.add_argument("--output", default="ime-benchmark-output", help="出力ディレクトリ")
+    ap.add_argument("--converter-cmd", default=os.environ.get("IME_BENCH_CONVERTER_CMD"), help="Layer B用変換コマンド (JSONL入出力)")
+    ap.add_argument("--resolve-only", action="store_true", help="バージョン解決だけ行って表示する")
+    ap.add_argument("--github-summary", default=os.environ.get("GITHUB_STEP_SUMMARY"), help="表を追記するファイル")
+    args = ap.parse_args()
+
+    releases = fetch_releases()
+    main_resolved = resolve_spec(args.version, releases)
+    compare_resolved = resolve_spec(args.compare, releases) if args.compare else None
+    print(f"version: {args.version} -> {main_resolved['tag'] or 'HEAD'}")
+    if compare_resolved:
+        print(f"compare: {args.compare} -> {compare_resolved['tag'] or 'HEAD'}")
+    if args.resolve_only:
+        return
+
+    cases = prepare_cases(args.corpus)
+    output = Path(args.output)
+    output.mkdir(parents=True, exist_ok=True)
+    workdir = output / "work"
+    workdir.mkdir(exist_ok=True)
+    results = [measure(main_resolved, cases, workdir, args.converter_cmd)]
+    if compare_resolved:
+        results.append(measure(compare_resolved, cases, workdir, args.converter_cmd))
+    report = {"corpus": str(Path(args.corpus).name), "case_count": len(cases), "results": results}
+    (output / "report.json").write_text(json.dumps(report, ensure_ascii=False, indent=2) + "\n", encoding="utf-8")
+    table = make_table(results)
+    (output / "report.md").write_text(table + "\n", encoding="utf-8")
+    print(table)
+    if args.github_summary:
+        with open(args.github_summary, "a", encoding="utf-8") as f:
+            f.write(table + "\n")
+
+
+if __name__ == "__main__":
+    main()
