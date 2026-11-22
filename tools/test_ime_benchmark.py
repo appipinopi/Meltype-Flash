@@ -1,1 +1,102 @@
-IyEvdXNyL2Jpbi9lbnYgcHl0aG9uMwojIFNQRFgtTGljZW5zZS1JZGVudGlmaWVyOiBHUEwtMy4wLW9yLWxhdGVyCiMgQ29weXJpZ2h0IChDKSAyMDI2IGFwcGlwaW5vcGkKIiIidG9vbHMvaW1lLWJlbmNobWFyayDjga7jg6bjg4vjg4Pjg4jjg4bjgrnjg4ggKOODjeODg+ODiOODr+ODvOOCr+ODu2Nhcmdv5LiN6KaB44Gu6YOo5YiGKeOAgiIiIgppbXBvcnQgaW1wb3J0bGliLnV0aWwKaW1wb3J0IHN5cwppbXBvcnQgdW5pdHRlc3QKZnJvbSBwYXRobGliIGltcG9ydCBQYXRoCgpIRVJFID0gUGF0aChfX2ZpbGVfXykucGFyZW50CkJFTkNIX0RJUiA9IEhFUkUgLyAiaW1lLWJlbmNobWFyayIKc3lzLnBhdGguaW5zZXJ0KDAsIHN0cihCRU5DSF9ESVIpKQoKCmRlZiBfbG9hZChuYW1lLCBwYXRoKToKICAgIHNwZWMgPSBpbXBvcnRsaWIudXRpbC5zcGVjX2Zyb21fZmlsZV9sb2NhdGlvbihuYW1lLCBwYXRoKQogICAgbW9kdWxlID0gaW1wb3J0bGliLnV0aWwubW9kdWxlX2Zyb21fc3BlYyhzcGVjKQogICAgc3BlYy5sb2FkZXIuZXhlY19tb2R1bGUobW9kdWxlKQogICAgcmV0dXJuIG1vZHVsZQoKCmthbmEycm9tYWppID0gX2xvYWQoImthbmEycm9tYWppIiwgQkVOQ0hfRElSIC8gImthbmEycm9tYWppLnB5IikKcnVuX2JlbmNobWFyayA9IF9sb2FkKCJydW5fYmVuY2htYXJrIiwgQkVOQ0hfRElSIC8gInJ1bl9iZW5jaG1hcmsucHkiKQoKRkFLRV9SRUxFQVNFUyA9IFsKICAgIHsidGFnIjogImZsYXNoLXYwMDAxLjAwMDEuMDAyNiIsICJ2ZXJzaW9uIjogKDEsIDEsIDI2KSwgInB1Ymxpc2hlZF9hdCI6ICIyMDI2LTExLTIxVDAwOjAwOjAwWiJ9LAogICAgeyJ0YWciOiAiZmxhc2gtdjAwMDEuMDAwMS4wMDI1IiwgInZlcnNpb24iOiAoMSwgMSwgMjUpLCAicHVibGlzaGVkX2F0IjogIjIwMjYtMTEtMjBUMDA6MDA6MDBaIn0sCiAgICB7InRhZyI6ICJmbGFzaC12MDAwMS4wMDAxLjAwMjQiLCAidmVyc2lvbiI6ICgxLCAxLCAyNCksICJwdWJsaXNoZWRfYXQiOiAiMjAyNi0xMS0xOFQwMDowMDowMFoifSwKXQoKCmNsYXNzIEthbmEyUm9tYWppVGVzdCh1bml0dGVzdC5UZXN0Q2FzZSk6CiAgICBkZWYgdGVzdF9iYXNpYyhzZWxmKToKICAgICAgICBzZWxmLmFzc2VydEVxdWFsKGthbmEycm9tYWppLmNvbnZlcnQoIuOBjeOCh+OBhuOBryIpLCAoImt5b3VoYSIsICLjgY3jgofjgYbjga8iKSkKCiAgICBkZWYgdGVzdF9zb2t1b24oc2VsZik6CiAgICAgICAgc2VsZi5hc3NlcnRFcXVhbChrYW5hMnJvbWFqaS5jb252ZXJ0KCLjgYzjgaPjgZPjgYYiKSwgKCJnYWtrb3UiLCAi44GM44Gj44GT44GGIikpCiAgICAgICAgc2VsZi5hc3NlcnRFcXVhbChrYW5hMnJvbWFqaS5jb252ZXJ0KCLjgYTjgaPjgZfjgociKSwgKCJpc3NobyIsICLjgYTjgaPjgZfjgociKSkKCiAgICBkZWYgdGVzdF9uX3J1bGVzKHNlbGYpOgogICAgICAgIHNlbGYuYXNzZXJ0RXF1YWwoa2FuYTJyb21hamkuY29udmVydCgi44GX44KT44G244KTIiksICgic2hpbmJ1biIsICLjgZfjgpPjgbbjgpMiKSkKICAgICAgICBzZWxmLmFzc2VydEVxdWFsKGthbmEycm9tYWppLmNvbnZlcnQoIuOBi+OCk+OBhCIpLCAoImthbm5pIiwgIuOBi+OCk+OBhCIpKQogICAgICAgIHNlbGYuYXNzZXJ0RXF1YWwoa2FuYTJyb21hamkuY29udmVydCgi44G744KTIiksICgiaG9uIiwgIuOBu+OCkyIpKQoKICAgIGRlZiB0ZXN0X2xvbmdfdm93ZWxfYW5kX2thdGFrYW5hKHNlbGYpOgogICAgICAgIHNlbGYuYXNzZXJ0RXF1YWwoa2FuYTJyb21hamkuY29udmVydCgi44GT44O844Gy44O8IiksICgia28taGktIiwgIuOBk+ODvOOBsuODvCIpKQogICAgICAgIHNlbGYuYXNzZXJ0RXF1YWwoa2FuYTJyb21hamkuY29udmVydCgi44OH44O844K/IiksICgiZGUtdGEiLCAi44Gn44O844GfIikpCgogICAgZGVmIHRlc3RfbWl4ZWRfcGFzc3Rocm91Z2goc2VsZik6CiAgICAgICAgdHlwZWQsIHRhcmdldCA9IGthbmEycm9tYWppLmNvbnZlcnQoIuOBguOBl+OBn+OBr0FQSeOCkuOBv+OCiyIpCiAgICAgICAgc2VsZi5hc3NlcnRFcXVhbCh0eXBlZCwgImFzaGl0YWhhQVBJd29taXJ1IikKICAgICAgICBzZWxmLmFzc2VydEVxdWFsKHRhcmdldCwgIuOBguOBl+OBn+OBr0FQSeOCkuOBv+OCiyIpCgoKY2xhc3MgUmVzb2x2ZVNwZWNUZXN0KHVuaXR0ZXN0LlRlc3RDYXNlKToKICAgIGRlZiB0ZXN0X2xhdGVzdHJlbGVhc2Uoc2VsZik6CiAgICAgICAgciA9IHJ1bl9iZW5jaG1hcmsucmVzb2x2ZV9zcGVjKCJsYXRlc3RyZWxlYXNlIiwgRkFLRV9SRUxFQVNFUykKICAgICAgICBzZWxmLmFzc2VydEVxdWFsKHJbInRhZyJdLCAiZmxhc2gtdjAwMDEuMDAwMS4wMDI2IikKCiAgICBkZWYgdGVzdF9sYXRlc3RyZWxlYXNlX21pbnVzKHNlbGYpOgogICAgICAgIHNlbGYuYXNzZXJ0RXF1YWwocnVuX2JlbmNobWFyay5yZXNvbHZlX3NwZWMoImxhdGVzdHJlbGVhc2UtMSIsIEZBS0VfUkVMRUFTRVMpWyJ0YWciXSwgImZsYXNoLXYwMDAxLjAwMDEuMDAyNSIpCiAgICAgICAgc2VsZi5hc3NlcnRFcXVhbChydW5fYmVuY2htYXJrLnJlc29sdmVfc3BlYygibGF0ZXN0cmVsZWFzZS0yIiwgRkFLRV9SRUxFQVNFUylbInRhZyJdLCAiZmxhc2gtdjAwMDEuMDAwMS4wMDI0IikKCiAgICBkZWYgdGVzdF9leHBsaWNpdF92ZXJzaW9uX2Zvcm1zKHNlbGYpOgogICAgICAgIGZvciBzcGVjIGluICgiMS4xLjI1IiwgInYxLjEuMjUiLCAiZmxhc2gtdjEuMS4yNSIsICJmbGFzaC12MDAwMS4wMDAxLjAwMjUiLCAiMDAwMS4wMDAxLjAwMjUiKToKICAgICAgICAgICAgc2VsZi5hc3NlcnRFcXVhbChydW5fYmVuY2htYXJrLnJlc29sdmVfc3BlYyhzcGVjLCBGQUtFX1JFTEVBU0VTKVsidGFnIl0sICJmbGFzaC12MDAwMS4wMDAxLjAwMjUiLCBzcGVjKQoKICAgIGRlZiB0ZXN0X3VybF9mb3JtcyhzZWxmKToKICAgICAgICBzZWxmLmFzc2VydEVxdWFsKHJ1bl9iZW5jaG1hcmsucmVzb2x2ZV9zcGVjKCJodHRwczovL2dpdGh1Yi5jb20vYXBwaXBpbm9waS9NZWx0eXBlLUZsYXNoL2xhdGVzdHJlbGVhc2UiLCBGQUtFX1JFTEVBU0VTKVsidGFnIl0sICJmbGFzaC12MDAwMS4wMDAxLjAwMjYiKQogICAgICAgIHNlbGYuYXNzZXJ0RXF1YWwocnVuX2JlbmNobWFyay5yZXNvbHZlX3NwZWMoImh0dHBzOi8vZ2l0aHViLmNvbS9hcHBpcGlub3BpL01lbHR5cGUtRmxhc2gvbGF0ZXN0cmVsZWFzZS0xIiwgRkFLRV9SRUxFQVNFUylbInRhZyJdLCAiZmxhc2gtdjAwMDEuMDAwMS4wMDI1IikKICAgICAgICBzZWxmLmFzc2VydEVxdWFsKHJ1bl9iZW5jaG1hcmsucmVzb2x2ZV9zcGVjKCJodHRwczovL2dpdGh1Yi5jb20vYXBwaXBpbm9waS9NZWx0eXBlLUZsYXNoL3JlbGVhc2VzL3RhZy9mbGFzaC12MDAwMS4wMDAxLjAwMjQiLCBGQUtFX1JFTEVBU0VTKVsidGFnIl0sICJmbGFzaC12MDAwMS4wMDAxLjAwMjQiKQoKICAgIGRlZiB0ZXN0X2hlYWRfYW5kX2Vycm9ycyhzZWxmKToKICAgICAgICBzZWxmLmFzc2VydElzTm9uZShydW5fYmVuY2htYXJrLnJlc29sdmVfc3BlYygiSEVBRCIsIEZBS0VfUkVMRUFTRVMpWyJ0YWciXSkKICAgICAgICB3aXRoIHNlbGYuYXNzZXJ0UmFpc2VzKFZhbHVlRXJyb3IpOgogICAgICAgICAgICBydW5fYmVuY2htYXJrLnJlc29sdmVfc3BlYygibGF0ZXN0cmVsZWFzZS05IiwgRkFLRV9SRUxFQVNFUykKICAgICAgICB3aXRoIHNlbGYuYXNzZXJ0UmFpc2VzKFZhbHVlRXJyb3IpOgogICAgICAgICAgICBydW5fYmVuY2htYXJrLnJlc29sdmVfc3BlYygiOS45LjkiLCBGQUtFX1JFTEVBU0VTKQoKCmNsYXNzIFNjb3JlVGVzdCh1bml0dGVzdC5UZXN0Q2FzZSk6CiAgICBkZWYgdGVzdF9zY29yZV9hbmRfdGFibGUoc2VsZik6CiAgICAgICAgY2FzZXMgPSBbCiAgICAgICAgICAgIHsiaWQiOiAxLCAiY2F0ZWdvcnkiOiAi5Z+65pys5aSJ5o+bIiwgImthbmFfdGFyZ2V0IjogIuOBguOBl+OBnyIsICJleHBlY3RlZCI6ICLmmI7ml6UifSwKICAgICAgICAgICAgeyJpZCI6IDIsICJjYXRlZ29yeSI6ICLln7rmnKzlpInmj5siLCAia2FuYV90YXJnZXQiOiAi44GN44Gu44GGIiwgImV4cGVjdGVkIjogIuaYqOaXpSJ9LAogICAgICAgICAgICB7ImlkIjogMywgImNhdGVnb3J5IjogIuikh+WQiOiqniIsICJrYW5hX3RhcmdldCI6ICLjgZjjgofjgYbjgbvjgYYiLCAiZXhwZWN0ZWQiOiAi5oOF5aCxIn0sCiAgICAgICAgXQogICAgICAgIGFjdHVhbHMgPSB7MTogIuOBguOBl+OBnyIsIDI6ICLjgY3jga4iLCAzOiAi44GY44KH44GG44G744GGIn0KICAgICAgICBzID0gcnVuX2JlbmNobWFyay5zY29yZShjYXNlcywgYWN0dWFscywgImthbmFfdGFyZ2V0IikKICAgICAgICBzZWxmLmFzc2VydEVxdWFsKHNbInRvdGFsIl1bImV4YWN0Il0sIDIpCiAgICAgICAgc2VsZi5hc3NlcnRFcXVhbChzWyJ0b3RhbCJdWyJ0b3RhbCJdLCAzKQogICAgICAgIHNlbGYuYXNzZXJ0QWxtb3N0RXF1YWwoc1sicGVyX2NhdGVnb3J5Il1bIuWfuuacrOWkieaPmyJdWyJleGFjdF9hY2N1cmFjeSJdLCAwLjUpCiAgICAgICAgcmVzdWx0cyA9IFt7InZlcnNpb24iOiB7InRhZyI6ICJmbGFzaC12MDAwMS4wMDAxLjAwMjYifSwgImxheWVyX2Ffa2FuYSI6IHMsICJsYXllcl9iX2thbmppIjogTm9uZX0sCiAgICAgICAgICAgICAgICAgICB7InZlcnNpb24iOiB7InRhZyI6ICJmbGFzaC12MDAwMS4wMDAxLjAwMjUifSwgImxheWVyX2Ffa2FuYSI6IHMsICJsYXllcl9iX2thbmppIjogTm9uZX1dCiAgICAgICAgdGFibGUgPSBydW5fYmVuY2htYXJrLm1ha2VfdGFibGUocmVzdWx0cykKICAgICAgICBzZWxmLmFzc2VydEluKCLln7rmnKzlpInmj5siLCB0YWJsZSkKICAgICAgICBzZWxmLmFzc2VydEluKCJmbGFzaC12MDAwMS4wMDAxLjAwMjYiLCB0YWJsZSkKICAgICAgICBzZWxmLmFzc2VydEluKCLmnKrmuKzlrpoiLCB0YWJsZSkKCgppZiBfX25hbWVfXyA9PSAiX19tYWluX18iOgogICAgdW5pdHRlc3QubWFpbigpCg==
+#!/usr/bin/env python3
+# SPDX-License-Identifier: GPL-3.0-or-later
+# Copyright (C) 2026 appipinopi
+"""tools/ime-benchmark のユニットテスト (ネットワーク・cargo不要の部分)。"""
+import importlib.util
+import sys
+import unittest
+from pathlib import Path
+
+HERE = Path(__file__).parent
+BENCH_DIR = HERE / "ime-benchmark"
+sys.path.insert(0, str(BENCH_DIR))
+
+
+def _load(name, path):
+    spec = importlib.util.spec_from_file_location(name, path)
+    module = importlib.util.module_from_spec(spec)
+    spec.loader.exec_module(module)
+    return module
+
+
+kana2romaji = _load("kana2romaji", BENCH_DIR / "kana2romaji.py")
+run_benchmark = _load("run_benchmark", BENCH_DIR / "run_benchmark.py")
+
+FAKE_RELEASES = [
+    {"tag": "flash-v0001.0001.0026", "version": (1, 1, 26), "published_at": "2026-11-21T00:00:00Z"},
+    {"tag": "flash-v0001.0001.0025", "version": (1, 1, 25), "published_at": "2026-11-20T00:00:00Z"},
+    {"tag": "flash-v0001.0001.0024", "version": (1, 1, 24), "published_at": "2026-11-18T00:00:00Z"},
+]
+
+
+class Kana2RomajiTest(unittest.TestCase):
+    def test_basic(self):
+        self.assertEqual(kana2romaji.convert("きょうは"), ("kyouha", "きょうは"))
+
+    def test_sokuon(self):
+        self.assertEqual(kana2romaji.convert("がっこう"), ("gakkou", "がっこう"))
+        self.assertEqual(kana2romaji.convert("いっしょ"), ("issho", "いっしょ"))
+
+    def test_n_rules(self):
+        self.assertEqual(kana2romaji.convert("しんぶん"), ("shinbun", "しんぶん"))
+        self.assertEqual(kana2romaji.convert("かんい"), ("kanni", "かんい"))
+        self.assertEqual(kana2romaji.convert("ほん"), ("hon", "ほん"))
+
+    def test_long_vowel_and_katakana(self):
+        self.assertEqual(kana2romaji.convert("こーひー"), ("ko-hi-", "こーひー"))
+        self.assertEqual(kana2romaji.convert("データ"), ("de-ta", "でーた"))
+
+    def test_mixed_passthrough(self):
+        typed, target = kana2romaji.convert("あしたはAPIをみる")
+        self.assertEqual(typed, "ashitahaAPIwomiru")
+        self.assertEqual(target, "あしたはAPIをみる")
+
+
+class ResolveSpecTest(unittest.TestCase):
+    def test_latestrelease(self):
+        r = run_benchmark.resolve_spec("latestrelease", FAKE_RELEASES)
+        self.assertEqual(r["tag"], "flash-v0001.0001.0026")
+
+    def test_latestrelease_minus(self):
+        self.assertEqual(run_benchmark.resolve_spec("latestrelease-1", FAKE_RELEASES)["tag"], "flash-v0001.0001.0025")
+        self.assertEqual(run_benchmark.resolve_spec("latestrelease-2", FAKE_RELEASES)["tag"], "flash-v0001.0001.0024")
+
+    def test_explicit_version_forms(self):
+        for spec in ("1.1.25", "v1.1.25", "flash-v1.1.25", "flash-v0001.0001.0025", "0001.0001.0025"):
+            self.assertEqual(run_benchmark.resolve_spec(spec, FAKE_RELEASES)["tag"], "flash-v0001.0001.0025", spec)
+
+    def test_url_forms(self):
+        self.assertEqual(run_benchmark.resolve_spec("https://github.com/appipinopi/Meltype-Flash/latestrelease", FAKE_RELEASES)["tag"], "flash-v0001.0001.0026")
+        self.assertEqual(run_benchmark.resolve_spec("https://github.com/appipinopi/Meltype-Flash/latestrelease-1", FAKE_RELEASES)["tag"], "flash-v0001.0001.0025")
+        self.assertEqual(run_benchmark.resolve_spec("https://github.com/appipinopi/Meltype-Flash/releases/tag/flash-v0001.0001.0024", FAKE_RELEASES)["tag"], "flash-v0001.0001.0024")
+
+    def test_head_and_errors(self):
+        self.assertIsNone(run_benchmark.resolve_spec("HEAD", FAKE_RELEASES)["tag"])
+        with self.assertRaises(ValueError):
+            run_benchmark.resolve_spec("latestrelease-9", FAKE_RELEASES)
+        with self.assertRaises(ValueError):
+            run_benchmark.resolve_spec("9.9.9", FAKE_RELEASES)
+
+
+class ScoreTest(unittest.TestCase):
+    def test_score_and_table(self):
+        cases = [
+            {"id": 1, "category": "基本変換", "kana_target": "あした", "expected": "明日"},
+            {"id": 2, "category": "基本変換", "kana_target": "きのう", "expected": "昨日"},
+            {"id": 3, "category": "複合語", "kana_target": "じょうほう", "expected": "情報"},
+        ]
+        actuals = {1: "あした", 2: "きの", 3: "じょうほう"}
+        s = run_benchmark.score(cases, actuals, "kana_target")
+        self.assertEqual(s["total"]["exact"], 2)
+        self.assertEqual(s["total"]["total"], 3)
+        self.assertAlmostEqual(s["per_category"]["基本変換"]["exact_accuracy"], 0.5)
+        results = [{"version": {"tag": "flash-v0001.0001.0026"}, "layer_a_kana": s, "layer_b_kanji": None},
+                   {"version": {"tag": "flash-v0001.0001.0025"}, "layer_a_kana": s, "layer_b_kanji": None}]
+        table = run_benchmark.make_table(results)
+        self.assertIn("基本変換", table)
+        self.assertIn("flash-v0001.0001.0026", table)
+        self.assertIn("未測定", table)
+
+
+if __name__ == "__main__":
+    unittest.main()
