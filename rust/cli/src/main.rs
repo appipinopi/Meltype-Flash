@@ -164,49 +164,170 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
         tty(Session::open(store)?)?;
         return Ok(());
     }
-    if !args.is_empty() {
+    let fast_ipc = args.contains(&"--fast-ipc".to_string());
+    if !args.is_empty() && !fast_ipc {
         return Err(
-            "usage: meltype-rs [--tty | --version | --convert TEXT]; no arguments: JSON lines on stdin"
+            "usage: meltype-rs [--tty | --version | --fast-ipc | --convert TEXT]; no arguments: JSON lines on stdin"
                 .into(),
         );
     }
     let mut session = Session::open(store)?;
-    for line in io::stdin().lock().lines() {
-        let line = line?;
-        let result = match serde_json::from_str::<Request>(&line) {
-            Ok(request) => {
-                let result = match request {
-                    Request::Context { before, after } => {
-                        session.set_context(before.as_deref(), after.as_deref());
-                        session.result(false)
-                    }
-                    Request::SelectPrediction { index } => session.select_prediction(index),
-                    Request::Key { vk, ch, modifiers } => session.key(vk, ch, modifiers),
-                    Request::Commit => session.commit(),
-                    Request::ReconvertSelection { text, reading } => {
-                        session.reconvert_selection(&text, reading.as_deref())
-                    }
-                    Request::UndoCommit { before } => {
-                        session.can_delete = true;
-                        session.set_context(Some(&before), None);
-                        session.undo_commit()
-                    }
-                    Request::Reset => {
-                        session.reset();
-                        session.result(true)
-                    }
-                    Request::Select { index } => session.select(index),
-                    Request::Direct { enabled } => {
-                        let result = session.commit();
-                        session.direct = enabled;
-                        result
-                    }
-                };
-                serde_json::to_value(result)?
+    let stdin = io::stdin();
+    let stdout = io::stdout();
+
+    if fast_ipc {
+        use std::io::{Read, Write};
+        let mut reader = stdin.lock();
+        let mut writer = stdout.lock();
+        let mut len_buf = [0u8; 4];
+        let mut in_buf = vec![0u8; 64 * 1024];
+        let mut out_buf = Vec::with_capacity(64 * 1024);
+
+        while reader.read_exact(&mut len_buf).is_ok() {
+            let req_len = u32::from_le_bytes(len_buf) as usize;
+            if in_buf.len() < req_len {
+                in_buf.resize(req_len, 0);
             }
-            Err(error) => serde_json::json!({"error": error.to_string()}),
-        };
-        println!("{}", result);
+            reader.read_exact(&mut in_buf[..req_len])?;
+
+            let t_deser_start = std::time::Instant::now();
+            let req_res = serde_json::from_slice::<Request>(&in_buf[..req_len]);
+            let t_deser = t_deser_start.elapsed();
+
+            let t_engine_start = std::time::Instant::now();
+            let (result, err_val) = match req_res {
+                Ok(request) => {
+                    let res = match request {
+                        Request::Context { before, after } => {
+                            session.set_context(before.as_deref(), after.as_deref());
+                            session.result(false)
+                        }
+                        Request::SelectPrediction { index } => session.select_prediction(index),
+                        Request::Key { vk, ch, modifiers } => session.key(vk, ch, modifiers),
+                        Request::Commit => session.commit(),
+                        Request::ReconvertSelection { text, reading } => {
+                            session.reconvert_selection(&text, reading.as_deref())
+                        }
+                        Request::UndoCommit { before } => {
+                            session.can_delete = true;
+                            session.set_context(Some(&before), None);
+                            session.undo_commit()
+                        }
+                        Request::Reset => {
+                            session.reset();
+                            session.result(true)
+                        }
+                        Request::Select { index } => session.select(index),
+                        Request::Direct { enabled } => {
+                            let r = session.commit();
+                            session.direct = enabled;
+                            r
+                        }
+                    };
+                    (Some(res), None)
+                }
+                Err(e) => (None, Some(serde_json::json!({"error": e.to_string()}))),
+            };
+            let t_engine = t_engine_start.elapsed();
+
+            out_buf.clear();
+            let t_ser_start = std::time::Instant::now();
+            if let Some(r) = &result {
+                serde_json::to_writer(&mut out_buf, r)?;
+            } else if let Some(e) = &err_val {
+                serde_json::to_writer(&mut out_buf, e)?;
+            }
+            let t_ser = t_ser_start.elapsed();
+
+            let t_send_start = std::time::Instant::now();
+            writer.write_all(&(out_buf.len() as u32).to_le_bytes())?;
+            writer.write_all(&out_buf)?;
+            writer.flush()?;
+            let t_send = t_send_start.elapsed();
+
+            if let Ok(v) = std::env::var("MELTYPE_BENCH_TIMING") {
+                if v == "1" {
+                    eprintln!(
+                        "SERVER_TIMING: deser_ns={} engine_ns={} ser_ns={} send_ns={}",
+                        t_deser.as_nanos(),
+                        t_engine.as_nanos(),
+                        t_ser.as_nanos(),
+                        t_send.as_nanos()
+                    );
+                }
+            }
+        }
+        return Ok(());
+    }
+
+    let mut writer = io::BufWriter::with_capacity(64 * 1024, stdout.lock());
+    let mut line = String::with_capacity(512);
+    let mut reader = stdin.lock();
+
+    while reader.read_line(&mut line)? > 0 {
+        let trimmed = line.trim();
+        if !trimmed.is_empty() {
+            let t0 = std::time::Instant::now();
+            match serde_json::from_str::<Request>(trimmed) {
+                Ok(request) => {
+                    let t_parse = t0.elapsed();
+                    let t_req_start = std::time::Instant::now();
+                    let result = match request {
+                        Request::Context { before, after } => {
+                            session.set_context(before.as_deref(), after.as_deref());
+                            session.result(false)
+                        }
+                        Request::SelectPrediction { index } => session.select_prediction(index),
+                        Request::Key { vk, ch, modifiers } => session.key(vk, ch, modifiers),
+                        Request::Commit => session.commit(),
+                        Request::ReconvertSelection { text, reading } => {
+                            session.reconvert_selection(&text, reading.as_deref())
+                        }
+                        Request::UndoCommit { before } => {
+                            session.can_delete = true;
+                            session.set_context(Some(&before), None);
+                            session.undo_commit()
+                        }
+                        Request::Reset => {
+                            session.reset();
+                            session.result(true)
+                        }
+                        Request::Select { index } => session.select(index),
+                        Request::Direct { enabled } => {
+                            let result = session.commit();
+                            session.direct = enabled;
+                            result
+                        }
+                    };
+                    let t_exec = t_req_start.elapsed();
+                    let t_ser_start = std::time::Instant::now();
+                    serde_json::to_writer(&mut writer, &result)?;
+                    use std::io::Write;
+                    writer.write_all(b"\n")?;
+                    let t_ser = t_ser_start.elapsed();
+                    let t_flush_start = std::time::Instant::now();
+                    writer.flush()?;
+                    let t_flush = t_flush_start.elapsed();
+                    if let Ok(v) = std::env::var("MELTYPE_BENCH_TIMING") {
+                        if v == "1" {
+                            eprintln!(
+                                "TIMING: parse={:?} exec={:?} ser={:?} flush={:?} total={:?}",
+                                t_parse, t_exec, t_ser, t_flush, t0.elapsed()
+                            );
+                        }
+                    }
+                }
+                Err(error) => {
+                    let err = serde_json::json!({"error": error.to_string()});
+                    serde_json::to_writer(&mut writer, &err)?;
+                    use std::io::Write;
+                    writer.write_all(b"\n")?;
+                }
+            }
+            use std::io::Write;
+            writer.flush()?;
+        }
+        line.clear();
     }
     Ok(())
 }

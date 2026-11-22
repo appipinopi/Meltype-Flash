@@ -65,15 +65,24 @@ jobs:
           print(module.csharp_release())
           PY
           )
-          CORPUS_SHA=$(sha256sum rust/core/data/strict-accuracy.json | cut -d' ' -f1)
-          UPDATE=$(python3 - "$RUNNER_TEMP/release.json" "$CSHARP_REF" "$MANUAL" "$CORPUS_SHA" <<'PY'
+          CORPUS_SHA=$(sha256sum rust/ai/data/ime-qa-accuracy.json | cut -d' ' -f1)
+          git show "$RELEASE_SHA:rust/ai/model-catalog.json" > "$RUNNER_TEMP/release-model-catalog.json"
+          MODEL_HASHES=$(python3 - "$RUNNER_TEMP/release-model-catalog.json" <<'PY'
+          import json, sys
+          catalog = json.load(open(sys.argv[1], encoding="utf-8"))
+          model = next(model for model in catalog["models"] if model["id"] == "shunti-v7-xs5")
+          print("|".join(file["sha256"] for file in model["files"]))
+          PY
+          )
+          UPDATE=$(python3 - "$RUNNER_TEMP/release.json" "$CSHARP_REF" "$MANUAL" "$CORPUS_SHA" "$MODEL_HASHES" <<'PY'
           import json, re, sys
           release = json.load(open(sys.argv[1], encoding="utf-8"))
           body = release.get("body", "")
           manual = sys.argv[3].lower() == "true"
           missing = ("今回は依頼者の指定によりベンチマークを実施していません。" in body
-                     or "## 固定文の精度" not in body
+                     or "## IME変換Q&A精度" not in body
                      or sys.argv[4] not in body
+                     or any(digest not in body for digest in sys.argv[5].split("|"))
                      or f"C# {sys.argv[2]}" not in body
                      or len(re.findall(r"!\[[^\]]*\]\([^)]*\.png\)", body)) < 10
                      or len(re.findall(r"\[拡大表示（SVG）\]\([^)]*\.svg\)", body)) < 10)
@@ -115,7 +124,7 @@ jobs:
       - name: Fetch upstream release tags
         run: git fetch --tags https://github.com/yksr-melt/Meltype.git
       - name: Compare the exact published Rust tag with compatible C# and previous Rust
-        timeout-minutes: 30
+        timeout-minutes: 40
         run: |
           python tools/compare-rust-benchmarks.py --build --with-csharp --fetch-tags --current-ref "$TAG" --baseline-ref "$BENCHMARK_BASELINE" --output dist/release-benchmark --samples 3 --warmups 1 --rounds 9
           python tools/plot-windows-benchmark.py dist/release-benchmark/report.json --output dist/release-benchmark/charts
@@ -134,4 +143,3 @@ jobs:
           path: |
             dist/release-benchmark/report.json
             dist/release-benchmark/accuracy.json
-            dist/release-benchmark/accuracy-cases.json

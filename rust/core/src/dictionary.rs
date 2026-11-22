@@ -825,6 +825,32 @@ impl Dictionary {
             );
         }
         let lower = raw.to_ascii_lowercase();
+        // Split English word + attached Japanese particle or verb suffix
+        for particle in [
+            "kara", "made", "yori", "nara", "shite", "shita", "shimasu", "suru", "desu",
+            "no", "ga", "wo", "ni", "de", "to", "ha", "mo", "wa", "he", "ya",
+        ] {
+            for eng_len in (3..=lower.len().saturating_sub(particle.len())).rev() {
+                let stem = &lower[..eng_len];
+                if (self.common_english.contains(stem) || self.english.contains(stem))
+                    && !self.is_japanese(stem)
+                    && lower[eng_len..].starts_with(particle)
+                {
+                    let tail = &raw[eng_len + particle.len()..];
+                    let tail_result = if tail.is_empty() {
+                        String::new()
+                    } else {
+                        self.mixed_word(tail, final_input)
+                    };
+                    return format!(
+                        "{}{}{}",
+                        &raw[..eng_len],
+                        romaji::hiragana(particle, true),
+                        tail_result
+                    );
+                }
+            }
+        }
         if self.starts_with_japanese_reading(raw) {
             let upper = raw.bytes().position(|c| c.is_ascii_uppercase()).unwrap();
             return format!(
@@ -1011,7 +1037,7 @@ impl Dictionary {
         // Shortest-path segmentation over ASCII byte boundaries. Unknown syllables
         // remain kana; dictionary words can form English islands inside Japanese.
         let n = raw.len();
-        let (boundaries, pending_start) = romaji::unit_boundaries(
+        let (mut boundaries, pending_start) = romaji::unit_boundaries(
             &lower,
             |prefix| {
                 (0..prefix.len().saturating_sub(2)).any(|start| {
@@ -1024,6 +1050,33 @@ impl Dictionary {
             },
             |prefix| self.known_english(prefix),
         );
+        let start_points: Vec<usize> = (0..n).filter(|&s| s == 0 || boundaries[s]).collect();
+        for start in start_points {
+            for end in start + 3..=n.min(start + 24) {
+                let piece = &lower[start..end];
+                if (self.common_english.contains(piece)
+                    || self.english.contains(piece)
+                    || self.readable_english.contains(piece)
+                    || self.proper.contains(piece))
+                    && !self.is_japanese(piece)
+                {
+                    let follows_particle = [
+                        "wo", "ga", "ni", "de", "to", "ha", "mo", "wa", "he", "ya", "kara", "made",
+                        "yori", "nara", "shite", "shita", "suru", "desu", "da", "na",
+                    ]
+                    .iter()
+                    .any(|p| lower[end..].starts_with(p));
+                    let preceded_by_jp = start == 0 || boundaries[start] || {
+                        let prev = (0..start).rev().find(|&p| boundaries[p]).unwrap_or(0);
+                        romaji::analyze(&lower[prev..start], true).valid
+                    };
+                    if follows_particle || preceded_by_jp || end == n {
+                        boundaries[start] = true;
+                        boundaries[end] = true;
+                    }
+                }
+            }
+        }
         let mut costs = vec![f64::INFINITY; n + 1];
         let mut paths = vec![(0, false); n + 1];
         costs[0] = 0.0;
@@ -1149,11 +1202,19 @@ impl Dictionary {
                         || i > 0 && !paths[i].1 && !self.common_english.contains(piece));
                 // Readable English candidates after Japanese need the same
                 // contextual evidence as IsEnglishSpan (kono|tea -> このてあ).
+                let followed_by_jp_particle = [
+                    "wo", "ga", "ni", "de", "to", "ha", "mo", "wa", "he", "ya", "kara", "made",
+                    "yori", "nara", "shite", "shita", "shimasu", "suru", "desu", "da", "na",
+                ]
+                .iter()
+                .any(|p| lower[end..].starts_with(p));
                 let ambiguous_japanese = english_piece
                     && i > 0
                     && !paths[i].1
                     && strict.valid
                     && strict.partial.is_empty()
+                    && !(followed_by_jp_particle
+                        && (self.common_english.contains(piece) || self.english.contains(piece)))
                     && {
                         let next = (end + 1..=n).find(|p| boundaries[*p]).unwrap_or(n);
                         let next = if pending_start == Some(next) { n } else { next };
@@ -1192,6 +1253,8 @@ impl Dictionary {
                         && !self.japanese_prefix(piece)
                 {
                     0.1
+                } else if en && followed_by_jp_particle && (self.common_english.contains(piece) || self.english.contains(piece)) {
+                    0.2
                 } else if jp {
                     0.3
                 } else if en {

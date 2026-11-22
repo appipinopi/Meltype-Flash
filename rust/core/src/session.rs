@@ -517,13 +517,11 @@ impl Session {
         self.state.preferences = self.preferences.clone();
         #[cfg(feature = "filesystem")]
         if let Some(store) = &self.store {
-            match store.record(changes) {
-                Ok(state) => {
-                    self.state = state;
-                    self.preferences = self.state.preferences.clone();
-                }
-                Err(e) => self.storage_error = Some(e.to_string()),
+            for change in &changes {
+                self.state.apply(change.clone());
             }
+            self.preferences = self.state.preferences.clone();
+            store.record_async(changes);
             return;
         }
         for change in changes {

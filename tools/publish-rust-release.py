@@ -133,9 +133,9 @@ def validate_benchmark(directory, sha):
         raise ValueError("測定前後の整合性検査が必要です")
     if not report.get("results") or not report.get("process_resources"):
         raise ValueError("ベンチマークの測定値がありません")
-    accuracy = report.get("fixed_text_accuracy")
+    accuracy = report.get("ime_qa_accuracy")
     accuracy_path = directory / "accuracy.json"
-    if (not accuracy or not accuracy.get("non_regression_gate", {}).get("passed")
+    if (not accuracy or not accuracy.get("quality_gate", {}).get("passed")
             or not accuracy_path.is_file()
             or json.loads(accuracy_path.read_text(encoding="utf-8-sig")) != accuracy):
         raise ValueError("固定文の精度チェック結果が必要です")
@@ -151,7 +151,7 @@ def validate_benchmark(directory, sha):
         if ElementTree.parse(directory / "charts" / name).getroot().tag != "{http://www.w3.org/2000/svg}svg":
             raise ValueError(f"拡大用のSVGが不正です: {name}")
     notes = (directory / "charts/README.md").read_text(encoding="utf-8-sig")
-    if ("## 固定文の精度" not in notes or "## 全入力の中央値" not in notes
+    if ("## IME変換Q&A精度" not in notes or "## 全入力の中央値" not in notes
             or "## CPU・RAMのプロセス中央値" not in notes or "## 全画像" not in notes):
         raise ValueError("測定結果の本文がありません")
     return report, normalize_markdown(notes.split("## 全画像")[0])

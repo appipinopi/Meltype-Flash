@@ -86,6 +86,8 @@ jobs:
       - run: cargo fmt --all --check
         if: runner.os == 'Linux'
       - run: cargo clippy --workspace --all-targets --locked -- -D warnings
+      - name: Compile the fixed IME Q&A accuracy evaluator
+        run: cargo check -p meltype-ai --features download --example accuracy --locked
       - run: cargo clippy -p meltype-native --all-targets --features tsf-server --locked -- -D warnings
         if: runner.os == 'Windows'
       - run: cargo test --workspace --locked

@@ -10,6 +10,8 @@ use std::{
     fs::{self, File, OpenOptions},
     io::{self, Write},
     path::{Path, PathBuf},
+    sync::{Mutex, OnceLock},
+    thread::JoinHandle,
 };
 mod sqlite_dictionary;
 mod upstream;
@@ -24,7 +26,6 @@ pub fn atomic_write(path: &Path, bytes: &[u8]) -> io::Result<()> {
     fs::create_dir_all(parent)?;
     let mut file = tempfile::NamedTempFile::new_in(parent)?;
     file.write_all(bytes)?;
-    file.as_file().sync_all()?;
     file.persist(path).map_err(|e| e.error)?;
     #[cfg(unix)]
     {
@@ -45,6 +46,8 @@ impl Drop for Lock {
 
 mod state;
 pub use state::{Change, LanguageEntry, Phrase, State};
+
+static PENDING_WRITE: OnceLock<Mutex<Option<(std::thread::ThreadId, JoinHandle<()>)>>> = OnceLock::new();
 
 impl Store {
     pub fn new(directory: impl Into<PathBuf>) -> Self {
@@ -134,7 +137,22 @@ impl Store {
         )?;
         Ok(result)
     }
+    pub fn flush(&self) {
+        if let Some(lock) = PENDING_WRITE.get() {
+            if let Ok(mut opt) = lock.lock() {
+                if let Some((tid, _)) = opt.as_ref() {
+                    if *tid == std::thread::current().id() {
+                        return;
+                    }
+                }
+                if let Some((_, handle)) = opt.take() {
+                    let _ = handle.join();
+                }
+            }
+        }
+    }
     pub fn load(&self) -> io::Result<State> {
+        self.flush();
         let path = self.directory.join("state.json");
         let mut state: State = match fs::read(&path) {
             Ok(bytes) => {
@@ -164,6 +182,7 @@ impl Store {
         Ok(state)
     }
     pub fn update<T>(&self, f: impl FnOnce(&mut State) -> io::Result<T>) -> io::Result<T> {
+        self.flush();
         let _lock = self.lock()?;
         let mut state = self.load()?;
         let previous_dictionary = sqlite_dictionary::read(&self.directory)?;
@@ -206,6 +225,20 @@ impl Store {
             }
             Ok(state.clone())
         })
+    }
+    pub fn record_async(&self, changes: Vec<Change>) {
+        if changes.is_empty() {
+            return;
+        }
+        self.flush();
+        let this = self.clone();
+        let handle = std::thread::spawn(move || {
+            let _ = this.record(changes);
+        });
+        let tid = handle.thread().id();
+        if let Ok(mut lock) = PENDING_WRITE.get_or_init(|| Mutex::new(None)).lock() {
+            *lock = Some((tid, handle));
+        }
     }
     fn import_legacy(&self) -> io::Result<State> {
         let mut state = State {

@@ -14,14 +14,28 @@ spec.loader.exec_module(comparison)
 
 
 class ComparisonTests(unittest.TestCase):
-    def test_fixed_accuracy_distance_and_corpus_are_strict_and_static(self):
-        self.assertEqual(comparison.edit_distance("日本語", "日本語"), 0)
-        self.assertEqual(comparison.edit_distance("日本語", "日本語文"), 1)
-        self.assertEqual(comparison.edit_distance("かな", "カナ"), 2)
-        corpus = json.loads((comparison.ROOT / "rust/core/data/strict-accuracy.json").read_text(encoding="utf-8"))
-        self.assertGreaterEqual(len(corpus), 25)
-        self.assertTrue({"長文", "誤入力境界", "数字記号", "英数混在"} <= {case["category"] for case in corpus})
-        self.assertTrue(all(case["typed"] and case["expected"] for case in corpus))
+    def test_ime_qa_corpus_uses_reading_context_and_gold_answer(self):
+        corpus = json.loads((comparison.ROOT / "rust/ai/data/ime-qa-accuracy.json").read_text(encoding="utf-8"))
+        self.assertEqual(len(corpus), 40)
+        self.assertTrue({"同音異義語", "文脈付き長文"} <= {case["category"] for case in corpus})
+        self.assertTrue(all(case["question"]["reading"] and case["question"]["context"] and case["answer"] for case in corpus))
+
+    def test_ime_qa_gate_has_high_floors_and_blocks_regression(self):
+        scores = {"top1_accuracy": .85, "top3_recall": .925, "top8_recall": .975}
+        self.assertTrue(comparison.accuracy_gate(scores, scores)["passed"])
+        self.assertFalse(comparison.accuracy_gate({**scores, "top1_accuracy": .775})["passed"])
+        self.assertFalse(comparison.accuracy_gate(scores, {**scores, "top1_accuracy": .875})["passed"])
+
+    def test_accuracy_runner_is_injected_identically_into_release_source(self):
+        with tempfile.TemporaryDirectory() as temporary:
+            root = Path(temporary)
+            ai = root / "rust/ai"
+            (ai / "examples").mkdir(parents=True)
+            (ai / "Cargo.toml").write_text('[package]\nname="meltype-ai"\n', encoding="utf-8")
+            comparison.install_accuracy_runner(root)
+            self.assertTrue((ai / "examples/accuracy.rs").is_file())
+            self.assertTrue((ai / "data/ime-qa-accuracy.json").is_file())
+            self.assertIn('name = "accuracy"', (ai / "Cargo.toml").read_text(encoding="utf-8"))
 
     def test_verify_reads_rust_and_upstream_csharp_edit_protocols(self):
         benchmark = comparison.benchmark
@@ -97,11 +111,13 @@ class ComparisonTests(unittest.TestCase):
             root = Path(temporary)
             (root / "src/Meltype.Core").mkdir(parents=True)
             (root / "src/Meltype.Core/input.cs").write_text("source", encoding="utf-8")
+            (root / "rust/ai/src").mkdir(parents=True)
+            (root / "rust/ai/src/input.rs").write_text("ai source", encoding="utf-8")
             before = comparison.source_hashes(root)
             (root / "src/Meltype.Core/obj").mkdir()
             (root / "src/Meltype.Core/obj/generated.cs").write_text("generated", encoding="utf-8")
             self.assertEqual(before, comparison.source_hashes(root))
-            (root / "src/Meltype.Core/input.cs").write_text("changed", encoding="utf-8")
+            (root / "rust/ai/src/input.rs").write_text("changed", encoding="utf-8")
             self.assertNotEqual(before, comparison.source_hashes(root))
 
     def test_three_way_runner_keeps_pairwise_mismatches_and_plots(self):
@@ -128,13 +144,17 @@ class ComparisonTests(unittest.TestCase):
             args = ["compare-rust-benchmarks.py", "--old", str(binaries["old"]), "--new", str(binaries["new"]),
                     "--old-ref", "old-tag", "--new-ref", "new-tag", "--csharp", str(binaries["csharp"]),
                     "--csharp-ref", "v1.3.0", "--samples", "3", "--output", str(output), "--plot"]
-            corpus = json.loads((comparison.ROOT / "rust/core/data/strict-accuracy.json").read_text(encoding="utf-8"))
-            def accuracy_row(i, item):
-                count = len(item["typed"]) + 1
-                responses = [json.dumps({"consumed": True, "commits": [], "view": None}) for _ in range(count - 1)]
-                responses.append(json.dumps({"consumed": False, "commits": [{"deleteBefore": 0, "text": item["expected"]}], "view": None}))
-                return json.dumps({"case": f"accuracy_{i:03d}", "responses": responses})
-            accuracy_stdout = "\n".join(accuracy_row(i, item) for i, item in enumerate(corpus, 1))
+            accuracy = {"kind": "ime-reading-context-qa", "corpus": "rust/ai/data/ime-qa-accuracy.json",
+                        "corpus_sha256": "a" * 64, "model": {"id": "shunti-v7-xs5"},
+                        "previous": {"cases": 40, "exact_top1": 34, "top1_accuracy": .85,
+                                     "exact_top3": 37, "top3_recall": .925,
+                                     "exact_top8": 39, "top8_recall": .975,
+                                     "mean_reciprocal_rank": .89, "inference_ms": 900},
+                        "current": {"cases": 40, "exact_top1": 34, "top1_accuracy": .85,
+                                    "exact_top3": 37, "top3_recall": .925,
+                                    "exact_top8": 39, "top8_recall": .975,
+                                    "mean_reciprocal_rank": .89, "inference_ms": 850},
+                        "quality_gate": {"passed": True}, "results": []}
             with patch.object(sys, "argv", args), patch.object(comparison.benchmark, "fixtures", return_value=[case]), \
                  patch.object(comparison.benchmark, "measure_process", side_effect=measure), \
                  patch.object(comparison.benchmark, "command", return_value="rustc test"), \
@@ -142,14 +162,15 @@ class ComparisonTests(unittest.TestCase):
                  patch.object(comparison.platform, "system", return_value="Windows"), \
                  patch.object(comparison.platform, "platform", return_value="Windows-test"), \
                  patch.object(comparison.platform, "processor", return_value="test CPU"), \
-                 patch.object(comparison.subprocess, "run", return_value=type("Completed", (), {"stdout": accuracy_stdout})()) as runner, patch("builtins.print"):
+                 patch.object(comparison, "run_ime_qa_accuracy", return_value=accuracy), \
+                 patch.object(comparison.subprocess, "run") as runner, patch("builtins.print"):
                 comparison.main()
             report = json.loads((output / "report.json").read_text(encoding="utf-8"))
             self.assertEqual(report["versions"], ["csharp", "old", "new"])
             self.assertEqual(len(report["rows"]), 27)
             self.assertEqual(report["rounds"], 3)
-            self.assertTrue(report["fixed_text_accuracy"]["non_regression_gate"]["passed"])
-            self.assertEqual(report["fixed_text_accuracy"]["versions"]["new"]["total"], 30)
+            self.assertTrue(report["ime_qa_accuracy"]["quality_gate"]["passed"])
+            self.assertEqual(report["ime_qa_accuracy"]["current"]["cases"], 40)
             self.assertEqual(orders, ["csharp", "old", "new", "old", "new", "csharp", "new", "csharp", "old"])
             result = report["results"][0]
             self.assertTrue(result["eligible_for_speed_claim"])
