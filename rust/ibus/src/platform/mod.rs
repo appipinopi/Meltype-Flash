@@ -761,13 +761,26 @@ pub fn run(layout: &std::ffi::CStr) -> Result<(), String> {
             0,
         );
         if let Ok(exe) = std::env::current_exe() {
-            let helper = std::env::var_os("MELTYPE_MOZC_HELPER")
-                .map(std::path::PathBuf::from)
-                .unwrap_or_else(|| exe.with_file_name("mozc").join("meltype_mozc_helper"));
-            if helper.is_file() {
-                if let Ok(path) = CString::new(helper.to_string_lossy().as_ref()) {
-                    if native::meltype_init_mozc(path.as_ptr(), ptr::null()) == 0 {
-                        eprintln!("Meltype: Mozcを起動できませんでした。");
+            let candidate_paths = [
+                std::env::var_os("MELTYPE_MOZC_HELPER").map(std::path::PathBuf::from),
+                Some(exe.with_file_name("mozc").join("meltype_mozc_helper")),
+                Some(std::path::PathBuf::from(
+                    "/usr/libexec/meltype-rust/ibus/mozc/meltype_mozc_helper",
+                )),
+                Some(std::path::PathBuf::from(
+                    "/usr/share/meltype-flash/mozc/meltype_mozc_helper",
+                )),
+                std::env::var_os("HOME").map(|h| {
+                    std::path::PathBuf::from(h)
+                        .join(".local/share/Meltype-flash/mozc/meltype_mozc_helper")
+                }),
+            ];
+            for candidate in candidate_paths.into_iter().flatten() {
+                if candidate.is_file() {
+                    if let Ok(path) = CString::new(candidate.to_string_lossy().as_ref()) {
+                        if native::meltype_init_mozc(path.as_ptr(), ptr::null()) != 0 {
+                            break;
+                        }
                     }
                 }
             }

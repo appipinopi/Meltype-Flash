@@ -826,28 +826,34 @@ impl Dictionary {
         }
         let lower = raw.to_ascii_lowercase();
         // Split English word + attached Japanese particle or verb suffix
-        for particle in [
-            "kara", "made", "yori", "nara", "shite", "shita", "shimasu", "suru", "desu",
-            "no", "ga", "wo", "ni", "de", "to", "ha", "mo", "wa", "he", "ya",
-        ] {
-            for eng_len in (3..=lower.len().saturating_sub(particle.len())).rev() {
-                let stem = &lower[..eng_len];
-                if (self.common_english.contains(stem) || self.english.contains(stem))
-                    && !self.is_japanese(stem)
-                    && lower[eng_len..].starts_with(particle)
-                {
-                    let tail = &raw[eng_len + particle.len()..];
-                    let tail_result = if tail.is_empty() {
-                        String::new()
-                    } else {
-                        self.mixed_word(tail, final_input)
-                    };
-                    return format!(
-                        "{}{}{}",
-                        &raw[..eng_len],
-                        romaji::hiragana(particle, true),
-                        tail_result
-                    );
+        if !self.is_english(&lower) && !self.common_english.contains(lower.as_str()) {
+            for particle in [
+                "kara", "made", "yori", "nara", "shite", "shita", "shimasu", "suru", "desu", "no",
+                "ga", "wo", "ni", "de", "to", "ha", "mo", "wa", "he", "ya",
+            ] {
+                for eng_len in (3..=lower.len().saturating_sub(particle.len())).rev() {
+                    let stem = &lower[..eng_len];
+                    if (self.common_english.contains(stem) || self.english.contains(stem))
+                        && !self.is_japanese(stem)
+                        && lower[eng_len..].starts_with(particle)
+                    {
+                        let tail = &raw[eng_len + particle.len()..];
+                        if tail.is_empty()
+                            || romaji::analyze(&lower[eng_len + particle.len()..], true).valid
+                        {
+                            let tail_result = if tail.is_empty() {
+                                String::new()
+                            } else {
+                                self.mixed_word(tail, final_input)
+                            };
+                            return format!(
+                                "{}{}{}",
+                                &raw[..eng_len],
+                                romaji::hiragana(particle, true),
+                                tail_result
+                            );
+                        }
+                    }
                 }
             }
         }
@@ -1253,7 +1259,10 @@ impl Dictionary {
                         && !self.japanese_prefix(piece)
                 {
                     0.1
-                } else if en && followed_by_jp_particle && (self.common_english.contains(piece) || self.english.contains(piece)) {
+                } else if en
+                    && followed_by_jp_particle
+                    && (self.common_english.contains(piece) || self.english.contains(piece))
+                {
                     0.2
                 } else if jp {
                     0.3

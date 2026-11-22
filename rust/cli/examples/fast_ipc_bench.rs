@@ -209,7 +209,8 @@ fn main() {
 
     // Load test cases
     let cases_json = include_str!("../../../rust/core/tests/data/matrix_649.json");
-    let cases: Vec<TestCase> = serde_json::from_str(cases_json).expect("Failed to parse matrix JSON");
+    let cases: Vec<TestCase> =
+        serde_json::from_str(cases_json).expect("Failed to parse matrix JSON");
     println!("Running benchmark on all {} matrix cases...\n", cases.len());
 
     for case in &cases {
@@ -236,7 +237,10 @@ fn main() {
         .args([
             "-NoProfile",
             "-Command",
-            &format!("([Math]::Round((Get-Process -Id {}).WorkingSet64 / 1MB, 2))", child.id()),
+            &format!(
+                "([Math]::Round((Get-Process -Id {}).WorkingSet64 / 1MB, 2))",
+                child.id()
+            ),
         ])
         .output()
         .ok()
@@ -256,16 +260,43 @@ fn main() {
     };
 
     println!("-------------------------------------------------------------------------");
-    println!("📊 【打鍵処理 (Key Event) の 5 区間内訳実測】  (サンプル数: {})", key_stats.total_rtt_us.len());
+    println!(
+        "📊 【打鍵処理 (Key Event) の 5 区間内訳実測】  (サンプル数: {})",
+        key_stats.total_rtt_us.len()
+    );
     println!("-------------------------------------------------------------------------");
-    print_row("① [クライアント] JSON シリアライズ", key_stats.client_ser_us);
-    print_row("② [クライアント] IPC パイプ送信 (Write+Flush)", key_stats.client_send_us);
-    print_row("③ [サーバー]     JSON デシリアライズ", key_stats.server_deser_us);
-    print_row("④ [サーバー]     ★エンジン呼び出し (Core Key)", key_stats.server_engine_us);
-    print_row("⑤ [サーバー]     JSON シリアライズ", key_stats.server_ser_us);
-    print_row("⑥ [サーバー]     IPC パイプ送信 (Write+Flush)", key_stats.server_send_us);
-    print_row("⑦ [OS/スケジューラ] パイプ転送・待機・コンテキスト切替", key_stats.recv_wait_us);
-    print_row("⑧ [クライアント] JSON デシリアライズ", key_stats.client_deser_us);
+    print_row(
+        "① [クライアント] JSON シリアライズ",
+        key_stats.client_ser_us,
+    );
+    print_row(
+        "② [クライアント] IPC パイプ送信 (Write+Flush)",
+        key_stats.client_send_us,
+    );
+    print_row(
+        "③ [サーバー]     JSON デシリアライズ",
+        key_stats.server_deser_us,
+    );
+    print_row(
+        "④ [サーバー]     ★エンジン呼び出し (Core Key)",
+        key_stats.server_engine_us,
+    );
+    print_row(
+        "⑤ [サーバー]     JSON シリアライズ",
+        key_stats.server_ser_us,
+    );
+    print_row(
+        "⑥ [サーバー]     IPC パイプ送信 (Write+Flush)",
+        key_stats.server_send_us,
+    );
+    print_row(
+        "⑦ [OS/スケジューラ] パイプ転送・待機・コンテキスト切替",
+        key_stats.recv_wait_us,
+    );
+    print_row(
+        "⑧ [クライアント] JSON デシリアライズ",
+        key_stats.client_deser_us,
+    );
     println!("  -----------------------------------------------------------------------");
     let (_p50, _p95, _p99, avg) = calc_percentiles(key_stats.total_rtt_us.clone());
     println!(
@@ -275,16 +306,43 @@ fn main() {
     println!();
 
     println!("-------------------------------------------------------------------------");
-    println!("📊 【確定処理 (Commit / Enter) の 5 区間内訳実測】  (サンプル数: {})", commit_stats.total_rtt_us.len());
+    println!(
+        "📊 【確定処理 (Commit / Enter) の 5 区間内訳実測】  (サンプル数: {})",
+        commit_stats.total_rtt_us.len()
+    );
     println!("-------------------------------------------------------------------------");
-    print_row("① [クライアント] JSON シリアライズ", commit_stats.client_ser_us);
-    print_row("② [クライアント] IPC パイプ送信 (Write+Flush)", commit_stats.client_send_us);
-    print_row("③ [サーバー]     JSON デシリアライズ", commit_stats.server_deser_us);
-    print_row("④ [サーバー]     ★エンジン呼び出し (Commit)", commit_stats.server_engine_us);
-    print_row("⑤ [サーバー]     JSON シリアライズ", commit_stats.server_ser_us);
-    print_row("⑥ [サーバー]     IPC パイプ送信 (Write+Flush)", commit_stats.server_send_us);
-    print_row("⑦ [OS/スケジューラ] パイプ転送・待機・コンテキスト切替", commit_stats.recv_wait_us);
-    print_row("⑧ [クライアント] JSON デシリアライズ", commit_stats.client_deser_us);
+    print_row(
+        "① [クライアント] JSON シリアライズ",
+        commit_stats.client_ser_us,
+    );
+    print_row(
+        "② [クライアント] IPC パイプ送信 (Write+Flush)",
+        commit_stats.client_send_us,
+    );
+    print_row(
+        "③ [サーバー]     JSON デシリアライズ",
+        commit_stats.server_deser_us,
+    );
+    print_row(
+        "④ [サーバー]     ★エンジン呼び出し (Commit)",
+        commit_stats.server_engine_us,
+    );
+    print_row(
+        "⑤ [サーバー]     JSON シリアライズ",
+        commit_stats.server_ser_us,
+    );
+    print_row(
+        "⑥ [サーバー]     IPC パイプ送信 (Write+Flush)",
+        commit_stats.server_send_us,
+    );
+    print_row(
+        "⑦ [OS/スケジューラ] パイプ転送・待機・コンテキスト切替",
+        commit_stats.recv_wait_us,
+    );
+    print_row(
+        "⑧ [クライアント] JSON デシリアライズ",
+        commit_stats.client_deser_us,
+    );
     println!("  -----------------------------------------------------------------------");
     let (_p50, _p95, _p99, avg) = calc_percentiles(commit_stats.total_rtt_us.clone());
     println!(

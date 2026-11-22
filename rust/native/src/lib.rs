@@ -520,6 +520,13 @@ unsafe fn external_conversion_unprotected(
             external.extend(text.lines().filter(|s| !s.is_empty()).map(str::to_owned));
         }
     }
+    if segments.is_empty() {
+        let dict = meltype_core::dictionary::Dictionary::bundled();
+        let converted = dict.convert(reading);
+        if !converted.is_empty() && converted != reading {
+            segments = vec![Clause::new(reading.to_owned(), vec![converted])];
+        }
+    }
     (segments, external)
 }
 

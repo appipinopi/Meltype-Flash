@@ -165,15 +165,26 @@ fn main() {
                     .split(|c: char| !c.is_ascii_alphanumeric() && c != '-' && c != '_')
                     .filter(|s| s.len() >= 2 && s.chars().any(|c| c.is_alphabetic()))
                     .collect();
-                if !eng_words.is_empty() && eng_words.iter().all(|w| mixed_res.contains(w) || trimmed_session_text.contains(w)) {
+                if !eng_words.is_empty()
+                    && eng_words
+                        .iter()
+                        .all(|w| mixed_res.contains(w) || trimmed_session_text.contains(w))
+                {
                     is_ok = true;
                     newly_recovered = true;
                 }
             } else if case.set.starts_with("D_") {
                 // Code / CLI flag / path protection
-                if exp.starts_with("--") || exp.starts_with("./") || exp.starts_with("../") || exp.starts_with("cd") {
+                if exp.starts_with("--")
+                    || exp.starts_with("./")
+                    || exp.starts_with("../")
+                    || exp.starts_with("cd")
+                {
                     let ascii_part: String = exp.chars().filter(|c| c.is_ascii()).collect();
-                    if !ascii_part.is_empty() && (mixed_res.contains(&ascii_part) || trimmed_session_text.contains(&ascii_part)) {
+                    if !ascii_part.is_empty()
+                        && (mixed_res.contains(&ascii_part)
+                            || trimmed_session_text.contains(&ascii_part))
+                    {
                         is_ok = true;
                         newly_recovered = true;
                     }
@@ -181,15 +192,27 @@ fn main() {
             } else if case.set.starts_with("C_") {
                 // English phrasing / proper noun spacing (e.g. "Slack to Zoom" -> "Slack とZoom")
                 let words: Vec<&str> = exp.split_whitespace().collect();
-                if !words.is_empty() && words.iter().all(|w| trimmed_session_text.contains(w) || mixed_res.contains(w)) {
+                if !words.is_empty()
+                    && words
+                        .iter()
+                        .all(|w| trimmed_session_text.contains(w) || mixed_res.contains(w))
+                {
                     is_ok = true;
                     newly_recovered = true;
                 }
             } else if case.set.starts_with("B_") {
                 // Phrases & collocations
                 if exp.chars().any(meltype_core::linguistics::kanji) {
-                    let kanji_parts: Vec<String> = exp.chars().filter(|c| meltype_core::linguistics::kanji(*c)).map(|c| c.to_string()).collect();
-                    if !kanji_parts.is_empty() && kanji_parts.iter().all(|k| trimmed_session_text.contains(k) || mixed_res.contains(k)) {
+                    let kanji_parts: Vec<String> = exp
+                        .chars()
+                        .filter(|c| meltype_core::linguistics::kanji(*c))
+                        .map(|c| c.to_string())
+                        .collect();
+                    if !kanji_parts.is_empty()
+                        && kanji_parts
+                            .iter()
+                            .all(|k| trimmed_session_text.contains(k) || mixed_res.contains(k))
+                    {
                         is_ok = true;
                         newly_recovered = true;
                     }
@@ -207,7 +230,11 @@ fn main() {
                     case.set.clone(),
                     case.romaji.clone(),
                     case.expected.clone(),
-                    if session_match { trimmed_session_text.to_string() } else { mixed_res.clone() },
+                    if session_match {
+                        trimmed_session_text.to_string()
+                    } else {
+                        mixed_res.clone()
+                    },
                     case.orig_flash_space.clone(),
                 ));
             }
@@ -237,8 +264,17 @@ fn main() {
     println!("-----------------------------------------------------------------");
     println!("🎯 【総合精度結果】");
     println!("-----------------------------------------------------------------");
-    println!("  総合正解率 : {} / {} = {:.2}%", new_total_ok, total_cases, new_pct);
-    println!("  （旧Flash  : {} / {} = {:.2}%  →  +{} 件改善）", orig_total_ok, total_cases, orig_pct, new_total_ok - orig_total_ok);
+    println!(
+        "  総合正解率 : {} / {} = {:.2}%",
+        new_total_ok, total_cases, new_pct
+    );
+    println!(
+        "  （旧Flash  : {} / {} = {:.2}%  →  +{} 件改善）",
+        orig_total_ok,
+        total_cases,
+        orig_pct,
+        new_total_ok - orig_total_ok
+    );
     println!();
     println!("【セット別内訳】");
     for (name, s) in &stats {
@@ -260,9 +296,25 @@ fn main() {
     println!("    avg : {:.4} ms ({:.1} μs)", key_avg, key_avg * 1000.0);
     println!();
     println!("  確定・変換処理時間 (Commit/Space):");
-    println!("    p50 : {:.4} ms ({:.1} μs)", commit_p50, commit_p50 * 1000.0);
-    println!("    p95 : {:.4} ms ({:.1} μs)", commit_p95, commit_p95 * 1000.0);
-    println!("    p99 : {:.4} ms ({:.1} μs)", commit_p99, commit_p99 * 1000.0);
-    println!("    avg : {:.4} ms ({:.1} μs)", commit_avg, commit_avg * 1000.0);
+    println!(
+        "    p50 : {:.4} ms ({:.1} μs)",
+        commit_p50,
+        commit_p50 * 1000.0
+    );
+    println!(
+        "    p95 : {:.4} ms ({:.1} μs)",
+        commit_p95,
+        commit_p95 * 1000.0
+    );
+    println!(
+        "    p99 : {:.4} ms ({:.1} μs)",
+        commit_p99,
+        commit_p99 * 1000.0
+    );
+    println!(
+        "    avg : {:.4} ms ({:.1} μs)",
+        commit_avg,
+        commit_avg * 1000.0
+    );
     println!("=================================================================");
 }

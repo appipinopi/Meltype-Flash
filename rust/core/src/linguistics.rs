@@ -33,14 +33,9 @@ fn meanings_data() -> &'static MeaningsData {
                 continue;
             }
             let (word, reading, gloss) = (fields[0], fields[1], fields[2]);
-            meanings
-                .entry(word)
-                .or_default()
-                .push((reading, gloss));
+            meanings.entry(word).or_default().push((reading, gloss));
             if let Some((i, last)) = word.char_indices().next_back() {
-                if i > 0
-                    && "うくぐすつぬぶむるい".contains(last)
-                    && word[..i].chars().any(kanji)
+                if i > 0 && "うくぐすつぬぶむるい".contains(last) && word[..i].chars().any(kanji)
                 {
                     stems.entry(&word[..i]).or_insert(word);
                 }
@@ -51,16 +46,15 @@ fn meanings_data() -> &'static MeaningsData {
 }
 
 fn translations_data() -> &'static HashMap<&'static str, Vec<(&'static str, &'static str)>> {
-    static DATA: OnceLock<HashMap<&'static str, Vec<(&'static str, &'static str)>>> = OnceLock::new();
+    static DATA: OnceLock<HashMap<&'static str, Vec<(&'static str, &'static str)>>> =
+        OnceLock::new();
     DATA.get_or_init(|| {
-        let mut translations: HashMap<&'static str, Vec<(&'static str, &'static str)>> = HashMap::new();
+        let mut translations: HashMap<&'static str, Vec<(&'static str, &'static str)>> =
+            HashMap::new();
         for line in lines(crate::system_data::text("translations.txt")) {
             let p: Vec<_> = line.split('\t').collect();
             if p.len() >= 3 {
-                translations
-                    .entry(p[0])
-                    .or_default()
-                    .push((p[1], p[2]));
+                translations.entry(p[0]).or_default().push((p[1], p[2]));
             }
         }
         translations
@@ -77,13 +71,9 @@ fn readings_data() -> &'static HashMap<&'static str, Vec<&'static str>> {
                 continue;
             }
             let (word, reading, _) = (fields[0], fields[1], fields[2]);
-            if reading.chars().count() >= 2
-                && reading.chars().all(kana)
-                && word.chars().any(kanji)
+            if reading.chars().count() >= 2 && reading.chars().all(kana) && word.chars().any(kanji)
             {
-                let entry = readings
-                    .entry(reading)
-                    .or_default();
+                let entry = readings.entry(reading).or_default();
                 if !entry.contains(&word) {
                     entry.push(word);
                 }
@@ -250,11 +240,7 @@ impl Linguistics {
                 if selected.is_empty() {
                     selected = senses.iter().collect();
                 }
-                let selected: Vec<_> = selected
-                    .into_iter()
-                    .take(2)
-                    .map(|(_, g)| *g)
-                    .collect();
+                let selected: Vec<_> = selected.into_iter().take(2).map(|(_, g)| *g).collect();
                 return Some(if selected.len() == 1 {
                     selected[0].into()
                 } else {

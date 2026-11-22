@@ -47,7 +47,8 @@ impl Drop for Lock {
 mod state;
 pub use state::{Change, LanguageEntry, Phrase, State};
 
-static PENDING_WRITE: OnceLock<Mutex<Option<(std::thread::ThreadId, JoinHandle<()>)>>> = OnceLock::new();
+static PENDING_WRITE: OnceLock<Mutex<Option<(std::thread::ThreadId, JoinHandle<()>)>>> =
+    OnceLock::new();
 
 impl Store {
     pub fn new(directory: impl Into<PathBuf>) -> Self {

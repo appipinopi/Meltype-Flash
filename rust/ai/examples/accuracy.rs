@@ -21,17 +21,22 @@ struct Question {
 
 fn main() -> Result<(), Box<dyn std::error::Error>> {
     let mut args = std::env::args().skip(1);
-    let model_root = args.next().ok_or("usage: accuracy <model-root> <report.json> [model-id]")?;
-    let report_path = args.next().ok_or("usage: accuracy <model-root> <report.json> [model-id]")?;
+    let model_root = args
+        .next()
+        .ok_or("usage: accuracy <model-root> <report.json> [model-id]")?;
+    let report_path = args
+        .next()
+        .ok_or("usage: accuracy <model-root> <report.json> [model-id]")?;
     let model_id = args.next().unwrap_or_else(|| "shunti-v7-xs5".into());
     let cases: Vec<Case> = serde_json::from_str(include_str!("../data/ime-qa-accuracy.json"))?;
     if cases.len() < 30 {
         return Err("IME Q&A corpus must contain at least 30 fixed cases".into());
     }
     let catalog: Value = serde_json::from_str(MODEL_CATALOG)?;
-    let model = catalog["models"].as_array().and_then(|models| {
-        models.iter().find(|entry| entry["id"] == model_id)
-    }).ok_or("requested Shunti model is missing from model-catalog.json")?;
+    let model = catalog["models"]
+        .as_array()
+        .and_then(|models| models.iter().find(|entry| entry["id"] == model_id))
+        .ok_or("requested Shunti model is missing from model-catalog.json")?;
     let model_directory = install_shunti_variant(Path::new(&model_root), &model_id)?;
     let mut engine = Engine::open(&model_directory)?;
     let started = Instant::now();
@@ -50,7 +55,9 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
             return Err(format!("invalid fixed IME Q&A case {}", index + 1).into());
         }
         let candidates = engine.convert(&case.question.reading, &case.question.context);
-        let rank = candidates.iter().position(|candidate| candidate == &case.answer);
+        let rank = candidates
+            .iter()
+            .position(|candidate| candidate == &case.answer);
         exact_top1 += usize::from(rank == Some(0));
         exact_top3 += usize::from(rank.is_some_and(|rank| rank < 3));
         exact_top8 += usize::from(rank.is_some());
@@ -66,9 +73,15 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
         }));
     }
     let total = results.len();
-    let corpus_sha256 = format!("{:x}", Sha256::digest(include_bytes!("../data/ime-qa-accuracy.json")));
+    let corpus_sha256 = format!(
+        "{:x}",
+        Sha256::digest(include_bytes!("../data/ime-qa-accuracy.json"))
+    );
     let files = model["files"].as_array().ok_or("model files are missing")?;
-    let model_file_sha256: Vec<_> = files.iter().filter_map(|file| file["sha256"].as_str()).collect();
+    let model_file_sha256: Vec<_> = files
+        .iter()
+        .filter_map(|file| file["sha256"].as_str())
+        .collect();
     let summary = json!({
         "kind": "ime-reading-context-qa",
         "model": {"id":model_id,"label":model["label"],"license":model["license"],"files":files},
@@ -87,15 +100,18 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
         "results": results,
     });
     std::fs::write(&report_path, serde_json::to_vec_pretty(&summary)?)?;
-    println!("{}", serde_json::to_string(&json!({
-        "model": model_id,
-        "exact_top1": format!("{exact_top1}/{total}"),
-        "top1_accuracy": exact_top1 as f64 / total as f64,
-        "exact_top3": exact_top3,
-        "exact_top8": exact_top8,
-        "mean_reciprocal_rank": reciprocal_rank / total as f64,
-        "inference_ms": started.elapsed().as_secs_f64() * 1000.0,
-        "report": report_path,
-    }))?);
+    println!(
+        "{}",
+        serde_json::to_string(&json!({
+            "model": model_id,
+            "exact_top1": format!("{exact_top1}/{total}"),
+            "top1_accuracy": exact_top1 as f64 / total as f64,
+            "exact_top3": exact_top3,
+            "exact_top8": exact_top8,
+            "mean_reciprocal_rank": reciprocal_rank / total as f64,
+            "inference_ms": started.elapsed().as_secs_f64() * 1000.0,
+            "report": report_path,
+        }))?
+    );
     Ok(())
 }

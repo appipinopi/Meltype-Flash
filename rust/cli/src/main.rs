@@ -312,7 +312,11 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
                         if v == "1" {
                             eprintln!(
                                 "TIMING: parse={:?} exec={:?} ser={:?} flush={:?} total={:?}",
-                                t_parse, t_exec, t_ser, t_flush, t0.elapsed()
+                                t_parse,
+                                t_exec,
+                                t_ser,
+                                t_flush,
+                                t0.elapsed()
                             );
                         }
                     }

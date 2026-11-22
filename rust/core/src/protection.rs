@@ -140,13 +140,18 @@ pub fn scan(raw: &str) -> Vec<Span> {
                 || chars[i - 1].1 == '='
                 || chars[i - 1].1 == '"')
         {
-            if c == '-' && i + 1 < n && (chars[i + 1].1 == '-' || chars[i + 1].1.is_ascii_alphanumeric()) {
+            if c == '-'
+                && i + 1 < n
+                && (chars[i + 1].1 == '-' || chars[i + 1].1.is_ascii_alphanumeric())
+            {
                 let mut j = i + 1;
                 if j < n && chars[j].1 == '-' {
                     j += 1;
                 }
                 while j < n
-                    && (chars[j].1.is_ascii_alphanumeric() || chars[j].1 == '-' || chars[j].1 == '_')
+                    && (chars[j].1.is_ascii_alphanumeric()
+                        || chars[j].1 == '-'
+                        || chars[j].1 == '_')
                 {
                     j += 1;
                 }
