@@ -37,7 +37,7 @@ sys.path.insert(0, str(Path(__file__).parent))
 from kana2romaji import convert as kana_convert  # noqa: E402
 
 ROOT = Path(__file__).resolve().parents[2]
-DEFAULT_CORPUS = Path(__file__).parent / "data" / "ime_benchmark_2026-11.jsonl"
+DEFAULT_CORPUS = Path(__file__).parent / "data"  # ディレクトリ内の *.jsonl を結合して読む (GitHubのファイルサイズ制限のため分割保存)
 REPO_SLUG = "appipinopi/Meltype-Flash"
 RUNNER_EXAMPLE = ROOT / "rust" / "core" / "examples" / "ime_benchmark.rs"
 
@@ -151,7 +151,15 @@ def score(cases, actuals, target_key):
 # ---------------- 測定 ----------------
 
 def prepare_cases(corpus_path):
-    rows = [json.loads(line) for line in Path(corpus_path).read_text(encoding="utf-8").splitlines() if line.strip()]
+    path = Path(corpus_path)
+    if path.is_dir():
+        lines = []
+        for part in sorted(path.glob("*.jsonl")):
+            lines.extend(part.read_text(encoding="utf-8").splitlines())
+    else:
+        lines = path.read_text(encoding="utf-8").splitlines()
+    rows = [json.loads(line) for line in lines if line.strip()]
+    rows.sort(key=lambda r: r["id"])
     cases = []
     for row in rows:
         typed, kana_target = kana_convert(row["input"])
