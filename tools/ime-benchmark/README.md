@@ -1,1 +1,72 @@
-IyBJTUXjg5njg7Pjg4Hjg57jg7zjgq8gKDHkuIfmlofjgrPjg7zjg5HjgrkpCgpNZWx0eXBlLUZMQVNI44Gu5aSJ5o+b57K+5bqm44KS44CB44Kr44OG44K044Oq5Yil44Gu5Zu65a6a44Kz44O844OR44K5MeS4h+aWh+OBp+a4rOOCi+S7lee1hOOBv+OBp+OBmeOAggrml6LlrZjjga7lm7rlrprmlofnsr7luqbjg5njg7Pjg4Hjg57jg7zjgq8gKGBydXN0L2NvcmUvZGF0YS9zdHJpY3QtYWNjdXJhY3kuanNvbmDjgIEzMOS7tikg44Go44Gv5Yil44Gr44CBCuimj+aooeOBruWkp+OBjeOBhOOCs+ODvOODkeOCueOBp+OCq+ODhuOCtOODquWIpeOBruW8seeCueOCkuimi+OCi+OBn+OCgeOBruOCguOBruOBp+OBmeOAggoKIyMg44OQ44O844K444On44Oz44Gu5oyH5a6a5pa55rOVCgpgcnVuX2JlbmNobWFyay5weWAg44GuIGAtLXZlcnNpb25gIC8gYC0tY29tcGFyZWAg44Go44CBR2l0SHViIEFjdGlvbnMKKElNReODmeODs+ODgeODnuODvOOCrykg44Gu5omL5YuV5a6f6KGM5YWl5Yqb44Gn44CB5ZCM44GY5oyH5a6a44GM5L2/44GI44G+44GZ44CCCgp8IOaMh+WumiB8IOaEj+WRsyB8CnwtLS18LS0tfAp8IGBsYXRlc3RyZWxlYXNlYCB8IOacgOaWsOOBruato+W8j+ODquODquODvOOCuSB8CnwgYGxhdGVzdHJlbGVhc2UtMWAgfCAx44Gk5YmN44Gu5q2j5byP44Oq44Oq44O844K5IChgLTJgIOOBrzLjgaTliY0pIHwKfCBgMS4xLjI2YCB8IOOBneOBruODkOODvOOCuOODp+ODsyAoYHYxLjEuMjZg44CBYGZsYXNoLXYxLjEuMjZg44CBYGZsYXNoLXYwMDAxLjAwMDEuMDAyNmAg44Gn44KC5Y+vKSB8CnwgYEhFQURgIHwg54++5Zyo44Gu44OB44Kn44OD44Kv44Ki44Km44OIIHwKfCBVUkwgfCBgaHR0cHM6Ly9naXRodWIuY29tL2FwcGlwaW5vcGkvTWVsdHlwZS1GbGFzaC9sYXRlc3RyZWxlYXNlYCDjga7jgojjgYbjgapVUkzjgoLjgZ3jga7jgb7jgb7muKHjgZvjgosgKGAvcmVsZWFzZXMvdGFnLzzjgr/jgrA+YCDlvaLlvI/jgoLlj68pIHwKCumAmuW4uOOBrkdpdEh1YuOBrueUu+mdouOBp+imi+OCi+WgtOWQiOOBr+OAgeacgOaWsOeJiOOBrwpgaHR0cHM6Ly9naXRodWIuY29tL2FwcGlwaW5vcGkvTWVsdHlwZS1GbGFzaC9yZWxlYXNlcy9sYXRlc3Rg44CBCueJueWumueJiOOBryBgaHR0cHM6Ly9naXRodWIuY29tL2FwcGlwaW5vcGkvTWVsdHlwZS1GbGFzaC9yZWxlYXNlcy90YWcvZmxhc2gtdjAwMDEuMDAwMS4wMDI2YArjgafjgZnjgILjgIwx44Gk5YmN44CN44KS5oyH44GZVVJM44GvR2l0SHVi44Gr54Sh44GE44Gf44KB44CBYGxhdGVzdHJlbGVhc2UtMWAg44Gv44GT44Gu44OE44O844Or44Gu5oyH5a6a44Go44GX44Gm5o+Q5L6b44GX44G+44GZ44CCCgojIyDoh6rli5XmuKzlrpoKCi0g44Oq44Oq44O844K544KS5YWs6ZaL44GZ44KL44Go44CB44Ov44O844Kv44OV44Ot44O8IGBJTUXjg5njg7Pjg4Hjg57jg7zjgq9gIOOBjOiHquWLleOBp+WLleOBjeOAgQogIOOBneOBruODquODquODvOOCueOBqDHjgaTliY3jga7jg6rjg6rjg7zjgrnjgpLmuKzlrprjgZfjgabjgIHntZDmnpzjga7ooajjgpIgQWN0aW9ucyDjga4KICBTdGVwIFN1bW1hcnkg44Gr5Ye644GX44CB44Os44Od44O844OIIChyZXBvcnQuanNvbiAvIHJlcG9ydC5tZCkg44KSIGFydGlmYWN0IOOBq+S/neWtmOOBl+OBvuOBmeOAggotIOaJi+WLleWun+ihjCAod29ya2Zsb3dfZGlzcGF0Y2gpIOOBp+OBr+OAgeS7u+aEj+OBruODkOODvOOCuOODp+ODs+WQjOWjq+OBruavlOi8g+OCguOBp+OBjeOBvuOBmeOAggoKIyMg5ris5a6a44GuMuWxpAoKLSAqKkxheWVyIEEgKOOBi+OBqikqKjog44Kz44O844OR44K544Gu6Kqt44G/44KS44Ot44O844Oe5a2X44Gn5omT44Gh44CB44Kz44Ki44Gu56K65a6a5paH5a2X5YiX44GMCiAg6Kqt44G/ICjjgbLjgonjgYzjgaopIOOBqOS4gOiHtOOBmeOCi+OBi+OAguOCq+ODhuOCtOODquWIpeOBruWujOWFqOS4gOiHtOeOh+OBqOaWh+Wtl+eyvuW6puOCkuWHuuOBl+OBvuOBmeOAggogIOOBqeOBruODkOODvOOCuOODp+ODs+OBp+OCgua4rOWumuOBp+OBjeOBvuOBmSAo5a++6LGh44K/44Kw44Gu44K944O844K544GrCiAgYHJ1c3QvY29yZS9leGFtcGxlcy9pbWVfYmVuY2htYXJrLnJzYCDjgpLlt67jgZfovrzjgpPjgafjg5Pjg6vjg4njgZfjgb7jgZkp44CCCi0gKipMYXllciBCICjmvKLlrZfjgYvjgarkuqTjgZjjgoopKio6IGBleHBlY3RlZGAg44Gu5ryi5a2X44GL44Gq5Lqk44GY44KK5paH44Go44Gu5LiA6Ie044CCCiAgQUnjg6Ljg4fjg6vnrYnjga7lpInmj5vlsaTjga/jgrPjgqLljZjkvZPjgafjga/norrlrprjgZfjgarjgYTjgZ/jgoHjgIHlpInmj5vjgrPjg57jg7Pjg4njgpIKICBgLS1jb252ZXJ0ZXItY21kYCAo44G+44Gf44Gv55Kw5aKD5aSJ5pWwIGBJTUVfQkVOQ0hfQ09OVkVSVEVSX0NNRGApIOOBp+aOpee2muOBl+OBnwogIOWgtOWQiOOBoOOBkea4rOWumuOBl+OBvuOBmeOAguWFpeWHuuWKm+OBryBKU09OTCAoYHsiaWQiOi4uLCJpbnB1dCI6Li59YCDihpIKICBgeyJpZCI6Li4sImFjdHVhbCI6Li59YCkg44Gn44GZ44CC5pyq6Kit5a6a44Gu5aC05ZCI44Gv6KGo44Gr44CM5pyq5ris5a6a44CN44Go5piO6KiY44GV44KM44G+44GZ44CCCgojIyDjg63jg7zjgqvjg6vlrp/ooYwKCmBgYGJhc2gKIyDjg5Djg7zjgrjjg6fjg7Pop6PmsbrjgaDjgZHnorroqo0KcHl0aG9uIHRvb2xzL2ltZS1iZW5jaG1hcmsvcnVuX2JlbmNobWFyay5weSAtLXZlcnNpb24gbGF0ZXN0cmVsZWFzZS0xIC0tcmVzb2x2ZS1vbmx5CgojIOacgOaWsOeJiOOBqDHjgaTliY3jgpLmr5TovIMKcHl0aG9uIHRvb2xzL2ltZS1iZW5jaG1hcmsvcnVuX2JlbmNobWFyay5weSAtLXZlcnNpb24gbGF0ZXN0cmVsZWFzZSAtLWNvbXBhcmUgbGF0ZXN0cmVsZWFzZS0xCgojIOmWi+eZuuS4rSAoSEVBRCkg44KS5ris5a6aCnB5dGhvbiB0b29scy9pbWUtYmVuY2htYXJrL3J1bl9iZW5jaG1hcmsucHkgLS12ZXJzaW9uIEhFQUQKYGBgCgojIyDjgrPjg7zjg5HjgrkKCi0gYGRhdGEvaW1lX2JlbmNobWFya18yMDI2LTExLmpzb25sYCAvIGAuY3N2YDoKICDln7rmnKzlpInmj5sxMDAw44O76KSH5ZCI6KqeMTAwMOODu+WbuuacieWQjeipnjEwMDDjg7vpm6Poqq3otqPlkbPjg43jg4Pjg4jjgrnjg6njg7PjgrA3NTDjg7sKICDoi7Hml6Xmt7flnKgyMDAw44O754m55q6K5YWl5YqbMjAwMOODu+Wun+eUqOaWh+eroDIyNTAg44Gu5YWoMTAsMDAw5Lu244CCCiAg5ZCE6KGM44GvIGBpbnB1dGAgKOOBsuOCieOBjOOBquiqreOBvykg44GoIGBleHBlY3RlZGAgKOacn+W+heOBmeOCi+WkieaPm+e1kOaenCkg44Gu44Oa44Ki44CCCi0gYGdlbmVyYXRlX2JlbmNobWFyay5weWA6IOOCs+ODvOODkeOCueOBrueUn+aIkOOCueOCr+ODquODl+ODiOOAguaciOabv+OCj+OCiuOBpwogIGAtLW1vbnRoIDIwMjYtMTJgIOOBruOCiOOBhuOBq+Wun+ihjOOBmeOCi+OBqOOAgeOCt+ODvOODieOBjOWkieOCj+OBo+OBn+aWsOOBl+OBhOOCu+ODg+ODiOOCkueUn+aIkOOBl+OBvuOBmeOAggotIGBrYW5hMnJvbWFqaS5weWA6IOiqreOBv+KGkuODreODvOODnuWtl+WkieaPm+OAguOCqOODs+OCuOODs+iHqui6q+OBruODreODvOODnuWtl+ihqAogIChgcnVzdC9jb3JlL3NyYy9yb21hamkudHN2YCkg44Gu6YCG5byV44GN44Gr5Z+644Gl44GN44G+44GZ44CCCgojIyDjg4bjgrnjg4gKCmBgYGJhc2gKcHl0aG9uIC1tIHVuaXR0ZXN0IGRpc2NvdmVyIC1zIHRvb2xzIC1wIHRlc3RfaW1lX2JlbmNobWFyay5weQpgYGAK
+# IMEベンチマーク (1万文コーパス)
+
+Meltype-FLASHの変換精度を、カテゴリ別の固定コーパス1万文で測る仕組みです。
+既存の固定文精度ベンチマーク (`rust/core/data/strict-accuracy.json`、30件) とは別に、
+規模の大きいコーパスでカテゴリ別の弱点を見るためのものです。
+
+## バージョンの指定方法
+
+`run_benchmark.py` の `--version` / `--compare` と、GitHub Actions
+(IMEベンチマーク) の手動実行入力で、同じ指定が使えます。
+
+| 指定 | 意味 |
+|---|---|
+| `latestrelease` | 最新の正式リリース |
+| `latestrelease-1` | 1つ前の正式リリース (`-2` は2つ前) |
+| `1.1.26` | そのバージョン (`v1.1.26`、`flash-v1.1.26`、`flash-v0001.0001.0026` でも可) |
+| `HEAD` | 現在のチェックアウト |
+| URL | `https://github.com/appipinopi/Meltype-Flash/latestrelease` のようなURLもそのまま渡せる (`/releases/tag/<タグ>` 形式も可) |
+
+通常のGitHubの画面で見る場合は、最新版は
+`https://github.com/appipinopi/Meltype-Flash/releases/latest`、
+特定版は `https://github.com/appipinopi/Meltype-Flash/releases/tag/flash-v0001.0001.0026`
+です。「1つ前」を指すURLはGitHubに無いため、`latestrelease-1` はこのツールの指定として提供します。
+
+## 自動測定
+
+- リリースを公開すると、ワークフロー `IMEベンチマーク` が自動で動き、
+  そのリリースと1つ前のリリースを測定して、結果の表を Actions の
+  Step Summary に出し、レポート (report.json / report.md) を artifact に保存します。
+- 手動実行 (workflow_dispatch) では、任意のバージョン同士の比較もできます。
+
+## 測定の2層
+
+- **Layer A (かな)**: コーパスの読みをローマ字で打ち、コアの確定文字列が
+  読み (ひらがな) と一致するか。カテゴリ別の完全一致率と文字精度を出します。
+  どのバージョンでも測定できます (対象タグのソースに
+  `rust/core/examples/ime_benchmark.rs` を差し込んでビルドします)。
+- **Layer B (漢字かな交じり)**: `expected` の漢字かな交じり文との一致。
+  AIモデル等の変換層はコア単体では確定しないため、変換コマンドを
+  `--converter-cmd` (または環境変数 `IME_BENCH_CONVERTER_CMD`) で接続した
+  場合だけ測定します。入出力は JSONL (`{"id":..,"input":..}` →
+  `{"id":..,"actual":..}`) です。未設定の場合は表に「未測定」と明記されます。
+
+## ローカル実行
+
+```bash
+# バージョン解決だけ確認
+python tools/ime-benchmark/run_benchmark.py --version latestrelease-1 --resolve-only
+
+# 最新版と1つ前を比較
+python tools/ime-benchmark/run_benchmark.py --version latestrelease --compare latestrelease-1
+
+# 開発中 (HEAD) を測定
+python tools/ime-benchmark/run_benchmark.py --version HEAD
+```
+
+## コーパス
+
+- `data/ime_benchmark_2026-11.jsonl` / `.csv`:
+  基本変換1000・複合語1000・固有名詞1000・難読趣味ネットスラング750・
+  英日混在2000・特殊入力2000・実用文章2250 の全10,000件。
+  各行は `input` (ひらがな読み) と `expected` (期待する変換結果) のペア。
+- `generate_benchmark.py`: コーパスの生成スクリプト。月替わりで
+  `--month 2026-12` のように実行すると、シードが変わった新しいセットを生成します。
+- `kana2romaji.py`: 読み→ローマ字変換。エンジン自身のローマ字表
+  (`rust/core/src/romaji.tsv`) の逆引きに基づきます。
+
+## テスト
+
+```bash
+python -m unittest discover -s tools -p test_ime_benchmark.py
+```
