@@ -47,6 +47,12 @@ class PresentationTests(unittest.TestCase):
         self.assertEqual(result["html_url"], "https://example.invalid/release")
         update.assert_called_once_with("releases/26", {"name": "v1.1.26", "body": "Benchmark results"}, "PATCH")
 
+    def test_existing_release_version_is_read_from_tagged_commit(self):
+        manifest = '[workspace.package]\nversion="1.1.26"\n'
+        with patch.object(publisher.subprocess, "check_output", return_value=manifest) as command:
+            self.assertEqual(publisher.source_version("a" * 40), "1.1.26")
+        command.assert_called_once_with(["git", "show", "a" * 40 + ":Cargo.toml"], encoding="utf-8")
+
     def test_existing_release_update_rejects_source_or_asset_mismatch(self):
         tag = "flash-v1.1.26"
         release = {"id": 26, "tag_name": tag, "draft": False, "prerelease": False,
