@@ -228,12 +228,14 @@ class PresentationTests(unittest.TestCase):
             report = {"comparison_kind": "rust-versions", "new_commit": "a" * 40, "old_commit": "b" * 40,
                       "binaries_unchanged": True, "sources_unchanged": True, "accepted_performance_baseline": True,
                       "results": [{"case": "sample"}], "process_resources": [{}],
-                      "versions": ["csharp", "old", "new"]}
+                      "versions": ["csharp", "old", "new"],
+                      "fixed_text_accuracy": {"non_regression_gate": {"passed": True}, "cases": []}}
             report_file = directory / "report.json"
             report_file.write_text(json.dumps(report), encoding="utf-8")
+            (directory / "accuracy.json").write_text(json.dumps(report["fixed_text_accuracy"]), encoding="utf-8")
             summary_file = directory / "charts/summary.json"
             summary_file.write_text(json.dumps({"full_report_sha256": hashlib.sha256(report_file.read_bytes()).hexdigest()}), encoding="utf-8")
-            (directory / "charts/README.md").write_text("## 全入力の中央値\n\n## CPU・RAMのプロセス中央値\n\n## 表示範囲外の測定値\n\n|項目|値|\n|---|---|\n|sample|999|\n\n## 全画像\n\n[raw](data.csv)", encoding="utf-8")
+            (directory / "charts/README.md").write_text("## 固定文の精度\n\n## 全入力の中央値\n\n## CPU・RAMのプロセス中央値\n\n## 表示範囲外の測定値\n\n|項目|値|\n|---|---|\n|sample|999|\n\n## 全画像\n\n[raw](data.csv)", encoding="utf-8")
             for name in publisher.IMAGES:
                 (directory / "charts" / name).write_bytes(b"\x89PNG\r\n\x1a\nfixture")
             for name in publisher.ZOOM_IMAGES:

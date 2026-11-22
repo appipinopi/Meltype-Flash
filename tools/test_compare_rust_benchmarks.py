@@ -14,6 +14,15 @@ spec.loader.exec_module(comparison)
 
 
 class ComparisonTests(unittest.TestCase):
+    def test_fixed_accuracy_distance_and_corpus_are_strict_and_static(self):
+        self.assertEqual(comparison.edit_distance("日本語", "日本語"), 0)
+        self.assertEqual(comparison.edit_distance("日本語", "日本語文"), 1)
+        self.assertEqual(comparison.edit_distance("かな", "カナ"), 2)
+        corpus = json.loads((comparison.ROOT / "rust/core/data/strict-accuracy.json").read_text(encoding="utf-8"))
+        self.assertGreaterEqual(len(corpus), 25)
+        self.assertTrue({"長文", "誤入力境界", "数字記号", "英数混在"} <= {case["category"] for case in corpus})
+        self.assertTrue(all(case["typed"] and case["expected"] for case in corpus))
+
     def test_verify_reads_rust_and_upstream_csharp_edit_protocols(self):
         benchmark = comparison.benchmark
         keys = [[0, ord("あ"), 0], [0, 0, 0]]
@@ -119,6 +128,13 @@ class ComparisonTests(unittest.TestCase):
             args = ["compare-rust-benchmarks.py", "--old", str(binaries["old"]), "--new", str(binaries["new"]),
                     "--old-ref", "old-tag", "--new-ref", "new-tag", "--csharp", str(binaries["csharp"]),
                     "--csharp-ref", "v1.3.0", "--samples", "3", "--output", str(output), "--plot"]
+            corpus = json.loads((comparison.ROOT / "rust/core/data/strict-accuracy.json").read_text(encoding="utf-8"))
+            def accuracy_row(i, item):
+                count = len(item["typed"]) + 1
+                responses = [json.dumps({"consumed": True, "commits": [], "view": None}) for _ in range(count - 1)]
+                responses.append(json.dumps({"consumed": False, "commits": [{"deleteBefore": 0, "text": item["expected"]}], "view": None}))
+                return json.dumps({"case": f"accuracy_{i:03d}", "responses": responses})
+            accuracy_stdout = "\n".join(accuracy_row(i, item) for i, item in enumerate(corpus, 1))
             with patch.object(sys, "argv", args), patch.object(comparison.benchmark, "fixtures", return_value=[case]), \
                  patch.object(comparison.benchmark, "measure_process", side_effect=measure), \
                  patch.object(comparison.benchmark, "command", return_value="rustc test"), \
@@ -126,12 +142,14 @@ class ComparisonTests(unittest.TestCase):
                  patch.object(comparison.platform, "system", return_value="Windows"), \
                  patch.object(comparison.platform, "platform", return_value="Windows-test"), \
                  patch.object(comparison.platform, "processor", return_value="test CPU"), \
-                 patch.object(comparison.subprocess, "run") as runner, patch("builtins.print"):
+                 patch.object(comparison.subprocess, "run", return_value=type("Completed", (), {"stdout": accuracy_stdout})()) as runner, patch("builtins.print"):
                 comparison.main()
             report = json.loads((output / "report.json").read_text(encoding="utf-8"))
             self.assertEqual(report["versions"], ["csharp", "old", "new"])
             self.assertEqual(len(report["rows"]), 27)
             self.assertEqual(report["rounds"], 3)
+            self.assertTrue(report["fixed_text_accuracy"]["non_regression_gate"]["passed"])
+            self.assertEqual(report["fixed_text_accuracy"]["versions"]["new"]["total"], 30)
             self.assertEqual(orders, ["csharp", "old", "new", "old", "new", "csharp", "new", "csharp", "old"])
             result = report["results"][0]
             self.assertTrue(result["eligible_for_speed_claim"])

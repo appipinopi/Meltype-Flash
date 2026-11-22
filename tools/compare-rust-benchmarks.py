@@ -71,6 +71,70 @@ def measurement_order(versions, round_index):
     return versions[offset:] + versions[:offset]
 
 
+def edit_distance(left, right):
+    """Unicode-code-point Levenshtein distance, using O(len(right)) memory."""
+    if len(left) < len(right):
+        left, right = right, left
+    previous = list(range(len(right) + 1))
+    for i, a in enumerate(left, 1):
+        current = [i]
+        for j, b in enumerate(right, 1):
+            current.append(min(current[-1] + 1, previous[j] + 1,
+                               previous[j - 1] + (a != b)))
+        previous = current
+    return previous[-1]
+
+
+def fixed_text_accuracy(binaries, output, args):
+    """Run the same frozen, expected-output corpus once on every benchmark binary."""
+    corpus_path = ROOT / "rust/core/data/strict-accuracy.json"
+    source = json.loads(corpus_path.read_text(encoding="utf-8"))
+    cases = []
+    for index, item in enumerate(source, 1):
+        typed = item["typed"]
+        keys = [[32 if c == " " else ord(c.upper()) if c.isascii() and c.isalpha() else 7,
+                 ord(c), int(c.isupper())] for c in typed]
+        cases.append(dict(name=f"accuracy_{index:03d}", keys=keys + [[13, 0, 0]], scored=False))
+    fixture_path = output / "accuracy-cases.json"
+    fixture_path.write_text(json.dumps(cases, ensure_ascii=False, indent=2) + "\n", encoding="utf-8")
+    summaries, details = {}, []
+    env = os.environ.copy()
+    env.update(DOTNET_TieredCompilation="0", DOTNET_CLI_TELEMETRY_OPTOUT="1")
+    for label, binary in binaries.items():
+        program = (["dotnet", str(binary)] if label == "csharp" and args.jit else [str(binary)])
+        run = subprocess.run(program + [str(fixture_path), "1", "0"], cwd=ROOT, env=env,
+                             text=True, encoding="utf-8", capture_output=True, check=True)
+        rows = [json.loads(line) for line in run.stdout.splitlines() if line.strip()]
+        if len(rows) != len(cases):
+            raise ValueError(f"fixed text accuracy case count mismatch: {label} got {len(rows)}, expected {len(cases)}")
+        exact, chars, errors = 0, 0, 0
+        for row, item, case in zip(rows, source, cases, strict=True):
+            if row["case"] != case["name"]:
+                raise ValueError(f"fixed text accuracy order mismatch: {label} {row['case']}")
+            actual, _ = benchmark.verify(row["responses"], case["keys"])
+            expected = item["expected"]
+            distance = edit_distance(actual, expected)
+            is_exact = actual == expected
+            exact += is_exact
+            chars += len(expected)
+            errors += distance
+            details.append(dict(category=item["category"], input=item["typed"], expected=expected,
+                                version=label, actual=actual, exact=is_exact,
+                                character_errors=distance))
+        summaries[label] = dict(exact=exact, total=len(source), exact_accuracy=exact / len(source),
+                                expected_characters=chars, character_errors=errors,
+                                character_accuracy=1 - errors / max(chars, 1))
+    gate = dict(passed=True, rule="current Rust must not lose exact cases or increase character edit distance vs previous Rust",
+                previous=summaries["old"], current=summaries["new"])
+    gate["passed"] = (summaries["new"]["exact"] >= summaries["old"]["exact"]
+                       and summaries["new"]["character_errors"] <= summaries["old"]["character_errors"])
+    report = dict(corpus="rust/core/data/strict-accuracy.json", corpus_sha256=sha(corpus_path),
+                  evaluation="fixed expected text; one deterministic run per benchmark binary; not timed",
+                  versions=summaries, non_regression_gate=gate, cases=details)
+    (output / "accuracy.json").write_text(json.dumps(report, ensure_ascii=False, indent=2) + "\n", encoding="utf-8")
+    return report
+
+
 def source_hashes(root):
     paths = [root / name for name in ("Cargo.toml", "Cargo.lock")]
     paths += [p for directory in ("rust/core", "rust/native", "android", "src/Meltype.Core", "dictionaries")
@@ -282,6 +346,7 @@ def main():
     unchanged = hashes == {label: sha(path) for label, path in binaries.items()}
     sources_unchanged = all(source_hashes(root) == snapshots[label] for label, root in roots.items()) if roots else None
     accepted = unchanged and sources_unchanged is not False
+    accuracy = fixed_text_accuracy(binaries, output, args)
     results = []
     for case in cases:
         name = case["name"]
@@ -304,7 +369,7 @@ def main():
                   binary_sha256=hashes, binaries_unchanged=unchanged, sources_unchanged=sources_unchanged,
                   accepted_performance_baseline=accepted, fixtures_sha256=sha(inputs),
                   rustc=benchmark.command(["rustc", f"+{args.rust_toolchain}", "-Vv"]),
-                  results=results, rows=rows, process_resources=resources,
+                  results=results, rows=rows, process_resources=resources, fixed_text_accuracy=accuracy,
                   scope=("Native C ABI keys and JSON, isolated temporary profile per session; " if args.backend == "native" else "In-memory keys and JSON; ") + " no OS engine/live conversion/prediction/learning. Same compiler for both builds. Source/dependency/dictionary revisions differ; this does not isolate one code change.")
     (output / "report.json").write_text(json.dumps(report, ensure_ascii=False, indent=2) + "\n", encoding="utf-8")
     print(json.dumps(results, ensure_ascii=False, indent=2), flush=True)
@@ -314,6 +379,9 @@ def main():
         if args.github_summary:
             command += ["--github-summary", str(args.github_summary.resolve())]
         subprocess.run(command, cwd=ROOT, check=True)
+    if not accuracy["non_regression_gate"]["passed"]:
+        raise ValueError("fixed text accuracy regressed vs previous Rust: " +
+                         json.dumps(accuracy["non_regression_gate"], ensure_ascii=False))
 
 
 if __name__ == "__main__":
