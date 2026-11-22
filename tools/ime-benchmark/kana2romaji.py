@@ -1,1 +1,134 @@
-IyEvdXNyL2Jpbi9lbnYgcHl0aG9uMwojIFNQRFgtTGljZW5zZS1JZGVudGlmaWVyOiBHUEwtMy4wLW9yLWxhdGVyCiMgQ29weXJpZ2h0IChDKSAyMDI2IGFwcGlwaW5vcGkKIiIi44Gy44KJ44GM44Gq6Kqt44G/IC0+IOODreODvOODnuWtl+WFpeWKm+OBuOOBruWkieaPm+OAggoKTWVsdHlwZeOCs+OCouiHqui6q+OBruODreODvOODnuWtl+ihqCAocnVzdC9jb3JlL3NyYy9yb21hamkudHN2KSDjgpLpgIblvJXjgY3jgZfjgabkvZzjgaPjgZ8K5a++5b+c6KGo44KS5L2/44GG44Gf44KB44CB44Ko44Oz44K444Oz44GM5Y+X55CG44GZ44KL57a044KK44Gg44GR44KS55Sf5oiQ44GZ44KL44CCCi0g44GjOiDmrKHjga7lrZDpn7PjgpLph43jga3jgosgKOOBjOOBo+OBk+OBhiAtPiBnYWtrb3UpCi0g44KTOiDmrKHjgYzmr43pn7Pjg7vjgoTooYzjg7vjgarooYzjga7jgajjgY0gbm7jgIHjgZ3jgozku6XlpJbjga8gbiAo44GL44KT44GEIC0+IGthbm5pIC8g44GX44KT44G244KTIC0+IHNoaW5idW4pCi0g44O8OiAtICjjgqjjg7Pjgrjjg7PjgYwgJy0nIOOCkiDjg7wg44Go44GX44Gm5Yem55CG44GZ44KLKQotIOOCq+OCv+OCq+ODiuOBr+OBsuOCieOBjOOBquOBq+ato+imj+WMluOBl+OBpuOBi+OCieWkieaPm+OBmeOCiwroi7HlrZfjg7vmlbDlrZfjg7voqJjlj7fjga/jgZ3jga7jgb7jgb7ov5TjgZkgKHR5cGVkLCB0YXJnZXQpIOOBriB0YXJnZXQg44Gv44CBCuOBi+OBqumDqOWIhuOCkuOBsuOCieOBjOOBquOBq+ato+imj+WMluOBl+OBn+aWh+Wtl+WIlyAoTGF5ZXIgQSDjga7nhaflkIjlhYgp44CCCiIiIgppbXBvcnQgcmUKCiMg44GL44GqIC0+IOS7o+ihqOODreODvOODnuWtlyAocm9tYWppLnRzdiDjga7pgIblvJXjgY3jgIHmqJnmupbnmoTjgarntrTjgorjgpLlhKrlhYgpCktBTkFfUk9NQUpJID0gewogICAgJ+OBgic6ICdhJywgJ+OBhCc6ICdpJywgJ+OBhic6ICd1JywgJ+OBiCc6ICdlJywgJ+OBiic6ICdvJywKICAgICfjgYsnOiAna2EnLCAn44GNJzogJ2tpJywgJ+OBjyc6ICdrdScsICfjgZEnOiAna2UnLCAn44GTJzogJ2tvJywKICAgICfjgZUnOiAnc2EnLCAn44GXJzogJ3NoaScsICfjgZknOiAnc3UnLCAn44GbJzogJ3NlJywgJ+OBnSc6ICdzbycsCiAgICAn44GfJzogJ3RhJywgJ+OBoSc6ICdjaGknLCAn44GkJzogJ3RzdScsICfjgaYnOiAndGUnLCAn44GoJzogJ3RvJywKICAgICfjgaonOiAnbmEnLCAn44GrJzogJ25pJywgJ+OBrCc6ICdudScsICfjga0nOiAnbmUnLCAn44GuJzogJ25vJywKICAgICfjga8nOiAnaGEnLCAn44GyJzogJ2hpJywgJ+OBtSc6ICdmdScsICfjgbgnOiAnaGUnLCAn44G7JzogJ2hvJywKICAgICfjgb4nOiAnbWEnLCAn44G/JzogJ21pJywgJ+OCgCc6ICdtdScsICfjgoEnOiAnbWUnLCAn44KCJzogJ21vJywKICAgICfjgoQnOiAneWEnLCAn44KGJzogJ3l1JywgJ+OCiCc6ICd5bycsCiAgICAn44KJJzogJ3JhJywgJ+OCiic6ICdyaScsICfjgosnOiAncnUnLCAn44KMJzogJ3JlJywgJ+OCjSc6ICdybycsCiAgICAn44KPJzogJ3dhJywgJ+OCkic6ICd3bycsICfjgpAnOiAnd3lpJywgJ+OCkSc6ICd3eWUnLAogICAgJ+OBjCc6ICdnYScsICfjgY4nOiAnZ2knLCAn44GQJzogJ2d1JywgJ+OBkic6ICdnZScsICfjgZQnOiAnZ28nLAogICAgJ+OBlic6ICd6YScsICfjgZgnOiAnamknLCAn44GaJzogJ3p1JywgJ+OBnCc6ICd6ZScsICfjgZ4nOiAnem8nLAogICAgJ+OBoCc6ICdkYScsICfjgaInOiAnZGknLCAn44GlJzogJ2R1JywgJ+OBpyc6ICdkZScsICfjgaknOiAnZG8nLAogICAgJ+OBsCc6ICdiYScsICfjgbMnOiAnYmknLCAn44G2JzogJ2J1JywgJ+OBuSc6ICdiZScsICfjgbwnOiAnYm8nLAogICAgJ+OBsSc6ICdwYScsICfjgbQnOiAncGknLCAn44G3JzogJ3B1JywgJ+OBuic6ICdwZScsICfjgb0nOiAncG8nLAogICAgJ+OClCc6ICd2dScsCiAgICAn44GN44KDJzogJ2t5YScsICfjgY3jgoUnOiAna3l1JywgJ+OBjeOChyc6ICdreW8nLAogICAgJ+OBl+OCgyc6ICdzaGEnLCAn44GX44KFJzogJ3NodScsICfjgZfjgocnOiAnc2hvJywgJ+OBl+OBhyc6ICdzaGUnLAogICAgJ+OBoeOCgyc6ICdjaGEnLCAn44Gh44KFJzogJ2NodScsICfjgaHjgocnOiAnY2hvJywgJ+OBoeOBhyc6ICdjaGUnLAogICAgJ+OBq+OCgyc6ICdueWEnLCAn44Gr44KFJzogJ255dScsICfjgavjgocnOiAnbnlvJywKICAgICfjgbLjgoMnOiAnaHlhJywgJ+OBsuOChSc6ICdoeXUnLCAn44Gy44KHJzogJ2h5bycsCiAgICAn44G/44KDJzogJ215YScsICfjgb/jgoUnOiAnbXl1JywgJ+OBv+OChyc6ICdteW8nLAogICAgJ+OCiuOCgyc6ICdyeWEnLCAn44KK44KFJzogJ3J5dScsICfjgorjgocnOiAncnlvJywKICAgICfjgY7jgoMnOiAnZ3lhJywgJ+OBjuOChSc6ICdneXUnLCAn44GO44KHJzogJ2d5bycsCiAgICAn44GY44KDJzogJ2phJywgJ+OBmOOChSc6ICdqdScsICfjgZjjgocnOiAnam8nLCAn44GY44GHJzogJ2plJywKICAgICfjgaLjgoMnOiAnZHlhJywgJ+OBouOChSc6ICdkeXUnLCAn44Gi44KHJzogJ2R5bycsCiAgICAn44Gz44KDJzogJ2J5YScsICfjgbPjgoUnOiAnYnl1JywgJ+OBs+OChyc6ICdieW8nLAogICAgJ+OBtOOCgyc6ICdweWEnLCAn44G044KFJzogJ3B5dScsICfjgbTjgocnOiAncHlvJywKICAgICfjgabjgYMnOiAndGhpJywgJ+OBp+OBgyc6ICdkaGknLAogICAgJ+OBteOBgSc6ICdmYScsICfjgbXjgYMnOiAnZmknLCAn44G144GHJzogJ2ZlJywgJ+OBteOBiSc6ICdmbycsCiAgICAn44GG44GDJzogJ3dpJywgJ+OBhuOBhyc6ICd3ZScsICfjgYbjgYknOiAnd28nLAogICAgJ+OClOOBgSc6ICd2YScsICfjgpTjgYMnOiAndmknLCAn44KU44GHJzogJ3ZlJywgJ+OClOOBiSc6ICd2bycsCiAgICAn44Gk44GBJzogJ3RzYScsICfjgaTjgYMnOiAndHNpJywgJ+OBpOOBhyc6ICd0c2UnLCAn44Gk44GJJzogJ3RzbycsCiAgICAn44GBJzogJ2xhJywgJ+OBgyc6ICdsaScsICfjgYUnOiAnbHUnLCAn44GHJzogJ2xlJywgJ+OBiSc6ICdsbycsCiAgICAn44KDJzogJ2x5YScsICfjgoUnOiAnbHl1JywgJ+OChyc6ICdseW8nLCAn44KOJzogJ2x3YScsCn0KX1NNQUxMID0gc2V0KCfjgYHjgYPjgYXjgYfjgYnjgoPjgoXjgofjgo4nKQoKCmRlZiBfdG9faGlyYWdhbmEodGV4dCk6CiAgICBvdXQgPSBbXQogICAgZm9yIGNoIGluIHRleHQ6CiAgICAgICAgY29kZSA9IG9yZChjaCkKICAgICAgICBpZiAweDMwQTEgPD0gY29kZSA8PSAweDMwRjY6ICAjIOOCq+OCv+OCq+ODiiAtPiDjgbLjgonjgYzjgaoKICAgICAgICAgICAgb3V0LmFwcGVuZChjaHIoY29kZSAtIDB4NjApKQogICAgICAgIGVsc2U6CiAgICAgICAgICAgIG91dC5hcHBlbmQoY2gpCiAgICByZXR1cm4gJycuam9pbihvdXQpCgoKZGVmIF91bml0cyhoaXJhKToKICAgICIiIuOBsuOCieOBjOOBquaWh+Wtl+WIl+OCkiAo44GL44Gq5Y2Y5L2NLCDjg63jg7zjg57lrZcpIOOBruWIl+OBq+OBmeOCi+OAguOBo+ODu+OCk+ODu+ODvOOBr+WRvOOBs+WHuuOBl+WBtOOBp+WHpueQhuOBmeOCi+OBn+OCgee0oOmAmuOBl+ODnuODvOOCq+ODvOOCkui/lOOBmeOAgiIiIgogICAgdW5pdHMgPSBbXQogICAgaSA9IDAKICAgIHdoaWxlIGkgPCBsZW4oaGlyYSk6CiAgICAgICAgY2ggPSBoaXJhW2ldCiAgICAgICAgaWYgY2ggaW4gKCfjgaMnLCAn44KTJywgJ+ODvCcpOgogICAgICAgICAgICB1bml0cy5hcHBlbmQoKGNoLCBOb25lKSkKICAgICAgICAgICAgaSArPSAxCiAgICAgICAgICAgIGNvbnRpbnVlCiAgICAgICAgaWYgaSArIDEgPCBsZW4oaGlyYSkgYW5kIGhpcmFbaSArIDFdIGluIF9TTUFMTCBhbmQgKGNoICsgaGlyYVtpICsgMV0pIGluIEtBTkFfUk9NQUpJOgogICAgICAgICAgICBwYWlyID0gY2ggKyBoaXJhW2kgKyAxXQogICAgICAgICAgICB1bml0cy5hcHBlbmQoKHBhaXIsIEtBTkFfUk9NQUpJW3BhaXJdKSkKICAgICAgICAgICAgaSArPSAyCiAgICAgICAgICAgIGNvbnRpbnVlCiAgICAgICAgdW5pdHMuYXBwZW5kKChjaCwgS0FOQV9ST01BSkkuZ2V0KGNoKSkpCiAgICAgICAgaSArPSAxCiAgICByZXR1cm4gdW5pdHMKCgpkZWYgY29udmVydCh0ZXh0KToKICAgICIiIih0eXBlZCwga2FuYV90YXJnZXQpIOOCkui/lOOBmeOAgnR5cGVkIOOBr+OCqOODs+OCuOODs+OBuOaJk+OBpOaWh+Wtl+WIl+OAgWthbmFfdGFyZ2V0IOOBr+eFp+WQiOeUqOOBruOBsuOCieOBjOOBquato+imj+WMluaWh+Wtl+WIl+OAgiIiIgogICAgaGlyYSA9IF90b19oaXJhZ2FuYSh0ZXh0KQogICAgdHlwZWRfcGFydHMgPSBbXQogICAgdGFyZ2V0X3BhcnRzID0gW10KICAgICMg44GL44Gq44Gu5aGK44Go6Z2e44GL44Gq44Gu5aGK44Gr5YiG44GR44Gm5Yem55CG44GZ44KLCiAgICB0b2tlbnMgPSByZS5maW5kYWxsKHInW+OBgS3jgpbjg7xdK3xbXuOBgS3jgpbjg7xdKycsIGhpcmEpCiAgICBmb3IgdG9rZW4gaW4gdG9rZW5zOgogICAgICAgIGlmIG5vdCByZS5mdWxsbWF0Y2gocidb44GBLeOCluODvF0rJywgdG9rZW4pOgogICAgICAgICAgICB0eXBlZF9wYXJ0cy5hcHBlbmQodG9rZW4pCiAgICAgICAgICAgIHRhcmdldF9wYXJ0cy5hcHBlbmQodG9rZW4pCiAgICAgICAgICAgIGNvbnRpbnVlCiAgICAgICAgdW5pdHMgPSBfdW5pdHModG9rZW4pCiAgICAgICAgcm9tYWppX3VuaXRzID0gW10KICAgICAgICBmb3IgaWR4LCAoa2FuYSwgcm9tYSkgaW4gZW51bWVyYXRlKHVuaXRzKToKICAgICAgICAgICAgaWYga2FuYSA9PSAn44O8JzoKICAgICAgICAgICAgICAgIHJvbWFqaV91bml0cy5hcHBlbmQoJy0nKQogICAgICAgICAgICAgICAgY29udGludWUKICAgICAgICAgICAgaWYga2FuYSA9PSAn44KTJzoKICAgICAgICAgICAgICAgIG54dCA9IHVuaXRzW2lkeCArIDFdWzFdIGlmIGlkeCArIDEgPCBsZW4odW5pdHMpIGVsc2UgTm9uZQogICAgICAgICAgICAgICAgaWYgbnh0IGlzIG5vdCBOb25lIGFuZCAobnh0WzBdIGluICdhaXVlb3knIG9yIG54dC5zdGFydHN3aXRoKCduJykpOgogICAgICAgICAgICAgICAgICAgIHJvbWFqaV91bml0cy5hcHBlbmQoJ25uJykKICAgICAgICAgICAgICAgIGVsc2U6CiAgICAgICAgICAgICAgICAgICAgcm9tYWppX3VuaXRzLmFwcGVuZCgnbicpCiAgICAgICAgICAgICAgICBjb250aW51ZQogICAgICAgICAgICBpZiBrYW5hID09ICfjgaMnOgogICAgICAgICAgICAgICAgbnh0ID0gdW5pdHNbaWR4ICsgMV1bMV0gaWYgaWR4ICsgMSA8IGxlbih1bml0cykgZWxzZSBOb25lCiAgICAgICAgICAgICAgICBpZiBueHQgYW5kIG54dFswXSBub3QgaW4gJ2FpdWVvJzoKICAgICAgICAgICAgICAgICAgICBpZiBueHQuc3RhcnRzd2l0aCgnY2gnKToKICAgICAgICAgICAgICAgICAgICAgICAgcm9tYWppX3VuaXRzLmFwcGVuZCgndCcpCiAgICAgICAgICAgICAgICAgICAgZWxzZToKICAgICAgICAgICAgICAgICAgICAgICAgcm9tYWppX3VuaXRzLmFwcGVuZChueHRbMF0pCiAgICAgICAgICAgICAgICBlbHNlOgogICAgICAgICAgICAgICAgICAgIHJvbWFqaV91bml0cy5hcHBlbmQoJ2x0dScpCiAgICAgICAgICAgICAgICBjb250aW51ZQogICAgICAgICAgICByb21hamlfdW5pdHMuYXBwZW5kKHJvbWEgaWYgcm9tYSBpcyBub3QgTm9uZSBlbHNlIGthbmEpCiAgICAgICAgdHlwZWRfcGFydHMuYXBwZW5kKCcnLmpvaW4ocm9tYWppX3VuaXRzKSkKICAgICAgICB0YXJnZXRfcGFydHMuYXBwZW5kKHRva2VuKQogICAgcmV0dXJuICcnLmpvaW4odHlwZWRfcGFydHMpLCAnJy5qb2luKHRhcmdldF9wYXJ0cykKCgppZiBfX25hbWVfXyA9PSAnX19tYWluX18nOgogICAgaW1wb3J0IHN5cwogICAgZm9yIGxpbmUgaW4gc3lzLnN0ZGluOgogICAgICAgIHR5cGVkLCB0YXJnZXQgPSBjb252ZXJ0KGxpbmUucnN0cmlwKCdcbicpKQogICAgICAgIHByaW50KGYne3R5cGVkfVx0e3RhcmdldH0nKQo=
+#!/usr/bin/env python3
+# SPDX-License-Identifier: GPL-3.0-or-later
+# Copyright (C) 2026 appipinopi
+"""ひらがな読み -> ローマ字入力への変換。
+
+Meltypeコア自身のローマ字表 (rust/core/src/romaji.tsv) を逆引きして作った
+対応表を使うため、エンジンが受理する綴りだけを生成する。
+- っ: 次の子音を重ねる (がっこう -> gakkou)
+- ん: 次が母音・や行・な行のとき nn、それ以外は n (かんい -> kanni / しんぶん -> shinbun)
+- ー: - (エンジンが '-' を ー として処理する)
+- カタカナはひらがなに正規化してから変換する
+英字・数字・記号はそのまま返す (typed, target) の target は、
+かな部分をひらがなに正規化した文字列 (Layer A の照合先)。
+"""
+import re
+
+# かな -> 代表ローマ字 (romaji.tsv の逆引き、標準的な綴りを優先)
+KANA_ROMAJI = {
+    'あ': 'a', 'い': 'i', 'う': 'u', 'え': 'e', 'お': 'o',
+    'か': 'ka', 'き': 'ki', 'く': 'ku', 'け': 'ke', 'こ': 'ko',
+    'さ': 'sa', 'し': 'shi', 'す': 'su', 'せ': 'se', 'そ': 'so',
+    'た': 'ta', 'ち': 'chi', 'つ': 'tsu', 'て': 'te', 'と': 'to',
+    'な': 'na', 'に': 'ni', 'ぬ': 'nu', 'ね': 'ne', 'の': 'no',
+    'は': 'ha', 'ひ': 'hi', 'ふ': 'fu', 'へ': 'he', 'ほ': 'ho',
+    'ま': 'ma', 'み': 'mi', 'む': 'mu', 'め': 'me', 'も': 'mo',
+    'や': 'ya', 'ゆ': 'yu', 'よ': 'yo',
+    'ら': 'ra', 'り': 'ri', 'る': 'ru', 'れ': 're', 'ろ': 'ro',
+    'わ': 'wa', 'を': 'wo', 'ゐ': 'wyi', 'ゑ': 'wye',
+    'が': 'ga', 'ぎ': 'gi', 'ぐ': 'gu', 'げ': 'ge', 'ご': 'go',
+    'ざ': 'za', 'じ': 'ji', 'ず': 'zu', 'ぜ': 'ze', 'ぞ': 'zo',
+    'だ': 'da', 'ぢ': 'di', 'づ': 'du', 'で': 'de', 'ど': 'do',
+    'ば': 'ba', 'び': 'bi', 'ぶ': 'bu', 'べ': 'be', 'ぼ': 'bo',
+    'ぱ': 'pa', 'ぴ': 'pi', 'ぷ': 'pu', 'ぺ': 'pe', 'ぽ': 'po',
+    'ゔ': 'vu',
+    'きゃ': 'kya', 'きゅ': 'kyu', 'きょ': 'kyo',
+    'しゃ': 'sha', 'しゅ': 'shu', 'しょ': 'sho', 'しぇ': 'she',
+    'ちゃ': 'cha', 'ちゅ': 'chu', 'ちょ': 'cho', 'ちぇ': 'che',
+    'にゃ': 'nya', 'にゅ': 'nyu', 'にょ': 'nyo',
+    'ひゃ': 'hya', 'ひゅ': 'hyu', 'ひょ': 'hyo',
+    'みゃ': 'mya', 'みゅ': 'myu', 'みょ': 'myo',
+    'りゃ': 'rya', 'りゅ': 'ryu', 'りょ': 'ryo',
+    'ぎゃ': 'gya', 'ぎゅ': 'gyu', 'ぎょ': 'gyo',
+    'じゃ': 'ja', 'じゅ': 'ju', 'じょ': 'jo', 'じぇ': 'je',
+    'ぢゃ': 'dya', 'ぢゅ': 'dyu', 'ぢょ': 'dyo',
+    'びゃ': 'bya', 'びゅ': 'byu', 'びょ': 'byo',
+    'ぴゃ': 'pya', 'ぴゅ': 'pyu', 'ぴょ': 'pyo',
+    'てぃ': 'thi', 'でぃ': 'dhi',
+    'ふぁ': 'fa', 'ふぃ': 'fi', 'ふぇ': 'fe', 'ふぉ': 'fo',
+    'うぃ': 'wi', 'うぇ': 'we', 'うぉ': 'wo',
+    'ゔぁ': 'va', 'ゔぃ': 'vi', 'ゔぇ': 've', 'ゔぉ': 'vo',
+    'つぁ': 'tsa', 'つぃ': 'tsi', 'つぇ': 'tse', 'つぉ': 'tso',
+    'ぁ': 'la', 'ぃ': 'li', 'ぅ': 'lu', 'ぇ': 'le', 'ぉ': 'lo',
+    'ゃ': 'lya', 'ゅ': 'lyu', 'ょ': 'lyo', 'ゎ': 'lwa',
+}
+_SMALL = set('ぁぃぅぇぉゃゅょゎ')
+
+
+def _to_hiragana(text):
+    out = []
+    for ch in text:
+        code = ord(ch)
+        if 0x30A1 <= code <= 0x30F6:  # カタカナ -> ひらがな
+            out.append(chr(code - 0x60))
+        else:
+            out.append(ch)
+    return ''.join(out)
+
+
+def _units(hira):
+    """ひらがな文字列を (かな単位, ローマ字) の列にする。っ・ん・ーは呼び出し側で処理するため素通しマーカーを返す。"""
+    units = []
+    i = 0
+    while i < len(hira):
+        ch = hira[i]
+        if ch in ('っ', 'ん', 'ー'):
+            units.append((ch, None))
+            i += 1
+            continue
+        if i + 1 < len(hira) and hira[i + 1] in _SMALL and (ch + hira[i + 1]) in KANA_ROMAJI:
+            pair = ch + hira[i + 1]
+            units.append((pair, KANA_ROMAJI[pair]))
+            i += 2
+            continue
+        units.append((ch, KANA_ROMAJI.get(ch)))
+        i += 1
+    return units
+
+
+def convert(text):
+    """(typed, kana_target) を返す。typed はエンジンへ打つ文字列、kana_target は照合用のひらがな正規化文字列。"""
+    hira = _to_hiragana(text)
+    typed_parts = []
+    target_parts = []
+    # かなの塊と非かなの塊に分けて処理する
+    tokens = re.findall(r'[ぁ-ゖー]+|[^ぁ-ゖー]+', hira)
+    for token in tokens:
+        if not re.fullmatch(r'[ぁ-ゖー]+', token):
+            typed_parts.append(token)
+            target_parts.append(token)
+            continue
+        units = _units(token)
+        romaji_units = []
+        for idx, (kana, roma) in enumerate(units):
+            if kana == 'ー':
+                romaji_units.append('-')
+                continue
+            if kana == 'ん':
+                nxt = units[idx + 1][1] if idx + 1 < len(units) else None
+                if nxt is not None and (nxt[0] in 'aiueoy' or nxt.startswith('n')):
+                    romaji_units.append('nn')
+                else:
+                    romaji_units.append('n')
+                continue
+            if kana == 'っ':
+                nxt = units[idx + 1][1] if idx + 1 < len(units) else None
+                if nxt and nxt[0] not in 'aiueo':
+                    if nxt.startswith('ch'):
+                        romaji_units.append('t')
+                    else:
+                        romaji_units.append(nxt[0])
+                else:
+                    romaji_units.append('ltu')
+                continue
+            romaji_units.append(roma if roma is not None else kana)
+        typed_parts.append(''.join(romaji_units))
+        target_parts.append(token)
+    return ''.join(typed_parts), ''.join(target_parts)
+
+
+if __name__ == '__main__':
+    import sys
+    for line in sys.stdin:
+        typed, target = convert(line.rstrip('\n'))
+        print(f'{typed}\t{target}')
