@@ -24,7 +24,7 @@ SHUNTI_GROUPS = (("a", 3), ("b", 3))
 
 def load_shards():
     if PLAN.exists():
-        return json.loads(PLAN.read_text(encoding="utf-8"))
+        return json.loads(PLAN.read_text(encoding="utf-8")).get("shards", {})
     return {}
 
 
