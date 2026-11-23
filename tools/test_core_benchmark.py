@@ -366,6 +366,54 @@ class MozcTest(unittest.TestCase):
         self.assertTrue(mozc["member"].endswith("meltype_mozc_helper"))
 
 
+class PreflightTest(unittest.TestCase):
+    def _write(self, directory, files):
+        root = Path(directory)
+        for name, body in files.items():
+            path = root / name
+            path.parent.mkdir(parents=True, exist_ok=True)
+            path.write_text(body, encoding="utf-8")
+        return root
+
+    def test_gen1_needs_create_default_and_handle_key(self):
+        with tempfile.TemporaryDirectory() as directory:
+            root = self._write(directory, {
+                "src/Meltype.Core/Composition/MeltypeSession.cs":
+                    "public static MeltypeSession CreateDefault(\n IKanjiConverter converter, Func<string, IReadOnlyList<string>>? m, IWordChecker? w) {}\npublic SessionResult HandleKey(int vk) {}",
+            })
+            self.assertTrue(core_bench_runner.preflight(root, "gen1"))
+
+    def test_gen1_without_create_default_fails_with_a_reason(self):
+        with tempfile.TemporaryDirectory() as directory:
+            root = self._write(directory, {"src/Meltype.Core/Composition/MeltypeSession.cs": "public MeltypeSession(CompositionOptions o)"})
+            with self.assertRaises(core_bench_runner.BenchError) as caught:
+                core_bench_runner.preflight(root, "gen1")
+            self.assertEqual(caught.exception.stage, "preflight")
+            self.assertIn("CreateDefault", caught.exception.detail)
+
+    def test_gen2_needs_runtime_create_session(self):
+        with tempfile.TemporaryDirectory() as directory:
+            root = self._write(directory, {
+                "src/Meltype.Core/Composition/MeltypeRuntime.cs": "public MeltypeSession CreateSession(IKanjiConverter converter) {}",
+                "src/Meltype.Core/Composition/CompositionServices.cs": "public sealed record CompositionServices;",
+            })
+            self.assertTrue(core_bench_runner.preflight(root, "gen2"))
+            (root / "src/Meltype.Core/Composition/CompositionServices.cs").unlink()
+            with self.assertRaises(core_bench_runner.BenchError):
+                core_bench_runner.preflight(root, "gen2")
+
+    def test_gen3_needs_the_host_protocol(self):
+        with tempfile.TemporaryDirectory() as directory:
+            root = self._write(directory, {
+                "src/Meltype.Core/Ime/ImeHost.cs":
+                    "public const int Version = 1;\npublic ImeOutput Handle(ImeEvent e) {}\npublic ImeHost(SessionParts parts) {}",
+            })
+            self.assertTrue(core_bench_runner.preflight(root, "gen3"))
+            (root / "src/Meltype.Core/Ime/ImeHost.cs").write_text("public sealed class ImeHost {}", encoding="utf-8")
+            with self.assertRaises(core_bench_runner.BenchError):
+                core_bench_runner.preflight(root, "gen3")
+
+
 class EntrypointTest(unittest.TestCase):
     def _run(self, args):
         return subprocess.run(

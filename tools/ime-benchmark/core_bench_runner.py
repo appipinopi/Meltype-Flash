@@ -29,6 +29,7 @@
 import argparse
 import json
 import os
+import re
 import shutil
 import statistics
 import subprocess
@@ -289,6 +290,32 @@ def environment(session, home):
 CSHARP_VARIANTS = {1: ["gen1"], 2: ["gen2"], 3: ["gen3", "gen3empty"], 0: ["gen3", "gen2", "gen1"]}
 
 
+def preflight(root, variant):
+    """ハーネスが使う API がその版にあるかを、ビルドの前にソースで確かめる。"""
+    core = Path(root) / "src" / "Meltype.Core"
+    if variant == "gen1":
+        text = read_text(core / "Composition" / "MeltypeSession.cs")
+        if not re.search(r"CreateDefault\s*\(\s*IKanjiConverter", text):
+            raise BenchError("preflight", "MeltypeSession.CreateDefault(IKanjiConverter, …) がありません", "")
+        if not re.search(r"public SessionResult HandleKey\(", text):
+            raise BenchError("preflight", "MeltypeSession.HandleKey がありません", "")
+    elif variant == "gen2":
+        text = read_text(core / "Composition" / "MeltypeRuntime.cs")
+        if "public MeltypeSession CreateSession(" not in text:
+            raise BenchError("preflight", "MeltypeRuntime.CreateSession(IKanjiConverter, …) がありません", "")
+        if not (core / "Composition" / "CompositionServices.cs").is_file():
+            raise BenchError("preflight", "CompositionServices.cs がありません", "")
+    else:
+        host = read_text(core / "Ime" / "ImeHost.cs")
+        if "public ImeOutput Handle(ImeEvent" not in host:
+            raise BenchError("preflight", "ImeHost.Handle(ImeEvent) がありません", "")
+        if "public const int Version" not in host:
+            raise BenchError("preflight", "ImeHost.Version がありません", "")
+        if "SessionParts" not in host:
+            raise BenchError("preflight", "SessionParts を受け取る ImeHost ではありません", "")
+    return True
+
+
 def install_csharp_harness(directory, variant, core_project):
     """リポジトリの外に、対象の Meltype.Core を参照する一時プロジェクトを作る。"""
     directory = Path(directory)
@@ -512,6 +539,7 @@ def measure(session, data, cases, helper, mozc_cache, work_root):
         errors = []
         for candidate in CSHARP_VARIANTS.get(generation, CSHARP_VARIANTS[0]):
             try:
+                preflight(root, candidate)
                 layers = run_csharp(session, root, cases, data, helper, work, env, candidate)
                 variant = candidate
                 break
