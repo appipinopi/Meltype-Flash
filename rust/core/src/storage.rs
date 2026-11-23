@@ -10,6 +10,8 @@ use std::{
     fs::{self, File, OpenOptions},
     io::{self, Write},
     path::{Path, PathBuf},
+    sync::{Mutex, OnceLock},
+    thread::JoinHandle,
 };
 mod sqlite_dictionary;
 mod upstream;
@@ -24,7 +26,6 @@ pub fn atomic_write(path: &Path, bytes: &[u8]) -> io::Result<()> {
     fs::create_dir_all(parent)?;
     let mut file = tempfile::NamedTempFile::new_in(parent)?;
     file.write_all(bytes)?;
-    file.as_file().sync_all()?;
     file.persist(path).map_err(|e| e.error)?;
     #[cfg(unix)]
     {
@@ -45,6 +46,10 @@ impl Drop for Lock {
 
 mod state;
 pub use state::{Change, LanguageEntry, Phrase, State};
+
+#[allow(clippy::type_complexity)]
+static PENDING_WRITE: OnceLock<Mutex<Option<(std::thread::ThreadId, JoinHandle<()>)>>> =
+    OnceLock::new();
 
 impl Store {
     pub fn new(directory: impl Into<PathBuf>) -> Self {
@@ -134,7 +139,22 @@ impl Store {
         )?;
         Ok(result)
     }
+    pub fn flush(&self) {
+        if let Some(lock) = PENDING_WRITE.get() {
+            if let Ok(mut opt) = lock.lock() {
+                if let Some((tid, _)) = opt.as_ref() {
+                    if *tid == std::thread::current().id() {
+                        return;
+                    }
+                }
+                if let Some((_, handle)) = opt.take() {
+                    let _ = handle.join();
+                }
+            }
+        }
+    }
     pub fn load(&self) -> io::Result<State> {
+        self.flush();
         let path = self.directory.join("state.json");
         let mut state: State = match fs::read(&path) {
             Ok(bytes) => {
@@ -164,6 +184,7 @@ impl Store {
         Ok(state)
     }
     pub fn update<T>(&self, f: impl FnOnce(&mut State) -> io::Result<T>) -> io::Result<T> {
+        self.flush();
         let _lock = self.lock()?;
         let mut state = self.load()?;
         let previous_dictionary = sqlite_dictionary::read(&self.directory)?;
@@ -206,6 +227,20 @@ impl Store {
             }
             Ok(state.clone())
         })
+    }
+    pub fn record_async(&self, changes: Vec<Change>) {
+        if changes.is_empty() {
+            return;
+        }
+        self.flush();
+        let this = self.clone();
+        let handle = std::thread::spawn(move || {
+            let _ = this.record(changes);
+        });
+        let tid = handle.thread().id();
+        if let Ok(mut lock) = PENDING_WRITE.get_or_init(|| Mutex::new(None)).lock() {
+            *lock = Some((tid, handle));
+        }
     }
     fn import_legacy(&self) -> io::Result<State> {
         let mut state = State {
@@ -354,12 +389,21 @@ impl Store {
         }
     }
     pub fn backup(&self) -> io::Result<Vec<u8>> {
+        self.backup_with_neural_policy(cfg!(any(target_os = "android", target_os = "ios")))
+    }
+    fn backup_with_neural_policy(&self, omit_neural: bool) -> io::Result<Vec<u8>> {
         let _lock = self.lock()?;
         let mut files = BTreeMap::new();
         for name in ROOT_FILES {
             let path = safe_path(&self.directory, name)?;
             if path.is_file() {
-                files.insert((*name).to_owned(), STANDARD.encode(fs::read(path)?));
+                let bytes = fs::read(path)?;
+                let bytes = if *name == "config.json" {
+                    archive_config(bytes, omit_neural)?
+                } else {
+                    bytes
+                };
+                files.insert((*name).to_owned(), STANDARD.encode(bytes));
             }
         }
         if self.directory.join("state.json").exists()
@@ -406,9 +450,12 @@ impl Store {
         Ok(value)
     }
     pub fn restore(&self, bytes: &[u8]) -> io::Result<usize> {
+        self.restore_with_neural_policy(bytes, cfg!(any(target_os = "android", target_os = "ios")))
+    }
+    fn restore_with_neural_policy(&self, bytes: &[u8], omit_neural: bool) -> io::Result<usize> {
         let value = Self::inspect_backup(bytes)?;
         let _lock = self.lock()?;
-        let mut files = self.backup_entries(&value)?;
+        let mut files = self.backup_entries(&value, omit_neural)?;
         let supplied_count = files.len();
         let has_state = value["files"].get("state.json").is_some();
         if !has_state
@@ -558,7 +605,8 @@ impl Store {
     /// Use the same target/path/base64 validation as restore, without writing.
     pub fn preview_backup(&self, bytes: &[u8]) -> io::Result<Value> {
         let value = Self::inspect_backup(bytes)?;
-        let files = self.backup_entries(&value)?;
+        let files =
+            self.backup_entries(&value, cfg!(any(target_os = "android", target_os = "ios")))?;
         let mut categories = Vec::new();
         let names: Vec<_> = value["files"]
             .as_object()
@@ -613,7 +661,11 @@ impl Store {
             "bytes":files.iter().map(|(_,bytes)|bytes.len() as u64).sum::<u64>(),
             "categories":categories,"ignoredFiles":value["files"].as_object().unwrap().len()-files.len()}))
     }
-    fn backup_entries(&self, value: &Value) -> io::Result<Vec<(PathBuf, Vec<u8>)>> {
+    fn backup_entries(
+        &self,
+        value: &Value,
+        omit_neural: bool,
+    ) -> io::Result<Vec<(PathBuf, Vec<u8>)>> {
         value["files"]
             .as_object()
             .unwrap()
@@ -627,10 +679,26 @@ impl Store {
                             .ok_or_else(|| io::Error::other("invalid backup bytes"))?,
                     )
                     .map_err(io::Error::other)?;
+                let bytes = if name == "config.json" {
+                    archive_config(bytes, omit_neural)?
+                } else {
+                    bytes
+                };
                 Ok((path, bytes))
             })
             .collect()
     }
+}
+// Mobile backups contain the effective supported settings, rather than opaque
+// desktop model paths. Desktop archives preserve their original bytes exactly.
+fn archive_config(bytes: Vec<u8>, omit_neural: bool) -> io::Result<Vec<u8>> {
+    if !omit_neural {
+        return Ok(bytes);
+    }
+    let (text, _) = crate::user_dictionary::decode(&bytes)?;
+    let mut settings = Settings::parse(&text).map_err(io::Error::other)?;
+    settings.remove_neural_settings();
+    serde_json::to_vec_pretty(&settings).map_err(io::Error::other)
 }
 fn parse_time(v: &Value) -> i64 {
     v.as_str()
@@ -690,4 +758,124 @@ fn safe_path(root: &Path, name: &str) -> io::Result<PathBuf> {
         }
     }
     Ok(path)
+}
+
+#[cfg(test)]
+mod neural_archive_tests {
+    use super::*;
+
+    fn config() -> Vec<u8> {
+        serde_json::to_vec_pretty(&json!({
+            "SettingsVersion":7, "UseZenzai":true,
+            "ZenzaiServerPath":"desktop-server", "ZenzaiModelPath":"desktop-model",
+            "PredictiveCandidates":true, "LearningEnabled":false,
+            "FutureSetting":{"preserve":[1,2,3]},
+            "Profiles":[{"Name":"移行", "Values":{
+                "UseZenzai":true, "ZenzaiServerPath":"profile-server", "ZenzaiModelPath":"profile-model",
+                "PredictiveCandidates":false, "FutureSetting":{"nested":"kept"}
+            }}]
+        })).unwrap()
+    }
+    fn stored_config(backup: &[u8]) -> Vec<u8> {
+        let archive: Value = serde_json::from_slice(backup).unwrap();
+        STANDARD
+            .decode(archive["files"]["config.json"].as_str().unwrap())
+            .unwrap()
+    }
+    fn assert_mobile_config(bytes: &[u8]) {
+        let value: Value = serde_json::from_slice(bytes).unwrap();
+        for name in ["UseZenzai", "ZenzaiServerPath", "ZenzaiModelPath"] {
+            assert!(value.get(name).is_none());
+            for profile in value["Profiles"].as_array().unwrap() {
+                assert!(profile["Values"].get(name).is_none());
+            }
+        }
+        assert_eq!(value["PredictiveCandidates"], true);
+        assert_eq!(value["LearningEnabled"], false);
+        assert_eq!(value["FutureSetting"], json!({"preserve":[1,2,3]}));
+        let profile = value["Profiles"]
+            .as_array()
+            .unwrap()
+            .iter()
+            .find(|profile| profile["Name"] == "移行")
+            .unwrap();
+        assert_eq!(profile["Values"]["PredictiveCandidates"], false);
+        assert_eq!(profile["Values"]["FutureSetting"], json!({"nested":"kept"}));
+    }
+
+    #[test]
+    fn mobile_restore_and_reexport_strip_desktop_ai_without_losing_other_settings() {
+        let source = tempfile::tempdir().unwrap();
+        let target = tempfile::tempdir().unwrap();
+        fs::write(source.path().join("config.json"), config()).unwrap();
+        fs::create_dir(source.path().join("dictionaries")).unwrap();
+        fs::write(
+            source.path().join("dictionaries/custom.txt"),
+            b"future dictionary\n",
+        )
+        .unwrap();
+        let source = Store::new(source.path());
+        let desktop_archive = source.backup_with_neural_policy(false).unwrap();
+        let target = Store::new(target.path());
+        target
+            .restore_with_neural_policy(&desktop_archive, true)
+            .unwrap();
+        assert_mobile_config(&fs::read(target.directory.join("config.json")).unwrap());
+        let mobile_archive = target.backup_with_neural_policy(true).unwrap();
+        assert_mobile_config(&stored_config(&mobile_archive));
+        let archive: Value = serde_json::from_slice(&mobile_archive).unwrap();
+        assert_eq!(
+            STANDARD
+                .decode(
+                    archive["files"]["dictionaries/custom.txt"]
+                        .as_str()
+                        .unwrap()
+                )
+                .unwrap(),
+            b"future dictionary\n"
+        );
+        // Export directly from a desktop document, before any settings read.
+        assert_mobile_config(&stored_config(
+            &source.backup_with_neural_policy(true).unwrap(),
+        ));
+    }
+
+    #[test]
+    fn desktop_backup_and_restore_keep_config_bytes_including_ai_exactly() {
+        let source = tempfile::tempdir().unwrap();
+        let target = tempfile::tempdir().unwrap();
+        let bytes = [
+            b"// retained desktop comment\n".as_slice(),
+            config().as_slice(),
+        ]
+        .concat();
+        fs::write(source.path().join("config.json"), &bytes).unwrap();
+        let backup = Store::new(source.path())
+            .backup_with_neural_policy(false)
+            .unwrap();
+        assert_eq!(stored_config(&backup), bytes);
+        let target = Store::new(target.path());
+        target.restore_with_neural_policy(&backup, false).unwrap();
+        assert_eq!(
+            fs::read(target.directory.join("config.json")).unwrap(),
+            bytes
+        );
+    }
+
+    #[test]
+    fn malformed_mobile_config_fails_before_replacing_existing_data() {
+        let target = tempfile::tempdir().unwrap();
+        fs::write(target.path().join("config.json"), b"original bytes").unwrap();
+        let backup = serde_json::to_vec(&json!({"format":"meltype-backup", "version":1,
+            "files":{"config.json":STANDARD.encode(b"{invalid json")}}))
+        .unwrap();
+        assert!(Store::new(target.path())
+            .restore_with_neural_policy(&backup, true)
+            .is_err());
+        assert_eq!(
+            fs::read(target.path().join("config.json")).unwrap(),
+            b"original bytes"
+        );
+        assert!(!target.path().join("config.json.before-restore").exists());
+    }
 }

@@ -15,6 +15,7 @@ const INPUT_SCOPE: GUID = GUID::from_u128(0x1713dd5a_68e7_4a5b_9af6_592a595c778d
 const SECRET: u32 = 1;
 const PRIVATE: u32 = 2;
 const UNREADABLE: u32 = 4;
+const ASCII: u32 = 8;
 // VARIANT discriminants from wtypes.h: EMPTY, NULL, UNKNOWN, I4.
 const EMPTY: u16 = 0;
 const NULL: u16 = 1;
@@ -54,7 +55,7 @@ unsafe fn property(context: &ITfContext, app: bool) -> Option<ITfReadOnlyPropert
         None
     }
 }
-unsafe fn inspect(context: *mut c_void, cookie: u32) -> u32 {
+unsafe fn inspect(context: *mut c_void, cookie: u32, chromium: bool) -> u32 {
     let Some(context) = ITfContext::from_raw_borrowed(&context).cloned() else {
         return 0;
     };
@@ -66,8 +67,9 @@ unsafe fn inspect(context: *mut c_void, cookie: u32) -> u32 {
     let Some(selection) = ranges::selection(&context, cookie) else {
         return sources;
     };
-    let (mut flags, mut failure) = (sources, 0);
-    for property in [windows, app].into_iter().flatten() {
+    let (mut flags, mut failure, mut app_secret) = (sources, 0, false);
+    for (from_app, property) in [(false, windows), (true, app)].into_iter() {
+        let Some(property) = property else { continue };
         let mut value = VARIANT::new();
         // Keep an initialized owner even if the host fills output before failing.
         let status = (Interface::vtable(&property).GetValue)(
@@ -109,7 +111,21 @@ unsafe fn inspect(context: *mut c_void, cookie: u32) -> u32 {
                                 | IS_ALPHANUMERIC_PIN
                                 | IS_ALPHANUMERIC_PIN_SET
                         ) {
-                            flags |= SECRET;
+                            if from_app {
+                                app_secret = true;
+                            } else {
+                                flags |= SECRET;
+                            }
+                        }
+                        // #992: メール・半角指定欄ではキーをそのままアプリへ渡す。
+                        // URL は検索欄でも使われるので日本語入力を禁止しない。
+                        if matches!(
+                            scope,
+                            IS_EMAIL_USERNAME
+                                | IS_EMAIL_SMTPEMAILADDRESS
+                                | IS_ALPHANUMERIC_HALFWIDTH
+                        ) {
+                            flags |= ASCII;
                         }
                         if scope == IS_PRIVATE {
                             flags |= PRIVATE;
@@ -120,19 +136,41 @@ unsafe fn inspect(context: *mut c_void, cookie: u32) -> u32 {
             _ => failure = 3,
         }
     }
+    // #878/#874: Chromium sometimes advertises a normal field as an app
+    // password scope. Windows scopes, disabled contexts and read failures
+    // remain authoritative; private/no-learning and ASCII flags are retained.
+    if app_secret
+        && !(chromium && flags & SECRET == 0 && meltype_tsf_context_disabled(context.as_raw()) == 0)
+    {
+        flags |= SECRET;
+    }
     if failure != 0 {
         flags |= SECRET | UNREADABLE | failure << 16;
     }
     flags
 }
-/// Return bit flags: secret=1, private/no-learning=2, unreadable=4;
+/// Return bit flags: secret=1, private/no-learning=2, unreadable=4, ASCII/raw=8;
 /// sources=(Windows=1,application=2)<<8; unreadable reason (QI=1,list=2,
 /// variant=3)<<16. Missing metadata/selection is an ordinary unspecified field.
 /// # Safety
 /// Borrowed context (or null), valid read cookie, on its TSF thread.
 #[no_mangle]
 pub unsafe extern "C" fn meltype_tsf_input_scope(context: *mut c_void, cookie: u32) -> u32 {
-    catch_unwind(AssertUnwindSafe(|| inspect(context, cookie))).unwrap_or(SECRET | UNREADABLE)
+    meltype_tsf_browser_input_scope(context, cookie, 0)
+}
+
+/// Apply the upstream Chromium app-scope workaround without bypassing Windows
+/// password metadata, IME-disabled contexts, ASCII fields or read errors.
+/// # Safety
+/// Same borrowed context/thread/cookie requirements as meltype_tsf_input_scope.
+#[no_mangle]
+pub unsafe extern "C" fn meltype_tsf_browser_input_scope(
+    context: *mut c_void,
+    cookie: u32,
+    chromium: i32,
+) -> u32 {
+    catch_unwind(AssertUnwindSafe(|| inspect(context, cookie, chromium != 0)))
+        .unwrap_or(SECRET | UNREADABLE)
 }
 pub(super) unsafe fn manager(owner: *mut c_void) -> Option<ITfCompartmentMgr> {
     let owner = IUnknown::from_raw_borrowed(&owner)?;

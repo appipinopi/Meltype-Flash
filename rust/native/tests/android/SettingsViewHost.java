@@ -11,6 +11,10 @@ public final class SettingsViewHost {
     final List<String> actions=new ArrayList<>();boolean failCallback;
     private View.OnClickListener settingsButtonCallback(String operation){if(failCallback)throw new IllegalStateException("listener failed");return view->actions.add(operation);}
     private CompoundButton.OnCheckedChangeListener settingsToggleCallback(String operation){return (view,checked)->actions.add(operation);}
+    private AdapterView.OnItemSelectedListener settingsSelectCallback(String operation){return new AdapterView.OnItemSelectedListener(){
+        public void onNothingSelected(AdapterView parent){}
+        public void onItemSelected(AdapterView parent,View view,int position,long id){actions.add(operation);}
+    };}
     static String ok(String reply){if(reply==null||reply.contains("\"error\":"))throw new AssertionError(reply);return reply;}
     static void check(boolean value,Object detail){if(!value)throw new AssertionError(detail);}
     EditText field(String hint){for(View view:body.children)if(view instanceof EditText edit&&edit.hint.equals(hint))return edit;throw new AssertionError(hint);}
@@ -18,6 +22,8 @@ public final class SettingsViewHost {
         Path profile=Files.createTempDirectory("meltype-jni-settings-view-");long session=Native.create(profile.toString());
         try {
             SettingsViewHost host=new SettingsViewHost();
+            ok(Native.renderSettingsPage(host,"{\"nodes\":[{\"type\":\"button\",\"text\":\"インストール済み\",\"enabled\":false,\"action\":{}},{\"type\":\"button\",\"text\":\"導入する\",\"action\":{}}]}"));
+            check(!host.body.children.get(0).enabled&&host.body.children.get(1).enabled,"installed button disabled; legacy buttons remain enabled");
             for(int page=0;page<6;page++)ok(Native.renderSettingsPage(host,Native.settingsPage(session,page)));
             ok(Native.renderSettingsPage(host,Native.settingsPage(session,0)));check(host.actions.isEmpty(),"initial state cannot mutate settings");
             int toggles=0;for(View view:host.body.children)if(view instanceof Switch toggle){toggles++;toggle.performClick();}

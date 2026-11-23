@@ -24,7 +24,7 @@ import tarfile
 sys.path.insert(0, str(Path(__file__).resolve().parent / "performance/windows"))
 from resources import measure_process
 
-BASELINE = "6310c44b728d5ad88284853f9ef37ea224993b18"
+BASELINE = "46db6ca2f941eb9580f4d5ed103ee0bee71111c7"
 REPO = Path(__file__).resolve().parent.parent
 
 
@@ -63,18 +63,25 @@ def verify(responses, keys):
     trace = []
     for response, (vk, ch, _modifiers) in zip(responses, keys, strict=True):
         result = json.loads(response)
+        commits = []
         for edit in result["commits"]:
-            count = edit["deleteBefore"]
-            expected = edit.get("expect")
+            # Rust の比較用 JSON は deleteBefore/expect、上流 C# 1.6.0 のフロント向け JSON は
+            # removeBefore/moveCaretBack を使う。同じ意味なので、ここで 1 つの形にそろえる
+            if "deleteBefore" in edit:
+                count, expected = edit["deleteBefore"], edit.get("expect")
+            else:
+                expected = edit.get("removeBefore")
+                count = len(expected.encode("utf-16-le")) // 2 if expected else 0
             if count:
                 if expected is None or not document.endswith(expected) or len(expected.encode("utf-16-le")) // 2 != count:
                     raise ValueError(f"invalid guarded edit: {edit!r} in {document!r}")
                 document = document.encode("utf-16-le")[:-2 * count].decode("utf-16-le")
             document += edit["text"]
+            commits.append(dict(deleteBefore=count, text=edit["text"], expect=expected))
         if not result["consumed"] and ch >= 32 and vk not in (8, 13):
             document += chr(ch)
         view = result["view"]
-        trace.append(dict(consumed=result["consumed"], commits=result["commits"],
+        trace.append(dict(consumed=result["consumed"], commits=commits,
                           text=view["text"] if view else None,
                           converting=view["converting"] if view else False))
     if result["view"] is not None:

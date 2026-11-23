@@ -12,6 +12,7 @@ public class ViewGroup extends View {
     public final List<View> children=new ArrayList<>();
     public ViewGroup(Context context){super(context);}
     public void addView(View child){children.add(child);}
+    public void addView(View child,int index){children.add(index,child);}
     public void addView(View child,LayoutParams params){child.layoutParams=params;addView(child);}
     public int getChildCount(){return children.size();}
     public View getChildAt(int index){return children.get(index);}

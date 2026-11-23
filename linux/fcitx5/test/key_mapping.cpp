@@ -16,12 +16,21 @@ int main(int argc,char **argv) {
         if(!key||!modifiers||!mode)throw std::runtime_error("Rust key/mode ABI missing");
         size_t count=0;
         auto compare=[&](uint32_t symbol) {
-            const auto expected=meltype_fcitx::virtualKey(static_cast<fcitx::KeySym>(symbol));
+            auto expected=meltype_fcitx::virtualKey(static_cast<fcitx::KeySym>(symbol));
+            // 追加したショートカットと Shift+Tab は新しい仕様、ほかは旧実装と比較する。
+            if(symbol==0xfe20)expected={9,0};
+            if(symbol>=FcitxKey_F1 && symbol<=FcitxKey_F12)
+                expected={static_cast<int>(0x70+symbol-FcitxKey_F1),0};
+            if(symbol==FcitxKey_Caps_Lock)expected={0x14,0};
+            if(fcitx::Key::keySymToUnicode(static_cast<fcitx::KeySym>(symbol))=='`')expected={0xc0,'`'};
             const auto actual=key(symbol,fcitx::Key::keySymToUnicode(static_cast<fcitx::KeySym>(symbol)));
             if(static_cast<int>(actual&0xffffffffu)!=expected.first || static_cast<uint32_t>(actual>>32)!=expected.second)
                 throw std::runtime_error("key mapping mismatch: "+std::to_string(symbol));
             for(int direct=0;direct<2;direct++) {
-                if(mode(symbol,direct)!=meltype_fcitx::modePlan(static_cast<fcitx::KeySym>(symbol),direct!=0))
+                // 漢字キーも半角/全角と同じ切替として扱う。
+                const auto expectedMode = symbol==FcitxKey_Kanji ? (direct ? 1U : 3U)
+                    : meltype_fcitx::modePlan(static_cast<fcitx::KeySym>(symbol),direct!=0);
+                if(mode(symbol,direct)!=expectedMode)
                     throw std::runtime_error("mode/role mapping mismatch: "+std::to_string(symbol));
             }
             count++;

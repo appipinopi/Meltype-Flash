@@ -1,5 +1,9 @@
 # 画面の検証範囲
 
+<!-- meltype-flash-document-banner:start -->
+<p align="center"><img src="../../../assets/branding/readme/documentation.svg" alt="Meltype-FLASH — 稲妻のように、言葉の壁を駆け抜ける日本語入力。" width="1000"></p>
+<!-- meltype-flash-document-banner:end -->
+
 `capture_settings.py <visual-test付き実行ファイル> <出力フォルダー>` は利用中のデータから隔離した6プロファイルで、設定・辞書・定型文・学習・バックアップ・入力テストを描画します。設定の保存やSQLiteへの移行を行わなかったことも確認します。Linuxでは `xvfb-run -a` が必要です。
 
 Windowsの記録は [evidence/windows-fst-sqlite](evidence/windows-fst-sqlite) にあります。これは元版と全画面が一致したという証拠ではありません。元版 `src/Meltype/UI/UserDictionaryForm.cs` は560×520、`SnippetsForm.cs` は620×580の独立ウィンドウですが、Rustは740×740の共通ウィンドウ内のページです。設定項目名・説明・列挙名の一致、画面レイアウトの一致、実ファイル選択/キーボード操作は別々に確認します。
@@ -14,7 +18,7 @@ Windows候補は `tsf_candidate_smoke.py` が元のC++描画器との寸法・�
 
 既存の60項目のメタデータ基準は45e14f8を維持する。最新版で増えた設定・動作、全画面の寸法一致、ファイル選択や全OSの実操作は [版別の未対応一覧](../../../rust/UPSTREAM-1.3.1-pre1-GAPS.md)を参照。
 
-## Meltype-flash の独立ウィンドウ（v0.1.1向け）
+## Meltype-FLASH の独立ウィンドウ（v0.1.1向け）
 
 `check_dialog_windows.py <visual-test付きmeltype-flash.exe> <結果.json>` はWindowsで私用の設定フォルダーを使い、ログ・報告・誤判定の報告・About・更新の5ウィンドウを検査する。
 タイトルとクライアント寸法を取得し、各子ウィンドウだけにWM_CLOSEを送っても設定ウィンドウが残ること、設定と辞書を変更しないことを確認する。通常のユーザーアプリには操作しない。

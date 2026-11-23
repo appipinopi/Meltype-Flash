@@ -20,6 +20,8 @@ pub struct Call {
     pub c: *mut c_void,
     pub n1: usize,
     pub n2: isize,
+    /// True when this call is a key-up (OnKeyUp / OnTestKeyUp) event.
+    pub is_up: bool,
 }
 type Dispatch = unsafe extern "C" fn(*mut c_void, *const Call) -> HRESULT;
 type Destroy = unsafe extern "C" fn(*mut c_void);
@@ -124,6 +126,7 @@ fn args(op: u32, a: *mut c_void, b: *mut c_void, c: *mut c_void, n1: usize, n2: 
         c,
         n1,
         n2,
+        is_up: false,
     }
 }
 unsafe extern "system" fn activate(t: *mut c_void, m: *mut c_void, id: u32) -> HRESULT {
@@ -187,10 +190,11 @@ unsafe fn key(
         return E_INVALIDARG;
     }
     eaten.write(BOOL(0));
-    call(
-        t,
-        args(op, context, eaten.cast(), ptr::null_mut(), vk.0, message.0),
-    )
+    let mut call_args = args(op, context, eaten.cast(), ptr::null_mut(), vk.0, message.0);
+    // OnTestKeyUp (10) and OnKeyUp (12) are key-up events. Carry the flag so
+    // the worker JSON can include `"is_up": true` for the core session.
+    call_args.is_up = matches!(op, 10 | 12);
+    call(t, call_args)
 }
 unsafe extern "system" fn test_down(
     t: *mut c_void,

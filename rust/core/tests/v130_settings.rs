@@ -10,8 +10,18 @@ fn additions() -> Vec<String> {
         .unwrap()
         .iter()
         .filter(|v| v["first_present_in_requested_release"] != "v1.3.1-pre.1")
-        .map(|v| v["key"].as_str().unwrap().to_owned())
+        .map(|v| match v["key"].as_str().unwrap() {
+            "ToggleKeyboardShortcuts" => "ToggleShortcuts".to_owned(),
+            key => key.to_owned(),
+        })
         .collect()
+}
+fn reference_default(reference: &Value, key: &str) -> Value {
+    if key == "ToggleShortcuts" {
+        json!([{"Key":25,"Modifiers":0},{"Key":192,"Modifiers":4}])
+    } else {
+        reference["defaults"][key].clone()
+    }
 }
 #[test]
 fn all_28_defaults_types_profiles_and_import_export_match_target() {
@@ -23,20 +33,21 @@ fn all_28_defaults_types_profiles_and_import_export_match_target() {
     let original = s.text("ActiveProfile").to_owned();
     let mut changed = serde_json::Map::new();
     for key in &fields {
-        let value = &reference["defaults"][key];
+        let value = &reference_default(&reference, key);
         assert_eq!(&s.0[key], value, "default {key}");
         let alternate = match value {
             Value::Bool(b) => json!(!b),
             Value::String(_) => json!("test-value"),
+            Value::Array(_) if key == "ToggleShortcuts" => json!([{"Key":75,"Modifiers":3}]),
             _ => panic!("unexpected addition type: {key}"),
         };
-        assert!(s.set(key, json!([])).is_err(), "reject wrong type {key}");
+        assert!(s.set(key, json!(null)).is_err(), "reject wrong type {key}");
         s.set(key, alternate.clone()).unwrap();
         changed.insert(key.clone(), alternate);
     }
     s.add_profile("new defaults").unwrap();
     for key in &fields {
-        s.set(key, reference["defaults"][key].clone()).unwrap();
+        s.set(key, reference_default(&reference, key)).unwrap();
     }
     s.switch_profile(&original).unwrap();
     for key in &fields {
@@ -52,7 +63,8 @@ fn all_28_defaults_types_profiles_and_import_export_match_target() {
     restored.switch_profile("new defaults").unwrap();
     for key in &fields {
         assert_eq!(
-            restored.0[key], reference["defaults"][key],
+            restored.0[key],
+            reference_default(&reference, key),
             "default profile {key}"
         );
     }
@@ -108,9 +120,10 @@ fn migration_is_persisted_once_and_does_not_lose_later_edits() {
 #[test]
 fn bracket_caret_request_is_opt_in_and_exact_pair_only() {
     use meltype_core::Session;
-    for enabled in [false, true] {
+    for (enabled, capable) in [(false, false), (false, true), (true, false), (true, true)] {
         for text in ["()", "[]", "{}", "(abc)", "hello"] {
             let mut s = Session::default();
+            s.can_move_caret = capable;
             s.settings
                 .set("CursorIntoBrackets", json!(enabled))
                 .unwrap();
@@ -125,7 +138,9 @@ fn bracket_caret_request_is_opt_in_and_exact_pair_only() {
             let edit = result.commits.last().unwrap();
             assert_eq!(
                 edit.caret_back,
-                u32::from(enabled && meltype_core::shortcuts::is_bracket_pair(&edit.text)),
+                u32::from(
+                    enabled && capable && meltype_core::shortcuts::is_bracket_pair(&edit.text)
+                ),
                 "{text}: {}",
                 edit.text
             );

@@ -4,6 +4,13 @@
 //! Sessions use opaque integer tokens. Stale handles fail without dereferencing
 //! freed memory. Returned strings use malloc/free, including Swift callbacks.
 use meltype_core::{session::Clause, Session};
+#[cfg(any(windows, target_os = "linux", target_os = "macos"))]
+mod currency_auto;
+#[cfg(any(target_os = "linux", target_os = "macos"))]
+#[path = "windows_converter/zenzai.rs"]
+mod desktop_zenzai;
+#[cfg(any(target_os = "android", feature = "android-jni-test"))]
+mod embedded_ai;
 mod fcitx;
 mod fcitx_dispatch;
 mod fcitx_view;
@@ -24,6 +31,8 @@ mod macos_services;
 mod macos_suggestion;
 mod macos_view;
 mod macos_window;
+#[cfg(any(windows, target_os = "linux", target_os = "macos"))]
+mod shunti;
 pub mod tip;
 #[cfg(windows)]
 pub mod tip_transport;
@@ -36,6 +45,16 @@ pub mod windows_converter;
 #[cfg(windows)]
 mod windows_github;
 mod word_checker;
+#[cfg(any(target_os = "linux", target_os = "macos"))]
+fn desktop_ai() -> &'static Mutex<desktop_zenzai::Zenzai> {
+    static AI: OnceLock<Mutex<desktop_zenzai::Zenzai>> = OnceLock::new();
+    AI.get_or_init(|| Mutex::new(desktop_zenzai::Zenzai::default()))
+}
+#[cfg(any(target_os = "linux", target_os = "macos"))]
+fn shunti_ai() -> &'static Mutex<shunti::Shunti> {
+    static AI: OnceLock<Mutex<shunti::Shunti>> = OnceLock::new();
+    AI.get_or_init(|| Mutex::new(shunti::Shunti::default()))
+}
 use std::{
     collections::HashMap,
     ffi::{c_char, c_void, CStr, CString},
@@ -45,6 +64,43 @@ use std::{
         Mutex, OnceLock,
     },
 };
+
+/// 打鍵数 (keycount.json)。打った文字は残さず、日ごとの回数だけを足す。
+#[cfg(not(test))]
+fn key_counter() -> &'static Mutex<meltype_core::keycount::KeyCounter> {
+    static COUNTER: OnceLock<Mutex<meltype_core::keycount::KeyCounter>> = OnceLock::new();
+    COUNTER.get_or_init(|| {
+        Mutex::new(meltype_core::keycount::KeyCounter::load(
+            meltype_core::storage::Store::default_directory(),
+        ))
+    })
+}
+
+/// 1 打鍵を数える。数える設定のときだけ。押しっぱなしの繰り返しもそのまま数える。
+#[cfg(not(test))]
+pub(crate) fn count_key() {
+    static KEYS: std::sync::atomic::AtomicU64 = std::sync::atomic::AtomicU64::new(0);
+    let Ok(mut counter) = key_counter().lock() else {
+        return;
+    };
+    let index = KEYS.fetch_add(1, Ordering::Relaxed);
+    // 設定画面で入れた変更を、次の打鍵から反映させる。ファイルの更新時刻が変わった
+    // ときだけ読み直すので、打鍵ごとに見ても軽い (設定変更が 64 打待たない)。
+    counter.refresh_if_changed();
+    counter.count_key(&meltype_core::keycount::today());
+    // 書き込みは 20 打ごとにまとめる。終了時は destroy で書く。
+    // 1 打目はすぐ書いて、起動直後でも Discord のステータスに出るようにする。
+    if index == 0 || index.is_multiple_of(20) {
+        let _ = counter.flush();
+    }
+}
+
+#[cfg(not(test))]
+pub(crate) fn flush_key_count() {
+    if let Ok(mut counter) = key_counter().lock() {
+        let _ = counter.flush();
+    }
+}
 
 pub type ClausesCallback = unsafe extern "C" fn(*const c_char, *const c_char) -> *mut c_char;
 pub type CandidatesCallback = unsafe extern "C" fn(*const c_char) -> *mut c_char;
@@ -71,6 +127,12 @@ fn run(
     handle: *mut c_void,
     f: impl FnOnce(&mut Session) -> meltype_core::SessionResult,
 ) -> *mut c_char {
+    run_optional(handle, |session| Some(f(session)))
+}
+fn run_optional(
+    handle: *mut c_void,
+    f: impl FnOnce(&mut Session) -> Option<meltype_core::SessionResult>,
+) -> *mut c_char {
     catch_unwind(AssertUnwindSafe(|| {
         #[cfg(windows)]
         let learning = windows_converter::has_worker();
@@ -84,15 +146,27 @@ fn run(
                 session.storage_error = Some(error.to_string());
             }
         }
+        #[cfg(any(target_os = "android", feature = "android-jni-test"))]
+        let (profile, was_converting) = (embedded_ai::profile(session), session.is_converting());
         let result = f(session);
+        #[cfg(any(target_os = "android", feature = "android-jni-test"))]
+        let mut result = result;
+        #[cfg(any(target_os = "android", feature = "android-jni-test"))]
+        let ai_request = if was_converting {
+            None
+        } else {
+            session.ai_request()
+        };
         let notifications = session.take_engine_learning();
         drop(all);
+        #[cfg(any(target_os = "android", feature = "android-jni-test"))]
+        embedded_ai::complete(handle, profile, ai_request, &mut result);
         // Engine IPC and callbacks must not run under the session registry lock.
         #[cfg(windows)]
         windows_converter::learn(notifications);
         #[cfg(not(windows))]
         let _ = notifications;
-        Some(allocate(&serde_json::to_string(&result).ok()?))
+        Some(allocate(&serde_json::to_string(&result?).ok()?))
     }))
     .ok()
     .flatten()
@@ -140,6 +214,9 @@ pub extern "C" fn meltype_init(
         convert: None,
     };
     word_checker::configure(is_word);
+    // 固定・自動・手入力のレートは Windows・macOS・Linux で使える
+    #[cfg(any(windows, target_os = "linux", target_os = "macos"))]
+    currency_auto::start();
     1
 }
 
@@ -160,6 +237,10 @@ pub extern "C" fn meltype_set_converter(convert: Option<CandidatesCallback>) -> 
 /// Non-null helper/profile arguments must be valid NUL-terminated UTF-8 strings.
 #[no_mangle]
 pub unsafe extern "C" fn meltype_init_mozc(helper: *const c_char, profile: *const c_char) -> i32 {
+    // macOS の IME は meltype_init を、Linux の IBus・fcitx5 はこちらを呼ぶ。
+    // 通貨の自動のレートは、どちらの入口からでも取りに行く。
+    #[cfg(any(target_os = "linux", target_os = "macos"))]
+    currency_auto::start();
     catch_unwind(|| {
         let Some(helper) = read(helper) else { return 0 };
         let profile = read(profile);
@@ -257,6 +338,8 @@ pub extern "C" fn meltype_destroy(handle: *mut c_void) {
     if let Ok(mut all) = sessions().lock() {
         all.remove(&(handle as usize));
     }
+    #[cfg(all(not(test), any(target_os = "linux", target_os = "macos")))]
+    flush_key_count();
 }
 
 unsafe fn external_conversion(reading: &str, before: *const c_char) -> (Vec<Clause>, Vec<String>) {
@@ -343,6 +426,12 @@ unsafe fn external_conversion_unprotected(
     before: *const c_char,
     expand_candidates: bool,
 ) -> (Vec<Clause>, Vec<String>) {
+    #[cfg(any(target_os = "linux", target_os = "macos"))]
+    if let Ok(mut ai) = shunti_ai().lock() {
+        if let Some(segments) = ai.convert(reading, &read(before).unwrap_or_default()) {
+            return (segments, Vec::new());
+        }
+    }
     let mut external = Vec::new();
     let mut segments = Vec::new();
     if let Ok(mut mozc) = MOZC.lock() {
@@ -351,6 +440,42 @@ unsafe fn external_conversion_unprotected(
                 segments = values;
             } else {
                 *mozc = None;
+            }
+        }
+    }
+    #[cfg(any(target_os = "linux", target_os = "macos"))]
+    if let Ok(mut ai) = desktop_ai().lock() {
+        if let Some(text) = ai.convert(reading, &read(before).unwrap_or_default()) {
+            let mozc_segments: Vec<_> = segments
+                .iter()
+                .map(|clause| meltype_core::mozc::Segment {
+                    reading: clause.reading.clone(),
+                    candidates: clause.candidates.clone(),
+                })
+                .collect();
+            // Mozc の文節の候補で作れる答え (きずく → 気づく) は Mozc の区切りで使い、
+            // 作れない答えは、かなが読みと合うときだけ使う。どちらでもない答え (繰り返し・
+            // 直前の文節の混入) は捨てて Mozc の結果を残す (Windows の worker と同じ判定)
+            let aligned = desktop_zenzai::align(&mozc_segments, &text).or_else(|| {
+                meltype_core::plausible::plausible(reading, &text)
+                    .then(|| vec![(reading.to_owned(), text.clone())])
+            });
+            if let Some(aligned) = aligned {
+                segments = aligned
+                    .into_iter()
+                    .map(|(reading, text)| {
+                        let mut candidates = vec![text.clone()];
+                        if let Some(ordinary) = mozc_segments.iter().find(|s| s.reading == reading)
+                        {
+                            candidates.extend(
+                                ordinary.candidates.iter().filter(|s| **s != text).cloned(),
+                            );
+                        }
+                        let mut clause = Clause::new(reading, candidates);
+                        clause.ai_candidates.push(text);
+                        clause
+                    })
+                    .collect();
             }
         }
     }
@@ -375,6 +500,10 @@ unsafe fn external_conversion_unprotected(
                                 }
                             }
                             let mut clause = Clause::new(r.to_owned(), vec![t.to_owned()]);
+                            #[cfg(windows)]
+                            {
+                                clause.ai_candidates = windows_converter::generated_candidates(r);
+                            }
                             clause.expansion = Some(candidates);
                             if expand_candidates {
                                 clause.standalone = Some(standalone_conversion(r, callbacks));
@@ -389,6 +518,13 @@ unsafe fn external_conversion_unprotected(
     if let (true, Some(callback)) = (expand_candidates, callbacks.candidates) {
         if let Some(text) = take(callback(input.as_ptr())) {
             external.extend(text.lines().filter(|s| !s.is_empty()).map(str::to_owned));
+        }
+    }
+    if segments.is_empty() {
+        let dict = meltype_core::dictionary::Dictionary::bundled();
+        let converted = dict.convert(reading);
+        if !converted.is_empty() && converted != reading {
+            segments = vec![Clause::new(reading.to_owned(), vec![converted])];
         }
     }
     (segments, external)
@@ -567,6 +703,35 @@ pub unsafe extern "C" fn meltype_handle_key(
     after: *const c_char,
 ) -> *mut c_char {
     catch_unwind(AssertUnwindSafe(|| {
+        // パスワード欄などプライベートな入力は数えない。
+        #[cfg(all(not(test), any(target_os = "linux", target_os = "macos")))]
+        {
+            let private = sessions()
+                .lock()
+                .ok()
+                .and_then(|all| all.get(&(handle as usize)).map(|s| s.private))
+                .unwrap_or(true);
+            if !private {
+                count_key();
+            }
+        }
+        #[cfg(any(target_os = "linux", target_os = "macos"))]
+        {
+            let settings = sessions()
+                .lock()
+                .ok()
+                .and_then(|all| all.get(&(handle as usize)).map(|s| s.settings.clone()));
+            if let Some(settings) = settings {
+                if let Ok(mut ai) = shunti_ai().lock() {
+                    ai.configure(&settings);
+                }
+                if let Ok(mut ai) = desktop_ai().lock() {
+                    ai.configure(&settings);
+                    ai.begin_request();
+                }
+            }
+        }
+
         let Ok(_spelling) =
             word_checker::prepare(handle as usize, vk, ch, modifiers, before, after)
         else {
@@ -683,7 +848,12 @@ pub unsafe extern "C" fn meltype_handle_key(
                 s.begin_conversion(external);
                 s.result(true)
             } else {
-                s.key(vk, ch, modifiers)
+                let result = s.key(vk, ch, modifiers);
+                if !result.consumed && (matches!(vk, 9 | 0x21..=0x28 | 0x2e) || modifiers & 2 != 0)
+                {
+                    s.caret_moved(vk, modifiers & 2 != 0);
+                }
+                result
             }
         });
         // Let Core decide whether Tab, arrows or configured Control keys start conversion: suggestions,
@@ -941,6 +1111,207 @@ pub unsafe extern "C" fn meltype_reconvert_selection(
     result
 }
 /// # Safety
+/// handle must be a live session token. Calls for one session must be serialized.
+#[no_mangle]
+pub unsafe extern "C" fn meltype_handle_key_up(
+    handle: *mut c_void,
+    vk: i32,
+    ch: i32,
+    modifiers: i32,
+) -> *mut c_char {
+    run(handle, |s| s.key_up(vk, ch, modifiers))
+}
+#[no_mangle]
+pub extern "C" fn meltype_async_enabled(handle: *mut c_void) -> i32 {
+    sessions()
+        .lock()
+        .ok()
+        .and_then(|all| {
+            all.get(&(handle as usize))
+                .map(|s| s.settings.boolean("AsyncConversion"))
+        })
+        .unwrap_or(false) as i32
+}
+
+#[no_mangle]
+pub extern "C" fn meltype_begin_async_from_session(handle: *mut c_void) -> u64 {
+    let Ok(mut all) = sessions().lock() else {
+        return 0;
+    };
+    let Some(session) = all.get_mut(&(handle as usize)) else {
+        return 0;
+    };
+    let reading = session.reading();
+    let id = session.begin_async_conversion(&reading, "");
+    let lookup = session.prepare_dictionary_candidates(reading);
+    let key = handle as usize;
+    drop(all);
+    std::thread::spawn(move || {
+        let candidates = lookup();
+        if let Ok(mut all) = sessions().lock() {
+            if let Some(session) = all.get_mut(&key) {
+                session.complete_async_conversion(id, candidates);
+            }
+        }
+    });
+    id
+}
+
+#[no_mangle]
+pub extern "C" fn meltype_async_can_begin(handle: *mut c_void) -> i32 {
+    sessions()
+        .lock()
+        .ok()
+        .and_then(|all| {
+            all.get(&(handle as usize))
+                .map(|s| !s.raw().is_empty() && !s.is_converting())
+        })
+        .unwrap_or(false) as i32
+}
+
+#[no_mangle]
+pub extern "C" fn meltype_async_ready(handle: *mut c_void) -> i32 {
+    sessions()
+        .lock()
+        .ok()
+        .and_then(|all| {
+            all.get(&(handle as usize)).map(|s| {
+                s.async_conversion().is_some_and(|ac| {
+                    ac.phase == meltype_core::session::AsyncConversionPhase::Ready
+                })
+            })
+        })
+        .unwrap_or(false) as i32
+}
+
+#[no_mangle]
+pub extern "C" fn meltype_async_pending(handle: *mut c_void) -> i32 {
+    sessions()
+        .lock()
+        .ok()
+        .and_then(|all| {
+            all.get(&(handle as usize))
+                .map(|s| s.async_conversion().is_some())
+        })
+        .unwrap_or(false) as i32
+}
+
+/// Apply a ready async result and return the updated SessionResult JSON.
+#[no_mangle]
+pub extern "C" fn meltype_poll_async_conversion(handle: *mut c_void) -> *mut c_char {
+    run(handle, |session| {
+        if let Some(ac) = session.async_conversion() {
+            if ac.phase == meltype_core::session::AsyncConversionPhase::Ready {
+                let reading = ac.reading.clone();
+                let candidates = ac.candidates.first().cloned().unwrap_or_default();
+                session.try_apply_async_conversion(&reading, candidates);
+            }
+        }
+        session.result(true)
+    })
+}
+
+/// # Safety
+/// reading/context, when non-null, are valid NUL-terminated UTF-8.
+#[no_mangle]
+pub unsafe extern "C" fn meltype_begin_async_conversion(
+    handle: *mut c_void,
+    reading: *const c_char,
+    context: *const c_char,
+) -> u64 {
+    let Some(reading) = read(reading) else {
+        return 0;
+    };
+    let context = read(context).unwrap_or_default();
+    sessions()
+        .lock()
+        .ok()
+        .and_then(|mut all| {
+            all.get_mut(&(handle as usize))
+                .map(|s| s.begin_async_conversion(&reading, &context))
+        })
+        .unwrap_or(0)
+}
+/// # Safety
+/// candidates is a JSON array of strings. Returns 1 on success.
+#[no_mangle]
+pub unsafe extern "C" fn meltype_complete_async_conversion(
+    handle: *mut c_void,
+    id: u64,
+    candidates: *const c_char,
+) -> i32 {
+    let Some(candidates) =
+        read(candidates).and_then(|text| serde_json::from_str::<Vec<String>>(&text).ok())
+    else {
+        return 0;
+    };
+    sessions()
+        .lock()
+        .ok()
+        .and_then(|mut all| {
+            all.get_mut(&(handle as usize))
+                .map(|s| s.complete_async_conversion(id, candidates))
+        })
+        .unwrap_or(false) as i32
+}
+#[no_mangle]
+pub extern "C" fn meltype_cancel_async_conversion(handle: *mut c_void) -> i32 {
+    sessions()
+        .lock()
+        .ok()
+        .and_then(|mut all| {
+            all.get_mut(&(handle as usize)).map(|s| {
+                s.cancel_async_conversion();
+                true
+            })
+        })
+        .unwrap_or(false) as i32
+}
+/// Returns 0 idle, 1 pending, 2 ready, 3 cancelled, 4 timed out.
+#[no_mangle]
+pub extern "C" fn meltype_timeout_async_conversion(handle: *mut c_void, now_ms: u64) -> i32 {
+    sessions()
+        .lock()
+        .ok()
+        .and_then(|mut all| {
+            all.get_mut(&(handle as usize))
+                .and_then(|s| s.timeout_async_conversion(now_ms))
+        })
+        .map_or(0, |phase| match phase {
+            meltype_core::session::AsyncConversionPhase::Idle => 0,
+            meltype_core::session::AsyncConversionPhase::Pending => 1,
+            meltype_core::session::AsyncConversionPhase::Ready => 2,
+            meltype_core::session::AsyncConversionPhase::Cancelled => 3,
+            meltype_core::session::AsyncConversionPhase::TimedOut => 4,
+        })
+}
+/// # Safety
+/// reading and candidates are valid NUL-terminated UTF-8; candidates is a JSON
+/// array of strings. Returns 1 when the result was applied.
+#[no_mangle]
+pub unsafe extern "C" fn meltype_apply_async_conversion(
+    handle: *mut c_void,
+    reading: *const c_char,
+    candidates: *const c_char,
+) -> i32 {
+    let Some(reading) = read(reading) else {
+        return 0;
+    };
+    let Some(candidates) =
+        read(candidates).and_then(|text| serde_json::from_str::<Vec<String>>(&text).ok())
+    else {
+        return 0;
+    };
+    sessions()
+        .lock()
+        .ok()
+        .and_then(|mut all| {
+            all.get_mut(&(handle as usize))
+                .map(|s| s.try_apply_async_conversion(&reading, candidates))
+        })
+        .unwrap_or(false) as i32
+}
+/// # Safety
 /// before must be a valid NUL-terminated UTF-8 snapshot of text before the caret.
 #[no_mangle]
 pub unsafe extern "C" fn meltype_undo_commit(
@@ -998,7 +1369,74 @@ pub extern "C" fn meltype_set_direct_detection(handle: *mut c_void, enabled: i32
 }
 #[no_mangle]
 pub extern "C" fn meltype_set_code_input(handle: *mut c_void, enabled: i32) {
-    set(handle, |s| s.code_input = enabled != 0);
+    set(handle, |s| {
+        if s.code_input != (enabled != 0) {
+            s.caret_moved(0, false);
+        }
+        s.code_input = enabled != 0;
+    });
+}
+/// Effective input mode: 1 English/direct, 0 Japanese, -1 stale handle.
+#[no_mangle]
+pub extern "C" fn meltype_input_mode(handle: *mut c_void) -> i32 {
+    sessions()
+        .lock()
+        .ok()
+        .and_then(|all| {
+            all.get(&(handle as usize))
+                .map(|session| i32::from(session.input_is_direct()))
+        })
+        .unwrap_or(-1)
+}
+#[no_mangle]
+pub extern "C" fn meltype_caret_moved(handle: *mut c_void, vk: i32, control: i32) {
+    set(handle, |session| session.caret_moved(vk, control != 0));
+}
+/// NULL for ordinary keys. Try composition-role keys before this function.
+#[no_mangle]
+pub extern "C" fn meltype_mode_key(handle: *mut c_void, vk: i32, modifiers: i32) -> *mut c_char {
+    // Avoid a second profile reload/database read for every ordinary key.
+    let matches = sessions()
+        .lock()
+        .ok()
+        .and_then(|all| {
+            all.get(&(handle as usize))
+                .and_then(|session| session.mode_key_target(vk, modifiers))
+        })
+        .is_some();
+    // A newly saved shortcut must work on its first press too. Refresh for
+    // modified command keys; ordinary typing keeps the allocation-free probe.
+    let command = modifiers & 14 != 0 || vk == 32 && modifiers & 1 != 0;
+    if matches || command {
+        run_optional(handle, |session| session.mode_key(vk, modifiers))
+    } else {
+        std::ptr::null_mut()
+    }
+}
+/// Set a native process/bundle identity. Returns 1 for the code profile, 0 for
+/// normal input, or -1 for an invalid session. Call on focus, before composition.
+/// # Safety
+/// identity must point to a valid NUL-terminated UTF-8 string.
+#[no_mangle]
+pub unsafe extern "C" fn meltype_set_application(
+    handle: *mut c_void,
+    identity: *const c_char,
+) -> i32 {
+    catch_unwind(AssertUnwindSafe(|| {
+        if identity.is_null() {
+            return -1;
+        }
+        let Ok(identity) = CStr::from_ptr(identity).to_str() else {
+            return -1;
+        };
+        let mut all = sessions().lock().unwrap_or_else(|e| e.into_inner());
+        let Some(session) = all.get_mut(&(handle as usize)) else {
+            return -1;
+        };
+        session.set_process(identity);
+        i32::from(session.code_input)
+    }))
+    .unwrap_or(-1)
 }
 #[no_mangle]
 pub extern "C" fn meltype_set_private(handle: *mut c_void, enabled: i32) {
@@ -1009,10 +1447,34 @@ pub extern "C" fn meltype_set_private(handle: *mut c_void, enabled: i32) {
         s.private = enabled != 0;
     });
 }
+/// Host input attributes. Bit 0: secret/raw input, 1: no learning, 2: terminal.
+/// Changing privacy invalidates pending input before any further edit or learn.
+#[no_mangle]
+pub extern "C" fn meltype_set_input_attributes(handle: *mut c_void, flags: u32) {
+    set(handle, |s| {
+        let secret = flags & 1 != 0;
+        let no_learning = flags & 3 != 0;
+        if s.private != secret || s.no_learning != no_learning {
+            s.reset();
+            s.set_context(Some(""), Some(""));
+        }
+        s.private = secret;
+        s.no_learning = no_learning;
+        let code = flags & 4 != 0 || s.settings.text("AppProfile") == "Code";
+        if s.code_input != code {
+            s.caret_moved(0, false);
+        }
+        s.code_input = code;
+    });
+}
 // Deletion is permitted only when the host supports expected-text validation.
 #[no_mangle]
 pub extern "C" fn meltype_set_can_delete(handle: *mut c_void, enabled: i32) {
     set(handle, |s| s.can_delete = enabled != 0);
+}
+#[no_mangle]
+pub extern "C" fn meltype_set_can_move_caret(handle: *mut c_void, enabled: i32) {
+    set(handle, |s| s.can_move_caret = enabled != 0);
 }
 // NULL tells existing frontends to apply their regular mode-switch behavior.
 #[no_mangle]
@@ -1021,8 +1483,13 @@ pub extern "C" fn meltype_role_key(handle: *mut c_void, vk: i32) -> *mut c_char 
         .lock()
         .ok()
         .and_then(|all| {
-            all.get(&(handle as usize))
-                .map(|s| s.settings.boolean("SeparateKeyRoles") && !s.raw().is_empty())
+            all.get(&(handle as usize)).map(|s| {
+                !s.raw().is_empty()
+                    && (s.settings.boolean("SeparateKeyRoles")
+                        || vk == 0x1d
+                            && s.settings.boolean("MuhenkanKatakanaCycle")
+                            && !s.protects_tail())
+            })
         })
         .unwrap_or(false);
     if enabled {
@@ -1033,7 +1500,15 @@ pub extern "C" fn meltype_role_key(handle: *mut c_void, vk: i32) -> *mut c_char 
 }
 #[no_mangle]
 pub extern "C" fn meltype_version() -> *mut c_char {
-    allocate(concat!(env!("CARGO_PKG_VERSION"), "-rust-preview"))
+    allocate(&version_label(env!("CARGO_PKG_VERSION")))
+}
+fn version_label(version: &str) -> String {
+    let shown = meltype_core::version::display(version);
+    if version.contains('-') {
+        format!("{shown}-rust-preview")
+    } else {
+        shown
+    }
 }
 #[no_mangle]
 pub extern "C" fn meltype_data_directory() -> *mut c_char {
@@ -1042,7 +1517,7 @@ pub extern "C" fn meltype_data_directory() -> *mut c_char {
 }
 #[no_mangle]
 pub extern "C" fn meltype_report_url(_platform: *const c_char) -> *mut c_char {
-    allocate("https://github.com/appipinopi/Meltype/issues/new")
+    allocate("https://github.com/appipinopi/Meltype-Flash/issues/new/choose")
 }
 
 /// # Safety
@@ -1062,6 +1537,72 @@ mod android_input;
 #[cfg(test)]
 mod tests {
     use super::*;
+    #[test]
+    fn stable_product_version_and_report_endpoint_use_flash_identity() {
+        assert_eq!(version_label("1.0.0"), "v1.0.0");
+        assert_eq!(version_label("0.1.0-pre.7"), "v0.1.0-pre.7-rust-preview");
+        unsafe {
+            assert_eq!(
+                take(meltype_version()).as_deref(),
+                Some(version_label(env!("CARGO_PKG_VERSION")).as_str())
+            );
+            assert_eq!(
+                take(meltype_report_url(std::ptr::null())).as_deref(),
+                Some("https://github.com/appipinopi/Meltype-Flash/issues/new/choose")
+            );
+        }
+    }
+    #[test]
+    fn linux_attributes_distinguish_secret_no_learning_and_terminal() {
+        let directory = tempfile::tempdir().unwrap();
+        let path = CString::new(directory.path().to_string_lossy().as_bytes()).unwrap();
+        unsafe {
+            let handle = meltype_create_at(path.as_ptr());
+            let key = |ch: char| {
+                serde_json::from_str::<serde_json::Value>(
+                    &take(meltype_handle_key(
+                        handle,
+                        0,
+                        ch as i32,
+                        0,
+                        std::ptr::null(),
+                        std::ptr::null(),
+                    ))
+                    .unwrap(),
+                )
+                .unwrap()
+            };
+            meltype_set_input_attributes(handle, 2);
+            assert_eq!(key('k')["view"]["text"], "k");
+            assert_eq!(key('a')["view"]["text"], "か");
+            {
+                let all = sessions().lock().unwrap();
+                let session = all.get(&(handle as usize)).unwrap();
+                assert!(!session.private && session.no_learning);
+            }
+            meltype_free(meltype_commit(handle).cast());
+            assert!(
+                !directory.path().join("state.json").exists(),
+                "学習禁止では履歴を保存しない"
+            );
+            meltype_set_input_attributes(handle, 1);
+            assert_eq!(key('a')["consumed"], false);
+            meltype_set_input_attributes(handle, 4);
+            assert_eq!(key('a')["consumed"], false);
+            meltype_set_input_attributes(handle, 0);
+            assert_eq!(key('a')["view"]["text"], "あ");
+            meltype_set_can_move_caret(handle, 0);
+            assert!(
+                !sessions()
+                    .lock()
+                    .unwrap()
+                    .get(&(handle as usize))
+                    .unwrap()
+                    .can_move_caret
+            );
+            meltype_destroy(handle);
+        }
+    }
     #[test]
     fn persistent_control_and_prediction() {
         unsafe {
@@ -1115,6 +1656,88 @@ mod tests {
             meltype_destroy(handle);
             assert!(meltype_commit(handle).is_null());
             assert!(meltype_commit(std::ptr::null_mut()).is_null());
+        }
+    }
+    #[test]
+    fn application_identity_controls_native_input_and_rejects_stale_handles() {
+        let directory = tempfile::tempdir().unwrap();
+        let store = meltype_core::storage::Store::new(directory.path());
+        store
+            .change_settings(|settings| {
+                settings.set(
+                    "AppRules",
+                    serde_json::json!([
+                        {"Process":"native-editor","Enabled":true,"Profile":"Code"},
+                        {"Process":"native-chat","Enabled":true,"Profile":"General"}
+                    ]),
+                )
+            })
+            .unwrap();
+        unsafe {
+            let path = CString::new(directory.path().to_string_lossy().as_bytes()).unwrap();
+            let handle = meltype_create_at(path.as_ptr());
+            assert_eq!(
+                meltype_set_application(handle, c"native-editor".as_ptr()),
+                1
+            );
+            let output = meltype_handle_key(handle, 65, 97, 0, std::ptr::null(), std::ptr::null());
+            let value: serde_json::Value = serde_json::from_str(&read(output).unwrap()).unwrap();
+            assert_eq!(value["consumed"], false);
+            meltype_free(output.cast());
+            assert_eq!(meltype_set_application(handle, c"native-chat".as_ptr()), 0);
+            let output = meltype_handle_key(handle, 65, 97, 0, std::ptr::null(), std::ptr::null());
+            let value: serde_json::Value = serde_json::from_str(&read(output).unwrap()).unwrap();
+            assert_eq!(value["view"]["text"], "あ");
+            meltype_free(output.cast());
+            meltype_destroy(handle);
+            assert_eq!(
+                meltype_set_application(handle, c"native-editor".as_ptr()),
+                -1
+            );
+            assert_eq!(
+                meltype_set_application(std::ptr::null_mut(), std::ptr::null()),
+                -1
+            );
+        }
+    }
+}
+
+#[cfg(test)]
+mod async_conversion_tests {
+    use super::*;
+    use std::time::Duration;
+
+    #[test]
+    fn async_dictionary_producer_reaches_poll_and_apply() {
+        unsafe {
+            let handle = meltype_create();
+            assert!(!handle.is_null());
+            for c in "hashi".chars() {
+                let pointer =
+                    meltype_handle_key(handle, 0, c as i32, 0, std::ptr::null(), std::ptr::null());
+                if !pointer.is_null() {
+                    libc::free(pointer.cast());
+                }
+            }
+            let id = meltype_begin_async_from_session(handle);
+            assert!(id > 0);
+            for _ in 0..50 {
+                if meltype_async_ready(handle) != 0 {
+                    break;
+                }
+                std::thread::sleep(Duration::from_millis(5));
+            }
+            assert!(meltype_async_ready(handle) != 0, "async result not ready");
+            let pointer = meltype_poll_async_conversion(handle);
+            assert!(!pointer.is_null());
+            let value: serde_json::Value =
+                serde_json::from_slice(CStr::from_ptr(pointer).to_bytes()).unwrap();
+            libc::free(pointer.cast());
+            assert_eq!(value["view"]["converting"], true);
+            assert!(value["view"]["candidates"]
+                .as_array()
+                .is_some_and(|c| !c.is_empty()));
+            meltype_destroy(handle);
         }
     }
 }

@@ -20,6 +20,18 @@ public final class SettingsHost {
             }
             String page=Native.settingsPage(session,0);check(page.split("\"type\":\"toggle\"",-1).length-1==13,"13 existing controls");
             check(page.contains("入力を有効にする")&&page.contains("定型文の開始記号"),page);
+            action(session,"{\"action\":\"ai_select\",\"value\":1}","{}");
+            page=Native.settingsPage(session,0);
+            check(page.contains("shuntelligence v7 / S8P")&&page.contains("shuntelligence v5 / XS5"),"version catalog visible");
+            check(page.contains("このモデルをインストール")&&!page.contains("インストール済み"),"missing model is not installed");
+            action(session,"{\"action\":\"ai_variant\",\"value\":1}","{}");
+            String ai=Native.control(session,"{\"op\":\"settings_get\"}");
+            check(ai.contains("\"ShuntiModelVariant\":\"shunti-v7-xs5\"")&&ai.contains("\"UseShunti\":false"),"version saved without download or activation");
+            action(session,"{\"action\":\"ai_select\",\"value\":0}","{}");
+            check(!Native.settingsPage(session,0).contains("このモデルをインストール"),"none hides version installer");
+            action(session,"{\"action\":\"ai_select\",\"value\":1}","{}");
+            check(Native.control(session,"{\"op\":\"settings_get\"}").contains("shunti-v7-xs5"),"selection retains version");
+            action(session,"{\"action\":\"ai_select\",\"value\":0}","{}");
             action(session,"{\"action\":\"toggle\",\"name\":\"PredictiveCandidates\"}","{\"checked\":false}");
             check(Native.control(session,"{\"op\":\"settings_get\"}").contains("\"PredictiveCandidates\":false"),"toggle persisted");
             action(session,"{\"action\":\"dictionary_add\"}","{\"reading\":\"めるたいぷ\",\"word\":\"Meltype😀\"}");

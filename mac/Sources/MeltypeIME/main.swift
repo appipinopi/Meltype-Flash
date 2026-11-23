@@ -6,7 +6,8 @@ import InputMethodKit
 
 if CommandLine.arguments.contains("--version") {
     let version = Bundle.main.object(forInfoDictionaryKey: "CFBundleShortVersionString") as? String ?? "?"
-    print("Meltype \(version)")
+    let name = Bundle.main.object(forInfoDictionaryKey: "CFBundleDisplayName") as? String ?? "Meltype"
+    print("\(name) \(version)")
     exit(0)
 }
 
@@ -205,6 +206,24 @@ if CommandLine.arguments.contains("--self-test") || CommandLine.arguments.contai
     print("1000 native input/candidate/commit/mode cycles in \(Date().timeIntervalSince(stressStart))s")
     exit(failures == 0 ? 0 : 1)
 }
+
+// 初回起動の同意。同意するまで入力メソッドを開始せず、利用状況も送らない。
+// ここまでの起動確認・自己診断では送らない。
+if !ConsentStore.accepted {
+    let application = NSApplication.shared
+    application.setActivationPolicy(.accessory)
+    let alert = NSAlert()
+    alert.messageText = "Meltype-FLASH をはじめる前に"
+    alert.informativeText = ConsentStore.text
+    alert.alertStyle = .informational
+    alert.addButton(withTitle: "同意してはじめる")
+    alert.addButton(withTitle: "同意しない")
+    application.activate(ignoringOtherApps: true)
+    guard alert.runModal() == .alertFirstButtonReturn else { exit(0) }
+    ConsentStore.accept()
+}
+FlashAnalytics.start()
+FlashAnalytics.track("app_open")
 
 let connectionName = Bundle.main.object(forInfoDictionaryKey: "InputMethodConnectionName") as? String ?? "Meltype_Connection"
 #if MELTYPE_RUST_CORE

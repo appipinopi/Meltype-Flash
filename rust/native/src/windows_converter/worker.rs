@@ -4,6 +4,7 @@
 use super::{
     candidates::Candidates,
     system::{Apartment, System},
+    zenzai::Zenzai,
 };
 use crate::{Callbacks, CALLBACKS};
 use meltype_core::mozc::{Mozc, Segment};
@@ -43,6 +44,10 @@ struct Backend {
     failures: u32,
     conversions: HashMap<(String, String), Option<Vec<Segment>>>,
     candidates: HashMap<String, Vec<String>>,
+    zenzai: Zenzai,
+    shunti: crate::shunti::Shunti,
+    neural_segments: Vec<(String, String)>,
+    shunti_candidates: HashMap<String, Vec<String>>,
 }
 impl Backend {
     fn available(&self) -> bool {
@@ -183,40 +188,98 @@ impl Backend {
             .map(|text| String::from_utf16_lossy(&text))
     }
     fn clauses(&mut self, reading: &str, context: &str) -> Option<Vec<(String, String)>> {
-        if let Some(segments) = self.mozc_request(reading, context) {
+        self.neural_segments.clear();
+        self.shunti_candidates.clear();
+        if let Some(clauses) = self.shunti.convert(reading, context) {
+            for clause in &clauses {
+                // 変換候補の一覧にも、読みと合わない綴り返し・文節混入を出さない。
+                // 先頭の候補は shunti.convert で確かめてあるので、空にはならない
+                let candidates: Vec<_> = clause
+                    .candidates
+                    .iter()
+                    .filter(|candidate| {
+                        meltype_core::plausible::plausible(&clause.reading, candidate)
+                    })
+                    .cloned()
+                    .collect();
+                if !candidates.is_empty() {
+                    self.shunti_candidates
+                        .insert(clause.reading.clone(), candidates);
+                }
+            }
             return Some(
-                segments
+                clauses
                     .into_iter()
+                    .map(|c| {
+                        let text = c
+                            .candidates
+                            .first()
+                            .cloned()
+                            .unwrap_or_else(|| c.reading.clone());
+                        (c.reading, text)
+                    })
+                    .collect(),
+            );
+        }
+        let from_mozc = self.mozc_request(reading, context);
+        let ordinary = if let Some(segments) = &from_mozc {
+            Some(
+                segments
+                    .iter()
                     .map(|s| {
                         let text = s
                             .candidates
                             .first()
                             .cloned()
                             .unwrap_or_else(|| s.reading.clone());
-                        (s.reading, text)
+                        (s.reading.clone(), text)
                     })
                     .collect(),
-            );
-        }
-        if !self.use_system() {
-            return None;
-        }
-        self.system
-            .clauses(
-                &reading.encode_utf16().collect::<Vec<_>>(),
-                &context.encode_utf16().collect::<Vec<_>>(),
             )
-            .map(|segments| {
-                segments
-                    .into_iter()
-                    .map(|s| {
-                        (
-                            String::from_utf16_lossy(&s.reading),
-                            String::from_utf16_lossy(&s.text),
-                        )
-                    })
-                    .collect()
-            })
+        } else if self.use_system() {
+            self.system
+                .clauses(
+                    &reading.encode_utf16().collect::<Vec<_>>(),
+                    &context.encode_utf16().collect::<Vec<_>>(),
+                )
+                .map(|segments| {
+                    segments
+                        .into_iter()
+                        .map(|s| {
+                            (
+                                String::from_utf16_lossy(&s.reading),
+                                String::from_utf16_lossy(&s.text),
+                            )
+                        })
+                        .collect()
+                })
+        } else {
+            None
+        };
+        let Some(text) = self.zenzai.convert(reading, context) else {
+            return ordinary;
+        };
+        if ordinary.as_ref().is_some_and(|clauses| {
+            clauses
+                .iter()
+                .map(|(_, text)| text.as_str())
+                .collect::<String>()
+                == text
+        }) {
+            self.neural_segments = ordinary.clone().unwrap_or_default();
+            return ordinary;
+        }
+        // Mozc の文節の候補を選んでつなげると作れる答え (読みと表記が違う語: きずく → 気づく) は、
+        // Mozc の文節の区切りで使う。作れない答えは、かなが読みと合うときだけ使う (壊れた答えを出さない)
+        let accepted = from_mozc
+            .as_ref()
+            .and_then(|segments| super::zenzai::align(segments, &text))
+            .or_else(|| {
+                meltype_core::plausible::plausible(reading, &text)
+                    .then(|| vec![(reading.to_owned(), text)])
+            });
+        self.neural_segments = accepted.clone().unwrap_or_default();
+        accepted.or(ordinary)
     }
     fn candidates(&mut self, reading: &str) -> Vec<String> {
         let mut result = Vec::new();
@@ -241,6 +304,11 @@ impl Backend {
                     result.push(candidate);
                 }
             }
+        }
+        if let Some(candidates) = self.shunti_candidates.get(reading) {
+            let mut combined = candidates.clone();
+            combined.extend(result.into_iter().filter(|s| !candidates.contains(s)));
+            return combined;
         }
         result
     }
@@ -277,6 +345,20 @@ fn with_backend<T>(f: impl FnOnce(&mut Backend) -> T) -> Option<T> {
         .try_with(|state| state.try_borrow_mut().ok()?.as_mut().map(f))
         .ok()
         .flatten()
+}
+pub(crate) fn generated_candidates(reading: &str) -> Vec<String> {
+    with_backend(|backend| {
+        if let Some(values) = backend.shunti_candidates.get(reading) {
+            return values.clone();
+        }
+        backend
+            .neural_segments
+            .iter()
+            .filter(|(r, _)| r == reading)
+            .map(|(_, t)| t.clone())
+            .collect()
+    })
+    .unwrap_or_default()
 }
 unsafe extern "C" fn convert(reading: *const c_char) -> *mut c_char {
     let value = crate::read(reading).and_then(|s| with_backend(|b| b.convert(&s)).flatten());
@@ -349,6 +431,10 @@ pub fn install() -> Option<WorkerConverters> {
             failures: 0,
             conversions: HashMap::new(),
             candidates: HashMap::new(),
+            zenzai: Zenzai::default(),
+            shunti: crate::shunti::Shunti::default(),
+            neural_segments: Vec::new(),
+            shunti_candidates: HashMap::new(),
         })
     });
     *callbacks = Callbacks {
@@ -369,17 +455,26 @@ impl Drop for Scope {
         }
     }
 }
-pub(crate) fn scope(mode: &str, enabled: bool) -> Scope {
-    Scope(if enabled {
+pub(crate) fn scope(settings: &meltype_core::settings::Settings) -> Scope {
+    crate::currency_auto::start();
+    Scope(
         with_backend(|backend| {
-            let previous = backend.mode;
-            backend.mode = Mode::parse(mode);
-            backend.warm_up();
-            previous
+            if backend.shunti.configure(settings) {
+                backend.shunti_candidates.clear();
+            }
+            backend.zenzai.configure(settings);
+            backend.zenzai.begin_request();
+            if settings.boolean("Enabled") {
+                let previous = backend.mode;
+                backend.mode = Mode::parse(settings.text("ConversionEngine"));
+                backend.warm_up();
+                Some(previous)
+            } else {
+                None
+            }
         })
-    } else {
-        None
-    })
+        .flatten(),
+    )
 }
 
 #[cfg(test)]

@@ -1,5 +1,9 @@
 # 旧入力方式の状態・再入力・学習の比較
 
+<!-- meltype-flash-document-banner:start -->
+<p align="center"><img src="../../../assets/branding/readme/documentation.svg" alt="Meltype-FLASH — 稲妻のように、言葉の壁を駆け抜ける日本語入力。" width="1000"></p>
+<!-- meltype-flash-document-banner:end -->
+
 元版 `InputSession` / `PendingInput` / `UserModel` / `ScoreEngine` を実際に動かす比較ホストです。
 基準は `45e14f86558aa6ea34f2c2ecd038ba95ca8c3c46`。TSFの英数入力中の700ms判定とは別の経路です。
 キーの送信先はメモリー内のキューだけで、OSフックの登録・IME切替・実アプリへの再入力は行いません。

@@ -51,6 +51,19 @@ pub fn execute(store: &Store, r: &Value) -> io::Result<Value> {
             )?)
         }
         "settings_get" => Ok(serde_json::to_value(store.settings()?)?),
+        "settings_schema" => Ok(crate::settings_schema::schema()),
+        "settings_schema_export" => {
+            store.change_settings(|s| {
+                atomic_write(
+                    &store.directory.join("config.schema.json"),
+                    &serde_json::to_vec_pretty(&crate::settings_schema::schema())
+                        .map_err(|e| e.to_string())?,
+                )
+                .map_err(|e| e.to_string())?;
+                s.set("$schema", json!("./config.schema.json"))
+            })?;
+            Ok(json!({"saved":true,"path":store.directory.join("config.schema.json")}))
+        }
         "settings_merge" => {
             let parse = |key| -> io::Result<crate::settings::Settings> {
                 crate::settings::Settings::parse(&serde_json::to_string(

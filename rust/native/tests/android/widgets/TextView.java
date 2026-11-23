@@ -13,4 +13,6 @@ public class TextView extends View {
     public void setText(CharSequence value){text=value.toString();}
     public void setTextSize(float value){textSize=value;}
     public void setMinWidth(int value){minWidth=value;}
+    public int minHeight;
+    public void setMinHeight(int value){minHeight=value;}
 }

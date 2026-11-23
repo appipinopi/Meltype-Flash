@@ -56,6 +56,16 @@ pub(super) fn epoch(handle: jlong) -> Option<u64> {
         .get(&handle)
         .map(|s| s.epoch)
 }
+pub(super) fn restart(handle: jlong) {
+    if let Some(state) = states()
+        .lock()
+        .unwrap_or_else(|e| e.into_inner())
+        .get_mut(&handle)
+    {
+        state.epoch = EPOCH.fetch_add(1, Ordering::Relaxed);
+        state.shifted = false;
+    }
+}
 pub(super) fn pending(handle: jlong) -> String {
     states()
         .lock()

@@ -15,8 +15,15 @@ fn value(address: u64) -> &'static str {
     let length = (address & 0xffffffff) as usize;
     std::str::from_utf8(&data[start..start + length]).expect("UTF-8 system dictionary")
 }
-pub(crate) fn text(name: &'static str) -> &'static str {
+pub(crate) fn text(name: &str) -> &'static str {
     value(archive().get(name).expect("required system dictionary"))
+}
+pub(crate) fn try_text(name: &str) -> Option<&'static str> {
+    archive().get(name).map(value)
+}
+/// Generated in the same sorted order as the archive, without walking its line records.
+pub(crate) fn domain_names() -> impl Iterator<Item = &'static str> {
+    include_str!(concat!(env!("OUT_DIR"), "/domain-names.txt")).lines()
 }
 #[cfg(test)]
 mod tests {

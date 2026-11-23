@@ -26,7 +26,7 @@ iku ikimasu itta itte ikanai ikou ikimashou kuru kimasu kita kite konai kimashit
 miru mimasu mita mite minai mimashita taberu tabemasu tabeta tabete tabetai tabemashou
 nomu nomimasu nonda nonde nomitai yomu yomimasu yonda yonde kaku kakimasu kaita kaite
 hanasu hanashimasu hanashita hanashite kiku kikimasu kiita kiite omou omoimasu omotta omotte
-wakaru wakarimasu wakatta wakaranai wakarimashita shiru shitte shiranai shitteru
+wakaru wakarimasu wakatta wakatte wakaranai wakarimashita shiru shitte shiranai shitteru
 aru arimasu atta atte nai nakatta arimasen iru imasu ita ite inai imashita
 oshieru oshiete tsukau tsukaimasu tsukatta tsukatte tsukuru tsukurimasu tsukutta tsukutte
 kaeru kaerimasu kaetta kaette kau kaimasu katta katte matsu machimasu matte yaru yarimasu yatte yatta
@@ -147,3 +147,9 @@ gamen botan messeeji menyuu risuto deeta saabaa apuri sofuto baagu tesuto koodo
 
 # 英語の固有名詞でも、日本語の文ではカタカナ表記にする語
 nikon
+
+# Issue #1005: ドキュメントの途中から英語を切り出さない。
+dokyumento
+
+# 「入れ方を」「入れて」で英単語 ire を切り出さない。
+irekata irete iremasu iremasita iremashita iremasen

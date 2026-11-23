@@ -7,6 +7,7 @@
 #include "LangBar.h"
 #include "TextService.h"
 #include "CandidateWindow.h"
+#include "ModeIndicator.h"
 #include <new>
 #include <cstring>
 
@@ -313,7 +314,7 @@ bool RustJsonVisit(const std::string& text,void* owner,RustJsonEmit emit) {
 bool RustCoreReady(const RustCoreStateCallbacks& callbacks) {return api().coreReady && api().coreReady(&callbacks)!=0;}
 RustServiceState* RustCreateServiceState() {
     if (!api().serviceRoute || !api().serviceCreate || !api().serviceDestroy || !api().serviceLayout || !api().serviceCore || !api().serviceApplyReply ||  !api().serviceCommit || !api().serviceSelectCandidate || !api().serviceDispatchKey || !api().serviceInputScope || !api().serviceModeAction || !api().serviceAbandon || !api().serviceTerminated || !api().serviceResume || !api().serviceApplyComposition || !api().serviceWriteCommit || !api().serviceEndComposition || !api().serviceActivateNative || !api().serviceShutdown || !api().serviceOpenedNative || !api().serviceEditedNative || !api().serviceFocusNative || !api().serviceExchange || !api().serviceMode || !api().serviceWriteOpen || !api().serviceApplyMode || !api().serviceEditSink || !api().serviceInitialize || !api().serviceClearResume || !api().serviceSetSid || !api().serviceSid || !api().serviceClose || !api().serviceCreateBar || !api().serviceUpdateBar || !api().serviceRemoveBar || !api().serviceCreateCandidates || !api().serviceShowCandidates || !api().serviceHideCandidates || !api().serviceDropCandidates) return nullptr;
-    const unsigned int expected[]={5,static_cast<unsigned int>(sizeof(RustServiceState)),static_cast<unsigned int>(alignof(RustServiceState)),
+    const unsigned int expected[]={6,static_cast<unsigned int>(sizeof(RustServiceState)),static_cast<unsigned int>(alignof(RustServiceState)),
         static_cast<unsigned int>(offsetof(RustServiceState,refs)),
         static_cast<unsigned int>(offsetof(RustServiceState,manager)),
         static_cast<unsigned int>(offsetof(RustServiceState,client)),
@@ -359,6 +360,7 @@ RustServiceState* RustCreateServiceState() {
         static_cast<unsigned int>(offsetof(RustServiceState,langbar)),
         static_cast<unsigned int>(offsetof(RustServiceState,candidates)),
         static_cast<unsigned int>(offsetof(RustServiceState,edit_epoch)),
+        static_cast<unsigned int>(offsetof(RustServiceState,full_width_space)),
     };
     unsigned int actual[ARRAYSIZE(expected)]={};
     if (api().serviceLayout(actual,ARRAYSIZE(actual))!=ARRAYSIZE(expected) || std::memcmp(actual,expected,sizeof(expected))!=0) return nullptr;
@@ -419,7 +421,7 @@ int RustServiceAbandon(RustServiceState* state,IUnknown* lifetime) {
 static void __cdecl ServiceModeNotice(void*,unsigned int op,int value) {
     try {switch(op) {
         case 0:case 1:ServiceCoreNotice(nullptr,op,value);break;
-        case 2:TipLog(L"入力モードの表示: %s",value?L"英数 (コードの行)":L"日本語");break;
+        case 2:TipLog(L"入力モードの表示: %s",value?L"英数 (コードの行)":L"日本語");ShowModeIndicator(value==0);break;
         case 3:TipLog(L"コードの行: %s",value?L"日本語にしました":L"英数に戻しました");break;
         case 4:{const wchar_t* source=value==3?L"Windows とアプリ":value==1?L"Windows":value==2?L"アプリ":L"無い";TipLog(L"入力欄の種類を読むところ: %s",source);break;}
         case 6:{const wchar_t* reasons[]={nullptr,L"英数",L"Ctrl・Alt・Windows キーを押している",L"この入力欄では使わない",L"英語の単語の続き",L"Meltype.exe が使えない",L"パスワードの入力欄"};if (value>0 && value<ARRAYSIZE(reasons)) TipLog(L"キーを通します: %s",reasons[value]);break;}

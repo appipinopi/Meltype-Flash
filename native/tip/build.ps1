@@ -26,7 +26,7 @@ function Get-Sha256([string]$path) {
     finally { $sha.Dispose() }
 }
 
-$sources = 'Dll.cpp', 'TextService.cpp', 'CandidateWindow.cpp', 'DisplayAttributes.cpp', 'LangBar.cpp', 'Pipe.cpp', 'Json.cpp'
+$sources = 'Dll.cpp', 'TextService.cpp', 'CandidateWindow.cpp', 'DisplayAttributes.cpp', 'LangBar.cpp', 'Pipe.cpp', 'Json.cpp', 'ModeIndicator.cpp'
 if ($CompatibilityObjects -and -not $RustCore) { throw '-CompatibilityObjects requires -RustCore' }
 $coreDefine = if ($RustCore) { '/DMELTYPE_RUST_CORE' } else { '' }
 # /Brepro: 同じソースからは同じ DLL にする (日時を埋め込まない)。入れ直したときに、変わっていない DLL を登録し直さない (UAC を出さない) ため
@@ -44,7 +44,7 @@ if ($RustCore) {
         $out = Join-Path $here "bin/rust-$arch"; $obj = Join-Path $here "obj/rust-$arch"
         New-Item -ItemType Directory -Force -Path $out,$obj | Out-Null
         $compat = if ($CompatibilityObjects) {
-            "cl /nologo /Brepro /std:c++17 /EHsc /W4 /wd4100 /utf-8 /DUNICODE /D_UNICODE /DMELTYPE_RUST_CORE $optimize /Fo`"$obj\\`" /Fd`"$obj\\`" /c Dll.cpp TextService.cpp RustPipe.cpp Json.cpp"
+            "cl /nologo /Brepro /std:c++17 /EHsc /W4 /wd4100 /utf-8 /DUNICODE /D_UNICODE /DMELTYPE_RUST_CORE $optimize /Fo`"$obj\\`" /Fd`"$obj\\`" /c Dll.cpp TextService.cpp RustPipe.cpp Json.cpp ModeIndicator.cpp"
         } else { 'ver >nul' }
         $cmd = @(
             "`"$vcvars`" $vcarch >nul",

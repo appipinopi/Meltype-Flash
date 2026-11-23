@@ -283,7 +283,7 @@ mod tests {
     }
     #[test]
     fn notifications_use_the_owned_icon_guid_and_do_not_split_utf16_pairs() {
-        let data = balloon(std::ptr::null_mut(), TRAY_GUID, "Meltype-flash", "有効");
+        let data = balloon(std::ptr::null_mut(), TRAY_GUID, "Meltype-FLASH", "有効");
         assert_eq!(data.uFlags, NIF_GUID | NIF_INFO | NIF_REALTIME);
         assert_eq!(data.guidItem.data1, GUID::from_u128(TRAY_GUID).data1);
         assert_eq!(utf16::<4>("a😀z"), [97, 0xd83d, 0xde00, 0]);

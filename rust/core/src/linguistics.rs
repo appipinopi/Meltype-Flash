@@ -3,22 +3,84 @@
 mod normalization_marks;
 use crate::{romaji, storage::State};
 use std::{
-    collections::{BTreeMap, HashMap, HashSet},
+    collections::{HashMap, HashSet},
     sync::OnceLock,
 };
 use unicode_normalization::{char::canonical_combining_class, UnicodeNormalization};
 
 #[derive(Clone)]
 pub struct Linguistics {
-    meanings: HashMap<String, Vec<(String, String)>>,
-    stems: HashMap<String, String>,
-    translations: HashMap<String, Vec<(String, Vec<String>)>>,
     contexts: HashMap<String, Vec<(String, Vec<String>)>>,
     misspellings: Vec<(String, String)>,
     correct: HashSet<String>,
     shapes: HashMap<String, Vec<String>>,
     ascii_misspellings: bool,
-    pub readings: BTreeMap<String, Vec<String>>,
+}
+
+struct MeaningsData {
+    meanings: HashMap<&'static str, Vec<(&'static str, &'static str)>>,
+    stems: HashMap<&'static str, &'static str>,
+}
+
+fn meanings_data() -> &'static MeaningsData {
+    static DATA: OnceLock<MeaningsData> = OnceLock::new();
+    DATA.get_or_init(|| {
+        let mut meanings: HashMap<&'static str, Vec<(&'static str, &'static str)>> = HashMap::new();
+        let mut stems: HashMap<&'static str, &'static str> = HashMap::new();
+        for line in lines(crate::system_data::text("meanings.txt")) {
+            let fields: Vec<_> = line.split('\t').collect();
+            if fields.len() < 3 {
+                continue;
+            }
+            let (word, reading, gloss) = (fields[0], fields[1], fields[2]);
+            meanings.entry(word).or_default().push((reading, gloss));
+            if let Some((i, last)) = word.char_indices().next_back() {
+                if i > 0 && "うくぐすつぬぶむるい".contains(last) && word[..i].chars().any(kanji)
+                {
+                    stems.entry(&word[..i]).or_insert(word);
+                }
+            }
+        }
+        MeaningsData { meanings, stems }
+    })
+}
+
+fn translations_data() -> &'static HashMap<&'static str, Vec<(&'static str, &'static str)>> {
+    static DATA: OnceLock<HashMap<&'static str, Vec<(&'static str, &'static str)>>> =
+        OnceLock::new();
+    DATA.get_or_init(|| {
+        let mut translations: HashMap<&'static str, Vec<(&'static str, &'static str)>> =
+            HashMap::new();
+        for line in lines(crate::system_data::text("translations.txt")) {
+            let p: Vec<_> = line.split('\t').collect();
+            if p.len() >= 3 {
+                translations.entry(p[0]).or_default().push((p[1], p[2]));
+            }
+        }
+        translations
+    })
+}
+
+fn readings_data() -> &'static HashMap<&'static str, Vec<&'static str>> {
+    static DATA: OnceLock<HashMap<&'static str, Vec<&'static str>>> = OnceLock::new();
+    DATA.get_or_init(|| {
+        let mut readings: HashMap<&'static str, Vec<&'static str>> = HashMap::new();
+        for line in lines(crate::system_data::text("meanings.txt")) {
+            let fields: Vec<_> = line.split('\t').collect();
+            if fields.len() < 3 {
+                continue;
+            }
+            let (word, reading, _) = (fields[0], fields[1], fields[2]);
+            if reading.chars().count() >= 2 && reading.chars().all(kana) && word.chars().any(kanji)
+            {
+                let entry = readings.entry(reading).or_default();
+                if !entry.contains(&word) {
+                    entry.push(word);
+                }
+            }
+        }
+        readings
+    })
 }
 pub struct Misspelling {
     pub start: usize,
@@ -93,59 +155,12 @@ impl Linguistics {
         static DATA: OnceLock<Linguistics> = OnceLock::new();
         DATA.get_or_init(|| {
             let mut d = Self {
-                meanings: HashMap::new(),
-                stems: HashMap::new(),
-                translations: HashMap::new(),
                 contexts: HashMap::new(),
                 misspellings: vec![],
                 correct: HashSet::new(),
                 shapes: HashMap::new(),
                 ascii_misspellings: false,
-                readings: BTreeMap::new(),
             };
-            for line in lines(crate::system_data::text("meanings.txt")) {
-                let fields: Vec<_> = line.split('\t').collect();
-                if fields.len() < 3 {
-                    continue;
-                }
-                let (word, reading, gloss) = (fields[0], fields[1], fields[2]);
-                d.meanings
-                    .entry(word.into())
-                    .or_default()
-                    .push((reading.into(), gloss.into()));
-                if let Some((i, last)) = word.char_indices().next_back() {
-                    if i > 0
-                        && "うくぐすつぬぶむるい".contains(last)
-                        && word[..i].chars().any(kanji)
-                    {
-                        d.stems.entry(word[..i].into()).or_insert(word.into());
-                    }
-                }
-                if reading.chars().count() >= 2
-                    && reading.chars().all(kana)
-                    && word.chars().any(kanji)
-                {
-                    let entry = d
-                        .readings
-                        .entry(crate::user_dictionary::hiragana(reading))
-                        .or_default();
-                    if !entry.iter().any(|w| w == word) {
-                        entry.push(word.into());
-                    }
-                }
-            }
-            for line in lines(crate::system_data::text("translations.txt")) {
-                let p: Vec<_> = line.split('\t').collect();
-                if p.len() >= 3 {
-                    d.translations.entry(p[0].into()).or_default().push((
-                        p[1].into(),
-                        p[2].split(',')
-                            .filter(|s| !s.is_empty())
-                            .map(str::to_owned)
-                            .collect(),
-                    ));
-                }
-            }
             for line in lines(crate::system_data::text("contexts.txt")) {
                 let line = line.split('#').next().unwrap_or("");
                 if let Some((head, cues)) = line.split_once(':') {
@@ -203,12 +218,13 @@ impl Linguistics {
         if !text.chars().any(|c| kanji(c) || ('ァ'..='ヶ').contains(&c)) {
             return None;
         }
+        let data = meanings_data();
         for end in ends(text) {
             let word = &text[..end];
-            let senses = self
+            let senses = data
                 .meanings
                 .get(word)
-                .or_else(|| self.stems.get(word).and_then(|w| self.meanings.get(w)));
+                .or_else(|| data.stems.get(word).and_then(|w| data.meanings.get(w)));
             if let Some(senses) = senses {
                 if text[end..]
                     .chars()
@@ -224,11 +240,7 @@ impl Linguistics {
                 if selected.is_empty() {
                     selected = senses.iter().collect();
                 }
-                let selected: Vec<_> = selected
-                    .into_iter()
-                    .take(2)
-                    .map(|(_, g)| g.as_str())
-                    .collect();
+                let selected: Vec<_> = selected.into_iter().take(2).map(|(_, g)| *g).collect();
                 return Some(if selected.len() == 1 {
                     selected[0].into()
                 } else {
@@ -249,8 +261,9 @@ impl Linguistics {
         if !text.chars().any(|c| kanji(c) || ('ァ'..='ヶ').contains(&c)) {
             return None;
         }
+        let translations = translations_data();
         for end in ends(text) {
-            if let Some(entries) = self.translations.get(&text[..end]) {
+            if let Some(entries) = translations.get(&text[..end]) {
                 if text[end..]
                     .chars()
                     .any(|c| kanji(c) || ('ァ'..='ヶ').contains(&c))
@@ -258,10 +271,10 @@ impl Linguistics {
                     return None;
                 }
                 let mut words = vec![];
-                for (_, values) in entries {
-                    for word in values {
-                        if words.len() < 4 && !words.contains(word) {
-                            words.push(word.clone());
+                for &(_, tr_csv) in entries {
+                    for word in tr_csv.split(',').filter(|s| !s.is_empty()) {
+                        if words.len() < 4 && !words.iter().any(|w| w == word) {
+                            words.push(word.to_string());
                         }
                     }
                 }
@@ -271,9 +284,10 @@ impl Linguistics {
         None
     }
     pub fn translations(&self, text: &str, reading: &str) -> Vec<String> {
+        let translations = translations_data();
         for key in [text, reading] {
             for end in ends(key) {
-                if let Some(entries) = self.translations.get(&key[..end]) {
+                if let Some(entries) = translations.get(&key[..end]) {
                     let suffix = &key[end..];
                     if ![
                         "", "な", "に", "だ", "です", "の", "を", "が", "は", "も", "と", "で",
@@ -290,7 +304,7 @@ impl Linguistics {
                     };
                     let mut words = vec![];
                     for kind in order {
-                        for (entry_kind, translations) in entries {
+                        for &(entry_kind, tr_csv) in entries {
                             if entry_kind == kind {
                                 let tail = if suffix == "な"
                                     || suffix == "に" && ["adv", "na"].contains(&kind)
@@ -299,10 +313,10 @@ impl Linguistics {
                                 } else {
                                     suffix
                                 };
-                                for word in translations {
-                                    let word = format!("{word}{tail}");
-                                    if words.len() < 5 && !words.contains(&word) {
-                                        words.push(word);
+                                for word in tr_csv.split(',').filter(|s| !s.is_empty()) {
+                                    let candidate = format!("{word}{tail}");
+                                    if words.len() < 5 && !words.contains(&candidate) {
+                                        words.push(candidate);
                                     }
                                 }
                             }
@@ -400,11 +414,50 @@ impl Linguistics {
         crate::candidate_sources::Sources::english_names(reading)
     }
     pub fn predict(&self, reading: &str, state: &State) -> Vec<String> {
-        if reading.chars().count() < 2 {
+        self.predict_with_preferences(reading, &state.phrases, &state.preferences)
+    }
+    /// Version numbers (Meltype-1.4.0, Mozc-3.34.6239.102+24.11.oss) are
+    /// never predicted or learned: after an update the remembered number is
+    /// stale and would outrank the plain "バージョン" candidate (#1488).
+    pub fn is_version_text(text: &str) -> bool {
+        for name in ["Meltype-", "Mozc-"] {
+            if let Some(index) = text.find(name) {
+                if text[index + name.len()..]
+                    .chars()
+                    .next()
+                    .is_some_and(|c| c.is_ascii_digit())
+                {
+                    return true;
+                }
+            }
+        }
+        // FLASH spells its current version as "Meltype-FLASH 1.1.6", which the
+        // upstream prefix check above does not cover.
+        if let Some(index) = text.find("Meltype-FLASH") {
+            let rest = &text[index + "Meltype-FLASH".len()..];
+            if rest
+                .strip_prefix(' ')
+                .unwrap_or(rest)
+                .chars()
+                .next()
+                .is_some_and(|c| c.is_ascii_digit())
+            {
+                return true;
+            }
+        }
+        false
+    }
+    pub(crate) fn predict_with_preferences(
+        &self,
+        reading: &str,
+        phrases: &[crate::storage::Phrase],
+        preferences: &crate::session::Preferences,
+    ) -> Vec<String> {
+        use std::ops::Bound::{Excluded, Unbounded};
+        if reading.chars().take(2).count() < 2 {
             return vec![];
         }
-        let mut phrases: Vec<_> = state
-            .phrases
+        let mut phrases: Vec<_> = phrases
             .iter()
             .filter(|p| p.reading.starts_with(reading) && p.reading != reading)
             .collect();
@@ -414,35 +467,48 @@ impl Linguistics {
             .into_iter()
             .map(|p| p.text.clone())
             .chain(
-                state
-                    .preferences
+                preferences
                     .user_dictionary
-                    .iter()
-                    .filter(|(r, _)| r.starts_with(reading) && r.as_str() != reading)
+                    .range::<str, _>((Excluded(reading), Unbounded))
+                    .take_while(|(r, _)| r.starts_with(reading))
                     // Conversion stores newest registrations first; upstream
                     // prediction enumerates the original registration order.
                     .flat_map(|(_, v)| v.iter().rev().cloned()),
             )
             .chain(
-                state
-                    .preferences
+                preferences
                     .selected
-                    .iter()
-                    .filter(|(r, _)| r.starts_with(reading) && r.as_str() != reading)
+                    .range::<str, _>((Excluded(reading), Unbounded))
+                    .take_while(|(r, _)| r.starts_with(reading))
                     .map(|(_, v)| v.clone()),
             )
         {
-            if !result.contains(&word) {
+            if !result.contains(&word) && !Self::is_version_text(&word) {
                 result.push(word);
                 if result.len() == 5 {
                     break;
                 }
             }
         }
+        // Bundled greetings are shown after learned phrases, user words and
+        // re-selected conversions (#1213, v1.5.0). The start reading keeps a
+        // greeting from appearing while a different word is being typed.
+        let greetings = crate::greetings::predictions(reading);
+        for word in greetings {
+            if result.len() == 5 {
+                break;
+            }
+            if !result.contains(&word) {
+                result.push(word);
+            }
+        }
         result
     }
     pub fn words(&self, reading: &str) -> Vec<String> {
-        self.readings.get(reading).cloned().unwrap_or_default()
+        readings_data()
+            .get(reading)
+            .map(|list| list.iter().map(|&s| s.to_string()).collect())
+            .unwrap_or_default()
     }
 }
 fn shape(text: &str) -> String {

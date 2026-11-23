@@ -1,14 +1,30 @@
-# Meltype-flash 移植プレビュー
+# Meltype-FLASH
+
+AIモデルはWindows・macOS・Linuxで「使用しない / Zenz / shunti」、Android・ChromeOS・iOSで「使用しない / shunti」を選べます。選択後に導入・パスの項目を表示します。[AIの導入と対応範囲](AI-MODELS.md)を参照してください。
+
+## リリース本文と配布物の自動作成
+
+GitHub Actionsの **リリース** を `rust` ブランチで実行し、`tag` に次の版（例: `flash-v1.0.1`）を指定します。Cargoの版も対応する `1.0.1` に更新しておく必要があります。比較元は既定の `auto` で現在版より前の最新タグを選びます。
+
+Windows・Linux・macOS（Apple Silicon / Intel）・Android・ChromeOS・iOSのビルドと検証が全て成功すると、全OSの配布ファイルを添付したリリースの**下書き**を自動作成します。既存の同じタグのリリースは上書きしません。公開は下書きの内容を確認してから行います。
+
+同じ実行のWindowsランナーで本家1.4.0・以前のFlash・現在のFlashを測定し、比較条件・全ケースの表・CPUとRAMの表・箱ひげ図10枚を本文へ入れます。表と画像はGitHubのMarkdown APIで描画を検査します。測定対象はWindows上の共通Coreで、各OSの実機入力の性能を示すものではありません。
+
+画像は `release-media` ブランチへ保存し、変更されないコミットSHAのURLを本文へ埋め込みます。画像・ベンチマークZIP・レポート・生データ・重複ZIP・単独の説明書やビルド記録はリリースのAssetsへ添付しません。処理の受け渡し用CI成果物は1日保持です。
+
+<!-- meltype-flash-document-banner:start -->
+<p align="center"><img src="../assets/branding/readme/documentation.svg" alt="Meltype-FLASH — 稲妻のように、言葉の壁を駆け抜ける日本語入力。" width="1000"></p>
+<!-- meltype-flash-document-banner:end -->
 
 Windows の新しい配布は本家と異なる IME 登録 ID・実行ファイル・保存先を使用します。[名称と共存方針](BRANDING.md)を参照してください。
 
-Fork: https://github.com/appipinopi/Meltype · 元: https://github.com/yksr-melt/Meltype
+Fork: https://github.com/appipinopi/Meltype-Flash · 元: https://github.com/yksr-melt/Meltype
 
-[Rustプレビューのダウンロード](https://github.com/appipinopi/Meltype/releases) · [Windows / Linux / macOS / Android / ChromeOSの配布内容・導入・制限](RELEASE-NOTES.md)
+[Flashのダウンロード](https://github.com/appipinopi/Meltype-Flash/releases) · [Windows / Linux / macOS / Android / ChromeOS / iOSの配布内容・導入・制限](RELEASE-NOTES.md)
 
 [ChromeOS試験版](../chromeos/README.md)は`chrome.input.ime`と共通CoreのWebAssemblyを接続する別ホストです。作成・設定と模擬API/WASM試験を用意していますが、ChromeOS実機での導入・入力は未確認です。
 
-**全機能をRustに書き換えた完成版ではありません。** 元の実装を残したまま、OS共通のRustエンジンと4OSから接続する入口を追加しています。元のC#の機能・精度と同等とは保証できません。元のREADMEのダウンロードリンクは上流版です。
+OS共通のRustエンジンと6環境の入力ホストを配布します。C#の元実装は比較用に保持しています。本家専用機能への対応や全機能・精度の一致を保証するものではありません。報告先の区別は[Issueの扱い](../docs/ISSUE-TRIAGE.md)を参照してください。
 
 ## ビルド・確認
 
@@ -20,6 +36,8 @@ cargo build --workspace --release --locked
 ```
 
 Rust 1.88以上。WindowsはMSVC C++ビルドツール、LinuxはCリンカーと `libibus-1.0-dev`、macOSはXcode command line toolsが必要です。Cargo.lockを共有しています。
+
+ビルドキャッシュ (`target/`) はデバッグ情報と増分ビルドで数GB〜数十GBになります。配布ビルドが終わって不要になったら `cargo clean` で削除できます。`CARGO_TARGET_DIR` を設定している場合は、そのフォルダーが削除の対象です。`target/debug/incremental` と `target/debug/deps` が大きいときは、個別の削除より `cargo clean` が確実です。PowerShell からは `powershell -ExecutionPolicy Bypass -File tools/clean-rust-cache.ps1` でも実行できます。
 
 | crate | 内容 |
 |---|---|
@@ -39,7 +57,7 @@ Linux IBusのRust版は `bash rust/build-linux.sh` で `linux/build/Meltype-flas
 
 入力ソース用アイコンは元版の `linux/icon.png` をそのまま同梱し、登録XMLにインストール先の絶対パスを記録します。日本語・空白・引用符を含む配置先でも、アイコンの内容と登録パスをインストール試験で照合します。
 
-生成フォルダーで `sudo bash install.sh --system` を明示的に実行すると、`/usr/libexec/meltype-rust/ibus` にプログラムを置き、IBusが通常読み込む `/usr/share/ibus/component/meltype-rust.xml` を登録します。既存の上流版の登録やRustの設定・学習データは置き換えません。IBusの再起動や入力ソースの選択は行わず、サインインし直した後に「Meltype-flash」を選びます。`sudo bash /usr/libexec/meltype-rust/ibus/install.sh --system --uninstall` は専用マーカーと登録名を確認して配布ファイルを削除し、設定・学習と未知のファイルは保持します。`--prefix` は別の絶対パスへの配置用です。登録・削除は一時フォルダーだけで検証しています。
+生成フォルダーで `sudo bash install.sh --system` を明示的に実行すると、`/usr/libexec/meltype-rust/ibus` にプログラムを置き、IBusが通常読み込む `/usr/share/ibus/component/meltype-rust.xml` を登録します。既存の上流版の登録やRustの設定・学習データは置き換えません。IBusの再起動や入力ソースの選択は行わず、サインインし直した後に「Meltype-FLASH」を選びます。`sudo bash /usr/libexec/meltype-rust/ibus/install.sh --system --uninstall` は専用マーカーと登録名を確認して配布ファイルを削除し、設定・学習と未知のファイルは保持します。`--prefix` は別の絶対パスへの配置用です。登録・削除は一時フォルダーだけで検証しています。
 
 管理者権限を使わない `bash install.sh` はユーザーのデータフォルダーへ配置します。ただしIBusはこの登録先を通常は自動で読みません。この方式ではIBus起動前に `IBUS_COMPONENT_PATH` へ表示されたフォルダーとシステムの登録フォルダーを設定する必要があります。削除は `bash install.sh --uninstall` です。
 
@@ -49,7 +67,7 @@ Linux IBusのRust版は `bash rust/build-linux.sh` で `linux/build/Meltype-flas
 
 | OS | ビルド | 残っているOS固有コード・制限 |
 |---|---|---|
-| Windows x64/x86 | `./rust/build-windows.ps1 -WithTip` | Rust単体のTSF DLLとRust worker。MSVCリンカー／Windows SDKで元のアイコン・版情報を結合し、製品DLLにC++ソースをリンクしません。出力は `native/tip/bin/rust-x64` と `rust-x86`。自動インストールしません。Meltype-flash専用のCOM／入力プロファイルIDを使用します。旧Rust版の共有登録は自動変更しません。 |
+| Windows x64/x86 | `./rust/build-windows.ps1 -WithTip` | Rust単体のTSF DLLとRust worker。MSVCリンカー／Windows SDKで元のアイコン・版情報を結合し、製品DLLにC++ソースをリンクしません。出力は `native/tip/bin/rust-x64` と `rust-x86`。自動インストールしません。Meltype-FLASH専用のCOM／入力プロファイルIDを使用します。旧Rust版の共有登録は自動変更しません。 |
 | macOS | `bash rust/build-desktop.sh` | Swift InputMethodKitシェルとazooKey変換エンジンを再利用。出力 `mac/build/Meltype.app`。インストールしません。 |
 | Linux | `bash rust/build-desktop.sh` | Rust IBus実行ファイル。出力 `linux/build/Meltype-flash-linux`。漢字変換には別途C++ Mozcヘルパーが必要です。fcitx5は既存C++アダプターを別途ビルドします。 |
 | Android | [android/README.md](../android/README.md) | Java InputMethodServiceとJNI。補助辞書による変換。 |
@@ -138,7 +156,7 @@ Windowsの「再開できれば未確定入力に戻し、できなければ確�
 - 次の語に応じた直前の曖昧な語の訂正。最大4語まで保持し、削除能力と期待文字列を確認します。キャレット移動、手動選択、学習済みの言語選択を尊重します。共通の日本語を英字にする学習は2回目から有効です。
 - バックアップの作成・検査・復元、学習の全消去・期間指定削除。上流のデータファイルを指定したデータフォルダーから取り込む機能。
 
-設定アプリは `cargo run -p meltype-settings` で起動します。データは上流版と分離して `Meltype-flash` に保存します。Androidはアプリ専用のfilesディレクトリに保存し、バックアップは無効にしています。`MELTYPE_FLASH_DATA_DIR`（旧 `MELTYPE_RUST_DATA_DIR` も明示指定時のみ対応） でデスクトップの保存先を指定できます。日本語フォントが見つからない場合は `MELTYPE_FONT` でフォントファイルを指定してください。
+設定アプリは `cargo run -p meltype-settings` で起動します。データは上流版と分離して `Meltype-FLASH` に保存します。Androidはアプリ専用のfilesディレクトリに保存し、バックアップは無効にしています。`MELTYPE_FLASH_DATA_DIR`（旧 `MELTYPE_RUST_DATA_DIR` も明示指定時のみ対応） でデスクトップの保存先を指定できます。日本語フォントが見つからない場合は `MELTYPE_FONT` でフォントファイルを指定してください。
 
 デスクトップの設定変更・プロファイルの編集は「OK」または×で保存し、「キャンセル」で破棄します。開いている間に他のプロセスが変えた項目は、画面で変更していなければ保持します。プロファイルの変更も名前ごとにマージします。判定テストは保存前の設定を使い、テスト入力の学習はディスクへ保存しません。辞書・定型文などの管理操作は各画面の登録・削除操作で保存します。プロファイルの入出力は元版と同じ `meltype-profile` 形式で、OS標準のファイル選択を使います。
 
@@ -146,7 +164,7 @@ Windowsの「再開できれば未確定入力に戻し、できなければ確�
 
 ローマ字入力の「慎重」は、ローマ字として読める英単語を英文の続きや前後の英語から判断し、`google` のようにローマ字として読めない既知語は英字のまま表示します。「積極的」は片側の英語も根拠にします。「手動」は英字の提案を表示し、Tabで選ぶまで自動では切り替えません。大文字で始めた語は明示的な英字指定として扱います。手動では学習済みの英字指定や確定後の自動訂正でかな表示を置き換えません。
 
-`SigilWordsDirect` が有効なローマ字入力では、先頭か空白直後の `/command`・`$skill`・`@src/app.ts` を変換ボックスへ溜めず、各キーをアプリへ渡して補完を利用できます。空白・改行の後は通常入力に戻ります。ホストが空白キーを送らない場合も、次に渡されるキャレット前の文字から名前の終了を判断します。Escで補完を閉じた後は名前を続けられ、Tab・キャレット移動・ショートカットの後は位置の情報を破棄します。名前の本文は保持せず、境界と文字数だけを追跡します。
+`SigilWordsDirect` が有効なローマ字入力では、先頭か空白直後の `$skill`・`@src/app.ts` をアプリへ渡して補完を利用できます。本家1.4.0に合わせ、文章の打ち始めの `/` は `・` と表示します。Spaceで `/` を選ぶと、続く名前をアプリへ渡して `/command` を入力できます。コードとターミナルでは `/command` を直接渡し、コメントと文字列の中では文章と同じ扱いにします。空白・改行の後は通常入力に戻ります。ホストが空白キーを送らない場合も、次に渡されるキャレット前の文字から名前の終了を判断します。Escで補完を閉じた後は名前を続けられ、Tab・キャレット移動・ショートカットの後は位置の情報を破棄します。名前の本文は保持せず、境界と文字数だけを追跡します。
 
 Windowsでは `meltype-flash --tray` でTSF用の管理トレイを起動できます。同じデータフォルダーでのトレイの二重起動を防ぎ、有効／一時停止、判定の強さ、プロファイル、設定・辞書・定型文・学習・バックアップ・判定テスト、データフォルダーを開く操作に対応します。ダブルクリックは有効／一時停止です。設定をOK・×で閉じると保存してトレイに戻り、キャンセルでは編集を破棄します。「終了」は設定を保存し、共有設定を無効にしてトレイを終了します。この管理トレイはIMEの登録や切替を行いません。
 
@@ -266,7 +284,7 @@ Windowsのクラスファクトリーは、Rustが所有するサービスオブ
 
 Windows配布用MeltypeTip.dllはDll.cppと最小のRustDll.cppだけでリンクする構成にしました。RustDll.cppは絶対パスと制限した依存検索でRust DLLを読み、ネイティブのクラスファクトリー・サービス生成・登録APIへ接続し、ログとDLL保持を受け渡します。従来のTextService.cpp／RustPipe.cpp／Json.cppは配布DLLに含めず、互換SDK試験が-CompatibilityObjectsを明示した際だけオブジェクトを作ります。試験はリンクマップを検査し、旧オブジェクトが配布DLLへ入っていないことを確認します。Rust所有者の入力試験も実際の配布DLLをLoadLibraryし、DllGetClassObject／CreateInstanceから生成する経路へ変更しました。x64/x86でUTF-16編集、確定、外部確定／再開、旧入力欄、フォーカス、終了・再起動、DllCanUnloadNowと最終状態数を確認しています。OSのIME登録は実行しません。DLL入口・ロード・ログのC++は残っており、完全なRust単体DLL化、他OS、全UI一致と実アプリ検証は未完了です。
 
-Windowsの配布用TSF DLLは、現在はRustのcdylibをMeltypeTip.dllとして出力します。DllGetClassObject／DllCanUnloadNow／登録・解除入口、workerの絶対パス、任意のUTF-8ログ、DLL保持もRustで実装し、RustDll.cppを削除しました。製品のリンクマップにはC++のDll／TextService／RustPipe／Jsonオブジェクトを含めません。MSVCリンカーとWindows SDKのリソースコンパイラーは、元のアイコン101と版情報1.0.0.0を結合するために使用します。旧C++実装は上流参照と明示的な互換SDK試験用に残しています。
+Windowsの配布用TSF DLLは、現在はRustのcdylibをMeltypeTip.dllとして出力します。DllGetClassObject／DllCanUnloadNow／登録・解除入口、workerの絶対パス、任意のUTF-8ログ、DLL保持もRustで実装し、RustDll.cppを削除しました。製品のリンクマップにはC++のDll／TextService／RustPipe／Jsonオブジェクトを含めません。MSVCリンカーとWindows SDKのリソースコンパイラーは、元のアイコン101と版情報1.0.1.0を結合するために使用します。旧C++実装は上流参照と明示的な互換SDK試験用に残しています。
 
 サービスから取得した表示属性・列挙子、切離し済みの言語バー、遅延編集セッションも、最後のReleaseと捕捉データの後片付けまでDLLを保持します。候補ウィンドウが残る間は解放を拒否し、解放可能になった時点でウィンドウクラスを解除します。後の起動では再登録します。専用のtsf_server_smoke.pyは、COMの生成／同一性／ロック、子オブジェクトの寿命、候補クラスの解除と再登録、元のアイコンと版情報、私用フォルダーだけへのログを確認します。OSのIME登録・有効化は実行しません。実アプリでの操作、他OSの残るSwift／Java／fcitx5連携と全UI一致の確認は未完了です。上の各段落は移植の段階ごとの記録です。
 
@@ -414,3 +432,45 @@ d378494では辞書取込みの選択・結果ダイアログと変更通知をR
 
 
 721bd57／59a6ffcではインストール後の別実行ファイルRegisterInputSourceとselect-input-source.swiftの動作をRust製の登録／選択ツールへ移し、Rust版のビルド・同梱・インストールを接続しました。元の日本語表示・終了コード、最大30回／100msの登録反映待ち、入力メニュー更新、10回／300msの選択と選択後の照合を維持します。Swiftコマンドの実行を必要としない専用バイナリーで、旧パッケージのSwift fallbackは維持します。6制御テスト、Apple Silicon／Intel型チェックとClippyが成功。実Foundationプロセス／文字列、旧Swift CLIとの4条件比較、署名後の実パッケージと802f174で追加した元の自己試験全体をCI確認中です。詳細は[macOS登録ツール](mac-register/README.md)。実OS登録・選択・メニュー再起動は未実行です。
+
+
+### Linuxのアプリ設定・更新・削除
+
+設定の「アプリ」ではLinuxのアプリID（例: `code`）を登録します。「Linuxの標準アプリを追加」でエディター・ターミナルのルールを追加できます。Windowsの `.exe` ルールは保持したまま非表示になります。入力先がIBusへアプリIDを通知しない場合、アプリ別設定は適用できません。
+
+「更新」から公開済みの同じCPU向けdeb / rpmを確認し、ダウンロードできます。GitHubのSHA-256と照合した後、システムのパッケージインストール画面を開きます。画面で更新を完了し、再ログインしてください。Python 3とxdg-utils、deb / rpmを開けるソフトウェア管理アプリが必要です。自動確認はインストールの自動承認を行いません。
+
+deb / rpmにはアプリセンター向けAppStream情報を同梱します。対応するソフトウェア管理アプリのインストール済み一覧から削除できます。表示やローカルパッケージの管理に対応しないアプリセンターでは、Debian / Ubuntuは `sudo apt remove meltype-flash`、Fedoraは `sudo dnf remove meltype-flash` を使ってください。個人の設定・学習データは保持されます。ZIP版はパッケージ管理の対象外です。
+
+
+### 1.0.3の更新設定とAI追加パッケージ
+
+ライセンスはGNU GPLv3（バージョン3以降）です。「アップデート方法」で手動／自動を選び、「今アップデートを確認」でその場で確認できます。Linuxの自動更新は設定アプリ起動時と起動中の24時間ごとに確認し、新しいパッケージがあればシステムのインストール画面を開きます。導入時の承認はシステム側で行ってください。
+
+ZenzaiはLinuxでも実験機能として利用できます。AIの実行環境とモデルは本体パッケージに含めません。設定内のリンクから[llama.cppの実行環境](https://github.com/ggml-org/llama.cpp/releases)と[zenz-v3.1-smallのGGUFモデル](https://huggingface.co/Miwa-Keita/zenz-v3.1-small-gguf/tree/main)を別途ダウンロードしてください。Linux用のCPU対応パッケージを展開し、`llama-server`（Windowsは`llama-server.exe`）とモデルの`ggml-model-Q5_K_M.gguf`の場所を指定して、Zenzaiを有効にします。各追加パッケージには配布元のライセンスが適用されます。推論は127.0.0.1に限定し、未導入・起動中・タイムアウト時は通常の変換を使います。
+
+Linuxのパッケージではテーマ用アイコンを登録し、WaylandのアプリIDとデスクトップ登録を揃えています。Windowsでは通常の設定アプリ起動でもトレーアイコンを表示し、設定画面を閉じても常駐します。終了はトレーメニューから行います。
+
+
+### 1.0.4確認用: Zenzaiの環境作成
+
+「Zenzaiを使う」をオンにすると、AI環境を作成してよいか確認します。「いいえ」ではダウンロードせず、「はい、作成する」でCPU用llama.cppとZenzai GGUFモデルをアプリのユーザーフォルダーの`ai/`へ取得します。専用ランタイムとモデルだけを使用し、Ollama・Docker・Python仮想環境などの追加導入や管理者権限は不要です。Linuxではアプリの既存のPython 3をセットアップに利用します。
+
+取得したファイルのSHA-256と実行環境を検証し、成功した場合だけ設定画面のZenzaiをオンにします。「保存」で入力へ反映してください。途中で失敗した場合は通常の変換を利用でき、改めてオンにして再試行できます。既存の環境があれば整合性を確認して再利用します。
+
+アップデート方法は手動／自動のプルダウンで選択できます。「今アップデートを確認」は公開版の確認のみを行います。確認用アプリから公開済みの旧版へ戻る更新は行いません。
+
+
+#### Linuxの自動更新・アプリ例とWindowsのログイン時起動
+
+Linuxで自動更新を選んで保存すると、設定アプリを閉じた後もユーザー用systemdタイマーで毎日確認します。ユーザー用systemdが利用できないデスクトップではログイン時に確認し、IMEサービス起動時にも1日1回まで確認します。パッケージの導入はシステム画面で承認してください。手動にして保存すると管理対象のタイマーと自動起動登録を解除します。別プロファイルを指定した確認用起動ではグローバルな更新登録を行いません。
+
+Linuxのアプリ設定にはVS Code（`code` / `com.visualstudio.code`）、GNOME Terminal（`org.gnome.Terminal`）、Konsole（`org.kde.konsole`）などの例があります。「Linuxの標準アプリを追加」で登録できます。入力モード切替キーはIBusを選択中の入力欄で利用でき、デスクトップに予約されたキーはOS側の設定が優先します。
+
+Windowsのログイン時起動は、サインイン後に少し待って起動し、失敗した場合は再試行するユーザー用タスクを使用します。タスクがWindows側で無効になっている場合も、起動設定の表示に反映します。
+
+## TTY版
+
+端末で `meltype-rs --tty` を実行します。ローマ字を入力し、Spaceで変換、上下キーで候補を選び、Enterで確定します。Escで未確定入力を取り消し、Ctrl+Cで終了します。確定文は標準出力、入力中の表示は標準エラーに出るので、`meltype-rs --tty > memo.txt` でも使えます。
+
+Mozc辞書を含むTTY版は `cargo build --release --locked -p meltype-cli --features meltype-core/bundled-mozc` で作成できます。

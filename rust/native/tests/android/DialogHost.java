@@ -20,6 +20,16 @@ public final class DialogHost extends Context {
         Path root=Files.createTempDirectory("meltype-jni-dialog-");Path profile=Files.createDirectory(root.resolve("profile"));
         DialogHost host=new DialogHost(Files.createDirectory(root.resolve("cache")));host.session=Native.create(profile.toString());
         try {
+            ok(Native.settingsAction(host.session,"{\"action\":\"ai_select\",\"value\":1}","{}"));
+            String ai=ok(Native.settingsAction(host.session,"{\"action\":\"ai_install\"}","{}"));
+            String confirmationAI=ai.substring("{\"confirm\":".length(),ai.length()-1);
+            host.show(confirmationAI);check(AlertDialog.last.title.contains("shunti"),"AI consent names the selected model");
+            AlertDialog.last.no.onClick(null,-2);check(ok(host.reply).equals("{\"installShunti\":false}"),"refusal cannot start model download");
+            check(Native.control(host.session,"{\"op\":\"settings_get\"}").contains("\"UseShunti\":false"),"selection alone cannot activate AI");
+            host.show(confirmationAI);AlertDialog.last.yes.onClick(null,-1);
+            check(ok(host.reply).contains("\"installShunti\":true"),"acceptance returns background installation instruction");
+            ok(Native.settingsAction(host.session,"{\"action\":\"ai_select\",\"value\":0}","{}"));
+            check(!Native.settingsPage(host.session,0).contains("shuntiをインストール"),"no model hides installer");
             String learning="{\"message\":\"学習した内容をすべて削除しますか？\",\"positive\":\"削除\",\"action\":{\"action\":\"learning_clear\"}}";
             host.show(learning);check(AlertDialog.last.title==null&&AlertDialog.last.message.equals("学習した内容をすべて削除しますか？"),"learning title/message");
             check(AlertDialog.last.positive.equals("削除")&&AlertDialog.last.negative.equals("キャンセル"),"labels");

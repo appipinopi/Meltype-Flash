@@ -1,5 +1,9 @@
 # 長文・英語境界の全打鍵比較
 
+<!-- meltype-flash-document-banner:start -->
+<p align="center"><img src="../../../assets/branding/readme/documentation.svg" alt="Meltype-FLASH — 稲妻のように、言葉の壁を駆け抜ける日本語入力。" width="1000"></p>
+<!-- meltype-flash-document-banner:end -->
+
 基準は元版 `45e14f86558aa6ea34f2c2ecd038ba95ca8c3c46` の C# NativeAOT。
 `rust/core/tests/data/upstream-long-keys.json` は、21種類のベンチマーク入力と42種類の短い境界入力を元版で実行して保存した期待値です。期待値をRustから作成しません。採取した実行ファイルのSHA-256を同じJSONに記録しています。
 

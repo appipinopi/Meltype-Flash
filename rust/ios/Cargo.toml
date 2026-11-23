@@ -1,0 +1,13 @@
+[package]
+name = "meltype-ios"
+version.workspace = true
+edition.workspace = true
+license.workspace = true
+
+[lib]
+crate-type = ["staticlib", "rlib"]
+
+[dependencies]
+meltype-core = { path = "../core", default-features = false }
+serde_json.workspace = true
+meltype-ai = { path = "../ai" }

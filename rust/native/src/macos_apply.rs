@@ -17,7 +17,7 @@ struct Response {
 }
 type Host = unsafe extern "C" fn(*mut c_void, u32, u64, u64, *const u16, u32, *mut u64) -> i32;
 /// Host ops: marked range(0), selected range(1), substring(2), insert(3),
-/// render original view(4: location 1=show,0=hide). Queries write two u64s;
+/// render original view(4: location 1=show,0=hide), clear marked text(5). Queries write two u64s;
 /// substring writes UTF-16 pointer/length, borrowed until the next callback.
 /// Inserts receive UTF-16 text and NSRange, including NSNotFound/0.
 /// Return 1 for completion; 0 for malformed input, mismatch or host failure.
@@ -104,6 +104,13 @@ pub unsafe extern "C" fn meltype_macos_apply_utf8(
                 expected.as_ptr(),
                 expected.len() as u32,
             ) == 0
+            {
+                return 0;
+            }
+            // #137: 未確定範囲の外を置換する前に、検証済みの未確定表示を解除する。
+            if marked[0] != i64::MAX as u64
+                && marked[1] > 0
+                && host(context, 5, 0, 0, std::ptr::null(), 0, std::ptr::null_mut()) <= 0
             {
                 return 0;
             }

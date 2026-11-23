@@ -1,0 +1,145 @@
+name: 公開版ベンチマーク更新
+on:
+  release:
+    types: [published]
+  schedule:
+    - cron: '30 3 * * 1'
+  workflow_dispatch:
+    inputs:
+      tag:
+        description: 更新対象タグ (空欄なら最新の正式版)
+        required: false
+        default: ''
+        type: string
+      benchmark_baseline:
+        description: 比較する以前の公開版タグ (auto は自動選択)
+        required: true
+        default: auto
+        type: string
+permissions:
+  contents: read
+jobs:
+  validate:
+    runs-on: ubuntu-latest
+    outputs:
+      tag: ${{ steps.check.outputs.tag }}
+      update: ${{ steps.check.outputs.update }}
+    steps:
+      - uses: actions/checkout@v5
+        with:
+          fetch-depth: 0
+          ref: rust
+      - name: Validate release and exact source tag
+        id: check
+        env:
+          GH_TOKEN: ${{ github.token }}
+          TAG_INPUT: ${{ inputs.tag }}
+          EVENT_TAG: ${{ github.event.release.tag_name }}
+          MANUAL: ${{ github.event_name == 'workflow_dispatch' }}
+        run: |
+          if [[ "$GITHUB_EVENT_NAME" == release ]]; then
+            TAG="$EVENT_TAG"
+          elif [[ -n "$TAG_INPUT" ]]; then
+            TAG="$TAG_INPUT"
+          else
+            TAG=$(gh api "repos/$GITHUB_REPOSITORY/releases/latest" --jq .tag_name)
+          fi
+          [[ "$TAG" =~ ^flash-v[0-9]+\.[0-9]+\.[0-9]+$ ]]
+          test "$GITHUB_REPOSITORY" = appipinopi/Meltype-Flash
+          RELEASE_SHA=$(gh api "repos/$GITHUB_REPOSITORY/git/ref/tags/$TAG" --jq .object.sha)
+          test "$(git rev-parse "$TAG^{commit}")" = "$RELEASE_SHA"
+          VERSION=$(git show "$RELEASE_SHA:Cargo.toml" | python3 -c 'import sys,tomllib; print(tomllib.loads(sys.stdin.read())["workspace"]["package"]["version"])')
+          TAG_VERSION=$(python3 -c 'import sys; print(".".join(str(int(x)) for x in sys.argv[1].split(".")))' "${TAG#flash-v}")
+          test "$VERSION" = "$TAG_VERSION"
+          gh api "repos/$GITHUB_REPOSITORY/releases/tags/$TAG" > "$RUNNER_TEMP/release.json"
+          RELEASE=$(cat "$RUNNER_TEMP/release.json")
+          test "$(jq -r .draft <<<"$RELEASE")" = false
+          test "$(jq -r .prerelease <<<"$RELEASE")" = false
+          git fetch --tags https://github.com/yksr-melt/Meltype.git
+          CSHARP_REF=$(python3 - <<'PY'
+          import importlib.util
+          from pathlib import Path
+          spec = importlib.util.spec_from_file_location("comparison", Path("tools/compare-rust-benchmarks.py"))
+          module = importlib.util.module_from_spec(spec)
+          spec.loader.exec_module(module)
+          print(module.csharp_release())
+          PY
+          )
+          CORPUS_SHA=$(sha256sum rust/ai/data/ime-qa-accuracy.json | cut -d' ' -f1)
+          git show "$RELEASE_SHA:rust/ai/model-catalog.json" > "$RUNNER_TEMP/release-model-catalog.json"
+          MODEL_HASHES=$(python3 - "$RUNNER_TEMP/release-model-catalog.json" <<'PY'
+          import json, sys
+          catalog = json.load(open(sys.argv[1], encoding="utf-8"))
+          model = next(model for model in catalog["models"] if model["id"] == "shunti-v7-xs5")
+          print("|".join(file["sha256"] for file in model["files"]))
+          PY
+          )
+          UPDATE=$(python3 - "$RUNNER_TEMP/release.json" "$CSHARP_REF" "$MANUAL" "$CORPUS_SHA" "$MODEL_HASHES" <<'PY'
+          import json, re, sys
+          release = json.load(open(sys.argv[1], encoding="utf-8"))
+          body = release.get("body", "")
+          manual = sys.argv[3].lower() == "true"
+          missing = ("今回は依頼者の指定によりベンチマークを実施していません。" in body
+                     or "## IME変換Q&A精度" not in body
+                     or sys.argv[4] not in body
+                     or any(digest not in body for digest in sys.argv[5].split("|"))
+                     or f"C# {sys.argv[2]}" not in body
+                     or len(re.findall(r"!\[[^\]]*\]\([^)]*\.png\)", body)) < 10
+                     or len(re.findall(r"\[拡大表示（SVG）\]\([^)]*\.svg\)", body)) < 10)
+          print("true" if manual or missing else "false")
+          PY
+          )
+          echo "tag=$TAG" >> "$GITHUB_OUTPUT"
+          echo "update=$UPDATE" >> "$GITHUB_OUTPUT"
+          echo "release=$TAG compatible_csharp=$CSHARP_REF update_benchmark=$UPDATE"
+  update:
+    needs: validate
+    if: needs.validate.outputs.update == 'true'
+    runs-on: ubuntu-24.04
+    timeout-minutes: 45
+    permissions:
+      contents: write
+    env:
+      TAG: ${{ needs.validate.outputs.tag }}
+      BENCHMARK_BASELINE: ${{ inputs.benchmark_baseline || 'auto' }}
+      GH_TOKEN: ${{ github.token }}
+      PYTHONUTF8: '1'
+    steps:
+      - uses: actions/checkout@v5
+        with:
+          fetch-depth: 0
+          ref: rust
+      - uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: '10.0.x'
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - uses: dtolnay/rust-toolchain@stable
+      - name: Install NativeAOT and chart dependencies
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y clang zlib1g-dev
+          python -m pip install --disable-pip-version-check matplotlib==3.10.8 numpy==2.4.2
+      - name: Fetch upstream release tags
+        run: git fetch --tags https://github.com/yksr-melt/Meltype.git
+      - name: Compare the exact published Rust tag with compatible C# and previous Rust
+        timeout-minutes: 40
+        run: |
+          python tools/compare-rust-benchmarks.py --build --with-csharp --fetch-tags --current-ref "$TAG" --baseline-ref "$BENCHMARK_BASELINE" --output dist/release-benchmark --samples 3 --warmups 1 --rounds 9
+          python tools/plot-windows-benchmark.py dist/release-benchmark/report.json --output dist/release-benchmark/charts
+      - name: Download and verify existing release assets
+        run: gh release download "$TAG" --repo "$GITHUB_REPOSITORY" --dir release-assets
+      - name: Update benchmark notes and images without replacing packages
+        run: |
+          SOURCE_SHA=$(git rev-parse "$TAG^{commit}")
+          python tools/publish-rust-release.py --tag "$TAG" --sha "$SOURCE_SHA" --assets release-assets --benchmark dist/release-benchmark --output dist/release-body.md --publish --update-existing
+      - uses: actions/upload-artifact@v4
+        if: ${{ always() && hashFiles('dist/release-benchmark/accuracy.json') != '' }}
+        with:
+          name: release-benchmark-accuracy-and-raw-data
+          retention-days: 30
+          if-no-files-found: error
+          path: |
+            dist/release-benchmark/report.json
+            dist/release-benchmark/accuracy.json

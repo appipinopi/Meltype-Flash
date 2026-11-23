@@ -1,0 +1,61 @@
+# SPDX-License-Identifier: GPL-3.0-or-later
+# Copyright (C) 2026 appipinopi
+name: Windowsセットアップ追加
+on:
+  workflow_dispatch:
+    inputs:
+      tag:
+        description: '公開済みのFlash正式版・プレビュー版タグ'
+        type: string
+        required: true
+        default: flash-v1.0.0
+permissions:
+  contents: read
+jobs:
+  setup:
+    runs-on: windows-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v5
+      - name: 公開済みZIPからセットアップEXEを生成
+        shell: pwsh
+        env:
+          GH_TOKEN: ${{ github.token }}
+          RELEASE_TAG: ${{ inputs.tag }}
+        run: |
+          $ErrorActionPreference = 'Stop'
+          if ($env:GITHUB_REPOSITORY -ne 'appipinopi/Meltype-Flash') { throw '対象リポジトリが異なります。' }
+          if ($env:RELEASE_TAG -notmatch '^flash-v(?<core>\d+\.\d+\.\d+)(?:-preview\.(?<preview>\d+))?$') { throw 'Flashのタグを指定してください。' }
+          $version = $Matches.core
+          if ($Matches.preview) { $version += '-pre.' + $Matches.preview }
+          $json = gh api "repos/$env:GITHUB_REPOSITORY/releases/tags/$env:RELEASE_TAG"
+          if ($LASTEXITCODE -ne 0) { throw '公開リリースを取得できません。' }
+          $release = $json | ConvertFrom-Json
+          if ($release.draft -or $release.tag_name -ne $env:RELEASE_TAG) { throw '公開済みリリースが必要です。' }
+          $assets = @($release.assets | Where-Object name -eq 'Meltype-flash-Windows-x64.zip')
+          if ($assets.Count -ne 1 -or $assets[0].digest -notmatch '^sha256:[0-9a-f]{64}$') { throw 'Windows ZIPのSHA256が取得できません。' }
+          New-Item -ItemType Directory -Path download,dist | Out-Null
+          gh release download $env:RELEASE_TAG --repo $env:GITHUB_REPOSITORY --pattern Meltype-flash-Windows-x64.zip --dir download
+          if ($LASTEXITCODE -ne 0) { throw 'Windows ZIPを取得できません。' }
+          $zip = Join-Path $PWD 'download/Meltype-flash-Windows-x64.zip'
+          if ((Get-FileHash -LiteralPath $zip -Algorithm SHA256).Hash -ne $assets[0].digest.Substring(7)) { throw 'Windows ZIPの輸送SHA256が一致しません。' }
+          Expand-Archive -LiteralPath $zip -DestinationPath bundle
+          $candidates = @(
+            (Join-Path ${env:ProgramFiles(x86)} 'Inno Setup 6/ISCC.exe'),
+            (Join-Path ${env:ProgramFiles(x86)} 'Inno Setup 7/ISCC.exe'),
+            (Join-Path $env:ProgramFiles 'Inno Setup 6/ISCC.exe'),
+            (Join-Path $env:ProgramFiles 'Inno Setup 7/ISCC.exe')
+          ) + @(Get-Command ISCC.exe -ErrorAction SilentlyContinue | Select-Object -ExpandProperty Source)
+          $compiler = $candidates | Where-Object { Test-Path -LiteralPath $_ -PathType Leaf } | Select-Object -First 1
+          if (-not $compiler) { throw 'プリインストール済みInno Setupがありません。追加インストールは行いません。' }
+          $source = (Resolve-Path -LiteralPath bundle).Path
+          $output = (Resolve-Path -LiteralPath dist).Path
+          & $compiler "/DAppVersion=$version" "/DSourceDir=$source" "/DOutputDir=$output" packaging/Meltype-flash.iss
+          if ($LASTEXITCODE -ne 0) { throw 'セットアップEXEのコンパイルに失敗しました。' }
+          Copy-Item -LiteralPath "dist/Meltype-flash-$version-setup.exe" -Destination dist/Meltype-flash-Windows-x64-setup.exe
+      - uses: actions/upload-artifact@v4
+        with:
+          name: windows-setup
+          path: dist/Meltype-flash-Windows-x64-setup.exe
+          retention-days: 1
+          if-no-files-found: error

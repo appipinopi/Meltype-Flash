@@ -52,6 +52,14 @@ pub(super) fn own_process() -> bool {
     let path = module_path();
     is_own_name(filename(&path))
 }
+pub(super) fn chromium_browser() -> bool {
+    is_chromium_name(&String::from_utf16_lossy(&name()))
+}
+fn is_chromium_name(name: &str) -> bool {
+    ["chrome", "msedge", "brave", "vivaldi", "opera", "chromium"]
+        .iter()
+        .any(|browser| name.eq_ignore_ascii_case(browser))
+}
 fn is_own_name(name: &[u16]) -> bool {
     name.len() == b"meltype-flash.exe".len()
         && name.iter().zip(b"meltype-flash.exe").all(|(&a, &b)| {
@@ -84,6 +92,15 @@ pub unsafe extern "C" fn meltype_tsf_process_name(out: *mut u16, capacity: u32) 
 #[cfg(test)]
 mod tests {
     use super::*;
+    #[test]
+    fn issue_878_chromium_workaround_is_limited_to_exact_browser_names() {
+        for name in ["brave", "Chrome", "MSEDGE", "vivaldi", "opera", "chromium"] {
+            assert!(is_chromium_name(name));
+        }
+        for name in ["firefox", "brave-helper", "editor", ""] {
+            assert!(!is_chromium_name(name));
+        }
+    }
     #[test]
     fn original_filename_rules_preserve_utf16() {
         for (path, expected) in [

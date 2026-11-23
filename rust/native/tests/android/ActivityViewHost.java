@@ -20,7 +20,7 @@ public final class ActivityViewHost extends Context {
         check(activity.content instanceof ScrollView,"scroll root");LinearLayout root=(LinearLayout)((ScrollView)activity.content).children.get(0);
         check(root.orientation==1&&Arrays.equals(root.padding,new int[]{44,44,44,44}),"16dp padding and vertical layout");
         check(root.children.size()==4,"title,status,navigation,body order");TextView title=(TextView)root.children.get(0);
-        check(title.text.equals("Meltype-flash 設定")&&title.textSize==24,"existing title");check(root.children.get(1)==activity.status&&root.children.get(3)==activity.body,"published fields");
+        check(title.text.equals("Meltype-FLASH 設定")&&title.textSize==24,"existing title");check(root.children.get(1)==activity.status&&root.children.get(3)==activity.body,"published fields");
         Spinner navigation=(Spinner)root.children.get(2);ArrayAdapter adapter=(ArrayAdapter)navigation.adapter;
         check(adapter.layout==android.R.layout.simple_spinner_dropdown_item,"framework resource");
         check(Arrays.equals(adapter.labels,new String[]{"入力設定","ユーザー辞書","定型文","学習","プロファイル","バックアップ・診断"}),"page labels/order");

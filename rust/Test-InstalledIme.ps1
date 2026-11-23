@@ -52,10 +52,10 @@ function Server([string]$Id, [Microsoft.Win32.RegistryView]$View) {
 $views = @([Microsoft.Win32.RegistryView]::Registry64,[Microsoft.Win32.RegistryView]::Registry32)
 $flash = @($views | ForEach-Object { Server $clsid $_ })
 if (-not $ExerciseRegistration) {
-    @{ product='Meltype-flash'; servers=$flash; readOnly=$true } | ConvertTo-Json
+    @{ product='Meltype-FLASH'; servers=$flash; readOnly=$true } | ConvertTo-Json
     return
 }
-if (@($flash | Where-Object { $_ }).Count) { throw 'Existing Meltype-flash registration: exercise refused to preserve it.' }
+if (@($flash | Where-Object { $_ }).Count) { throw 'Existing Meltype-FLASH registration: exercise refused to preserve it.' }
 $principal = New-Object Security.Principal.WindowsPrincipal([Security.Principal.WindowsIdentity]::GetCurrent())
 if (-not [Environment]::Is64BitProcess -or -not $principal.IsInRole([Security.Principal.WindowsBuiltInRole]::Administrator)) {
     throw 'The explicit registration exercise requires an administrator 64-bit PowerShell.'
@@ -87,7 +87,7 @@ try {
         $upstreamPreserved=($before | ConvertTo-Json -Compress) -ceq ($after | ConvertTo-Json -Compress)
         if (-not $upstreamPreserved -or -not $unregistered) { throw 'Registration cleanup or upstream preservation check failed' }
     } finally {
-        @{product='Meltype-flash';registeredComPassed=$passed;flashUnregistered=$unregistered;upstreamPreserved=$upstreamPreserved;externalApplicationInputTested=$false} |
+        @{product='Meltype-FLASH';registeredComPassed=$passed;flashUnregistered=$unregistered;upstreamPreserved=$upstreamPreserved;externalApplicationInputTested=$false} |
             ConvertTo-Json | Set-Content -LiteralPath (Join-Path $report 'result.json') -Encoding UTF8
     }
 }

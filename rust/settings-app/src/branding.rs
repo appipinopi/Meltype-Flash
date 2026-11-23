@@ -11,7 +11,7 @@ pub fn icon() -> Arc<IconData> {
             eframe::icon_data::from_png_bytes(include_bytes!(
                 "../../../assets/branding/meltype-flash-256.png"
             ))
-            .expect("embedded Meltype-flash icon must be valid PNG"),
+            .expect("embedded Meltype-FLASH icon must be valid PNG"),
         )
     })
     .clone()

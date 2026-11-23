@@ -224,6 +224,8 @@ class FieldTests(unittest.TestCase):
         cls.api = c.CDLL(str(Path(sys.argv[1]).resolve()))
         cls.api.meltype_tsf_input_scope.argtypes = [P, U32]
         cls.api.meltype_tsf_input_scope.restype = U32
+        cls.api.meltype_tsf_browser_input_scope.argtypes = [P, U32, HR]
+        cls.api.meltype_tsf_browser_input_scope.restype = U32
         cls.api.meltype_tsf_context_disabled.argtypes = [P]
         cls.api.meltype_tsf_read_open.argtypes = [P]
         cls.api.meltype_tsf_write_open.argtypes = [P, U32, HR]
@@ -245,6 +247,20 @@ class FieldTests(unittest.TestCase):
                     self.assertEqual(self.inspect(host), 0x300 | 1)
                     self.assertEqual(host.value_reads, [0, 1])
 
+    def test_issue_992_ascii_only_fields_are_raw_without_being_secret(self):
+        for source in [0, 1]:
+            for scope in [4, 5, 40]:
+                with self.subTest(source=source, scope=scope):
+                    host=self.host()
+                    host.values[source].values=[scope]
+                    self.assertEqual(self.inspect(host), 0x300 | 8)
+                    host.values[1-source].values=[61]
+                    self.assertEqual(self.inspect(host), 0x300 | 8 | 2)
+        # URL/検索・通常テキスト・全角指定欄では日本語入力を継続する。
+        for scope in [0,1,2,3,6,39,41,50,52,57,58,9999]:
+            host=self.host();host.values[0].values=[scope]
+            self.assertEqual(self.inspect(host), 0x300)
+
     def test_private_scope_is_independent_and_combines_with_secret(self):
         host = self.host()
         host.values[0].values = [61]
@@ -254,6 +270,21 @@ class FieldTests(unittest.TestCase):
         host.values[0].values = []
         host.values[1].values = []
         self.assertEqual(self.inspect(host), 0x300)  # No previous result is cached.
+
+    def test_issue_878_chromium_app_password_scope_preserves_real_password_guards(self):
+        host = self.host(True)
+        inspect = lambda: self.api.meltype_tsf_browser_input_scope(c.byref(host.context), 7, 1)
+        host.values[1].values = [31, 61]
+        self.assertEqual(inspect(), 0x300 | 2)
+        self.assertEqual(self.inspect(host), 0x300 | 3)  # Other applications still block.
+        host.values[0].values = [31]
+        self.assertEqual(inspect(), 0x300 | 3)  # Windows password metadata wins.
+        host.values[0].values = []
+        host.integers[bytes(DISABLED)] = 1
+        self.assertEqual(inspect(), 0x300 | 3)
+        host.integers[bytes(DISABLED)] = 0
+        host.values[1].fail_query = True
+        self.assertTrue(inspect() & 5 == 5)  # Unreadable scopes remain blocked.
 
     def test_absent_property_selection_and_values_are_unspecified(self):
         host = self.host()
@@ -289,9 +320,11 @@ class FieldTests(unittest.TestCase):
         host.values[0].kind = 3
         self.assertEqual(self.inspect(host), 0x300 | 5 | 3 << 16)
 
-    def test_unknown_nonsecret_and_empty_scope_lists_are_ordinary(self):
+    def test_known_ascii_and_unknown_scope_flags_are_distinct(self):
         host = self.host()
         host.values[0].values = [0, 4, 9999]
+        self.assertEqual(self.inspect(host), 0x308)
+        host.values[0].values = [0, 50, 9999]
         self.assertEqual(self.inspect(host), 0x300)
 
     def test_failed_query_with_partial_interface_output_releases_references(self):

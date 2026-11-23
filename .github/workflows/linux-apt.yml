@@ -1,0 +1,44 @@
+name: Ubuntu向けAPT更新
+on:
+  release:
+    types: [published]
+  workflow_dispatch:
+    inputs:
+      tag:
+        required: true
+        description: '登録する公開済み正式版タグ'
+permissions:
+  contents: read
+  pages: write
+  id-token: write
+concurrency:
+  group: linux-apt
+  cancel-in-progress: false
+jobs:
+  deploy:
+    if: github.event_name == 'workflow_dispatch' || (!github.event.release.prerelease && startsWith(github.event.release.tag_name, 'flash-v'))
+    runs-on: ubuntu-24.04
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    steps:
+      - uses: actions/checkout@v5
+        with:
+          ref: rust
+      - run: sudo apt-get update && sudo apt-get install -y apt-utils gnupg
+      - name: 公開版を照合してAPTカタログへ署名
+        env:
+          GH_TOKEN: ${{ github.token }}
+          SIGNING_KEY: ${{ secrets.APT_SIGNING_KEY }}
+          TAG: ${{ inputs.tag || github.event.release.tag_name }}
+        run: |
+          export GNUPGHOME="$RUNNER_TEMP/apt-signing"
+          install -d -m 700 "$GNUPGHOME"
+          printf '%s' "$SIGNING_KEY" | gpg --batch --import
+          python3 tools/publish-linux-apt.py "$TAG" site
+      - uses: actions/configure-pages@v5
+      - uses: actions/upload-pages-artifact@v3
+        with:
+          path: site
+      - uses: actions/deploy-pages@v4
+        id: deployment

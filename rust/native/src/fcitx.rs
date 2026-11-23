@@ -7,6 +7,7 @@ use super::*;
 struct Frontend {
     direct: bool,
     preedit: bool,
+    predicting: bool,
 }
 fn frontends() -> &'static Mutex<HashMap<usize, Frontend>> {
     static STATES: OnceLock<Mutex<HashMap<usize, Frontend>>> = OnceLock::new();
@@ -62,6 +63,22 @@ pub extern "C" fn meltype_fcitx_set_preedit(handle: *mut c_void, visible: i32) {
         state.preedit = visible != 0;
     }
 }
+pub(crate) fn set_predicting(handle: *mut c_void, predicting: bool) {
+    if let Some(state) = frontends()
+        .lock()
+        .unwrap_or_else(|e| e.into_inner())
+        .get_mut(&(handle as usize))
+    {
+        state.predicting = predicting;
+    }
+}
+pub(crate) fn predicting(handle: *mut c_void) -> bool {
+    frontends()
+        .lock()
+        .unwrap_or_else(|e| e.into_inner())
+        .get(&(handle as usize))
+        .is_some_and(|state| state.predicting)
+}
 #[no_mangle]
 pub extern "C" fn meltype_fcitx_set_direct(handle: *mut c_void, direct: i32) {
     // Same lock order as destruction: frontend -> core. Neither operation calls
@@ -78,7 +95,7 @@ pub extern "C" fn meltype_fcitx_set_direct(handle: *mut c_void, direct: i32) {
 fn translate(symbol: u32, scalar: u32) -> (u32, u32) {
     let special = match symbol {
         0xff0d | 0xff8d => 13,
-        0xff09 => 9,
+        0xff09 | 0xfe20 => 9,
         0x20 => 32,
         0xff08 => 8,
         0xffff => 0x2e,
@@ -91,7 +108,8 @@ fn translate(symbol: u32, scalar: u32) -> (u32, u32) {
         0xff57 => 0x23,
         0xff55 => 0x21,
         0xff56 => 0x22,
-        0xffc3..=0xffc7 => 0x75 + symbol - 0xffc3,
+        0xffbe..=0xffc9 => 0x70 + symbol - 0xffbe,
+        0xffe5 => 0x14,
         _ => 0,
     };
     if special != 0 {
@@ -103,6 +121,7 @@ fn translate(symbol: u32, scalar: u32) -> (u32, u32) {
     let key = match character {
         'a'..='z' => scalar - 32,
         'A'..='Z' | '0'..='9' => scalar,
+        '`' => 0xc0,
         ',' => 0xbc,
         '.' => 0xbe,
         '-' => 0xbd,
@@ -112,6 +131,17 @@ fn translate(symbol: u32, scalar: u32) -> (u32, u32) {
         _ => 7,
     };
     (key, scalar)
+}
+pub(crate) fn sync_input_mode(handle: *mut c_void) -> Option<bool> {
+    let direct = match meltype_input_mode(handle) {
+        0 => false,
+        1 => true,
+        _ => return None,
+    };
+    let mut all = frontends().lock().ok()?;
+    let state = all.get_mut(&(handle as usize))?;
+    state.direct = direct;
+    Some(direct)
 }
 /// Low 32 bits: virtual key; high 32 bits: Unicode scalar. Zero means unhandled.
 #[no_mangle]
@@ -134,7 +164,7 @@ pub extern "C" fn meltype_fcitx_modifiers(state: u32) -> i32 {
 #[no_mangle]
 pub extern "C" fn meltype_fcitx_mode(symbol: u32, direct: i32) -> u32 {
     let direct = direct != 0;
-    let toggle = matches!(symbol, 0xff28..=0xff2a);
+    let toggle = matches!(symbol, 0xff21 | 0xff28..=0xff2a);
     let english = matches!(symbol, 0xff22 | 0xff30);
     let role = if direct {
         0
@@ -266,6 +296,9 @@ mod tests {
             (0xff56, 34),
             (0xffc3, 117),
             (0xffc7, 121),
+            (0xffbe, 112),
+            (0xffc9, 123),
+            (0xffe5, 20),
         ] {
             assert_eq!(
                 translate(symbol, 'x' as u32),
@@ -280,11 +313,12 @@ mod tests {
             assert_eq!((packed >> 32) as u32, character as u32);
         }
         assert_eq!(translate(0, 'a' as u32), (65, 97));
+        assert_eq!(translate(0, '`' as u32), (0xc0, 96));
         assert_eq!(translate(0, 'İ' as u32), (7, 'İ' as u32));
         for invalid in [0, 31, 0xd800, 0x110000] {
             assert_eq!(meltype_fcitx_key(0, invalid), 0);
         }
-        assert_eq!(meltype_fcitx_key(0xfe20, 0), 0); // former fcitx policy, unlike IBus
+        assert_eq!(meltype_fcitx_key(0xfe20, 0), 9); // ISO_Left_Tab must reach Core as Shift+Tab.
     }
     #[test]
     fn modifier_bits_preserve_all_combinations_without_locks_or_super2() {
@@ -300,7 +334,7 @@ mod tests {
     #[test]
     fn japanese_mode_and_role_plans_preserve_direct_and_commit_policy() {
         for direct in [0, 1] {
-            for symbol in [0xff28, 0xff29, 0xff2a] {
+            for symbol in [0xff21, 0xff28, 0xff29, 0xff2a] {
                 assert_eq!(
                     meltype_fcitx_mode(symbol, direct),
                     if direct == 0 { 3 } else { 1 }
@@ -319,7 +353,7 @@ mod tests {
                 meltype_fcitx_mode(0xff27, direct),
                 1 | if direct == 0 { 0x15 << 8 } else { 0 }
             );
-            for ordinary in [0, 0xff21, 0xff24, 0xff25, 0xff26, 0xff2f, 0x61, 0x100304b] {
+            for ordinary in [0, 0xff24, 0xff25, 0xff26, 0xff2f, 0x61, 0x100304b] {
                 assert_eq!(meltype_fcitx_mode(ordinary, direct), 0);
             }
         }

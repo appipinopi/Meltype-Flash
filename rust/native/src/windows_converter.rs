@@ -3,8 +3,9 @@
 //! Windows engine adapter. COM objects remain on their originating STA thread.
 mod candidates;
 mod worker;
+mod zenzai;
 pub use worker::install as install_worker;
-pub(crate) use worker::{has_worker, learn, scope};
+pub(crate) use worker::{generated_candidates, has_worker, learn, scope};
 mod system;
 use serde_json::json;
 use std::ffi::c_char;

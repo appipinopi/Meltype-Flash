@@ -54,7 +54,7 @@ fn main() {
         .expect("Windows SDK resource compiler is required for the Flash icon");
     assert!(
         status.success(),
-        "Meltype-flash icon resource compilation failed"
+        "Meltype-FLASH icon resource compilation failed"
     );
     println!(
         "cargo:rustc-link-arg-bin=meltype-flash={}",

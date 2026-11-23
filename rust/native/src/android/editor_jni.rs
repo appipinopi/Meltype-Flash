@@ -149,6 +149,31 @@ impl Editor for Connection<'_, '_, '_> {
         self.clear_exception();
         self.boolean("finishComposingText", "()Z", &[])
     }
+    fn move_back(&mut self, count: u32) -> Result<bool> {
+        for _ in 0..count {
+            for action in [0, 1] {
+                self.current()?;
+                let event = self
+                    .env
+                    .new_object(
+                        "android/view/KeyEvent",
+                        "(II)V",
+                        &[JValue::Int(action), JValue::Int(21)],
+                    )
+                    .map_err(|_| EditorError)?;
+                let result = self.boolean(
+                    "sendKeyEvent",
+                    "(Landroid/view/KeyEvent;)Z",
+                    &[JValue::Object(&event)],
+                );
+                let _ = self.env.delete_local_ref(event);
+                if !result? {
+                    return Ok(false);
+                }
+            }
+        }
+        Ok(true)
+    }
 }
 fn context_snapshot(
     env: &mut JNIEnv,
@@ -282,6 +307,7 @@ pub extern "system" fn Java_moe_meltype_rust_Native_softwareFallback(
             return editor.commit(&text);
         }
         match key {
+            8 if editor.selected()?.is_some_and(|text| !text.is_empty()) => editor.commit(""),
             8 => editor.boolean(
                 "deleteSurroundingTextInCodePoints",
                 "(II)Z",

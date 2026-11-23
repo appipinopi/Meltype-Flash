@@ -95,3 +95,37 @@ fn unreadable_next_last_and_protected_clauses_reject_resizing_without_changes() 
     ));
     assert_eq!(s.display(false), raw);
 }
+
+#[test]
+fn issue_487_registered_names_do_not_split_longer_known_words() {
+    let mut session = Session::default();
+    session
+        .preferences
+        .user_dictionary
+        .insert("ちな".into(), vec!["千奈".into()]);
+    for reading in ["ちなみに", "ちなみにきょうは"] {
+        assert!(
+            session.registered_conversion_plan(reading, &[]).is_none(),
+            "{reading}"
+        );
+        let engine = vec![Clause::new(reading.into(), vec![reading.into()])];
+        assert!(
+            session
+                .registered_conversion_plan(reading, &engine)
+                .is_none(),
+            "{reading}"
+        );
+    }
+    for reading in ["ちなは", "ちなに", "ちなさん"] {
+        let plan = session
+            .registered_conversion_plan(reading, &[])
+            .expect("名前と助詞・敬称は使える");
+        assert_eq!(plan[0], ("ちな".into(), Some("千奈".into())));
+    }
+    for ch in "china".chars() {
+        session.key(0, ch as i32, 0);
+    }
+    session.key(0x75, 0, 0);
+    session.key(32, 32, 0);
+    assert_eq!(session.commit().commits[0].text, "千奈");
+}

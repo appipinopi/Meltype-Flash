@@ -35,6 +35,28 @@ function Assert-Child([string]$Base, [string]$Path) {
     if (-not $full.StartsWith($prefix, [StringComparison]::OrdinalIgnoreCase)) { throw "Path leaves root: $Path" }
     return $full
 }
+function Enter-InstallLock([string]$Root) {
+    $lockPath = Join-Path $Root '.install.lock'
+    foreach ($path in @($Root, $lockPath)) {
+        if ((Test-Path -LiteralPath $path) -and ((Get-Item -LiteralPath $path -Force).Attributes -band [IO.FileAttributes]::ReparsePoint)) { throw 'Reparse point in installation lock path' }
+    }
+    New-Item -ItemType Directory -Path $Root -Force | Out-Null
+    try { return [IO.File]::Open($lockPath, [IO.FileMode]::OpenOrCreate, [IO.FileAccess]::ReadWrite, [IO.FileShare]::None) }
+    catch [IO.IOException] { throw 'Another installation or update is running. Wait for it to finish, then retry.' }
+}
+function Write-InstallState([string]$Path, $State) {
+    if ((Test-Path -LiteralPath $Path) -and ((Get-Item -LiteralPath $Path -Force).Attributes -band [IO.FileAttributes]::ReparsePoint)) { throw 'Reparse point in installation state path' }
+    $temporary = $Path + '.' + [Guid]::NewGuid().ToString('N') + '.tmp'
+    try {
+        [IO.File]::WriteAllText($temporary, ($State | ConvertTo-Json), [Text.UTF8Encoding]::new($true))
+        # Move-Item -Force can delete the previous state before a failed move.
+        # Replace keeps the previous file intact when the replacement fails.
+        if ([IO.File]::Exists($Path)) { [IO.File]::Replace($temporary, $Path, [NullString]::Value) }
+        else { [IO.File]::Move($temporary, $Path) }
+    } finally {
+        if ([IO.File]::Exists($temporary)) { [IO.File]::Delete($temporary) }
+    }
+}
 function Test-Package([string]$Root) {
     $manifest = Get-Content -LiteralPath (Join-Path $Root 'SHA256SUMS.json') -Raw -Encoding UTF8 | ConvertFrom-Json
     foreach ($name in @('meltype-flash.exe','meltype-rs.exe','tip/x64/MeltypeTip.dll','tip/x86/MeltypeTip.dll',
@@ -56,7 +78,7 @@ function Test-Package([string]$Root) {
         $hex = [BitConverter]::ToString([IO.File]::ReadAllBytes($dll))
         foreach ($id in @([Guid]$clsid, [Guid]'{6D01DE9C-8AB3-5CFC-A5C6-10893CDF8762}')) {
             if (-not $hex.Contains([BitConverter]::ToString($id.ToByteArray()))) {
-                throw "Missing Meltype-flash identity: tip/$arch/MeltypeTip.dll. Rebuild the Flash DLL; legacy shared-ID packages cannot be installed."
+                throw "Missing Meltype-FLASH identity: tip/$arch/MeltypeTip.dll. Rebuild the Flash DLL; legacy shared-ID packages cannot be installed."
             }
         }
     }
@@ -69,6 +91,12 @@ if ($Action -notin @('Uninstall','Cleanup')) {
     if ($Action -eq 'Inspect') { return }
 }
 $installRoot = Get-InstallRoot
+$installationLock = $null
+try {
+if (-not $WhatIfPreference) {
+    Assert-Administrator
+    $installationLock = Enter-InstallLock $installRoot
+}
 $statePath = Assert-Child $installRoot (Join-Path $installRoot 'installed.json')
 $state = if (Test-Path -LiteralPath $statePath) { Get-Content -LiteralPath $statePath -Raw | ConvertFrom-Json } else { $null }
 $old = @{ x64 = (Get-Server ([Microsoft.Win32.RegistryView]::Registry64)); x86 = (Get-Server ([Microsoft.Win32.RegistryView]::Registry32)) }
@@ -76,12 +104,11 @@ if ($Action -eq 'Update' -and $null -eq $state) { throw 'No managed installation
 if ($Action -notin @('Uninstall','Cleanup')) {
     foreach ($arch in 'x64','x86') {
         if ($old[$arch] -and -not $old[$arch].StartsWith($installRoot+'\',[StringComparison]::OrdinalIgnoreCase) -and -not $ReplaceExisting) {
-            throw "Another Meltype-flash is registered: $($old[$arch]). Back up its data; use -ReplaceExisting to replace the Meltype-flash registration."
+            throw "Another Meltype-FLASH is registered: $($old[$arch]). Back up its data; use -ReplaceExisting to replace the Meltype-FLASH registration."
         }
     }
 }
-if (-not $PSCmdlet.ShouldProcess($installRoot, "$Action Meltype-flash IME")) { return }
-Assert-Administrator
+if (-not $PSCmdlet.ShouldProcess($installRoot, "$Action Meltype-FLASH IME")) { return }
 $windows = [Environment]::GetFolderPath('Windows')
 $reg64 = Join-Path $windows 'System32\regsvr32.exe'
 if (-not [Environment]::Is64BitProcess) { $reg64 = Join-Path $windows 'Sysnative\regsvr32.exe' }
@@ -92,6 +119,27 @@ function Register-Server([string]$Arch,[string]$Dll,[switch]$Remove) {
     $arguments += '"'+$Dll+'"'
     $process = Start-Process -FilePath $exe -ArgumentList $arguments -WindowStyle Hidden -Wait -PassThru
     if ($process.ExitCode -ne 0) { throw "regsvr32 $Arch failed: $($process.ExitCode)" }
+}
+function Set-StartMenuShortcut([string]$Exe) {
+    $programs = [Environment]::GetFolderPath('CommonPrograms')
+    $shortcut = Join-Path $programs 'Meltype-FLASH.lnk'
+    $shell = New-Object -ComObject WScript.Shell
+    $link = $shell.CreateShortcut($shortcut)
+    $link.TargetPath = $Exe
+    $link.WorkingDirectory = Split-Path -Parent $Exe
+    $link.IconLocation = "$Exe,0"
+    $link.Description = 'Meltype-FLASH'
+    $link.Save()
+    $key = 'HKLM:\SOFTWARE\Microsoft\Windows\CurrentVersion\App Paths\Meltype-FLASH.exe'
+    New-Item -Path $key -Force | Out-Null
+    Set-ItemProperty -Path $key -Name '(default)' -Value $Exe
+    Write-Host "Start menu shortcut: $shortcut"
+}
+function Remove-StartMenuShortcut {
+    $shortcut = Join-Path ([Environment]::GetFolderPath('CommonPrograms')) 'Meltype-FLASH.lnk'
+    if (Test-Path -LiteralPath $shortcut) { Remove-Item -LiteralPath $shortcut -Force }
+    $key = 'HKLM:\SOFTWARE\Microsoft\Windows\CurrentVersion\App Paths\Meltype-FLASH.exe'
+    if (Test-Path -LiteralPath $key) { Remove-Item -LiteralPath $key -Recurse -Force }
 }
 function Invoke-StartupMaintenance([string]$Exe, [ValidateSet('rebind','disable','stop-tray')][string]$Operation) {
     if (-not (Test-Path -LiteralPath $Exe -PathType Leaf)) { throw "Startup helper missing: $Exe" }
@@ -177,6 +225,7 @@ function Remove-ManagedFiles([string]$Root) {
 }
 if ($Action -eq 'Cleanup') {
     if ($null -eq $state -or $state.unregistered -ne $true) { throw 'Uninstall must complete before Cleanup.' }
+    Remove-StartMenuShortcut
     foreach ($arch in 'x64','x86') {
         if ($old[$arch] -and $old[$arch].StartsWith($installRoot+'\',[StringComparison]::OrdinalIgnoreCase)) { throw 'Installed IME is still registered; cleanup refused.' }
     }
@@ -199,8 +248,8 @@ if ($Action -eq 'Uninstall') {
     }
     foreach ($arch in 'x64','x86') { Register-Server $arch ([string]$state.$arch) -Remove }
     $state | Add-Member -NotePropertyName unregistered -NotePropertyValue $true -Force
-    $state | ConvertTo-Json | Set-Content -LiteralPath "$statePath.tmp" -Encoding UTF8
-    Move-Item -LiteralPath "$statePath.tmp" -Destination $statePath -Force
+    Write-InstallState $statePath $state
+    try { Remove-StartMenuShortcut } catch { Write-Warning "Could not remove the Start menu shortcut: $_" }
     Remove-ManagedFiles $installRoot
     Write-Host 'IME unregistered. Current-user tray/startup were processed unless explicitly skipped. User data is retained.'
     return
@@ -235,9 +284,7 @@ try {
         Register-Server $arch (Join-Path $versionRoot "tip\$arch\MeltypeTip.dll")
     }
     $newState = @{ x64 = (Join-Path $versionRoot 'tip\x64\MeltypeTip.dll'); x86 = (Join-Path $versionRoot 'tip\x86\MeltypeTip.dll'); package = $versionRoot; startupProtocol = 1 }
-    $temporary = Join-Path $installRoot 'installed.json.tmp'
-    $newState | ConvertTo-Json | Set-Content -LiteralPath $temporary -Encoding UTF8
-    Move-Item -LiteralPath $temporary -Destination $statePath -Force
+    Write-InstallState $statePath $newState
 } catch {
     $failure = $_
     foreach ($arch in $attempted) {
@@ -256,5 +303,10 @@ if (-not $SkipCurrentUserStartup) {
         throw "IME installation completed, but current-user startup was not updated: $_. Old version files were retained; retry the startup helper from the new folder."
     }
 }
-Write-Host "Installed: $versionRoot. Select Meltype-flash in Windows language settings; restart open applications."
+try { Set-StartMenuShortcut (Join-Path $versionRoot 'meltype-flash.exe') }
+catch { Write-Warning "Could not create the Start menu shortcut: $_" }
+Write-Host "Installed: $versionRoot. Select Meltype-FLASH in Windows language settings; restart open applications."
 Write-Host "Start tray: & '$versionRoot\meltype-flash.exe' --tray"
+} finally {
+    if ($null -ne $installationLock) { $installationLock.Dispose() }
+}

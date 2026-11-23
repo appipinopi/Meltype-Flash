@@ -1,6 +1,9 @@
 // SPDX-License-Identifier: GPL-3.0-or-later
 // Copyright (C) 2026 Yukishiro, appipinopi
 use chrono::NaiveDate;
+fn date(year: i32, month: u32, day: u32) -> NaiveDate {
+    NaiveDate::from_ymd_opt(year, month, day).unwrap()
+}
 use meltype_core::{
     dictionary::Dictionary,
     session::Clause,
@@ -15,19 +18,22 @@ fn upstream_date_and_clock_formats_validate_calendar_and_fullwidth_digits() {
         .and_hms_opt(17, 22, 0)
         .unwrap();
     assert_eq!(
-        time::candidates("きょう", now),
+        time::candidates("きょう", now, "Asia/Tokyo"),
         [
             "2026年10月9日",
             "2026年10月9日(金)",
             "10月9日",
             "10月9日(金)",
             "2026/10/09",
+            "2026/10/09(金)",
+            "10/9(金)",
             "2026-10-09",
-            "金曜日"
+            "金曜日",
+            "20261009"
         ]
     );
     assert_eq!(
-        time::candidates("いま", now),
+        time::candidates("いま", now, "Asia/Tokyo"),
         [
             "17:22",
             "17時22分",
@@ -39,17 +45,39 @@ fn upstream_date_and_clock_formats_validate_calendar_and_fullwidth_digits() {
         ]
     );
     assert_eq!(
-        time::typed("１０がつ９にち", 2026).unwrap(),
-        ["10/9", "10/09", "10/9(金)", "2026/10/09"]
+        time::typed("１０がつ９にち", date(2026, 10, 9)).unwrap(),
+        [
+            "10/9",
+            "10/09",
+            "10月9日",
+            "10/9(金)",
+            "10月9日(金)",
+            "2026/10/09",
+            "2026/10/09(金)",
+            "2026年10月9日"
+        ]
     );
-    assert_eq!(time::typed("３じ５ぷん", 2026).unwrap(), ["3:05", "03:05"]);
-    assert!(time::typed("2がつ29にち", 2026).unwrap().is_empty());
-    assert!(!time::typed("2がつ29にち", 2024).unwrap().is_empty());
+    assert_eq!(
+        time::typed("３じ５ぷん", date(2026, 10, 9)).unwrap(),
+        ["3:05", "03:05"]
+    );
+    assert_eq!(
+        time::typed("2がつ29にち", date(2026, 10, 9)).unwrap()[0],
+        "2/29"
+    );
+    assert_eq!(
+        time::typed("2がつ29にち", date(2026, 10, 9)).unwrap()[5],
+        "2028/02/29"
+    );
+    assert!(time::typed("2がつ29にち", date(2024, 2, 29)).is_some());
     for raw in ["13がつ1にち", "2がつ30にち", "25じ0ふん", "23じ60ふん"] {
-        assert!(time::typed(raw, 2026).unwrap().is_empty(), "{raw}");
+        assert!(
+            time::typed(raw, date(2026, 10, 9)).unwrap().is_empty(),
+            "{raw}"
+        );
     }
     for raw in ["100がつ1にち", "3じ15", "abcじ5ふん"] {
-        assert!(time::typed(raw, 2026).is_none(), "{raw}");
+        assert!(time::typed(raw, date(2026, 10, 9)).is_none(), "{raw}");
     }
 }
 
@@ -88,12 +116,12 @@ fn emoji_and_ascii_supplementary_words_follow_normal_kana_candidates() {
     let d = Dictionary::bundled();
     assert_eq!(d.convert("すし"), "すし");
     assert_eq!(d.convert("ぺん"), "ぺん");
-    let candidates = d.candidates("すし");
+    let candidates = d.candidates("すし", "Asia/Tokyo");
     let emoji = d.emoji("すし");
     assert!(!emoji.is_empty());
     assert_eq!(&candidates[candidates.len() - emoji.len()..], emoji);
     assert!(!emoji.contains(&candidates[0]));
-    let candidates = d.candidates("ぺん");
+    let candidates = d.candidates("ぺん", "Asia/Tokyo");
     assert!(
         candidates.iter().position(|s| s == "ぺん").unwrap()
             < candidates.iter().position(|s| s == "PEN").unwrap()

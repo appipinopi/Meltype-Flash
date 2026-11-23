@@ -135,6 +135,7 @@ for initial in ["", "前😀", "e\u{301}", "a\u{0}b"] {
      range=NSRange(location:caret-edit.deleteBefore,length:edit.deleteBefore)
      referenceTrace.append("substring:\(range.location):\(range.length)")
      guard (reference as NSString).substring(with:range)==expected else {referencePublished=false;break}
+     if referenceMarked { referenceTrace.append("clear"); referenceMarked=false }
     }
     referenceTrace.append("insert:\(range.location):\(range.length):\(edit.text)")
     if range.location==NSNotFound {reference+=edit.text}
@@ -146,18 +147,18 @@ for initial in ["", "前😀", "e\u{301}", "a\u{0}b"] {
      selected:{trace.append("selected");return NSRange(location:(document as NSString).length,length:0)},
      substring:{range in trace.append("substring:\(range.location):\(range.length)");return (document as NSString).substring(with:range)},
      insert:{text,range in trace.append("insert:\(range.location):\(range.length):\(text)");if range.location==NSNotFound {document+=text}else{document=(document as NSString).replacingCharacters(in:range,with:text)};marked=false},
-     render:{published=true;trace.append("render")})
+     clearMarked:{marked=false;trace.append("clear")}, render:{published=true;trace.append("render")})
    precondition(completed==referencePublished && published==referencePublished && document==reference && trace==referenceTrace,"old/new edit loop mismatch")
    applyCount+=1
   }
  }
 }
 var canonicalDocument="é", canonicalRendered=false
-precondition(editor.apply(response([(1,"x","e\u{301}")]),marked:{NSRange(location:NSNotFound,length:0)},selected:{NSRange(location:1,length:0)},substring:{_ in "é"},insert:{_,_ in fatalError("UTF16 mismatch must reject before mutation")},render:{fatalError("invalid length rendered")} )==false)
+precondition(editor.apply(response([(1,"x","e\u{301}")]),marked:{NSRange(location:NSNotFound,length:0)},selected:{NSRange(location:1,length:0)},substring:{_ in "é"},insert:{_,_ in fatalError("UTF16 mismatch must reject before mutation")},clearMarked:{fatalError("invalid edit cleared preedit")},render:{fatalError("invalid length rendered")} )==false)
 // A host may return canonically equivalent text with a different UTF16 length.
-precondition(editor.apply(response([(2,"x","e\u{301}")]),marked:{NSRange(location:2,length:1)},selected:{fatalError("marked caret must suppress selectedRange")},substring:{_ in canonicalDocument},insert:{text,_ in canonicalDocument=text},render:{canonicalRendered=true}))
+precondition(editor.apply(response([(2,"x","e\u{301}")]),marked:{NSRange(location:2,length:1)},selected:{fatalError("marked caret must suppress selectedRange")},substring:{_ in canonicalDocument},insert:{text,_ in canonicalDocument=text},clearMarked:{},render:{canonicalRendered=true}))
 precondition(canonicalDocument=="x" && canonicalRendered)
-print("macOS Rust apply: \(applyCount) independent legacy edit traces/final documents, current ranges, Unicode/NUL, ordered edits, mismatch stop and canonical comparison passed")
+print("macOS Rust apply: \(applyCount) legacy final documents and edit traces with verified preedit clearing, current ranges, Unicode/NUL, ordered edits, mismatch stop and canonical comparison passed")
 
 var compositionCount=0
 for text in ["", "前😀後", "e\u{301}", "a\u{0}b"] {
@@ -462,12 +463,12 @@ for action in ModeShortcutAction.allCases {
 }
 precondition(oldServicesTarget.actions.isEmpty)
 for identifier in [nil,"","DIRECT","0","unknown","direct\u{0}"] as [String?] {
-    precondition(invokeNativeService(realServiceProvider,identifier)=="Meltypeの入力モードの指定が不正です。")
+    precondition(invokeNativeService(realServiceProvider,identifier)=="Meltype-FLASHの入力モードの指定が不正です。")
 }
 selectedSource=false
-precondition(invokeNativeService(realServiceProvider,"direct")=="入力ソースでMeltypeを選択してください。")
+precondition(invokeNativeService(realServiceProvider,"direct")=="入力ソースでMeltype-FLASHを選択してください。")
 selectedSource=true;currentServicesTarget.available=false
-precondition(invokeNativeService(realServiceProvider,"code")=="Meltypeの入力欄を取得できませんでした。")
+precondition(invokeNativeService(realServiceProvider,"code")=="Meltype-FLASHの入力欄を取得できませんでした。")
 currentServicesTarget.available=true
 // Reentrant activation/deactivation must not hold a native RefCell borrow.
 currentServicesTarget.duringApply={servicesOwner!.deactivate(currentServicesTarget)}
@@ -484,7 +485,7 @@ precondition(idleServiceActions==[.direct,.cycle])
 let servicesBackgroundDone=DispatchSemaphore(value:0)
 DispatchQueue.global().async {
     autoreleasepool {
-        precondition(invokeNativeService(realServiceProvider,"direct")=="Meltypeの入力モードはメインスレッドで変更してください。")
+        precondition(invokeNativeService(realServiceProvider,"direct")=="Meltype-FLASHの入力モードはメインスレッドで変更してください。")
     }
     servicesBackgroundDone.signal()
 }
@@ -492,7 +493,7 @@ precondition(servicesBackgroundDone.wait(timeout:.now()+5) == .success)
 precondition(serviceBoard.string(forType:.string)=="既存の文字😀","Services modified pasteboard")
 servicesOwner=nil
 precondition(weakServicesOwner==nil,"native service provider retained Swift owner")
-precondition(invokeNativeService(realServiceProvider,"direct")=="Meltypeの入力欄を取得できませんでした。")
+precondition(invokeNativeService(realServiceProvider,"direct")=="Meltype-FLASHの入力欄を取得できませんでした。")
 // A source-query callback may dispose its own Swift owner; native delivery pins
 // it for this invocation and rejects subsequent calls through the retained root.
 var disposeOwner: ModeServices?
@@ -502,14 +503,14 @@ weak var weakDisposeOwner=disposeOwner
 guard let disposeProvider=disposeOwner?.serviceProvider as? NSObject else {fatalError("dispose provider")}
 precondition(invokeNativeService(disposeProvider,"code")==nil)
 precondition(disposeActions==[.code] && weakDisposeOwner==nil)
-precondition(invokeNativeService(disposeProvider,"direct")=="Meltypeの入力欄を取得できませんでした。")
+precondition(invokeNativeService(disposeProvider,"direct")=="Meltype-FLASHの入力欄を取得できませんでした。")
 let backgroundFirstOwner=ModeServices(isMeltypeSelected:{true},selectWithoutInput:{_ in})
 let backgroundFirstDone=DispatchSemaphore(value:0)
 DispatchQueue.global().async {
     autoreleasepool {
         var error: NSString?
         backgroundFirstOwner.changeInputMode(serviceBoard,userData:"direct",error:&error)
-        precondition(error=="Meltypeの入力モードはメインスレッドで変更してください。")
+        precondition(error=="Meltype-FLASHの入力モードはメインスレッドで変更してください。")
     }
     backgroundFirstDone.signal()
 }
@@ -776,16 +777,17 @@ func legacyInputMenu(target:InputMenuProbe,direct:Bool,code:Bool,indicator:Bool)
     let item=menu.addItem(withTitle:"入力モードをミニウィンドウで表示",action:#selector(InputMenuProbe.toggleModeIndicator(_:)),keyEquivalent:"")
     item.target=target;item.state=indicator ? .on : .off
     menu.addItem(withTitle:"macOSのユーザー辞書を取り込む…",action:#selector(InputMenuProbe.importUserDictionary(_:)),keyEquivalent:"").target=target
-    menu.addItem(withTitle:"Meltype のデータフォルダを開く (設定・ユーザー辞書)",action:#selector(InputMenuProbe.openDataFolder(_:)),keyEquivalent:"")
+    menu.addItem(withTitle:"Meltype-FLASH のデータフォルダを開く (設定・ユーザー辞書)",action:#selector(InputMenuProbe.openDataFolder(_:)),keyEquivalent:"")
+    menu.addItem(.separator())
     menu.addItem(withTitle:"不具合の報告・提案… (Mac 版はプレビュー版です)",action:#selector(InputMenuProbe.openReport(_:)),keyEquivalent:"")
     return menu
 }
 var menuCases=0
 let menuTarget=InputMenuProbe()
-for direct in [false,true] {for code in [false,true] {for enabled in [false,true] {
-    let expected=legacyInputMenu(target:menuTarget,direct:direct,code:code,indicator:enabled)
+for direct in [false,true] {for code in [false,true] {for indicator in [false,true] {
+    let expected=legacyInputMenu(target:menuTarget,direct:direct,code:code,indicator:indicator)
     var produced:NSMenu?
-    autoreleasepool {produced=editor.inputMenu(target:menuTarget,direct:direct,code:code,indicator:enabled) as? NSMenu}
+    autoreleasepool {produced=editor.inputMenu(target:menuTarget,direct:direct,code:code,indicator:indicator) as? NSMenu}
     guard let actual=produced else {fatalError("Rust menu missing")}
     precondition(actual.title==expected.title && actual.autoenablesItems==expected.autoenablesItems)
     precondition(actual.items.count==expected.items.count)
@@ -816,9 +818,19 @@ let dictionaryRows:[[String:Any]]=[
     ["reading":"ab\tcd","phrase":"tab"], ["reading":"ヷ","phrase":"変換"],
     ["reading":"e\u{301}x","phrase":"a\u{0}b"], ["reading":"\u{2028} カナ \u{2029}","phrase":"\u{a0}単語\u{a0}"]
 ]
+// 新しいFoundationのXML writerはNULを拒否する。通常行はXML/binaryの両形式で、
+// NULを含む元の行はbinaryで比較し、結合文字の読みと後続のfile importも維持する。
+let dictionaryTextRows=dictionaryRows.map { row -> [String:Any] in
+    var textRow=row
+    if let phrase=row["phrase"] as? String {
+        textRow["phrase"]=phrase.replacingOccurrences(of:"\u{0}",with:"")
+    }
+    return textRow
+}
 var dictionaryParseCases=0
-for root in [dictionaryRows,["UserDictionary":dictionaryRows],[dictionaryRows[0],"bad"] as [Any],["UserDictionary":["bad"]],[],["other":dictionaryRows]] as [Any] {
- for format in [PropertyListSerialization.PropertyListFormat.xml,.binary] {
+func compareDictionaryShapes(_ rows:[[String:Any]],formats:[PropertyListSerialization.PropertyListFormat]) throws {
+ for root in [rows,["UserDictionary":rows],[rows[0],"bad"] as [Any],["UserDictionary":["bad"]],[],["other":rows]] as [Any] {
+  for format in formats {
     let data=try PropertyListSerialization.data(fromPropertyList:root,format:format,options:0)
     let expected=Result {try LegacyMacUserDictionary.entries(from:data)}
     let actual=Result {try MacUserDictionary.entries(from:data)}
@@ -831,8 +843,14 @@ for root in [dictionaryRows,["UserDictionary":dictionaryRows],[dictionaryRows[0]
     default:fatalError("plist accepted/rejected differently")
     }
     dictionaryParseCases+=1
+  }
  }
 }
+try compareDictionaryShapes(dictionaryTextRows,formats:[.xml,.binary])
+try compareDictionaryShapes(dictionaryRows,formats:[.binary])
+let dictionaryNulData=try PropertyListSerialization.data(fromPropertyList:dictionaryRows,format:.binary,options:0)
+let dictionaryNulEntries=try MacUserDictionary.entries(from:dictionaryNulData)
+precondition(dictionaryNulEntries.contains {Array($0.1.utf16)==[0x61,0,0x62]},"binary plist lost embedded NUL")
 for data in [Data(),Data("invalid plist".utf8),Data([0,255,17])] {
     do {_=try MacUserDictionary.entries(from:data);fatalError("bad plist accepted")} catch {
         do {_=try LegacyMacUserDictionary.entries(from:data);fatalError("reference accepted bad plist")} catch let original {

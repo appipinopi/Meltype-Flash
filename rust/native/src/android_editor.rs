@@ -17,6 +17,7 @@ pub(super) trait Editor {
     fn delete(&mut self, count: i32) -> Result<bool>;
     fn commit(&mut self, text: &str) -> Result<bool>;
     fn finish(&mut self) -> Result<bool>;
+    fn move_back(&mut self, count: u32) -> Result<bool>;
 }
 #[derive(Deserialize)]
 struct Edit {
@@ -24,6 +25,8 @@ struct Edit {
     delete: i32,
     text: String,
     expect: Option<String>,
+    #[serde(default, rename = "caretBack")]
+    caret_back: u32,
 }
 #[derive(Deserialize)]
 struct Reply {
@@ -73,6 +76,9 @@ fn decode(json: &str) -> Option<(Reply, Option<View>)> {
         .transpose()
         .ok()?;
     for edit in &reply.commits {
+        if edit.caret_back as usize > edit.text.encode_utf16().count() {
+            return None;
+        }
         if edit.delete > 0
             && edit.expect.as_ref().map(|s| s.encode_utf16().count()) != Some(edit.delete as usize)
         {
@@ -156,10 +162,21 @@ fn edit_batch(
             *changed = true;
             pending = &[];
         }
+        if edit.caret_back != 0 && !write_result(editor.move_back(edit.caret_back), changed)? {
+            return Err(EditorError);
+        }
     }
     let applied = if let Some(view) = view {
         write_result(editor.composing(&view.text), changed)?
     } else {
+        // A consumed cancellation/deletion with no replacement must remove the
+        // old preedit. finishComposingText alone leaves those characters behind.
+        if reply.consumed && !pending.is_empty() {
+            if !write_result(editor.composing(""), changed)? {
+                return Err(EditorError);
+            }
+            *changed = true;
+        }
         editor.finish()?
     };
     if !applied {

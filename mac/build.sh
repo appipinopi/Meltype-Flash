@@ -117,6 +117,13 @@ else
 fi
 # システム設定の入力ソースの一覧に出す名前
 cp -R Resources/ja.lproj Resources/en.lproj "$APP/Contents/Resources/"
+if [[ "${MELTYPE_RUST_CORE:-}" == 1 ]]; then
+    /usr/libexec/PlistBuddy -c 'Set :CFBundleName Meltype-FLASH' "$APP/Contents/Info.plist"
+    /usr/libexec/PlistBuddy -c 'Set :CFBundleDisplayName Meltype-FLASH' "$APP/Contents/Info.plist"
+    for language in ja en; do
+        sed -i '' 's/= "Meltype";/= "Meltype-FLASH";/g' "$APP/Contents/Resources/$language.lproj/InfoPlist.strings"
+    done
+fi
 # azooKey の辞書などのリソース (Swift Package のリソースバンドル)
 for bundle in "$BIN"/*.bundle; do
     [[ -e "$bundle" ]] && cp -R "$bundle" "$APP/Contents/Resources/"

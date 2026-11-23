@@ -1,0 +1,5843 @@
+[
+  {
+    "set": "A_日英混在",
+    "romaji": "kyouhagoogledekennsakushita",
+    "expected": "今日はgoogleで検索した",
+    "judge": "完全一致",
+    "orig_flash_ok": true,
+    "orig_flash_enter": "きょうはgoogleでけんさくした",
+    "orig_flash_space": "今日はgoogleで検索した"
+  },
+  {
+    "set": "A_日英混在",
+    "romaji": "githubnipushshita",
+    "expected": "githubにpushした",
+    "judge": "完全一致",
+    "orig_flash_ok": true,
+    "orig_flash_enter": "githubにpushした",
+    "orig_flash_space": "githubにpushした"
+  },
+  {
+    "set": "A_日英混在",
+    "romaji": "ashitanomeetingdehanashimasu",
+    "expected": "明日のmeetingで話します",
+    "judge": "完全一致",
+    "orig_flash_ok": true,
+    "orig_flash_enter": "あしたのmeetingではなします",
+    "orig_flash_space": "明日のmeetingで話します"
+  },
+  {
+    "set": "A_日英混在",
+    "romaji": "slackderennrakushitekudasai",
+    "expected": "slackで連絡してください",
+    "judge": "完全一致",
+    "orig_flash_ok": true,
+    "orig_flash_enter": "slackでれんらくしてください",
+    "orig_flash_space": "slackで連絡してください"
+  },
+  {
+    "set": "A_日英混在",
+    "romaji": "konobugwonaoshimashita",
+    "expected": "このbugを直しました",
+    "judge": "完全一致",
+    "orig_flash_ok": false,
+    "orig_flash_enter": "このぶぐぉなおしました",
+    "orig_flash_space": "この武具ぉ直しました"
+  },
+  {
+    "set": "A_日英混在",
+    "romaji": "pullrequestwodashimashita",
+    "expected": "pullrequestを出しました",
+    "judge": "完全一致",
+    "orig_flash_ok": true,
+    "orig_flash_enter": "pullrequestをだしました",
+    "orig_flash_space": "pullrequestを出しました"
+  },
+  {
+    "set": "A_日英混在",
+    "romaji": "zoomnokaiginiokureta",
+    "expected": "zoomの会議に遅れた",
+    "judge": "完全一致",
+    "orig_flash_ok": true,
+    "orig_flash_enter": "zoomのかいぎにおくれた",
+    "orig_flash_space": "zoomの会議に遅れた"
+  },
+  {
+    "set": "A_日英混在",
+    "romaji": "atarashiifeaturewotsuikashita",
+    "expected": "新しいfeatureを追加した",
+    "judge": "完全一致",
+    "orig_flash_ok": false,
+    "orig_flash_enter": "あたらしいふぇあつれをついかした",
+    "orig_flash_space": "新しいフェア連れを追加した"
+  },
+  {
+    "set": "A_日英混在",
+    "romaji": "dockernoimagewotsukurinaosu",
+    "expected": "dockerのimageを作り直す",
+    "judge": "完全一致",
+    "orig_flash_ok": true,
+    "orig_flash_enter": "dockerのimageをつくりなおす",
+    "orig_flash_space": "dockerのimageを作り直す"
+  },
+  {
+    "set": "A_日英混在",
+    "romaji": "imakaradeployshimasu",
+    "expected": "今からdeployします",
+    "judge": "完全一致",
+    "orig_flash_ok": false,
+    "orig_flash_enter": "いまからでployします",
+    "orig_flash_space": "今から出ployします"
+  },
+  {
+    "set": "A_日英混在",
+    "romaji": "sonoissuehakinoutojita",
+    "expected": "そのissueは昨日閉じた",
+    "judge": "完全一致",
+    "orig_flash_ok": false,
+    "orig_flash_enter": "そのissueはきのうとじた",
+    "orig_flash_space": "そのissueは機能閉じた"
+  },
+  {
+    "set": "A_日英混在",
+    "romaji": "codereviewwoonegaishimasu",
+    "expected": "codereviewをお願いします",
+    "judge": "完全一致",
+    "orig_flash_ok": false,
+    "orig_flash_enter": "codeれゔぃえっをおねがいします",
+    "orig_flash_space": "codeレヴィえっをお願いします"
+  },
+  {
+    "set": "A_日英混在",
+    "romaji": "pythondekaita",
+    "expected": "pythonで書いた",
+    "judge": "完全一致",
+    "orig_flash_ok": true,
+    "orig_flash_enter": "pythonでかいた",
+    "orig_flash_space": "pythonで書いた"
+  },
+  {
+    "set": "A_日英混在",
+    "romaji": "scriptgaugokanai",
+    "expected": "scriptが動かない",
+    "judge": "完全一致",
+    "orig_flash_ok": true,
+    "orig_flash_enter": "scriptがうごかない",
+    "orig_flash_space": "scriptが動かない"
+  },
+  {
+    "set": "A_日英混在",
+    "romaji": "errorgadetanode",
+    "expected": "errorが出たので",
+    "judge": "完全一致",
+    "orig_flash_ok": true,
+    "orig_flash_enter": "errorがでたので",
+    "orig_flash_space": "errorが出たので"
+  },
+  {
+    "set": "A_日英混在",
+    "romaji": "logwomitekudasai",
+    "expected": "logを見てください",
+    "judge": "完全一致",
+    "orig_flash_ok": true,
+    "orig_flash_enter": "logをみてください",
+    "orig_flash_space": "logを見てください"
+  },
+  {
+    "set": "A_日英混在",
+    "romaji": "testgazennbutootta",
+    "expected": "testが全部通った",
+    "judge": "完全一致",
+    "orig_flash_ok": true,
+    "orig_flash_enter": "testがぜんぶとおった",
+    "orig_flash_space": "testが全部通った"
+  },
+  {
+    "set": "A_日英混在",
+    "romaji": "raishuunoreleasenimaniau",
+    "expected": "来週のreleaseに間に合う",
+    "judge": "完全一致",
+    "orig_flash_ok": true,
+    "orig_flash_enter": "らいしゅうのreleaseにまにあう",
+    "orig_flash_space": "来週のreleaseに間に合う"
+  },
+  {
+    "set": "A_日英混在",
+    "romaji": "YouTubededougawomita",
+    "expected": "YouTubeで動画を見た",
+    "judge": "完全一致",
+    "orig_flash_ok": true,
+    "orig_flash_enter": "YouTubeでどうがをみた",
+    "orig_flash_space": "YouTubeで動画を見た"
+  },
+  {
+    "set": "A_日英混在",
+    "romaji": "twitternitoukoushita",
+    "expected": "twitterに投稿した",
+    "judge": "完全一致",
+    "orig_flash_ok": true,
+    "orig_flash_enter": "twitterにとうこうした",
+    "orig_flash_space": "twitterに投稿した"
+  },
+  {
+    "set": "A_日英混在",
+    "romaji": "iPhonenojuudenngakireta",
+    "expected": "iPhoneの充電が切れた",
+    "judge": "完全一致",
+    "orig_flash_ok": true,
+    "orig_flash_enter": "iPhoneのじゅうでんがきれた",
+    "orig_flash_space": "iPhoneの充電が切れた"
+  },
+  {
+    "set": "A_日英混在",
+    "romaji": "Windowsnokoushinngakita",
+    "expected": "Windowsの更新が来た",
+    "judge": "完全一致",
+    "orig_flash_ok": true,
+    "orig_flash_enter": "Windowsのこうしんがきた",
+    "orig_flash_space": "Windowsの更新が来た"
+  },
+  {
+    "set": "A_日英混在",
+    "romaji": "chromegaomoi",
+    "expected": "chromeが重い",
+    "judge": "完全一致",
+    "orig_flash_ok": false,
+    "orig_flash_enter": "chromeがおもい",
+    "orig_flash_space": "chromeが思い"
+  },
+  {
+    "set": "A_日英混在",
+    "romaji": "excelnohyouwookurimasu",
+    "expected": "excelの表を送ります",
+    "judge": "完全一致",
+    "orig_flash_ok": false,
+    "orig_flash_enter": "excelのひょうをおくります",
+    "orig_flash_space": "excelの票を送ります"
+  },
+  {
+    "set": "A_日英混在",
+    "romaji": "browserwosaikidoushita",
+    "expected": "browserを再起動した",
+    "judge": "完全一致",
+    "orig_flash_ok": true,
+    "orig_flash_enter": "browserをさいきどうした",
+    "orig_flash_space": "browserを再起動した"
+  },
+  {
+    "set": "A_日英混在",
+    "romaji": "shoppingniiku",
+    "expected": "shoppingに行く",
+    "judge": "完全一致",
+    "orig_flash_ok": true,
+    "orig_flash_enter": "shoppingにいく",
+    "orig_flash_space": "shoppingに行く"
+  },
+  {
+    "set": "A_日英混在",
+    "romaji": "streamingsuru",
+    "expected": "streamingする",
+    "judge": "完全一致",
+    "orig_flash_ok": true,
+    "orig_flash_enter": "streamingする",
+    "orig_flash_space": "streamingする"
+  },
+  {
+    "set": "A_日英混在",
+    "romaji": "meetingganagai",
+    "expected": "meetingが長い",
+    "judge": "完全一致",
+    "orig_flash_ok": false,
+    "orig_flash_enter": "めえちんっがながい",
+    "orig_flash_space": "目愛知ンッが長い"
+  },
+  {
+    "set": "A_日英混在",
+    "romaji": "codingshiteiru",
+    "expected": "codingしている",
+    "judge": "完全一致",
+    "orig_flash_ok": true,
+    "orig_flash_enter": "codingしている",
+    "orig_flash_space": "codingしている"
+  },
+  {
+    "set": "A_日英混在",
+    "romaji": "testingchuudesu",
+    "expected": "testing中です",
+    "judge": "完全一致",
+    "orig_flash_ok": true,
+    "orig_flash_enter": "testingちゅうです",
+    "orig_flash_space": "testing中です"
+  },
+  {
+    "set": "A_日英混在",
+    "romaji": "pingwoutsu",
+    "expected": "pingを打つ",
+    "judge": "完全一致",
+    "orig_flash_ok": true,
+    "orig_flash_enter": "pingをうつ",
+    "orig_flash_space": "pingを打つ"
+  },
+  {
+    "set": "A_日英混在",
+    "romaji": "loggingnosetteiwokaeta",
+    "expected": "loggingの設定を変えた",
+    "judge": "完全一致",
+    "orig_flash_ok": true,
+    "orig_flash_enter": "loggingのせっていをかえた",
+    "orig_flash_space": "loggingの設定を変えた"
+  },
+  {
+    "set": "A_日英混在",
+    "romaji": "futaridedinnerniitta",
+    "expected": "二人でdinnerに行った",
+    "judge": "完全一致",
+    "orig_flash_ok": true,
+    "orig_flash_enter": "ふたりでdinnerにいった",
+    "orig_flash_space": "二人でdinnerに行った"
+  },
+  {
+    "set": "A_日英混在",
+    "romaji": "karehamanagerninatta",
+    "expected": "彼はmanagerになった",
+    "judge": "完全一致",
+    "orig_flash_ok": true,
+    "orig_flash_enter": "かれはmanagerになった",
+    "orig_flash_space": "彼はmanagerになった"
+  },
+  {
+    "set": "A_日英混在",
+    "romaji": "konoapphabennridesu",
+    "expected": "このappは便利です",
+    "judge": "完全一致",
+    "orig_flash_ok": false,
+    "orig_flash_enter": "このあっぷはべんりです",
+    "orig_flash_space": "このあっpは便利です"
+  },
+  {
+    "set": "A_日英混在",
+    "romaji": "passwordwowasureta",
+    "expected": "passwordを忘れた",
+    "judge": "完全一致",
+    "orig_flash_ok": true,
+    "orig_flash_enter": "passwordをわすれた",
+    "orig_flash_space": "passwordを忘れた"
+  },
+  {
+    "set": "A_日英混在",
+    "romaji": "servergaochiteiru",
+    "expected": "serverが落ちている",
+    "judge": "完全一致",
+    "orig_flash_ok": true,
+    "orig_flash_enter": "serverがおちている",
+    "orig_flash_space": "serverが落ちている"
+  },
+  {
+    "set": "A_日英混在",
+    "romaji": "filewokyouyuushimasu",
+    "expected": "fileを共有します",
+    "judge": "完全一致",
+    "orig_flash_ok": true,
+    "orig_flash_enter": "fileをきょうゆうします",
+    "orig_flash_space": "fileを共有します"
+  },
+  {
+    "set": "A_日英混在",
+    "romaji": "cachewokeshitemite",
+    "expected": "cacheを消してみて",
+    "judge": "完全一致",
+    "orig_flash_ok": true,
+    "orig_flash_enter": "cacheをけしてみて",
+    "orig_flash_space": "cacheを消してみて"
+  },
+  {
+    "set": "A_日英混在",
+    "romaji": "versionwoagemashita",
+    "expected": "versionを上げました",
+    "judge": "完全一致",
+    "orig_flash_ok": true,
+    "orig_flash_enter": "versionをあげました",
+    "orig_flash_space": "versionを上げました"
+  },
+  {
+    "set": "A_日英混在",
+    "romaji": "updateshitaranaotta",
+    "expected": "updateしたら直った",
+    "judge": "完全一致",
+    "orig_flash_ok": false,
+    "orig_flash_enter": "updateしたらなおった",
+    "orig_flash_space": "updateしたら治った"
+  },
+  {
+    "set": "A_日英混在",
+    "romaji": "logindekinai",
+    "expected": "loginできない",
+    "judge": "完全一致",
+    "orig_flash_ok": true,
+    "orig_flash_enter": "loginできない",
+    "orig_flash_space": "loginできない"
+  },
+  {
+    "set": "A_日英混在",
+    "romaji": "downloadgaosoi",
+    "expected": "downloadが遅い",
+    "judge": "完全一致",
+    "orig_flash_ok": true,
+    "orig_flash_enter": "downloadがおそい",
+    "orig_flash_space": "downloadが遅い"
+  },
+  {
+    "set": "A_日英混在",
+    "romaji": "uploadshitekudasai",
+    "expected": "uploadしてください",
+    "judge": "完全一致",
+    "orig_flash_ok": true,
+    "orig_flash_enter": "uploadしてください",
+    "orig_flash_space": "uploadしてください"
+  },
+  {
+    "set": "A_日英混在",
+    "romaji": "settingkarakaerareru",
+    "expected": "settingから変えられる",
+    "judge": "完全一致",
+    "orig_flash_ok": true,
+    "orig_flash_enter": "settingからかえられる",
+    "orig_flash_space": "settingから変えられる"
+  },
+  {
+    "set": "A_日英混在",
+    "romaji": "usernokoewokiku",
+    "expected": "userの声を聞く",
+    "judge": "完全一致",
+    "orig_flash_ok": true,
+    "orig_flash_enter": "userのこえをきく",
+    "orig_flash_space": "userの声を聞く"
+  },
+  {
+    "set": "A_日英混在",
+    "romaji": "designwominaosu",
+    "expected": "designを見直す",
+    "judge": "完全一致",
+    "orig_flash_ok": true,
+    "orig_flash_enter": "designをみなおす",
+    "orig_flash_space": "designを見直す"
+  },
+  {
+    "set": "A_日英混在",
+    "romaji": "schedulewokakuninnshimasu",
+    "expected": "scheduleを確認します",
+    "judge": "完全一致",
+    "orig_flash_ok": true,
+    "orig_flash_enter": "scheduleをかくにんします",
+    "orig_flash_space": "scheduleを確認します"
+  },
+  {
+    "set": "A_日英混在",
+    "romaji": "projectnosusumiguai",
+    "expected": "projectの進み具合",
+    "judge": "完全一致",
+    "orig_flash_ok": true,
+    "orig_flash_enter": "projectのすすみぐあい",
+    "orig_flash_space": "projectの進み具合"
+  },
+  {
+    "set": "A_日英混在",
+    "romaji": "taskwowakeru",
+    "expected": "taskを分ける",
+    "judge": "完全一致",
+    "orig_flash_ok": false,
+    "orig_flash_enter": "たsくぉわける",
+    "orig_flash_space": "たsクォ分ける"
+  },
+  {
+    "set": "A_日英混在",
+    "romaji": "kyouharemotedehataraku",
+    "expected": "今日はremoteで働く",
+    "judge": "完全一致",
+    "orig_flash_ok": false,
+    "orig_flash_enter": "きょうはれもてではたらく",
+    "orig_flash_space": "今日はれも手で働く"
+  },
+  {
+    "set": "A_日英混在",
+    "romaji": "officenimodoru",
+    "expected": "officeに戻る",
+    "judge": "完全一致",
+    "orig_flash_ok": true,
+    "orig_flash_enter": "officeにもどる",
+    "orig_flash_space": "officeに戻る"
+  },
+  {
+    "set": "A_日英混在",
+    "romaji": "teamnominasann",
+    "expected": "teamの皆さん",
+    "judge": "完全一致",
+    "orig_flash_ok": true,
+    "orig_flash_enter": "teamのみなさん",
+    "orig_flash_space": "teamの皆さん"
+  },
+  {
+    "set": "A_日英混在",
+    "romaji": "eventnisannkashita",
+    "expected": "eventに参加した",
+    "judge": "完全一致",
+    "orig_flash_ok": true,
+    "orig_flash_enter": "eventにさんかした",
+    "orig_flash_space": "eventに参加した"
+  },
+  {
+    "set": "A_日英混在",
+    "romaji": "gamewohajimeta",
+    "expected": "gameを始めた",
+    "judge": "完全一致",
+    "orig_flash_ok": false,
+    "orig_flash_enter": "がめをはじめた",
+    "orig_flash_space": "が目を始めた"
+  },
+  {
+    "set": "A_日英混在",
+    "romaji": "musicwokikinagara",
+    "expected": "musicを聞きながら",
+    "judge": "完全一致",
+    "orig_flash_ok": true,
+    "orig_flash_enter": "musicをききながら",
+    "orig_flash_space": "musicを聞きながら"
+  },
+  {
+    "set": "A_日英混在",
+    "romaji": "cameradeshashinnwototta",
+    "expected": "cameraで写真を撮った",
+    "judge": "完全一致",
+    "orig_flash_ok": false,
+    "orig_flash_enter": "cameraでしゃしんをとった",
+    "orig_flash_space": "cameraで写真を取った"
+  },
+  {
+    "set": "A_日英混在",
+    "romaji": "samplewookurimasu",
+    "expected": "sampleを送ります",
+    "judge": "完全一致",
+    "orig_flash_ok": true,
+    "orig_flash_enter": "sampleをおくります",
+    "orig_flash_space": "sampleを送ります"
+  },
+  {
+    "set": "A_日英混在",
+    "romaji": "memowotoru",
+    "expected": "memoを取る",
+    "judge": "完全一致",
+    "orig_flash_ok": false,
+    "orig_flash_enter": "めもをとる",
+    "orig_flash_space": "メモを取る"
+  },
+  {
+    "set": "A_日英混在",
+    "romaji": "checkshiteokimasu",
+    "expected": "checkしておきます",
+    "judge": "完全一致",
+    "orig_flash_ok": true,
+    "orig_flash_enter": "checkしておきます",
+    "orig_flash_space": "checkしておきます"
+  },
+  {
+    "set": "B_かな漢字変換",
+    "romaji": "kinounokaigidehanashitanaiyouwomatomemasu",
+    "expected": "昨日の会議で話した内容をまとめます",
+    "judge": "完全一致",
+    "orig_flash_ok": false,
+    "orig_flash_enter": "きのうのかいぎではなしたないようをまとめます",
+    "orig_flash_space": "機能の会議で話した内容をまとめます"
+  },
+  {
+    "set": "B_かな漢字変換",
+    "romaji": "kannjihennkannnoseidowoageru",
+    "expected": "漢字変換の精度を上げる",
+    "judge": "完全一致",
+    "orig_flash_ok": false,
+    "orig_flash_enter": "かんじへんかんのせいどをあげる",
+    "orig_flash_space": "感じ変換の制度を上げる"
+  },
+  {
+    "set": "B_かな漢字変換",
+    "romaji": "ishiwotsutaeru",
+    "expected": "意思を伝える",
+    "judge": "完全一致",
+    "orig_flash_ok": false,
+    "orig_flash_enter": "いしをつたえる",
+    "orig_flash_space": "医師を伝える"
+  },
+  {
+    "set": "B_かな漢字変換",
+    "romaji": "ishigakorogaru",
+    "expected": "石が転がる",
+    "judge": "完全一致",
+    "orig_flash_ok": false,
+    "orig_flash_enter": "いしがころがる",
+    "orig_flash_space": "石がころがる"
+  },
+  {
+    "set": "B_かな漢字変換",
+    "romaji": "ishinimitemorau",
+    "expected": "医師に診てもらう",
+    "judge": "完全一致",
+    "orig_flash_ok": false,
+    "orig_flash_enter": "いしにみてもらう",
+    "orig_flash_space": "石にみてもらう"
+  },
+  {
+    "set": "B_かな漢字変換",
+    "romaji": "kyouhaiitennkidesune",
+    "expected": "今日はいい天気ですね",
+    "judge": "完全一致",
+    "orig_flash_ok": true,
+    "orig_flash_enter": "きょうはいいてんきですね",
+    "orig_flash_space": "今日はいい天気ですね"
+  },
+  {
+    "set": "B_かな漢字変換",
+    "romaji": "ashitanoyoteiwokakuninnshitekudasai",
+    "expected": "明日の予定を確認してください",
+    "judge": "完全一致",
+    "orig_flash_ok": true,
+    "orig_flash_enter": "あしたのよていをかくにんしてください",
+    "orig_flash_space": "明日の予定を確認してください"
+  },
+  {
+    "set": "B_かな漢字変換",
+    "romaji": "ekimaenohonnyadezasshiwokatta",
+    "expected": "駅前の本屋で雑誌を買った",
+    "judge": "完全一致",
+    "orig_flash_ok": true,
+    "orig_flash_enter": "えきまえのほんやでざっしをかった",
+    "orig_flash_space": "駅前の本屋で雑誌を買った"
+  },
+  {
+    "set": "B_かな漢字変換",
+    "romaji": "karehakikaiwokowashita",
+    "expected": "彼は機械を壊した",
+    "judge": "完全一致",
+    "orig_flash_ok": true,
+    "orig_flash_enter": "かれはきかいをこわした",
+    "orig_flash_space": "彼は機械を壊した"
+  },
+  {
+    "set": "B_かな漢字変換",
+    "romaji": "kikaigaarebaikitai",
+    "expected": "機会があれば行きたい",
+    "judge": "完全一致",
+    "orig_flash_ok": false,
+    "orig_flash_enter": "きかいがあればいきたい",
+    "orig_flash_space": "機会があればいきたい"
+  },
+  {
+    "set": "B_かな漢字変換",
+    "romaji": "kouenndekouennwokiita",
+    "expected": "公園で講演を聞いた",
+    "judge": "完全一致",
+    "orig_flash_ok": false,
+    "orig_flash_enter": "こうえんでこうえんをきいた",
+    "orig_flash_space": "公園で公園を聞いた"
+  },
+  {
+    "set": "B_かな漢字変換",
+    "romaji": "seikakunajouhouwoatsumeru",
+    "expected": "正確な情報を集める",
+    "judge": "完全一致",
+    "orig_flash_ok": true,
+    "orig_flash_enter": "せいかくなじょうほうをあつめる",
+    "orig_flash_space": "正確な情報を集める"
+  },
+  {
+    "set": "B_かな漢字変換",
+    "romaji": "kanojohayasashiiseikakuda",
+    "expected": "彼女は優しい性格だ",
+    "judge": "完全一致",
+    "orig_flash_ok": true,
+    "orig_flash_enter": "かのじょはやさしいせいかくだ",
+    "orig_flash_space": "彼女は優しい性格だ"
+  },
+  {
+    "set": "B_かな漢字変換",
+    "romaji": "atarashiipuroguramuwokaihatsushita",
+    "expected": "新しいプログラムを開発した",
+    "judge": "完全一致",
+    "orig_flash_ok": true,
+    "orig_flash_enter": "あたらしいぷろぐらむをかいはつした",
+    "orig_flash_space": "新しいプログラムを開発した"
+  },
+  {
+    "set": "B_かな漢字変換",
+    "romaji": "sonoikennnihasannseidekinai",
+    "expected": "その意見には賛成できない",
+    "judge": "完全一致",
+    "orig_flash_ok": true,
+    "orig_flash_enter": "そのいけんにはさんせいできない",
+    "orig_flash_space": "その意見には賛成できない"
+  },
+  {
+    "set": "B_かな漢字変換",
+    "romaji": "okujoukaranokeshikigakireida",
+    "expected": "屋上からの景色がきれいだ",
+    "judge": "完全一致",
+    "orig_flash_ok": true,
+    "orig_flash_enter": "おくじょうからのけしきがきれいだ",
+    "orig_flash_space": "屋上からの景色がきれいだ"
+  },
+  {
+    "set": "B_かな漢字変換",
+    "romaji": "dennshagaokureteirurashii",
+    "expected": "電車が遅れているらしい",
+    "judge": "完全一致",
+    "orig_flash_ok": true,
+    "orig_flash_enter": "でんしゃがおくれているらしい",
+    "orig_flash_space": "電車が遅れているらしい"
+  },
+  {
+    "set": "B_かな漢字変換",
+    "romaji": "jishinnnojouhouwokakuninnshita",
+    "expected": "地震の情報を確認した",
+    "judge": "完全一致",
+    "orig_flash_ok": false,
+    "orig_flash_enter": "じしんのじょうほうをかくにんした",
+    "orig_flash_space": "自信のじょうほうをかくにんした"
+  },
+  {
+    "set": "B_かな漢字変換",
+    "romaji": "jishinnwomottehappyousuru",
+    "expected": "自信を持って発表する",
+    "judge": "完全一致",
+    "orig_flash_ok": false,
+    "orig_flash_enter": "じしんをもってはっぴょうする",
+    "orig_flash_space": "自信をもってはっぴょうする"
+  },
+  {
+    "set": "B_かな漢字変換",
+    "romaji": "souzouryokuwohatarakaseru",
+    "expected": "想像力を働かせる",
+    "judge": "完全一致",
+    "orig_flash_ok": true,
+    "orig_flash_enter": "そうぞうりょくをはたらかせる",
+    "orig_flash_space": "想像力を働かせる"
+  },
+  {
+    "set": "B_かな漢字変換",
+    "romaji": "keisannkidekeisannsuru",
+    "expected": "計算機で計算する",
+    "judge": "完全一致",
+    "orig_flash_ok": true,
+    "orig_flash_enter": "けいさんきでけいさんする",
+    "orig_flash_space": "計算機で計算する"
+  },
+  {
+    "set": "B_かな漢字変換",
+    "romaji": "hokennnikanyuusuru",
+    "expected": "保険に加入する",
+    "judge": "完全一致",
+    "orig_flash_ok": true,
+    "orig_flash_enter": "ほけんにかにゅうする",
+    "orig_flash_space": "保険に加入する"
+  },
+  {
+    "set": "B_かな漢字変換",
+    "romaji": "tennkiyohoudehaamedatta",
+    "expected": "天気予報では雨だった",
+    "judge": "完全一致",
+    "orig_flash_ok": true,
+    "orig_flash_enter": "てんきよほうではあめだった",
+    "orig_flash_space": "天気予報では雨だった"
+  },
+  {
+    "set": "B_かな漢字変換",
+    "romaji": "shourainoyumewokataru",
+    "expected": "将来の夢を語る",
+    "judge": "完全一致",
+    "orig_flash_ok": true,
+    "orig_flash_enter": "しょうらいのゆめをかたる",
+    "orig_flash_space": "将来の夢を語る"
+  },
+  {
+    "set": "B_かな漢字変換",
+    "romaji": "kikaigakushuunomoderuwotsukuru",
+    "expected": "機械学習のモデルを作る",
+    "judge": "完全一致",
+    "orig_flash_ok": true,
+    "orig_flash_enter": "きかいがくしゅうのもでるをつくる",
+    "orig_flash_space": "機械学習のモデルを作る"
+  },
+  {
+    "set": "B_かな漢字変換",
+    "romaji": "hitoridedekirumonn",
+    "expected": "一人でできるもん",
+    "judge": "完全一致",
+    "orig_flash_ok": true,
+    "orig_flash_enter": "ひとりでできるもん",
+    "orig_flash_space": "一人でできるもん"
+  },
+  {
+    "set": "B_かな漢字変換",
+    "romaji": "mizuwonomisugita",
+    "expected": "水を飲みすぎた",
+    "judge": "完全一致",
+    "orig_flash_ok": true,
+    "orig_flash_enter": "みずをのみすぎた",
+    "orig_flash_space": "水を飲みすぎた"
+  },
+  {
+    "set": "B_かな漢字変換",
+    "romaji": "kaishanokouseiwokaeru",
+    "expected": "会社の構成を変える",
+    "judge": "完全一致",
+    "orig_flash_ok": true,
+    "orig_flash_enter": "かいしゃのこうせいをかえる",
+    "orig_flash_space": "会社の構成を変える"
+  },
+  {
+    "set": "B_かな漢字変換",
+    "romaji": "gennkounokouseiwoonegaishimasu",
+    "expected": "原稿の校正をお願いします",
+    "judge": "完全一致",
+    "orig_flash_ok": false,
+    "orig_flash_enter": "げんこうのこうせいをおねがいします",
+    "orig_flash_space": "現行の構成をお願いします"
+  },
+  {
+    "set": "B_かな漢字変換",
+    "romaji": "taishoutonarushouhinn",
+    "expected": "対象となる商品",
+    "judge": "完全一致",
+    "orig_flash_ok": true,
+    "orig_flash_enter": "たいしょうとなるしょうひん",
+    "orig_flash_space": "対象となる商品"
+  },
+  {
+    "set": "B_かな漢字変換",
+    "romaji": "sayuutaishounozukei",
+    "expected": "左右対称の図形",
+    "judge": "完全一致",
+    "orig_flash_ok": true,
+    "orig_flash_enter": "さゆうたいしょうのずけい",
+    "orig_flash_space": "左右対称の図形"
+  },
+  {
+    "set": "B_かな漢字変換",
+    "romaji": "kyoukashowoyonndeoku",
+    "expected": "教科書を読んでおく",
+    "judge": "完全一致",
+    "orig_flash_ok": true,
+    "orig_flash_enter": "きょうかしょをよんでおく",
+    "orig_flash_space": "教科書を読んでおく"
+  },
+  {
+    "set": "B_かな漢字変換",
+    "romaji": "okanewoharau",
+    "expected": "お金を払う",
+    "judge": "完全一致",
+    "orig_flash_ok": true,
+    "orig_flash_enter": "おかねをはらう",
+    "orig_flash_space": "お金を払う"
+  },
+  {
+    "set": "B_かな漢字変換",
+    "romaji": "nekoganaiteiru",
+    "expected": "猫が鳴いている",
+    "judge": "完全一致",
+    "orig_flash_ok": false,
+    "orig_flash_enter": "ねこがないている",
+    "orig_flash_space": "猫が泣いている"
+  },
+  {
+    "set": "B_かな漢字変換",
+    "romaji": "kodomoganaiteiru",
+    "expected": "子供が泣いている",
+    "judge": "完全一致",
+    "orig_flash_ok": false,
+    "orig_flash_enter": "こどもがないている",
+    "orig_flash_space": "子どもが泣いている"
+  },
+  {
+    "set": "B_かな漢字変換",
+    "romaji": "konohonnhaatsui",
+    "expected": "この本は厚い",
+    "judge": "完全一致",
+    "orig_flash_ok": false,
+    "orig_flash_enter": "このほんはあつい",
+    "orig_flash_space": "この本は暑い"
+  },
+  {
+    "set": "B_かな漢字変換",
+    "romaji": "kyouhatotemoatsui",
+    "expected": "今日はとても暑い",
+    "judge": "完全一致",
+    "orig_flash_ok": true,
+    "orig_flash_enter": "きょうはとてもあつい",
+    "orig_flash_space": "今日はとても暑い"
+  },
+  {
+    "set": "B_かな漢字変換",
+    "romaji": "ochagaatsuinodekiwotsukete",
+    "expected": "お茶が熱いので気をつけて",
+    "judge": "完全一致",
+    "orig_flash_ok": false,
+    "orig_flash_enter": "おちゃがあついのできをつけて",
+    "orig_flash_space": "お茶が暑いので気をつけて"
+  },
+  {
+    "set": "B_かな漢字変換",
+    "romaji": "hashinohashiwoaruku",
+    "expected": "橋の端を歩く",
+    "judge": "完全一致",
+    "orig_flash_ok": false,
+    "orig_flash_enter": "はしのはしをあるく",
+    "orig_flash_space": "橋の橋を歩く"
+  },
+  {
+    "set": "B_かな漢字変換",
+    "romaji": "hashidemamewotsumamu",
+    "expected": "箸で豆をつまむ",
+    "judge": "完全一致",
+    "orig_flash_ok": false,
+    "orig_flash_enter": "はしでまめをつまむ",
+    "orig_flash_space": "橋で豆をつまむ"
+  },
+  {
+    "set": "B_かな漢字変換",
+    "romaji": "niwanihaniwaniwatorigairu",
+    "expected": "庭には二羽鶏がいる",
+    "judge": "完全一致",
+    "orig_flash_ok": false,
+    "orig_flash_enter": "にわにはにわにわとりがいる",
+    "orig_flash_space": "庭には庭鶏がいる"
+  },
+  {
+    "set": "B_かな漢字変換",
+    "romaji": "shijounodoukouwochousasuru",
+    "expected": "市場の動向を調査する",
+    "judge": "完全一致",
+    "orig_flash_ok": true,
+    "orig_flash_enter": "しじょうのどうこうをちょうさする",
+    "orig_flash_space": "市場の動向を調査する"
+  },
+  {
+    "set": "B_かな漢字変換",
+    "romaji": "kanojohaishaniitta",
+    "expected": "彼女は医者に行った",
+    "judge": "完全一致",
+    "orig_flash_ok": true,
+    "orig_flash_enter": "かのじょはいしゃにいった",
+    "orig_flash_space": "彼女は医者に行った"
+  },
+  {
+    "set": "B_かな漢字変換",
+    "romaji": "kagakunojikkennwosuru",
+    "expected": "科学の実験をする",
+    "judge": "完全一致",
+    "orig_flash_ok": true,
+    "orig_flash_enter": "かがくのじっけんをする",
+    "orig_flash_space": "科学の実験をする"
+  },
+  {
+    "set": "B_かな漢字変換",
+    "romaji": "kagakuhannnougaokita",
+    "expected": "化学反応が起きた",
+    "judge": "完全一致",
+    "orig_flash_ok": true,
+    "orig_flash_enter": "かがくはんのうがおきた",
+    "orig_flash_space": "化学反応が起きた"
+  },
+  {
+    "set": "B_かな漢字変換",
+    "romaji": "shuumatsunieigawominiikou",
+    "expected": "週末に映画を見に行こう",
+    "judge": "完全一致",
+    "orig_flash_ok": true,
+    "orig_flash_enter": "しゅうまつにえいがをみにいこう",
+    "orig_flash_space": "週末に映画を見に行こう"
+  },
+  {
+    "set": "B_かな漢字変換",
+    "romaji": "hennjigaosokunattesumimasenn",
+    "expected": "返事が遅くなってすみません",
+    "judge": "完全一致",
+    "orig_flash_ok": true,
+    "orig_flash_enter": "へんじがおそくなってすみません",
+    "orig_flash_space": "返事が遅くなってすみません"
+  },
+  {
+    "set": "B_かな漢字変換",
+    "romaji": "shiryouwotennpushimashita",
+    "expected": "資料を添付しました",
+    "judge": "完全一致",
+    "orig_flash_ok": true,
+    "orig_flash_enter": "しりょうをてんぷしました",
+    "orig_flash_space": "資料を添付しました"
+  },
+  {
+    "set": "B_かな漢字変換",
+    "romaji": "gokenntounohodoyoroshikuonegaishimasu",
+    "expected": "ご検討のほどよろしくお願いします",
+    "judge": "完全一致",
+    "orig_flash_ok": false,
+    "orig_flash_enter": "ごけんとうのほどよろしくおねがいします",
+    "orig_flash_space": "ご検討の程よろしくおねがいします"
+  },
+  {
+    "set": "B_かな漢字変換",
+    "romaji": "kaigishitsuwoyoyakushiteokimasu",
+    "expected": "会議室を予約しておきます",
+    "judge": "完全一致",
+    "orig_flash_ok": true,
+    "orig_flash_enter": "かいぎしつをよやくしておきます",
+    "orig_flash_space": "会議室を予約しておきます"
+  },
+  {
+    "set": "B_かな漢字変換",
+    "romaji": "sennseinishitsumonngaarimasu",
+    "expected": "先生に質問があります",
+    "judge": "完全一致",
+    "orig_flash_ok": true,
+    "orig_flash_enter": "せんせいにしつもんがあります",
+    "orig_flash_space": "先生に質問があります"
+  },
+  {
+    "set": "B_かな漢字変換",
+    "romaji": "shikennnokekkagahappyousareta",
+    "expected": "試験の結果が発表された",
+    "judge": "完全一致",
+    "orig_flash_ok": true,
+    "orig_flash_enter": "しけんのけっかがはっぴょうされた",
+    "orig_flash_space": "試験の結果が発表された"
+  },
+  {
+    "set": "B_かな漢字変換",
+    "romaji": "daigakudekeizaigakuwosennkoushiteiru",
+    "expected": "大学で経済学を専攻している",
+    "judge": "完全一致",
+    "orig_flash_ok": false,
+    "orig_flash_enter": "だいがくでけいざいがくをせんこうしている",
+    "orig_flash_space": "大学で経済学を選考している"
+  },
+  {
+    "set": "B_かな漢字変換",
+    "romaji": "asagohannnipannwotabeta",
+    "expected": "朝ごはんにパンを食べた",
+    "judge": "完全一致",
+    "orig_flash_ok": true,
+    "orig_flash_enter": "あさごはんにぱんをたべた",
+    "orig_flash_space": "朝ごはんにパンを食べた"
+  },
+  {
+    "set": "B_かな漢字変換",
+    "romaji": "madowoaketekannkisuru",
+    "expected": "窓を開けて換気する",
+    "judge": "完全一致",
+    "orig_flash_ok": true,
+    "orig_flash_enter": "まどをあけてかんきする",
+    "orig_flash_space": "窓を開けて換気する"
+  },
+  {
+    "set": "B_かな漢字変換",
+    "romaji": "samukegasurunodehayakuneru",
+    "expected": "寒気がするので早く寝る",
+    "judge": "完全一致",
+    "orig_flash_ok": true,
+    "orig_flash_enter": "さむけがするのではやくねる",
+    "orig_flash_space": "寒気がするので早く寝る"
+  },
+  {
+    "set": "B_かな漢字変換",
+    "romaji": "atarashiifukuwokitedekakeru",
+    "expected": "新しい服を着て出かける",
+    "judge": "完全一致",
+    "orig_flash_ok": true,
+    "orig_flash_enter": "あたらしいふくをきてでかける",
+    "orig_flash_space": "新しい服を着て出かける"
+  },
+  {
+    "set": "B_かな漢字変換",
+    "romaji": "kinoshitadeyasumu",
+    "expected": "木の下で休む",
+    "judge": "完全一致",
+    "orig_flash_ok": false,
+    "orig_flash_enter": "きのしたでやすむ",
+    "orig_flash_space": "木下で休む"
+  },
+  {
+    "set": "B_かな漢字変換",
+    "romaji": "kiwotsuketekaettene",
+    "expected": "気を付けて帰ってね",
+    "judge": "完全一致",
+    "orig_flash_ok": false,
+    "orig_flash_enter": "きをつけてかえってね",
+    "orig_flash_space": "気をつけて帰ってね"
+  },
+  {
+    "set": "B_かな漢字変換",
+    "romaji": "hanagasaiteiru",
+    "expected": "花が咲いている",
+    "judge": "完全一致",
+    "orig_flash_ok": true,
+    "orig_flash_enter": "はながさいている",
+    "orig_flash_space": "花が咲いている"
+  },
+  {
+    "set": "B_かな漢字変換",
+    "romaji": "hanamizugatomaranai",
+    "expected": "鼻水が止まらない",
+    "judge": "完全一致",
+    "orig_flash_ok": true,
+    "orig_flash_enter": "はなみずがとまらない",
+    "orig_flash_space": "鼻水が止まらない"
+  },
+  {
+    "set": "B_かな漢字変換",
+    "romaji": "amegafurisouda",
+    "expected": "雨が降りそうだ",
+    "judge": "完全一致",
+    "orig_flash_ok": true,
+    "orig_flash_enter": "あめがふりそうだ",
+    "orig_flash_space": "雨が降りそうだ"
+  },
+  {
+    "set": "B_かな漢字変換",
+    "romaji": "amewonameru",
+    "expected": "飴をなめる",
+    "judge": "完全一致",
+    "orig_flash_ok": false,
+    "orig_flash_enter": "あめをなめる",
+    "orig_flash_space": "雨を舐める"
+  },
+  {
+    "set": "B_かな漢字変換",
+    "romaji": "kamininamaewokaku",
+    "expected": "紙に名前を書く",
+    "judge": "完全一致",
+    "orig_flash_ok": false,
+    "orig_flash_enter": "かみになまえをかく",
+    "orig_flash_space": "上に名前を書く"
+  },
+  {
+    "set": "B_かな漢字変換",
+    "romaji": "kamiwokiriniiku",
+    "expected": "髪を切りに行く",
+    "judge": "完全一致",
+    "orig_flash_ok": false,
+    "orig_flash_enter": "かみをきりにいく",
+    "orig_flash_space": "神を切りに行く"
+  },
+  {
+    "set": "B_かな漢字変換",
+    "romaji": "kamisamanionegaisuru",
+    "expected": "神様にお願いする",
+    "judge": "完全一致",
+    "orig_flash_ok": true,
+    "orig_flash_enter": "かみさまにおねがいする",
+    "orig_flash_space": "神様にお願いする"
+  },
+  {
+    "set": "B_かな漢字変換",
+    "romaji": "atatakaiheyadesugosu",
+    "expected": "暖かい部屋で過ごす",
+    "judge": "完全一致",
+    "orig_flash_ok": true,
+    "orig_flash_enter": "あたたかいへやですごす",
+    "orig_flash_space": "暖かい部屋で過ごす"
+  },
+  {
+    "set": "B_かな漢字変換",
+    "romaji": "atatakaisu-puwonomu",
+    "expected": "温かいスープを飲む",
+    "judge": "完全一致",
+    "orig_flash_ok": true,
+    "orig_flash_enter": "あたたかいすーぷをのむ",
+    "orig_flash_space": "温かいスープを飲む"
+  },
+  {
+    "set": "B_かな漢字変換",
+    "romaji": "hayakuokiru",
+    "expected": "早く起きる",
+    "judge": "完全一致",
+    "orig_flash_ok": true,
+    "orig_flash_enter": "はやくおきる",
+    "orig_flash_space": "早く起きる"
+  },
+  {
+    "set": "B_かな漢字変換",
+    "romaji": "hayakuhashiru",
+    "expected": "速く走る",
+    "judge": "完全一致",
+    "orig_flash_ok": false,
+    "orig_flash_enter": "はやくはしる",
+    "orig_flash_space": "早く走る"
+  },
+  {
+    "set": "B_かな漢字変換",
+    "romaji": "byouinndeshinnsatsuwoukeru",
+    "expected": "病院で診察を受ける",
+    "judge": "完全一致",
+    "orig_flash_ok": true,
+    "orig_flash_enter": "びょういんでしんさつをうける",
+    "orig_flash_space": "病院で診察を受ける"
+  },
+  {
+    "set": "B_かな漢字変換",
+    "romaji": "dourowooudannsuru",
+    "expected": "道路を横断する",
+    "judge": "完全一致",
+    "orig_flash_ok": true,
+    "orig_flash_enter": "どうろをおうだんする",
+    "orig_flash_space": "道路を横断する"
+  },
+  {
+    "set": "B_かな漢字変換",
+    "romaji": "rekishinojugyougasukida",
+    "expected": "歴史の授業が好きだ",
+    "judge": "完全一致",
+    "orig_flash_ok": true,
+    "orig_flash_enter": "れきしのじゅぎょうがすきだ",
+    "orig_flash_space": "歴史の授業が好きだ"
+  },
+  {
+    "set": "B_かな漢字変換",
+    "romaji": "raishuukaranatsuyasumigahajimaru",
+    "expected": "来週から夏休みが始まる",
+    "judge": "完全一致",
+    "orig_flash_ok": true,
+    "orig_flash_enter": "らいしゅうからなつやすみがはじまる",
+    "orig_flash_space": "来週から夏休みが始まる"
+  },
+  {
+    "set": "B_かな漢字変換",
+    "romaji": "toshokanndehonnwokariru",
+    "expected": "図書館で本を借りる",
+    "judge": "完全一致",
+    "orig_flash_ok": true,
+    "orig_flash_enter": "としょかんでほんをかりる",
+    "orig_flash_space": "図書館で本を借りる"
+  },
+  {
+    "set": "B_かな漢字変換",
+    "romaji": "kazokuderyokouniitta",
+    "expected": "家族で旅行に行った",
+    "judge": "完全一致",
+    "orig_flash_ok": true,
+    "orig_flash_enter": "かぞくでりょこうにいった",
+    "orig_flash_space": "家族で旅行に行った"
+  },
+  {
+    "set": "B_かな漢字変換",
+    "romaji": "bagunogenninnwoshiraberu",
+    "expected": "バグの原因を調べる",
+    "judge": "完全一致",
+    "orig_flash_ok": true,
+    "orig_flash_enter": "ばぐのげんいんをしらべる",
+    "orig_flash_space": "バグの原因を調べる"
+  },
+  {
+    "set": "B_かな漢字変換",
+    "romaji": "setteiwohennkoushitesaikidousuru",
+    "expected": "設定を変更して再起動する",
+    "judge": "完全一致",
+    "orig_flash_ok": true,
+    "orig_flash_enter": "せっていをへんこうしてさいきどうする",
+    "orig_flash_space": "設定を変更して再起動する"
+  },
+  {
+    "set": "B_かな漢字変換",
+    "romaji": "kannkyouhennsuuwokakuninnsuru",
+    "expected": "環境変数を確認する",
+    "judge": "完全一致",
+    "orig_flash_ok": true,
+    "orig_flash_enter": "かんきょうへんすうをかくにんする",
+    "orig_flash_space": "環境変数を確認する"
+  },
+  {
+    "set": "B_かな漢字変換",
+    "romaji": "kannsuunohikisuuwotsuikasuru",
+    "expected": "関数の引数を追加する",
+    "judge": "完全一致",
+    "orig_flash_ok": true,
+    "orig_flash_enter": "かんすうのひきすうをついかする",
+    "orig_flash_space": "関数の引数を追加する"
+  },
+  {
+    "set": "B_かな漢字変換",
+    "romaji": "raigetsunokaiginonitteiwochouseishimasu",
+    "expected": "来月の会議の日程を調整します",
+    "judge": "完全一致",
+    "orig_flash_ok": true,
+    "orig_flash_enter": "らいげつのかいぎのにっていをちょうせいします",
+    "orig_flash_space": "来月の会議の日程を調整します"
+  },
+  {
+    "set": "B_かな漢字変換",
+    "romaji": "buchounihoukokushowoteishutsushita",
+    "expected": "部長に報告書を提出した",
+    "judge": "完全一致",
+    "orig_flash_ok": true,
+    "orig_flash_enter": "ぶちょうにほうこくしょをていしゅつした",
+    "orig_flash_space": "部長に報告書を提出した"
+  },
+  {
+    "set": "B_かな漢字変換",
+    "romaji": "atarashiigijutsuwodounyuusuru",
+    "expected": "新しい技術を導入する",
+    "judge": "完全一致",
+    "orig_flash_ok": true,
+    "orig_flash_enter": "あたらしいぎじゅつをどうにゅうする",
+    "orig_flash_space": "新しい技術を導入する"
+  },
+  {
+    "set": "B_かな漢字変換",
+    "romaji": "kyouhahayamenikaerimasu",
+    "expected": "今日は早めに帰ります",
+    "judge": "完全一致",
+    "orig_flash_ok": true,
+    "orig_flash_enter": "きょうははやめにかえります",
+    "orig_flash_space": "今日は早めに帰ります"
+  },
+  {
+    "set": "B_かな漢字変換",
+    "romaji": "chuumonnshitashouhinngatodoita",
+    "expected": "注文した商品が届いた",
+    "judge": "完全一致",
+    "orig_flash_ok": true,
+    "orig_flash_enter": "ちゅうもんしたしょうひんがとどいた",
+    "orig_flash_space": "注文した商品が届いた"
+  },
+  {
+    "set": "B_かな漢字変換",
+    "romaji": "dennwadetoiawaseru",
+    "expected": "電話で問い合わせる",
+    "judge": "完全一致",
+    "orig_flash_ok": true,
+    "orig_flash_enter": "でんわでといあわせる",
+    "orig_flash_space": "電話で問い合わせる"
+  },
+  {
+    "set": "B_かな漢字変換",
+    "romaji": "tennkigayoinodesannposuru",
+    "expected": "天気が良いので散歩する",
+    "judge": "完全一致",
+    "orig_flash_ok": true,
+    "orig_flash_enter": "てんきがよいのでさんぽする",
+    "orig_flash_space": "天気が良いので散歩する"
+  },
+  {
+    "set": "B_かな漢字変換",
+    "romaji": "ekimadearuitejuppunndesu",
+    "expected": "駅まで歩いて十分です",
+    "judge": "完全一致",
+    "orig_flash_ok": true,
+    "orig_flash_enter": "えきまであるいてじゅっぷんです",
+    "orig_flash_space": "駅まで歩いて十分です"
+  },
+  {
+    "set": "B_かな漢字変換",
+    "romaji": "setsumeishowoyokuyonndekudasai",
+    "expected": "説明書をよく読んでください",
+    "judge": "完全一致",
+    "orig_flash_ok": true,
+    "orig_flash_enter": "せつめいしょをよくよんでください",
+    "orig_flash_space": "説明書をよく読んでください"
+  },
+  {
+    "set": "B_かな漢字変換",
+    "romaji": "shashinnwotorunogashumidesu",
+    "expected": "写真を撮るのが趣味です",
+    "judge": "完全一致",
+    "orig_flash_ok": false,
+    "orig_flash_enter": "しゃしんをとるのがしゅみです",
+    "orig_flash_space": "写真を取るのが趣味です"
+  },
+  {
+    "set": "B_かな漢字変換",
+    "romaji": "toukyounisunndeimasu",
+    "expected": "東京に住んでいます",
+    "judge": "完全一致",
+    "orig_flash_ok": true,
+    "orig_flash_enter": "とうきょうにすんでいます",
+    "orig_flash_space": "東京に住んでいます"
+  },
+  {
+    "set": "B_かな漢字変換",
+    "romaji": "reizoukonigyuunyuugaaru",
+    "expected": "冷蔵庫に牛乳がある",
+    "judge": "完全一致",
+    "orig_flash_ok": true,
+    "orig_flash_enter": "れいぞうこにぎゅうにゅうがある",
+    "orig_flash_space": "冷蔵庫に牛乳がある"
+  },
+  {
+    "set": "B_かな漢字変換",
+    "romaji": "yasaiwokomakakukiru",
+    "expected": "野菜を細かく切る",
+    "judge": "完全一致",
+    "orig_flash_ok": true,
+    "orig_flash_enter": "やさいをこまかくきる",
+    "orig_flash_space": "野菜を細かく切る"
+  },
+  {
+    "set": "B_かな漢字変換",
+    "romaji": "unndoubusokuwokaishousuru",
+    "expected": "運動不足を解消する",
+    "judge": "完全一致",
+    "orig_flash_ok": true,
+    "orig_flash_enter": "うんどうぶそくをかいしょうする",
+    "orig_flash_space": "運動不足を解消する"
+  },
+  {
+    "set": "B_かな漢字変換",
+    "romaji": "kagiwokakewasureta",
+    "expected": "鍵をかけ忘れた",
+    "judge": "完全一致",
+    "orig_flash_ok": true,
+    "orig_flash_enter": "かぎをかけわすれた",
+    "orig_flash_space": "鍵をかけ忘れた"
+  },
+  {
+    "set": "B_かな漢字変換",
+    "romaji": "kigennmadeniteishutsusuru",
+    "expected": "期限までに提出する",
+    "judge": "完全一致",
+    "orig_flash_ok": true,
+    "orig_flash_enter": "きげんまでにていしゅつする",
+    "orig_flash_space": "期限までに提出する"
+  },
+  {
+    "set": "B_かな漢字変換",
+    "romaji": "kigenngawaruiyouda",
+    "expected": "機嫌が悪いようだ",
+    "judge": "完全一致",
+    "orig_flash_ok": false,
+    "orig_flash_enter": "きげんがわるいようだ",
+    "orig_flash_space": "期限が悪いようだ"
+  },
+  {
+    "set": "B_かな漢字変換",
+    "romaji": "kigennzennnoisekiwokenngakusuru",
+    "expected": "紀元前の遺跡を見学する",
+    "judge": "完全一致",
+    "orig_flash_ok": true,
+    "orig_flash_enter": "きげんぜんのいせきをけんがくする",
+    "orig_flash_space": "紀元前の遺跡を見学する"
+  },
+  {
+    "set": "B_かな漢字変換",
+    "romaji": "sennshugakirokuwokoushinnshita",
+    "expected": "選手が記録を更新した",
+    "judge": "完全一致",
+    "orig_flash_ok": true,
+    "orig_flash_enter": "せんしゅがきろくをこうしんした",
+    "orig_flash_space": "選手が記録を更新した"
+  },
+  {
+    "set": "B_かな漢字変換",
+    "romaji": "gamennnohyoujigaokashii",
+    "expected": "画面の表示がおかしい",
+    "judge": "完全一致",
+    "orig_flash_ok": true,
+    "orig_flash_enter": "がめんのひょうじがおかしい",
+    "orig_flash_space": "画面の表示がおかしい"
+  },
+  {
+    "set": "B_かな漢字変換",
+    "romaji": "fuxairuwohozonnshitekaratojiru",
+    "expected": "ファイルを保存してから閉じる",
+    "judge": "完全一致",
+    "orig_flash_ok": true,
+    "orig_flash_enter": "ふぁいるをほぞんしてからとじる",
+    "orig_flash_space": "ファイルを保存してから閉じる"
+  },
+  {
+    "set": "B_かな漢字変換",
+    "romaji": "monndaiwokaiketsusuruhouhouwokanngaeru",
+    "expected": "問題を解決する方法を考える",
+    "judge": "完全一致",
+    "orig_flash_ok": true,
+    "orig_flash_enter": "もんだいをかいけつするほうほうをかんがえる",
+    "orig_flash_space": "問題を解決する方法を考える"
+  },
+  {
+    "set": "B_かな漢字変換",
+    "romaji": "igainakekkaninatta",
+    "expected": "意外な結果になった",
+    "judge": "完全一致",
+    "orig_flash_ok": true,
+    "orig_flash_enter": "いがいなけっかになった",
+    "orig_flash_space": "意外な結果になった"
+  },
+  {
+    "set": "B_かな漢字変換",
+    "romaji": "soreigainohouhouhanai",
+    "expected": "それ以外の方法はない",
+    "judge": "完全一致",
+    "orig_flash_ok": true,
+    "orig_flash_enter": "それいがいのほうほうはない",
+    "orig_flash_space": "それ以外の方法はない"
+  },
+  {
+    "set": "B_かな漢字変換",
+    "romaji": "doryokugamukuwareta",
+    "expected": "努力が報われた",
+    "judge": "完全一致",
+    "orig_flash_ok": true,
+    "orig_flash_enter": "どりょくがむくわれた",
+    "orig_flash_space": "努力が報われた"
+  },
+  {
+    "set": "B_かな漢字変換",
+    "romaji": "tomodachitoeigawomita",
+    "expected": "友達と映画を見た",
+    "judge": "完全一致",
+    "orig_flash_ok": true,
+    "orig_flash_enter": "ともだちとえいがをみた",
+    "orig_flash_space": "友達と映画を見た"
+  },
+  {
+    "set": "B_かな漢字変換",
+    "romaji": "yozoranihoshigakagayaiteiru",
+    "expected": "夜空に星が輝いている",
+    "judge": "完全一致",
+    "orig_flash_ok": true,
+    "orig_flash_enter": "よぞらにほしがかがやいている",
+    "orig_flash_space": "夜空に星が輝いている"
+  },
+  {
+    "set": "B_かな漢字変換",
+    "romaji": "taifuugachikaduiteiru",
+    "expected": "台風が近づいている",
+    "judge": "完全一致",
+    "orig_flash_ok": true,
+    "orig_flash_enter": "たいふうがちかづいている",
+    "orig_flash_space": "台風が近づいている"
+  },
+  {
+    "set": "B_かな漢字変換",
+    "romaji": "nimotsuwonikainihakobu",
+    "expected": "荷物を二階に運ぶ",
+    "judge": "完全一致",
+    "orig_flash_ok": false,
+    "orig_flash_enter": "にもつをにかいにはこぶ",
+    "orig_flash_space": "荷物を2階に運ぶ"
+  },
+  {
+    "set": "B_かな漢字変換",
+    "romaji": "jibunnnokanngaewonoberu",
+    "expected": "自分の考えを述べる",
+    "judge": "完全一致",
+    "orig_flash_ok": true,
+    "orig_flash_enter": "じぶんのかんがえをのべる",
+    "orig_flash_space": "自分の考えを述べる"
+  },
+  {
+    "set": "B_かな漢字変換",
+    "romaji": "hahanitegamiwokaita",
+    "expected": "母に手紙を書いた",
+    "judge": "完全一致",
+    "orig_flash_ok": true,
+    "orig_flash_enter": "ははにてがみをかいた",
+    "orig_flash_space": "母に手紙を書いた"
+  },
+  {
+    "set": "B_かな漢字変換",
+    "romaji": "sofuhagennkinikurashiteiru",
+    "expected": "祖父は元気に暮らしている",
+    "judge": "完全一致",
+    "orig_flash_ok": true,
+    "orig_flash_enter": "そふはげんきにくらしている",
+    "orig_flash_space": "祖父は元気に暮らしている"
+  },
+  {
+    "set": "B_かな漢字変換",
+    "romaji": "ryourinoajiwotashikameru",
+    "expected": "料理の味を確かめる",
+    "judge": "完全一致",
+    "orig_flash_ok": true,
+    "orig_flash_enter": "りょうりのあじをたしかめる",
+    "orig_flash_space": "料理の味を確かめる"
+  },
+  {
+    "set": "B_かな漢字変換",
+    "romaji": "shiainikatteyorokonnda",
+    "expected": "試合に勝って喜んだ",
+    "judge": "完全一致",
+    "orig_flash_ok": false,
+    "orig_flash_enter": "しあいにかってよろこんだ",
+    "orig_flash_space": "試合に買って喜んだ"
+  },
+  {
+    "set": "B_かな漢字変換",
+    "romaji": "kawanomizugatsumetai",
+    "expected": "川の水が冷たい",
+    "judge": "完全一致",
+    "orig_flash_ok": false,
+    "orig_flash_enter": "かわのみずがつめたい",
+    "orig_flash_space": "皮のみずがつめたい"
+  },
+  {
+    "set": "B_かな漢字変換",
+    "romaji": "kawanosaifuwokatta",
+    "expected": "皮の財布を買った",
+    "judge": "完全一致",
+    "orig_flash_ok": false,
+    "orig_flash_enter": "かわのさいふをかった",
+    "orig_flash_space": "皮のさいふをかった"
+  },
+  {
+    "set": "B_かな漢字変換",
+    "romaji": "atsusadeshokuyokuganai",
+    "expected": "暑さで食欲がない",
+    "judge": "完全一致",
+    "orig_flash_ok": true,
+    "orig_flash_enter": "あつさでしょくよくがない",
+    "orig_flash_space": "暑さで食欲がない"
+  },
+  {
+    "set": "B_かな漢字変換",
+    "romaji": "atsusawohakaru",
+    "expected": "厚さを測る",
+    "judge": "完全一致",
+    "orig_flash_ok": false,
+    "orig_flash_enter": "あつさをはかる",
+    "orig_flash_space": "暑さを図る"
+  },
+  {
+    "set": "B_かな漢字変換",
+    "romaji": "mawarinoikennwokiku",
+    "expected": "周りの意見を聞く",
+    "judge": "完全一致",
+    "orig_flash_ok": true,
+    "orig_flash_enter": "まわりのいけんをきく",
+    "orig_flash_space": "周りの意見を聞く"
+  },
+  {
+    "set": "B_かな漢字変換",
+    "romaji": "jikannwomamottekudasai",
+    "expected": "時間を守ってください",
+    "judge": "完全一致",
+    "orig_flash_ok": true,
+    "orig_flash_enter": "じかんをまもってください",
+    "orig_flash_space": "時間を守ってください"
+  },
+  {
+    "set": "C_英語保持",
+    "romaji": "How to use it",
+    "expected": "How to use it",
+    "judge": "完全一致",
+    "orig_flash_ok": false,
+    "orig_flash_enter": "How と失せit",
+    "orig_flash_space": "How と失せit"
+  },
+  {
+    "set": "C_英語保持",
+    "romaji": "Nice to meet you",
+    "expected": "Nice to meet you",
+    "judge": "完全一致",
+    "orig_flash_ok": true,
+    "orig_flash_enter": "Nice to meet you",
+    "orig_flash_space": "Nice to meet you"
+  },
+  {
+    "set": "C_英語保持",
+    "romaji": "Time to start",
+    "expected": "Time to start",
+    "judge": "完全一致",
+    "orig_flash_ok": true,
+    "orig_flash_enter": "Time to start",
+    "orig_flash_space": "Time to start"
+  },
+  {
+    "set": "C_英語保持",
+    "romaji": "Ready to begin",
+    "expected": "Ready to begin",
+    "judge": "完全一致",
+    "orig_flash_ok": true,
+    "orig_flash_enter": "Ready to begin",
+    "orig_flash_space": "Ready to begin"
+  },
+  {
+    "set": "C_英語保持",
+    "romaji": "Want to learn",
+    "expected": "Want to learn",
+    "judge": "完全一致",
+    "orig_flash_ok": true,
+    "orig_flash_enter": "Want to learn",
+    "orig_flash_space": "Want to learn"
+  },
+  {
+    "set": "C_英語保持",
+    "romaji": "Need to know",
+    "expected": "Need to know",
+    "judge": "完全一致",
+    "orig_flash_ok": true,
+    "orig_flash_enter": "Need to know",
+    "orig_flash_space": "Need to know"
+  },
+  {
+    "set": "C_英語保持",
+    "romaji": "Easy to read",
+    "expected": "Easy to read",
+    "judge": "完全一致",
+    "orig_flash_ok": true,
+    "orig_flash_enter": "Easy to read",
+    "orig_flash_space": "Easy to read"
+  },
+  {
+    "set": "C_英語保持",
+    "romaji": "Hard to say",
+    "expected": "Hard to say",
+    "judge": "完全一致",
+    "orig_flash_ok": true,
+    "orig_flash_enter": "Hard to say",
+    "orig_flash_space": "Hard to say"
+  },
+  {
+    "set": "C_英語保持",
+    "romaji": "Plan to visit",
+    "expected": "Plan to visit",
+    "judge": "完全一致",
+    "orig_flash_ok": true,
+    "orig_flash_enter": "Plan to visit",
+    "orig_flash_space": "Plan to visit"
+  },
+  {
+    "set": "C_英語保持",
+    "romaji": "Able to read",
+    "expected": "Able to read",
+    "judge": "完全一致",
+    "orig_flash_ok": true,
+    "orig_flash_enter": "Able to read",
+    "orig_flash_space": "Able to read"
+  },
+  {
+    "set": "C_英語保持",
+    "romaji": "Chance to win",
+    "expected": "Chance to win",
+    "judge": "完全一致",
+    "orig_flash_ok": true,
+    "orig_flash_enter": "Chance to win",
+    "orig_flash_space": "Chance to win"
+  },
+  {
+    "set": "C_英語保持",
+    "romaji": "Happy to help",
+    "expected": "Happy to help",
+    "judge": "完全一致",
+    "orig_flash_ok": true,
+    "orig_flash_enter": "Happy to help",
+    "orig_flash_space": "Happy to help"
+  },
+  {
+    "set": "C_英語保持",
+    "romaji": "What to do",
+    "expected": "What to do",
+    "judge": "完全一致",
+    "orig_flash_ok": true,
+    "orig_flash_enter": "What to do",
+    "orig_flash_space": "What to do"
+  },
+  {
+    "set": "C_英語保持",
+    "romaji": "Nothing to do",
+    "expected": "Nothing to do",
+    "judge": "完全一致",
+    "orig_flash_ok": true,
+    "orig_flash_enter": "Nothing to do",
+    "orig_flash_space": "Nothing to do"
+  },
+  {
+    "set": "C_英語保持",
+    "romaji": "Things to do",
+    "expected": "Things to do",
+    "judge": "完全一致",
+    "orig_flash_ok": true,
+    "orig_flash_enter": "Things to do",
+    "orig_flash_space": "Things to do"
+  },
+  {
+    "set": "C_英語保持",
+    "romaji": "Time to go",
+    "expected": "Time to go",
+    "judge": "完全一致",
+    "orig_flash_ok": true,
+    "orig_flash_enter": "Time to go",
+    "orig_flash_space": "Time to go"
+  },
+  {
+    "set": "C_英語保持",
+    "romaji": "Ready to go",
+    "expected": "Ready to go",
+    "judge": "完全一致",
+    "orig_flash_ok": true,
+    "orig_flash_enter": "Ready to go",
+    "orig_flash_space": "Ready to go"
+  },
+  {
+    "set": "C_英語保持",
+    "romaji": "Good to go",
+    "expected": "Good to go",
+    "judge": "完全一致",
+    "orig_flash_ok": true,
+    "orig_flash_enter": "Good to go",
+    "orig_flash_space": "Good to go"
+  },
+  {
+    "set": "C_英語保持",
+    "romaji": "Free to go",
+    "expected": "Free to go",
+    "judge": "完全一致",
+    "orig_flash_ok": true,
+    "orig_flash_enter": "Free to go",
+    "orig_flash_space": "Free to go"
+  },
+  {
+    "set": "C_英語保持",
+    "romaji": "Got to go",
+    "expected": "Got to go",
+    "judge": "完全一致",
+    "orig_flash_ok": true,
+    "orig_flash_enter": "Got to go",
+    "orig_flash_space": "Got to go"
+  },
+  {
+    "set": "C_英語保持",
+    "romaji": "Have to go",
+    "expected": "Have to go",
+    "judge": "完全一致",
+    "orig_flash_ok": true,
+    "orig_flash_enter": "Have to go",
+    "orig_flash_space": "Have to go"
+  },
+  {
+    "set": "C_英語保持",
+    "romaji": "Where to go",
+    "expected": "Where to go",
+    "judge": "完全一致",
+    "orig_flash_ok": true,
+    "orig_flash_enter": "Where to go",
+    "orig_flash_space": "Where to go"
+  },
+  {
+    "set": "C_英語保持",
+    "romaji": "Place to go",
+    "expected": "Place to go",
+    "judge": "完全一致",
+    "orig_flash_ok": true,
+    "orig_flash_enter": "Place to go",
+    "orig_flash_space": "Place to go"
+  },
+  {
+    "set": "C_英語保持",
+    "romaji": "How to do it",
+    "expected": "How to do it",
+    "judge": "完全一致",
+    "orig_flash_ok": true,
+    "orig_flash_enter": "How to do it",
+    "orig_flash_space": "How to do it"
+  },
+  {
+    "set": "C_英語保持",
+    "romaji": "Need to do",
+    "expected": "Need to do",
+    "judge": "完全一致",
+    "orig_flash_ok": true,
+    "orig_flash_enter": "Need to do",
+    "orig_flash_space": "Need to do"
+  },
+  {
+    "set": "C_英語保持",
+    "romaji": "Want to do",
+    "expected": "Want to do",
+    "judge": "完全一致",
+    "orig_flash_ok": true,
+    "orig_flash_enter": "Want to do",
+    "orig_flash_space": "Want to do"
+  },
+  {
+    "set": "C_英語保持",
+    "romaji": "Able to do",
+    "expected": "Able to do",
+    "judge": "完全一致",
+    "orig_flash_ok": true,
+    "orig_flash_enter": "Able to do",
+    "orig_flash_space": "Able to do"
+  },
+  {
+    "set": "C_英語保持",
+    "romaji": "Going to be",
+    "expected": "Going to be",
+    "judge": "完全一致",
+    "orig_flash_ok": true,
+    "orig_flash_enter": "Going to be",
+    "orig_flash_space": "Going to be"
+  },
+  {
+    "set": "C_英語保持",
+    "romaji": "Time to be",
+    "expected": "Time to be",
+    "judge": "完全一致",
+    "orig_flash_ok": true,
+    "orig_flash_enter": "Time to be",
+    "orig_flash_space": "Time to be"
+  },
+  {
+    "set": "C_英語保持",
+    "romaji": "Want to be",
+    "expected": "Want to be",
+    "judge": "完全一致",
+    "orig_flash_ok": true,
+    "orig_flash_enter": "Want to be",
+    "orig_flash_space": "Want to be"
+  },
+  {
+    "set": "C_英語保持",
+    "romaji": "Ready to do",
+    "expected": "Ready to do",
+    "judge": "完全一致",
+    "orig_flash_ok": true,
+    "orig_flash_enter": "Ready to do",
+    "orig_flash_space": "Ready to do"
+  },
+  {
+    "set": "C_英語保持",
+    "romaji": "Have to be",
+    "expected": "Have to be",
+    "judge": "完全一致",
+    "orig_flash_ok": true,
+    "orig_flash_enter": "Have to be",
+    "orig_flash_space": "Have to be"
+  },
+  {
+    "set": "C_英語保持",
+    "romaji": "Where to",
+    "expected": "Where to",
+    "judge": "完全一致",
+    "orig_flash_ok": true,
+    "orig_flash_enter": "Where to",
+    "orig_flash_space": "Where to"
+  },
+  {
+    "set": "C_英語保持",
+    "romaji": "Nothing to",
+    "expected": "Nothing to",
+    "judge": "完全一致",
+    "orig_flash_ok": true,
+    "orig_flash_enter": "Nothing to",
+    "orig_flash_space": "Nothing to"
+  },
+  {
+    "set": "C_英語保持",
+    "romaji": "Going to",
+    "expected": "Going to",
+    "judge": "完全一致",
+    "orig_flash_ok": true,
+    "orig_flash_enter": "Going to",
+    "orig_flash_space": "Going to"
+  },
+  {
+    "set": "C_英語保持",
+    "romaji": "Want to",
+    "expected": "Want to",
+    "judge": "完全一致",
+    "orig_flash_ok": true,
+    "orig_flash_enter": "Want to",
+    "orig_flash_space": "Want to"
+  },
+  {
+    "set": "C_英語保持",
+    "romaji": "Used to",
+    "expected": "Used to",
+    "judge": "完全一致",
+    "orig_flash_ok": true,
+    "orig_flash_enter": "Used to",
+    "orig_flash_space": "Used to"
+  },
+  {
+    "set": "C_英語保持",
+    "romaji": "Back to",
+    "expected": "Back to",
+    "judge": "完全一致",
+    "orig_flash_ok": true,
+    "orig_flash_enter": "Back to",
+    "orig_flash_space": "Back to"
+  },
+  {
+    "set": "C_英語保持",
+    "romaji": "Next to",
+    "expected": "Next to",
+    "judge": "完全一致",
+    "orig_flash_ok": true,
+    "orig_flash_enter": "Next to",
+    "orig_flash_space": "Next to"
+  },
+  {
+    "set": "C_英語保持",
+    "romaji": "Ready to",
+    "expected": "Ready to",
+    "judge": "完全一致",
+    "orig_flash_ok": true,
+    "orig_flash_enter": "Ready to",
+    "orig_flash_space": "Ready to"
+  },
+  {
+    "set": "C_英語保持",
+    "romaji": "Up to",
+    "expected": "Up to",
+    "judge": "完全一致",
+    "orig_flash_ok": true,
+    "orig_flash_enter": "Up to",
+    "orig_flash_space": "Up to"
+  },
+  {
+    "set": "C_英語保持",
+    "romaji": "Close to",
+    "expected": "Close to",
+    "judge": "完全一致",
+    "orig_flash_ok": true,
+    "orig_flash_enter": "Close to",
+    "orig_flash_space": "Close to"
+  },
+  {
+    "set": "C_英語保持",
+    "romaji": "Welcome to Tokyo",
+    "expected": "Welcome to Tokyo",
+    "judge": "完全一致",
+    "orig_flash_ok": true,
+    "orig_flash_enter": "Welcome to Tokyo",
+    "orig_flash_space": "Welcome to Tokyo"
+  },
+  {
+    "set": "C_英語保持",
+    "romaji": "Welcome to Japan",
+    "expected": "Welcome to Japan",
+    "judge": "完全一致",
+    "orig_flash_ok": true,
+    "orig_flash_enter": "Welcome to Japan",
+    "orig_flash_space": "Welcome to Japan"
+  },
+  {
+    "set": "C_英語保持",
+    "romaji": "Welcome to Meltype",
+    "expected": "Welcome to Meltype",
+    "judge": "完全一致",
+    "orig_flash_ok": true,
+    "orig_flash_enter": "Welcome to Meltype",
+    "orig_flash_space": "Welcome to Meltype"
+  },
+  {
+    "set": "C_英語保持",
+    "romaji": "Welcome to Apple",
+    "expected": "Welcome to Apple",
+    "judge": "完全一致",
+    "orig_flash_ok": true,
+    "orig_flash_enter": "Welcome to Apple",
+    "orig_flash_space": "Welcome to Apple"
+  },
+  {
+    "set": "C_英語保持",
+    "romaji": "Trip to London",
+    "expected": "Trip to London",
+    "judge": "完全一致",
+    "orig_flash_ok": true,
+    "orig_flash_enter": "Trip to London",
+    "orig_flash_space": "Trip to London"
+  },
+  {
+    "set": "C_英語保持",
+    "romaji": "Train to Paris",
+    "expected": "Train to Paris",
+    "judge": "完全一致",
+    "orig_flash_ok": true,
+    "orig_flash_enter": "Train to Paris",
+    "orig_flash_space": "Train to Paris"
+  },
+  {
+    "set": "C_英語保持",
+    "romaji": "Flight to Osaka",
+    "expected": "Flight to Osaka",
+    "judge": "完全一致",
+    "orig_flash_ok": true,
+    "orig_flash_enter": "Flight to Osaka",
+    "orig_flash_space": "Flight to Osaka"
+  },
+  {
+    "set": "C_英語保持",
+    "romaji": "Thanks to Google",
+    "expected": "Thanks to Google",
+    "judge": "完全一致",
+    "orig_flash_ok": true,
+    "orig_flash_enter": "Thanks to Google",
+    "orig_flash_space": "Thanks to Google"
+  },
+  {
+    "set": "C_英語保持",
+    "romaji": "Back to Tokyo",
+    "expected": "Back to Tokyo",
+    "judge": "完全一致",
+    "orig_flash_ok": true,
+    "orig_flash_enter": "Back to Tokyo",
+    "orig_flash_space": "Back to Tokyo"
+  },
+  {
+    "set": "C_英語保持",
+    "romaji": "Go to Kyoto",
+    "expected": "Go to Kyoto",
+    "judge": "完全一致",
+    "orig_flash_ok": true,
+    "orig_flash_enter": "Go to Kyoto",
+    "orig_flash_space": "Go to Kyoto"
+  },
+  {
+    "set": "C_英語保持",
+    "romaji": "Next to Google",
+    "expected": "Next to Google",
+    "judge": "完全一致",
+    "orig_flash_ok": true,
+    "orig_flash_enter": "Next to Google",
+    "orig_flash_space": "Next to Google"
+  },
+  {
+    "set": "C_英語保持",
+    "romaji": "Close to Paris",
+    "expected": "Close to Paris",
+    "judge": "完全一致",
+    "orig_flash_ok": true,
+    "orig_flash_enter": "Close to Paris",
+    "orig_flash_space": "Close to Paris"
+  },
+  {
+    "set": "C_英語保持",
+    "romaji": "So what",
+    "expected": "So what",
+    "judge": "完全一致",
+    "orig_flash_ok": true,
+    "orig_flash_enter": "So what",
+    "orig_flash_space": "So what"
+  },
+  {
+    "set": "C_英語保持",
+    "romaji": "So far so good",
+    "expected": "So far so good",
+    "judge": "完全一致",
+    "orig_flash_ok": true,
+    "orig_flash_enter": "So far so good",
+    "orig_flash_space": "So far so good"
+  },
+  {
+    "set": "C_英語保持",
+    "romaji": "No way",
+    "expected": "No way",
+    "judge": "完全一致",
+    "orig_flash_ok": true,
+    "orig_flash_enter": "No way",
+    "orig_flash_space": "No way"
+  },
+  {
+    "set": "C_英語保持",
+    "romaji": "No problem",
+    "expected": "No problem",
+    "judge": "完全一致",
+    "orig_flash_ok": true,
+    "orig_flash_enter": "No problem",
+    "orig_flash_space": "No problem"
+  },
+  {
+    "set": "C_英語保持",
+    "romaji": "Oh no",
+    "expected": "Oh no",
+    "judge": "完全一致",
+    "orig_flash_ok": true,
+    "orig_flash_enter": "Oh no",
+    "orig_flash_space": "Oh no"
+  },
+  {
+    "set": "C_英語保持",
+    "romaji": "Yes or no",
+    "expected": "Yes or no",
+    "judge": "完全一致",
+    "orig_flash_ok": true,
+    "orig_flash_enter": "Yes or no",
+    "orig_flash_space": "Yes or no"
+  },
+  {
+    "set": "C_英語保持",
+    "romaji": "Tell me more",
+    "expected": "Tell me more",
+    "judge": "完全一致",
+    "orig_flash_ok": true,
+    "orig_flash_enter": "Tell me more",
+    "orig_flash_space": "Tell me more"
+  },
+  {
+    "set": "C_英語保持",
+    "romaji": "Let me know",
+    "expected": "Let me know",
+    "judge": "完全一致",
+    "orig_flash_ok": true,
+    "orig_flash_enter": "Let me know",
+    "orig_flash_space": "Let me know"
+  },
+  {
+    "set": "C_英語保持",
+    "romaji": "Me too",
+    "expected": "Me too",
+    "judge": "完全一致",
+    "orig_flash_ok": true,
+    "orig_flash_enter": "Me too",
+    "orig_flash_space": "Me too"
+  },
+  {
+    "set": "C_英語保持",
+    "romaji": "Not me",
+    "expected": "Not me",
+    "judge": "完全一致",
+    "orig_flash_ok": true,
+    "orig_flash_enter": "Not me",
+    "orig_flash_space": "Not me"
+  },
+  {
+    "set": "C_英語保持",
+    "romaji": "Be careful",
+    "expected": "Be careful",
+    "judge": "完全一致",
+    "orig_flash_ok": true,
+    "orig_flash_enter": "Be careful",
+    "orig_flash_space": "Be careful"
+  },
+  {
+    "set": "C_英語保持",
+    "romaji": "Let it be",
+    "expected": "Let it be",
+    "judge": "完全一致",
+    "orig_flash_ok": true,
+    "orig_flash_enter": "Let it be",
+    "orig_flash_space": "Let it be"
+  },
+  {
+    "set": "C_英語保持",
+    "romaji": "Be right back",
+    "expected": "Be right back",
+    "judge": "完全一致",
+    "orig_flash_ok": true,
+    "orig_flash_enter": "Be right back",
+    "orig_flash_space": "Be right back"
+  },
+  {
+    "set": "C_英語保持",
+    "romaji": "He is here",
+    "expected": "He is here",
+    "judge": "完全一致",
+    "orig_flash_ok": true,
+    "orig_flash_enter": "He is here",
+    "orig_flash_space": "He is here"
+  },
+  {
+    "set": "C_英語保持",
+    "romaji": "Who is he",
+    "expected": "Who is he",
+    "judge": "完全一致",
+    "orig_flash_ok": true,
+    "orig_flash_enter": "Who is he",
+    "orig_flash_space": "Who is he"
+  },
+  {
+    "set": "C_英語保持",
+    "romaji": "Where is he",
+    "expected": "Where is he",
+    "judge": "完全一致",
+    "orig_flash_ok": true,
+    "orig_flash_enter": "Where is he",
+    "orig_flash_space": "Where is he"
+  },
+  {
+    "set": "C_英語保持",
+    "romaji": "We are here",
+    "expected": "We are here",
+    "judge": "完全一致",
+    "orig_flash_ok": true,
+    "orig_flash_enter": "We are here",
+    "orig_flash_space": "We are here"
+  },
+  {
+    "set": "C_英語保持",
+    "romaji": "Who are we",
+    "expected": "Who are we",
+    "judge": "完全一致",
+    "orig_flash_ok": true,
+    "orig_flash_enter": "Who are we",
+    "orig_flash_space": "Who are we"
+  },
+  {
+    "set": "C_英語保持",
+    "romaji": "Do it now",
+    "expected": "Do it now",
+    "judge": "完全一致",
+    "orig_flash_ok": true,
+    "orig_flash_enter": "Do it now",
+    "orig_flash_space": "Do it now"
+  },
+  {
+    "set": "C_英語保持",
+    "romaji": "Do you know",
+    "expected": "Do you know",
+    "judge": "完全一致",
+    "orig_flash_ok": true,
+    "orig_flash_enter": "Do you know",
+    "orig_flash_space": "Do you know"
+  },
+  {
+    "set": "C_英語保持",
+    "romaji": "I do not know",
+    "expected": "I do not know",
+    "judge": "完全一致",
+    "orig_flash_ok": true,
+    "orig_flash_enter": "I do not know",
+    "orig_flash_space": "I do not know"
+  },
+  {
+    "set": "C_英語保持",
+    "romaji": "We do",
+    "expected": "We do",
+    "judge": "完全一致",
+    "orig_flash_ok": true,
+    "orig_flash_enter": "We do",
+    "orig_flash_space": "We do"
+  },
+  {
+    "set": "C_英語保持",
+    "romaji": "Go home",
+    "expected": "Go home",
+    "judge": "完全一致",
+    "orig_flash_ok": true,
+    "orig_flash_enter": "Go home",
+    "orig_flash_space": "Go home"
+  },
+  {
+    "set": "C_英語保持",
+    "romaji": "Go on",
+    "expected": "Go on",
+    "judge": "完全一致",
+    "orig_flash_ok": true,
+    "orig_flash_enter": "Go on",
+    "orig_flash_space": "Go on"
+  },
+  {
+    "set": "C_英語保持",
+    "romaji": "Let me go",
+    "expected": "Let me go",
+    "judge": "完全一致",
+    "orig_flash_ok": true,
+    "orig_flash_enter": "Let me go",
+    "orig_flash_space": "Let me go"
+  },
+  {
+    "set": "C_英語保持",
+    "romaji": "Do not go",
+    "expected": "Do not go",
+    "judge": "完全一致",
+    "orig_flash_ok": true,
+    "orig_flash_enter": "Do not go",
+    "orig_flash_space": "Do not go"
+  },
+  {
+    "set": "C_英語保持",
+    "romaji": "He and I",
+    "expected": "He and I",
+    "judge": "完全一致",
+    "orig_flash_ok": true,
+    "orig_flash_enter": "He and I",
+    "orig_flash_space": "He and I"
+  },
+  {
+    "set": "C_英語保持",
+    "romaji": "Me and you",
+    "expected": "Me and you",
+    "judge": "完全一致",
+    "orig_flash_ok": true,
+    "orig_flash_enter": "Me and you",
+    "orig_flash_space": "Me and you"
+  },
+  {
+    "set": "C_英語保持",
+    "romaji": "It will be fine",
+    "expected": "It will be fine",
+    "judge": "完全一致",
+    "orig_flash_ok": true,
+    "orig_flash_enter": "It will be fine",
+    "orig_flash_space": "It will be fine"
+  },
+  {
+    "set": "C_英語保持",
+    "romaji": "Please be quiet",
+    "expected": "Please be quiet",
+    "judge": "完全一致",
+    "orig_flash_ok": true,
+    "orig_flash_enter": "Please be quiet",
+    "orig_flash_space": "Please be quiet"
+  },
+  {
+    "set": "C_英語保持",
+    "romaji": "Say no more",
+    "expected": "Say no more",
+    "judge": "完全一致",
+    "orig_flash_ok": true,
+    "orig_flash_enter": "Say no more",
+    "orig_flash_space": "Say no more"
+  },
+  {
+    "set": "C_英語保持",
+    "romaji": "Why do we go",
+    "expected": "Why do we go",
+    "judge": "完全一致",
+    "orig_flash_ok": true,
+    "orig_flash_enter": "Why do we go",
+    "orig_flash_space": "Why do we go"
+  },
+  {
+    "set": "C_英語保持",
+    "romaji": "kyou to asobu",
+    "expected": "今日とあそぶ",
+    "judge": "英字一致",
+    "orig_flash_ok": true,
+    "orig_flash_enter": "今日とあそぶ",
+    "orig_flash_space": "今日と遊ぶ"
+  },
+  {
+    "set": "C_英語保持",
+    "romaji": "tomodachi to hanasu",
+    "expected": "ともだちとはなす",
+    "judge": "英字一致",
+    "orig_flash_ok": true,
+    "orig_flash_enter": "友達とはなす",
+    "orig_flash_space": "友達と話す"
+  },
+  {
+    "set": "C_英語保持",
+    "romaji": "neko to inu",
+    "expected": "ねこといぬ",
+    "judge": "英字一致",
+    "orig_flash_ok": true,
+    "orig_flash_enter": "猫といぬ",
+    "orig_flash_space": "猫と犬"
+  },
+  {
+    "set": "C_英語保持",
+    "romaji": "kore to are",
+    "expected": "これとあれ",
+    "judge": "英字一致",
+    "orig_flash_ok": true,
+    "orig_flash_enter": "これとあれ",
+    "orig_flash_space": "これとあれ"
+  },
+  {
+    "set": "C_英語保持",
+    "romaji": "ame to yuki",
+    "expected": "あめとゆき",
+    "judge": "英字一致",
+    "orig_flash_ok": true,
+    "orig_flash_enter": "雨とゆき",
+    "orig_flash_space": "雨と雪"
+  },
+  {
+    "set": "C_英語保持",
+    "romaji": "hon to pen",
+    "expected": "ほんとぺん",
+    "judge": "英字一致",
+    "orig_flash_ok": true,
+    "orig_flash_enter": "本とぺん",
+    "orig_flash_space": "本とペン"
+  },
+  {
+    "set": "C_英語保持",
+    "romaji": "kare to kanojo",
+    "expected": "かれとかのじょ",
+    "judge": "英字一致",
+    "orig_flash_ok": true,
+    "orig_flash_enter": "彼とかのじょ",
+    "orig_flash_space": "彼と彼女"
+  },
+  {
+    "set": "C_英語保持",
+    "romaji": "mizu to ocha",
+    "expected": "みずとおちゃ",
+    "judge": "英字一致",
+    "orig_flash_ok": true,
+    "orig_flash_enter": "水とおちゃ",
+    "orig_flash_space": "水とお茶"
+  },
+  {
+    "set": "C_英語保持",
+    "romaji": "kore to",
+    "expected": "これと",
+    "judge": "英字一致",
+    "orig_flash_ok": true,
+    "orig_flash_enter": "これと",
+    "orig_flash_space": "これと"
+  },
+  {
+    "set": "C_英語保持",
+    "romaji": "heya to niwa",
+    "expected": "へやとにわ",
+    "judge": "英字一致",
+    "orig_flash_ok": true,
+    "orig_flash_enter": "部屋とにわ",
+    "orig_flash_space": "部屋と庭"
+  },
+  {
+    "set": "C_英語保持",
+    "romaji": "so ka",
+    "expected": "そか",
+    "judge": "英字一致",
+    "orig_flash_ok": true,
+    "orig_flash_enter": "そか",
+    "orig_flash_space": "そか"
+  },
+  {
+    "set": "C_英語保持",
+    "romaji": "so da",
+    "expected": "そだ",
+    "judge": "英字一致",
+    "orig_flash_ok": true,
+    "orig_flash_enter": "そだ",
+    "orig_flash_space": "そだ"
+  },
+  {
+    "set": "C_英語保持",
+    "romaji": "watashi no hon",
+    "expected": "わたしのほん",
+    "judge": "英字一致",
+    "orig_flash_ok": true,
+    "orig_flash_enter": "私のほん",
+    "orig_flash_space": "私の本"
+  },
+  {
+    "set": "C_英語保持",
+    "romaji": "kore no imi",
+    "expected": "これのいみ",
+    "judge": "英字一致",
+    "orig_flash_ok": true,
+    "orig_flash_enter": "これのいみ",
+    "orig_flash_space": "これの意味"
+  },
+  {
+    "set": "C_英語保持",
+    "romaji": "anata no namae",
+    "expected": "あなたのなまえ",
+    "judge": "英字一致",
+    "orig_flash_ok": true,
+    "orig_flash_enter": "あなたのなまえ",
+    "orig_flash_space": "あなたの名前"
+  },
+  {
+    "set": "C_英語保持",
+    "romaji": "kyou no tenki",
+    "expected": "今日のてんき",
+    "judge": "英字一致",
+    "orig_flash_ok": true,
+    "orig_flash_enter": "今日のてんき",
+    "orig_flash_space": "今日の天気"
+  },
+  {
+    "set": "C_英語保持",
+    "romaji": "watashi no",
+    "expected": "わたしの",
+    "judge": "英字一致",
+    "orig_flash_ok": true,
+    "orig_flash_enter": "私の",
+    "orig_flash_space": "私の"
+  },
+  {
+    "set": "C_英語保持",
+    "romaji": "me wo tojiru",
+    "expected": "めをとじる",
+    "judge": "英字一致",
+    "orig_flash_ok": true,
+    "orig_flash_enter": "目をとじる",
+    "orig_flash_space": "目を閉じる"
+  },
+  {
+    "set": "C_英語保持",
+    "romaji": "me ga itai",
+    "expected": "めがいたい",
+    "judge": "英字一致",
+    "orig_flash_ok": true,
+    "orig_flash_enter": "目がいたい",
+    "orig_flash_space": "目が痛い"
+  },
+  {
+    "set": "C_英語保持",
+    "romaji": "me to mimi",
+    "expected": "めとみみ",
+    "judge": "英字一致",
+    "orig_flash_ok": true,
+    "orig_flash_enter": "目とみみ",
+    "orig_flash_space": "目と耳"
+  },
+  {
+    "set": "C_英語保持",
+    "romaji": "heya he iku",
+    "expected": "へやへいく",
+    "judge": "英字一致",
+    "orig_flash_ok": true,
+    "orig_flash_enter": "部屋へいく",
+    "orig_flash_space": "部屋へいく"
+  },
+  {
+    "set": "C_英語保持",
+    "romaji": "heya ni hairu",
+    "expected": "へやにはいる",
+    "judge": "英字一致",
+    "orig_flash_ok": true,
+    "orig_flash_enter": "部屋にはいる",
+    "orig_flash_space": "部屋に入る"
+  },
+  {
+    "set": "C_英語保持",
+    "romaji": "betsu ni ii",
+    "expected": "べつにいい",
+    "judge": "英字一致",
+    "orig_flash_ok": true,
+    "orig_flash_enter": "別にいい",
+    "orig_flash_space": "別にいい"
+  },
+  {
+    "set": "C_英語保持",
+    "romaji": "benkyou ha tanoshii",
+    "expected": "べんきょうはたのしい",
+    "judge": "英字一致",
+    "orig_flash_ok": true,
+    "orig_flash_enter": "勉強はたのしい",
+    "orig_flash_space": "勉強は楽しい"
+  },
+  {
+    "set": "C_英語保持",
+    "romaji": "doko ni iku",
+    "expected": "どこにいく",
+    "judge": "英字一致",
+    "orig_flash_ok": true,
+    "orig_flash_enter": "どこにいく",
+    "orig_flash_space": "どこにいく"
+  },
+  {
+    "set": "C_英語保持",
+    "romaji": "dou shite",
+    "expected": "どうして",
+    "judge": "英字一致",
+    "orig_flash_ok": true,
+    "orig_flash_enter": "どうして",
+    "orig_flash_space": "どうして"
+  },
+  {
+    "set": "C_英語保持",
+    "romaji": "dore ni suru",
+    "expected": "どれにする",
+    "judge": "英字一致",
+    "orig_flash_ok": true,
+    "orig_flash_enter": "どれにする",
+    "orig_flash_space": "どれにする"
+  },
+  {
+    "set": "C_英語保持",
+    "romaji": "doko de",
+    "expected": "どこで",
+    "judge": "英字一致",
+    "orig_flash_ok": true,
+    "orig_flash_enter": "どこで",
+    "orig_flash_space": "どこで"
+  },
+  {
+    "set": "C_英語保持",
+    "romaji": "ima doko ni iru",
+    "expected": "いまどこにいる",
+    "judge": "英字一致",
+    "orig_flash_ok": true,
+    "orig_flash_enter": "今どこにいる",
+    "orig_flash_space": "今どこにいる"
+  },
+  {
+    "set": "C_英語保持",
+    "romaji": "gohan wo taberu",
+    "expected": "ごはんをたべる",
+    "judge": "英字一致",
+    "orig_flash_ok": true,
+    "orig_flash_enter": "ご飯をたべる",
+    "orig_flash_space": "ご飯を食べる"
+  },
+  {
+    "set": "C_英語保持",
+    "romaji": "gohan to sakana",
+    "expected": "ごはんとさかな",
+    "judge": "英字一致",
+    "orig_flash_ok": true,
+    "orig_flash_enter": "ご飯とさかな",
+    "orig_flash_space": "ご飯と魚"
+  },
+  {
+    "set": "C_英語保持",
+    "romaji": "goji ni au",
+    "expected": "ごじにあう",
+    "judge": "英字一致",
+    "orig_flash_ok": false,
+    "orig_flash_enter": "5時にあう",
+    "orig_flash_space": "5時に会う"
+  },
+  {
+    "set": "C_英語保持",
+    "romaji": "gokagetsu",
+    "expected": "ごかげつ",
+    "judge": "英字一致",
+    "orig_flash_ok": true,
+    "orig_flash_enter": "ごかげつ",
+    "orig_flash_space": "5ヶ月"
+  },
+  {
+    "set": "C_英語保持",
+    "romaji": "ima ha dame",
+    "expected": "いまはだめ",
+    "judge": "英字一致",
+    "orig_flash_ok": true,
+    "orig_flash_enter": "今はだめ",
+    "orig_flash_space": "今はだめ"
+  },
+  {
+    "set": "C_英語保持",
+    "romaji": "watashi ha ikanai",
+    "expected": "わたしはいかない",
+    "judge": "英字一致",
+    "orig_flash_ok": true,
+    "orig_flash_enter": "私はいかない",
+    "orig_flash_space": "私はいかない"
+  },
+  {
+    "set": "C_英語保持",
+    "romaji": "sore ha",
+    "expected": "それは",
+    "judge": "英字一致",
+    "orig_flash_ok": true,
+    "orig_flash_enter": "それは",
+    "orig_flash_space": "それは"
+  },
+  {
+    "set": "C_英語保持",
+    "romaji": "Slack de hanasu",
+    "expected": "Slack ではなす",
+    "judge": "英字一致",
+    "orig_flash_ok": true,
+    "orig_flash_enter": "Slack ではなす",
+    "orig_flash_space": "Slack で話す"
+  },
+  {
+    "set": "C_英語保持",
+    "romaji": "Zoom de hanasu",
+    "expected": "Zoom ではなす",
+    "judge": "英字一致",
+    "orig_flash_ok": true,
+    "orig_flash_enter": "Zoom ではなす",
+    "orig_flash_space": "Zoom で話す"
+  },
+  {
+    "set": "C_英語保持",
+    "romaji": "Slack no settei",
+    "expected": "Slack のせってい",
+    "judge": "英字一致",
+    "orig_flash_ok": true,
+    "orig_flash_enter": "Slack のせってい",
+    "orig_flash_space": "Slack の設定"
+  },
+  {
+    "set": "C_英語保持",
+    "romaji": "Notion ha tsukau",
+    "expected": "Notion はつかう",
+    "judge": "英字一致",
+    "orig_flash_ok": true,
+    "orig_flash_enter": "Notion はつかう",
+    "orig_flash_space": "Notion は使う"
+  },
+  {
+    "set": "C_英語保持",
+    "romaji": "Windows to Mac",
+    "expected": "Windows とMac",
+    "judge": "英字一致",
+    "orig_flash_ok": true,
+    "orig_flash_enter": "Windows とMac",
+    "orig_flash_space": "Windows とMac"
+  },
+  {
+    "set": "C_英語保持",
+    "romaji": "Slack to Zoom",
+    "expected": "Slack とZoom",
+    "judge": "英字一致",
+    "orig_flash_ok": false,
+    "orig_flash_enter": "Slack to Zoom",
+    "orig_flash_space": "Slack to Zoom"
+  },
+  {
+    "set": "C_英語保持",
+    "romaji": "meeting ha ashita",
+    "expected": "meeting はあした",
+    "judge": "英字一致",
+    "orig_flash_ok": true,
+    "orig_flash_enter": "meeting ha あした",
+    "orig_flash_space": "meeting は明日"
+  },
+  {
+    "set": "C_英語保持",
+    "romaji": "kore to sore",
+    "expected": "これとそれ",
+    "judge": "英字一致",
+    "orig_flash_ok": true,
+    "orig_flash_enter": "これとそれ",
+    "orig_flash_space": "これとそれ"
+  },
+  {
+    "set": "C_英語保持",
+    "romaji": "Slack ni iku",
+    "expected": "Slack にいく",
+    "judge": "英字一致",
+    "orig_flash_ok": true,
+    "orig_flash_enter": "Slack にいく",
+    "orig_flash_space": "Slack にいく"
+  },
+  {
+    "set": "C_英語保持",
+    "romaji": "Google no kensaku",
+    "expected": "Google のけんさく",
+    "judge": "英字一致",
+    "orig_flash_ok": true,
+    "orig_flash_enter": "Google のけんさく",
+    "orig_flash_space": "Google の検索"
+  },
+  {
+    "set": "C_英語保持",
+    "romaji": "Slack to",
+    "expected": "Slack と",
+    "judge": "英字一致",
+    "orig_flash_ok": true,
+    "orig_flash_enter": "Slack と",
+    "orig_flash_space": "Slack と"
+  },
+  {
+    "set": "C_英語保持",
+    "romaji": "Google no",
+    "expected": "Google の",
+    "judge": "英字一致",
+    "orig_flash_ok": false,
+    "orig_flash_enter": "Google no",
+    "orig_flash_space": "Google no"
+  },
+  {
+    "set": "C_英語保持",
+    "romaji": "Zoom to",
+    "expected": "Zoom と",
+    "judge": "英字一致",
+    "orig_flash_ok": false,
+    "orig_flash_enter": "Zoom to",
+    "orig_flash_space": "Zoom to"
+  },
+  {
+    "set": "C_英語保持",
+    "romaji": "iPhone no",
+    "expected": "iPhone の",
+    "judge": "英字一致",
+    "orig_flash_ok": false,
+    "orig_flash_enter": "iPhone no",
+    "orig_flash_space": "iPhone no"
+  },
+  {
+    "set": "C_英語保持",
+    "romaji": "Mac to iPhone",
+    "expected": "Mac とiPhone",
+    "judge": "英字一致",
+    "orig_flash_ok": false,
+    "orig_flash_enter": "Mac to iPhone",
+    "orig_flash_space": "Mac to iPhone"
+  },
+  {
+    "set": "C_英語保持",
+    "romaji": "Tokyo to Osaka",
+    "expected": "Tokyo とOsaka",
+    "judge": "英字一致",
+    "orig_flash_ok": false,
+    "orig_flash_enter": "Tokyo to Osaka",
+    "orig_flash_space": "Tokyo to Osaka"
+  },
+  {
+    "set": "C_英語保持",
+    "romaji": "Zoom to Teams",
+    "expected": "Zoom とTeams",
+    "judge": "英字一致",
+    "orig_flash_ok": false,
+    "orig_flash_enter": "Zoom to Teams",
+    "orig_flash_space": "Zoom to Teams"
+  },
+  {
+    "set": "C_英語保持",
+    "romaji": "iPhone to Android",
+    "expected": "iPhone とAndroid",
+    "judge": "英字一致",
+    "orig_flash_ok": false,
+    "orig_flash_enter": "iPhone to Android",
+    "orig_flash_space": "iPhone to Android"
+  },
+  {
+    "set": "C_英語保持",
+    "romaji": "Meltype to Apple",
+    "expected": "Meltype とApple",
+    "judge": "英字一致",
+    "orig_flash_ok": false,
+    "orig_flash_enter": "Meltype to Apple",
+    "orig_flash_space": "Meltype to Apple"
+  },
+  {
+    "set": "C_英語保持",
+    "romaji": "Zoom to go ji ni au",
+    "expected": "Zoom とごじにあう",
+    "judge": "英字一致",
+    "orig_flash_ok": true,
+    "orig_flash_enter": "Zoom to go 時にあう",
+    "orig_flash_space": "Zoom とご時に会う"
+  },
+  {
+    "set": "C_英語保持",
+    "romaji": "Slack to do ko ni iku",
+    "expected": "Slack とどこにいく",
+    "judge": "英字一致",
+    "orig_flash_ok": true,
+    "orig_flash_enter": "Slack と度個にいく",
+    "orig_flash_space": "Slack と度個にいく"
+  },
+  {
+    "set": "C_英語保持",
+    "romaji": "Notion to be tsu ni",
+    "expected": "Notion とべつに",
+    "judge": "英字一致",
+    "orig_flash_ok": true,
+    "orig_flash_enter": "Notion とべつに",
+    "orig_flash_space": "Notion とべつに"
+  },
+  {
+    "set": "C_英語保持",
+    "romaji": "Ways to go",
+    "expected": "Ways to go",
+    "judge": "完全一致",
+    "orig_flash_ok": false,
+    "orig_flash_enter": "Ways とご",
+    "orig_flash_space": "Ways とご"
+  },
+  {
+    "set": "C_英語保持",
+    "romaji": "Eager to go",
+    "expected": "Eager to go",
+    "judge": "完全一致",
+    "orig_flash_ok": false,
+    "orig_flash_enter": "Eager とご",
+    "orig_flash_space": "Eager とご"
+  },
+  {
+    "set": "C_英語保持",
+    "romaji": "Fun to do",
+    "expected": "Fun to do",
+    "judge": "完全一致",
+    "orig_flash_ok": false,
+    "orig_flash_enter": "Fun とど",
+    "orig_flash_space": "Fun と度"
+  },
+  {
+    "set": "C_英語保持",
+    "romaji": "Reasons to be",
+    "expected": "Reasons to be",
+    "judge": "完全一致",
+    "orig_flash_ok": false,
+    "orig_flash_enter": "Reasons とべ",
+    "orig_flash_space": "Reasons とべ"
+  },
+  {
+    "set": "C_英語保持",
+    "romaji": "Right to do",
+    "expected": "Right to do",
+    "judge": "完全一致",
+    "orig_flash_ok": false,
+    "orig_flash_enter": "Right とど",
+    "orig_flash_space": "Right と度"
+  },
+  {
+    "set": "C_英語保持",
+    "romaji": "Places to go",
+    "expected": "Places to go",
+    "judge": "完全一致",
+    "orig_flash_ok": false,
+    "orig_flash_enter": "Places とご",
+    "orig_flash_space": "Places とご"
+  },
+  {
+    "set": "C_英語保持",
+    "romaji": "Moving to Berlin",
+    "expected": "Moving to Berlin",
+    "judge": "完全一致",
+    "orig_flash_ok": false,
+    "orig_flash_enter": "Moving とBerlin",
+    "orig_flash_space": "Moving とBerlin"
+  },
+  {
+    "set": "C_英語保持",
+    "romaji": "Flying to Rome",
+    "expected": "Flying to Rome",
+    "judge": "完全一致",
+    "orig_flash_ok": true,
+    "orig_flash_enter": "Flying to Rome",
+    "orig_flash_space": "Flying to Rome"
+  },
+  {
+    "set": "C_英語保持",
+    "romaji": "Driving to Chicago",
+    "expected": "Driving to Chicago",
+    "judge": "完全一致",
+    "orig_flash_ok": true,
+    "orig_flash_enter": "Driving to Chicago",
+    "orig_flash_space": "Driving to Chicago"
+  },
+  {
+    "set": "C_英語保持",
+    "romaji": "Commute to Shibuya",
+    "expected": "Commute to Shibuya",
+    "judge": "完全一致",
+    "orig_flash_ok": true,
+    "orig_flash_enter": "Commute to Shibuya",
+    "orig_flash_space": "Commute to Shibuya"
+  },
+  {
+    "set": "C_英語保持",
+    "romaji": "Anything to",
+    "expected": "Anything to",
+    "judge": "完全一致",
+    "orig_flash_ok": true,
+    "orig_flash_enter": "Anything to",
+    "orig_flash_space": "Anything to"
+  },
+  {
+    "set": "C_英語保持",
+    "romaji": "Likely to",
+    "expected": "Likely to",
+    "judge": "完全一致",
+    "orig_flash_ok": true,
+    "orig_flash_enter": "Likely to",
+    "orig_flash_space": "Likely to"
+  },
+  {
+    "set": "C_英語保持",
+    "romaji": "Eager to",
+    "expected": "Eager to",
+    "judge": "完全一致",
+    "orig_flash_ok": true,
+    "orig_flash_enter": "Eager to",
+    "orig_flash_space": "Eager to"
+  },
+  {
+    "set": "C_英語保持",
+    "romaji": "Looking forward to",
+    "expected": "Looking forward to",
+    "judge": "完全一致",
+    "orig_flash_ok": true,
+    "orig_flash_enter": "Looking forward to",
+    "orig_flash_space": "Looking forward to"
+  },
+  {
+    "set": "C_英語保持",
+    "romaji": "Welcome back to Tokyo",
+    "expected": "Welcome back to Tokyo",
+    "judge": "完全一致",
+    "orig_flash_ok": true,
+    "orig_flash_enter": "Welcome back to Tokyo",
+    "orig_flash_space": "Welcome back to Tokyo"
+  },
+  {
+    "set": "C_英語保持",
+    "romaji": "Chrome to Safari",
+    "expected": "Chrome とSafari",
+    "judge": "英字一致",
+    "orig_flash_ok": false,
+    "orig_flash_enter": "Chrome to Safari",
+    "orig_flash_space": "Chrome to Safari"
+  },
+  {
+    "set": "C_英語保持",
+    "romaji": "Google Meet to Zoom",
+    "expected": "Google Meet とZoom",
+    "judge": "英字一致",
+    "orig_flash_ok": false,
+    "orig_flash_enter": "Google Meet to Zoom",
+    "orig_flash_space": "Google Meet to Zoom"
+  },
+  {
+    "set": "C_英語保持",
+    "romaji": "Linux to Mac",
+    "expected": "Linux とMac",
+    "judge": "英字一致",
+    "orig_flash_ok": false,
+    "orig_flash_enter": "Linux to Mac",
+    "orig_flash_space": "Linux to Mac"
+  },
+  {
+    "set": "C_英語保持",
+    "romaji": "Docker to Kubernetes",
+    "expected": "Docker とKubernetes",
+    "judge": "英字一致",
+    "orig_flash_ok": false,
+    "orig_flash_enter": "Docker to Kubernetes",
+    "orig_flash_space": "Docker to Kubernetes"
+  },
+  {
+    "set": "C_英語保持",
+    "romaji": "Chrome to",
+    "expected": "Chrome と",
+    "judge": "英字一致",
+    "orig_flash_ok": false,
+    "orig_flash_enter": "Chrome to",
+    "orig_flash_space": "Chrome to"
+  },
+  {
+    "set": "C_英語保持",
+    "romaji": "Gmail to",
+    "expected": "Gmail と",
+    "judge": "英字一致",
+    "orig_flash_ok": false,
+    "orig_flash_enter": "Gmail to",
+    "orig_flash_space": "Gmail to"
+  },
+  {
+    "set": "C_英語保持",
+    "romaji": "Figma no",
+    "expected": "Figma の",
+    "judge": "英字一致",
+    "orig_flash_ok": false,
+    "orig_flash_enter": "Figma no",
+    "orig_flash_space": "Figma no"
+  },
+  {
+    "set": "C_英語保持",
+    "romaji": "Learning to do",
+    "expected": "Learning to do",
+    "judge": "完全一致",
+    "orig_flash_ok": true,
+    "orig_flash_enter": "Learning to do",
+    "orig_flash_space": "Learning to do"
+  },
+  {
+    "set": "C_英語保持",
+    "romaji": "Starting to go",
+    "expected": "Starting to go",
+    "judge": "完全一致",
+    "orig_flash_ok": true,
+    "orig_flash_enter": "Starting to go",
+    "orig_flash_space": "Starting to go"
+  },
+  {
+    "set": "C_英語保持",
+    "romaji": "Failing to be",
+    "expected": "Failing to be",
+    "judge": "完全一致",
+    "orig_flash_ok": true,
+    "orig_flash_enter": "Failing to be",
+    "orig_flash_space": "Failing to be"
+  },
+  {
+    "set": "C_英語保持",
+    "romaji": "Refusing to go",
+    "expected": "Refusing to go",
+    "judge": "完全一致",
+    "orig_flash_ok": true,
+    "orig_flash_enter": "Refusing to go",
+    "orig_flash_space": "Refusing to go"
+  },
+  {
+    "set": "C_英語保持",
+    "romaji": "Wanting to",
+    "expected": "Wanting to",
+    "judge": "完全一致",
+    "orig_flash_ok": true,
+    "orig_flash_enter": "Wanting to",
+    "orig_flash_space": "Wanting to"
+  },
+  {
+    "set": "C_英語保持",
+    "romaji": "Starting to",
+    "expected": "Starting to",
+    "judge": "完全一致",
+    "orig_flash_ok": true,
+    "orig_flash_enter": "Starting to",
+    "orig_flash_space": "Starting to"
+  },
+  {
+    "set": "C_英語保持",
+    "romaji": "Learning to",
+    "expected": "Learning to",
+    "judge": "完全一致",
+    "orig_flash_ok": true,
+    "orig_flash_enter": "Learning to",
+    "orig_flash_space": "Learning to"
+  },
+  {
+    "set": "C_英語保持",
+    "romaji": "Meeting to",
+    "expected": "Meeting と",
+    "judge": "英字一致",
+    "orig_flash_ok": false,
+    "orig_flash_enter": "Meeting to",
+    "orig_flash_space": "Meeting to"
+  },
+  {
+    "set": "C_英語保持",
+    "romaji": "Training to",
+    "expected": "Training と",
+    "judge": "英字一致",
+    "orig_flash_ok": false,
+    "orig_flash_enter": "Training to",
+    "orig_flash_space": "Training to"
+  },
+  {
+    "set": "C_英語保持",
+    "romaji": "Meeting to go ji ni au",
+    "expected": "Meeting とごじにあう",
+    "judge": "英字一致",
+    "orig_flash_ok": true,
+    "orig_flash_enter": "Meeting to go 時にあう",
+    "orig_flash_space": "Meeting とご時に会う"
+  },
+  {
+    "set": "C_英語保持",
+    "romaji": "Hosting to do ko ni aru",
+    "expected": "Hosting とどこにある",
+    "judge": "英字一致",
+    "orig_flash_ok": true,
+    "orig_flash_enter": "Hosting と度個にある",
+    "orig_flash_space": "Hosting と度個にある"
+  },
+  {
+    "set": "C_英語保持",
+    "romaji": "Testing to be tsu ni",
+    "expected": "Testing とべつに",
+    "judge": "英字一致",
+    "orig_flash_ok": true,
+    "orig_flash_enter": "Testing とべつに",
+    "orig_flash_space": "Testing とべつに"
+  },
+  {
+    "set": "C_英語保持",
+    "romaji": "What to do?",
+    "expected": "What to do?",
+    "judge": "完全一致",
+    "orig_flash_ok": false,
+    "orig_flash_enter": "What とど？",
+    "orig_flash_space": "What と度?"
+  },
+  {
+    "set": "C_英語保持",
+    "romaji": "Where to?",
+    "expected": "Where to?",
+    "judge": "完全一致",
+    "orig_flash_ok": false,
+    "orig_flash_enter": "Where と？",
+    "orig_flash_space": "Where と?"
+  },
+  {
+    "set": "C_英語保持",
+    "romaji": "Time to go.",
+    "expected": "Time to go.",
+    "judge": "完全一致",
+    "orig_flash_ok": true,
+    "orig_flash_enter": "Time to go.",
+    "orig_flash_space": "Time to go."
+  },
+  {
+    "set": "C_英語保持",
+    "romaji": "Ready to go!",
+    "expected": "Ready to go!",
+    "judge": "完全一致",
+    "orig_flash_ok": true,
+    "orig_flash_enter": "Ready to go!",
+    "orig_flash_space": "Ready to go!"
+  },
+  {
+    "set": "C_英語保持",
+    "romaji": "free to do ko ni iku",
+    "expected": "free とどこにいく",
+    "judge": "英字一致",
+    "orig_flash_ok": true,
+    "orig_flash_enter": "free to do 個にいく",
+    "orig_flash_space": "free と度個にいく"
+  },
+  {
+    "set": "C_英語保持",
+    "romaji": "good to go ji ni au",
+    "expected": "good とごじにあう",
+    "judge": "英字一致",
+    "orig_flash_ok": true,
+    "orig_flash_enter": "good とご時にあう",
+    "orig_flash_space": "good とご時に会う"
+  },
+  {
+    "set": "C_英語保持",
+    "romaji": "it to be tsu ni",
+    "expected": "it とべつに",
+    "judge": "英字一致",
+    "orig_flash_ok": true,
+    "orig_flash_enter": "it とべつに",
+    "orig_flash_space": "it とべつに"
+  },
+  {
+    "set": "C_英語保持",
+    "romaji": "and to go han wo taberu",
+    "expected": "and とごはんをたべる",
+    "judge": "英字一致",
+    "orig_flash_ok": true,
+    "orig_flash_enter": "and とご版をたべる",
+    "orig_flash_space": "and とご版を食べる"
+  },
+  {
+    "set": "C_英語保持",
+    "romaji": "not to do u zo",
+    "expected": "not とどうぞ",
+    "judge": "英字一致",
+    "orig_flash_ok": true,
+    "orig_flash_enter": "not と度うぞ",
+    "orig_flash_space": "not と度うぞ"
+  },
+  {
+    "set": "C_英語保持",
+    "romaji": "thing to be tsu ni suru",
+    "expected": "thing とべつにする",
+    "judge": "英字一致",
+    "orig_flash_ok": true,
+    "orig_flash_enter": "thing とべつにする",
+    "orig_flash_space": "thing とべつにする"
+  },
+  {
+    "set": "C_英語保持",
+    "romaji": "place to do ko ni iku",
+    "expected": "place とどこにいく",
+    "judge": "英字一致",
+    "orig_flash_ok": true,
+    "orig_flash_enter": "place と度個にいく",
+    "orig_flash_space": "place と度個にいく"
+  },
+  {
+    "set": "C_英語保持",
+    "romaji": "way to go ji ni au",
+    "expected": "way とごじにあう",
+    "judge": "英字一致",
+    "orig_flash_ok": true,
+    "orig_flash_enter": "way とご時にあう",
+    "orig_flash_space": "way とご時に会う"
+  },
+  {
+    "set": "C_英語保持",
+    "romaji": "up to be tsu ni",
+    "expected": "up とべつに",
+    "judge": "英字一致",
+    "orig_flash_ok": true,
+    "orig_flash_enter": "up とべつに",
+    "orig_flash_space": "up とべつに"
+  },
+  {
+    "set": "C_英語保持",
+    "romaji": "hard to go han wo taberu",
+    "expected": "hard とごはんをたべる",
+    "judge": "英字一致",
+    "orig_flash_ok": true,
+    "orig_flash_enter": "hard とご版をたべる",
+    "orig_flash_space": "hard とご版を食べる"
+  },
+  {
+    "set": "C_英語保持",
+    "romaji": "about to do u zo",
+    "expected": "about とどうぞ",
+    "judge": "英字一致",
+    "orig_flash_ok": true,
+    "orig_flash_enter": "about と度うぞ",
+    "orig_flash_space": "about と度うぞ"
+  },
+  {
+    "set": "C_英語保持",
+    "romaji": "get to be tsu ni suru",
+    "expected": "get とべつにする",
+    "judge": "英字一致",
+    "orig_flash_ok": true,
+    "orig_flash_enter": "get とべつにする",
+    "orig_flash_space": "get とべつにする"
+  },
+  {
+    "set": "C_英語保持",
+    "romaji": "Happy to do ko ni iku",
+    "expected": "Happy とどこにいく",
+    "judge": "英字一致",
+    "orig_flash_ok": true,
+    "orig_flash_enter": "Happy と度個にいく",
+    "orig_flash_space": "Happy と度個にいく"
+  },
+  {
+    "set": "C_英語保持",
+    "romaji": "What to go ji ni au",
+    "expected": "What とごじにあう",
+    "judge": "英字一致",
+    "orig_flash_ok": true,
+    "orig_flash_enter": "What とご時にあう",
+    "orig_flash_space": "What とご時に会う"
+  },
+  {
+    "set": "C_英語保持",
+    "romaji": "back to be tsu ni",
+    "expected": "back とべつに",
+    "judge": "英字一致",
+    "orig_flash_ok": true,
+    "orig_flash_enter": "back とべつに",
+    "orig_flash_space": "back とべつに"
+  },
+  {
+    "set": "C_英語保持",
+    "romaji": "next to go han wo taberu",
+    "expected": "next とごはんをたべる",
+    "judge": "英字一致",
+    "orig_flash_ok": true,
+    "orig_flash_enter": "next とご版をたべる",
+    "orig_flash_space": "next とご版を食べる"
+  },
+  {
+    "set": "C_英語保持",
+    "romaji": "plan to do u zo",
+    "expected": "plan とどうぞ",
+    "judge": "英字一致",
+    "orig_flash_ok": true,
+    "orig_flash_enter": "plan と度うぞ",
+    "orig_flash_space": "plan と度うぞ"
+  },
+  {
+    "set": "C_英語保持",
+    "romaji": "talk to be tsu ni suru",
+    "expected": "talk とべつにする",
+    "judge": "英字一致",
+    "orig_flash_ok": true,
+    "orig_flash_enter": "talk とべつにする",
+    "orig_flash_space": "talk とべつにする"
+  },
+  {
+    "set": "C_英語保持",
+    "romaji": "chance to do ko ni iku",
+    "expected": "chance とどこにいく",
+    "judge": "英字一致",
+    "orig_flash_ok": true,
+    "orig_flash_enter": "chance と度個にいく",
+    "orig_flash_space": "chance と度個にいく"
+  },
+  {
+    "set": "C_英語保持",
+    "romaji": "try to go ji ni au",
+    "expected": "try とごじにあう",
+    "judge": "英字一致",
+    "orig_flash_ok": true,
+    "orig_flash_enter": "try とご時にあう",
+    "orig_flash_space": "try とご時に会う"
+  },
+  {
+    "set": "C_英語保持",
+    "romaji": "easy to be tsu ni",
+    "expected": "easy とべつに",
+    "judge": "英字一致",
+    "orig_flash_ok": true,
+    "orig_flash_enter": "easy とべつに",
+    "orig_flash_space": "easy とべつに"
+  },
+  {
+    "set": "C_英語保持",
+    "romaji": "hope to go han wo taberu",
+    "expected": "hope とごはんをたべる",
+    "judge": "英字一致",
+    "orig_flash_ok": true,
+    "orig_flash_enter": "hope とご版をたべる",
+    "orig_flash_space": "hope とご版を食べる"
+  },
+  {
+    "set": "C_英語保持",
+    "romaji": "something to do u zo",
+    "expected": "something とどうぞ",
+    "judge": "英字一致",
+    "orig_flash_ok": true,
+    "orig_flash_enter": "something と度うぞ",
+    "orig_flash_space": "something と度うぞ"
+  },
+  {
+    "set": "C_英語保持",
+    "romaji": "Trip to be tsu ni suru",
+    "expected": "Trip とべつにする",
+    "judge": "英字一致",
+    "orig_flash_ok": true,
+    "orig_flash_enter": "Trip とべつにする",
+    "orig_flash_space": "Trip とべつにする"
+  },
+  {
+    "set": "C_英語保持",
+    "romaji": "free to",
+    "expected": "free と",
+    "judge": "英字一致",
+    "orig_flash_ok": true,
+    "orig_flash_enter": "free と",
+    "orig_flash_space": "free と"
+  },
+  {
+    "set": "C_英語保持",
+    "romaji": "good to",
+    "expected": "good と",
+    "judge": "英字一致",
+    "orig_flash_ok": false,
+    "orig_flash_enter": "good to",
+    "orig_flash_space": "good to"
+  },
+  {
+    "set": "C_英語保持",
+    "romaji": "it to",
+    "expected": "it と",
+    "judge": "英字一致",
+    "orig_flash_ok": false,
+    "orig_flash_enter": "it to",
+    "orig_flash_space": "it to"
+  },
+  {
+    "set": "C_英語保持",
+    "romaji": "and to",
+    "expected": "and と",
+    "judge": "英字一致",
+    "orig_flash_ok": false,
+    "orig_flash_enter": "and to",
+    "orig_flash_space": "and to"
+  },
+  {
+    "set": "C_英語保持",
+    "romaji": "not to",
+    "expected": "not と",
+    "judge": "英字一致",
+    "orig_flash_ok": false,
+    "orig_flash_enter": "not to",
+    "orig_flash_space": "not to"
+  },
+  {
+    "set": "C_英語保持",
+    "romaji": "thing to",
+    "expected": "thing と",
+    "judge": "英字一致",
+    "orig_flash_ok": false,
+    "orig_flash_enter": "thing to",
+    "orig_flash_space": "thing to"
+  },
+  {
+    "set": "C_英語保持",
+    "romaji": "place to",
+    "expected": "place と",
+    "judge": "英字一致",
+    "orig_flash_ok": false,
+    "orig_flash_enter": "place to",
+    "orig_flash_space": "place to"
+  },
+  {
+    "set": "C_英語保持",
+    "romaji": "way to",
+    "expected": "way と",
+    "judge": "英字一致",
+    "orig_flash_ok": false,
+    "orig_flash_enter": "way to",
+    "orig_flash_space": "way to"
+  },
+  {
+    "set": "C_英語保持",
+    "romaji": "up to",
+    "expected": "up と",
+    "judge": "英字一致",
+    "orig_flash_ok": false,
+    "orig_flash_enter": "up to",
+    "orig_flash_space": "up to"
+  },
+  {
+    "set": "C_英語保持",
+    "romaji": "hard to",
+    "expected": "hard と",
+    "judge": "英字一致",
+    "orig_flash_ok": false,
+    "orig_flash_enter": "hard to",
+    "orig_flash_space": "hard to"
+  },
+  {
+    "set": "C_英語保持",
+    "romaji": "about to",
+    "expected": "about と",
+    "judge": "英字一致",
+    "orig_flash_ok": false,
+    "orig_flash_enter": "about to",
+    "orig_flash_space": "about to"
+  },
+  {
+    "set": "C_英語保持",
+    "romaji": "get to",
+    "expected": "get と",
+    "judge": "英字一致",
+    "orig_flash_ok": false,
+    "orig_flash_enter": "get to",
+    "orig_flash_space": "get to"
+  },
+  {
+    "set": "C_英語保持",
+    "romaji": "Happy to",
+    "expected": "Happy と",
+    "judge": "英字一致",
+    "orig_flash_ok": false,
+    "orig_flash_enter": "Happy to",
+    "orig_flash_space": "Happy to"
+  },
+  {
+    "set": "C_英語保持",
+    "romaji": "What to",
+    "expected": "What と",
+    "judge": "英字一致",
+    "orig_flash_ok": false,
+    "orig_flash_enter": "What to",
+    "orig_flash_space": "What to"
+  },
+  {
+    "set": "C_英語保持",
+    "romaji": "back to",
+    "expected": "back と",
+    "judge": "英字一致",
+    "orig_flash_ok": false,
+    "orig_flash_enter": "back to",
+    "orig_flash_space": "back to"
+  },
+  {
+    "set": "C_英語保持",
+    "romaji": "next to",
+    "expected": "next と",
+    "judge": "英字一致",
+    "orig_flash_ok": false,
+    "orig_flash_enter": "next to",
+    "orig_flash_space": "next to"
+  },
+  {
+    "set": "C_英語保持",
+    "romaji": "plan to",
+    "expected": "plan と",
+    "judge": "英字一致",
+    "orig_flash_ok": false,
+    "orig_flash_enter": "plan to",
+    "orig_flash_space": "plan to"
+  },
+  {
+    "set": "C_英語保持",
+    "romaji": "talk to",
+    "expected": "talk と",
+    "judge": "英字一致",
+    "orig_flash_ok": false,
+    "orig_flash_enter": "talk to",
+    "orig_flash_space": "talk to"
+  },
+  {
+    "set": "C_英語保持",
+    "romaji": "chance to",
+    "expected": "chance と",
+    "judge": "英字一致",
+    "orig_flash_ok": false,
+    "orig_flash_enter": "chance to",
+    "orig_flash_space": "chance to"
+  },
+  {
+    "set": "C_英語保持",
+    "romaji": "try to",
+    "expected": "try と",
+    "judge": "英字一致",
+    "orig_flash_ok": false,
+    "orig_flash_enter": "try to",
+    "orig_flash_space": "try to"
+  },
+  {
+    "set": "C_英語保持",
+    "romaji": "easy to",
+    "expected": "easy と",
+    "judge": "英字一致",
+    "orig_flash_ok": false,
+    "orig_flash_enter": "easy to",
+    "orig_flash_space": "easy to"
+  },
+  {
+    "set": "C_英語保持",
+    "romaji": "hope to",
+    "expected": "hope と",
+    "judge": "英字一致",
+    "orig_flash_ok": false,
+    "orig_flash_enter": "hope to",
+    "orig_flash_space": "hope to"
+  },
+  {
+    "set": "C_英語保持",
+    "romaji": "something to",
+    "expected": "something と",
+    "judge": "英字一致",
+    "orig_flash_ok": false,
+    "orig_flash_enter": "something to",
+    "orig_flash_space": "something to"
+  },
+  {
+    "set": "C_英語保持",
+    "romaji": "Trip to",
+    "expected": "Trip と",
+    "judge": "英字一致",
+    "orig_flash_ok": false,
+    "orig_flash_enter": "Trip to",
+    "orig_flash_space": "Trip to"
+  },
+  {
+    "set": "C_英語保持",
+    "romaji": "Up to Tokyo",
+    "expected": "Up とTokyo",
+    "judge": "英字一致",
+    "orig_flash_ok": false,
+    "orig_flash_enter": "Up to Tokyo",
+    "orig_flash_space": "Up to Tokyo"
+  },
+  {
+    "set": "C_英語保持",
+    "romaji": "Back to Zoom",
+    "expected": "Back とZoom",
+    "judge": "英字一致",
+    "orig_flash_ok": false,
+    "orig_flash_enter": "Back to Zoom",
+    "orig_flash_space": "Back to Zoom"
+  },
+  {
+    "set": "C_英語保持",
+    "romaji": "Next to Apple",
+    "expected": "Next とApple",
+    "judge": "英字一致",
+    "orig_flash_ok": false,
+    "orig_flash_enter": "Next to Apple",
+    "orig_flash_space": "Next to Apple"
+  },
+  {
+    "set": "C_英語保持",
+    "romaji": "Free to Slack",
+    "expected": "Free とSlack",
+    "judge": "英字一致",
+    "orig_flash_ok": false,
+    "orig_flash_enter": "Free to Slack",
+    "orig_flash_space": "Free to Slack"
+  },
+  {
+    "set": "C_英語保持",
+    "romaji": "Good to Notion",
+    "expected": "Good とNotion",
+    "judge": "英字一致",
+    "orig_flash_ok": false,
+    "orig_flash_enter": "Good to Notion",
+    "orig_flash_space": "Good to Notion"
+  },
+  {
+    "set": "C_英語保持",
+    "romaji": "Thing to Mac",
+    "expected": "Thing とMac",
+    "judge": "英字一致",
+    "orig_flash_ok": false,
+    "orig_flash_enter": "Thing to Mac",
+    "orig_flash_space": "Thing to Mac"
+  },
+  {
+    "set": "C_英語保持",
+    "romaji": "Place to Tokyo",
+    "expected": "Place とTokyo",
+    "judge": "英字一致",
+    "orig_flash_ok": false,
+    "orig_flash_enter": "Place to Tokyo",
+    "orig_flash_space": "Place to Tokyo"
+  },
+  {
+    "set": "C_英語保持",
+    "romaji": "Way to Zoom",
+    "expected": "Way とZoom",
+    "judge": "英字一致",
+    "orig_flash_ok": false,
+    "orig_flash_enter": "Way to Zoom",
+    "orig_flash_space": "Way to Zoom"
+  },
+  {
+    "set": "C_英語保持",
+    "romaji": "Hard to Apple",
+    "expected": "Hard とApple",
+    "judge": "英字一致",
+    "orig_flash_ok": false,
+    "orig_flash_enter": "Hard to Apple",
+    "orig_flash_space": "Hard to Apple"
+  },
+  {
+    "set": "C_英語保持",
+    "romaji": "Close to Slack",
+    "expected": "Close とSlack",
+    "judge": "英字一致",
+    "orig_flash_ok": false,
+    "orig_flash_enter": "Close to Slack",
+    "orig_flash_space": "Close to Slack"
+  },
+  {
+    "set": "C_英語保持",
+    "romaji": "Trip to Notion",
+    "expected": "Trip とNotion",
+    "judge": "英字一致",
+    "orig_flash_ok": false,
+    "orig_flash_enter": "Trip to Notion",
+    "orig_flash_space": "Trip to Notion"
+  },
+  {
+    "set": "C_英語保持",
+    "romaji": "Train to Mac",
+    "expected": "Train とMac",
+    "judge": "英字一致",
+    "orig_flash_ok": false,
+    "orig_flash_enter": "Train to Mac",
+    "orig_flash_space": "Train to Mac"
+  },
+  {
+    "set": "C_英語保持",
+    "romaji": "Key to Tokyo",
+    "expected": "Key とTokyo",
+    "judge": "英字一致",
+    "orig_flash_ok": false,
+    "orig_flash_enter": "Key to Tokyo",
+    "orig_flash_space": "Key to Tokyo"
+  },
+  {
+    "set": "C_英語保持",
+    "romaji": "Answer to Zoom",
+    "expected": "Answer とZoom",
+    "judge": "英字一致",
+    "orig_flash_ok": false,
+    "orig_flash_enter": "Answer to Zoom",
+    "orig_flash_space": "Answer to Zoom"
+  },
+  {
+    "set": "C_英語保持",
+    "romaji": "Reply to Apple",
+    "expected": "Reply とApple",
+    "judge": "英字一致",
+    "orig_flash_ok": false,
+    "orig_flash_enter": "Reply to Apple",
+    "orig_flash_space": "Reply to Apple"
+  },
+  {
+    "set": "C_英語保持",
+    "romaji": "Talk to Slack",
+    "expected": "Talk とSlack",
+    "judge": "英字一致",
+    "orig_flash_ok": false,
+    "orig_flash_enter": "Talk to Slack",
+    "orig_flash_space": "Talk to Slack"
+  },
+  {
+    "set": "C_英語保持",
+    "romaji": "Time to Notion",
+    "expected": "Time とNotion",
+    "judge": "英字一致",
+    "orig_flash_ok": false,
+    "orig_flash_enter": "Time to Notion",
+    "orig_flash_space": "Time to Notion"
+  },
+  {
+    "set": "C_英語保持",
+    "romaji": "Plan to Mac",
+    "expected": "Plan とMac",
+    "judge": "英字一致",
+    "orig_flash_ok": false,
+    "orig_flash_enter": "Plan to Mac",
+    "orig_flash_space": "Plan to Mac"
+  },
+  {
+    "set": "C_英語保持",
+    "romaji": "Hope to Tokyo",
+    "expected": "Hope とTokyo",
+    "judge": "英字一致",
+    "orig_flash_ok": false,
+    "orig_flash_enter": "Hope to Tokyo",
+    "orig_flash_space": "Hope to Tokyo"
+  },
+  {
+    "set": "C_英語保持",
+    "romaji": "Guide to Zoom",
+    "expected": "Guide とZoom",
+    "judge": "英字一致",
+    "orig_flash_ok": false,
+    "orig_flash_enter": "Guide to Zoom",
+    "orig_flash_space": "Guide to Zoom"
+  },
+  {
+    "set": "C_英語保持",
+    "romaji": "Tour to Apple",
+    "expected": "Tour とApple",
+    "judge": "英字一致",
+    "orig_flash_ok": false,
+    "orig_flash_enter": "Tour to Apple",
+    "orig_flash_space": "Tour to Apple"
+  },
+  {
+    "set": "C_英語保持",
+    "romaji": "Ticket to Slack",
+    "expected": "Ticket とSlack",
+    "judge": "英字一致",
+    "orig_flash_ok": false,
+    "orig_flash_enter": "Ticket to Slack",
+    "orig_flash_space": "Ticket to Slack"
+  },
+  {
+    "set": "C_英語保持",
+    "romaji": "Bus to Notion",
+    "expected": "Bus とNotion",
+    "judge": "英字一致",
+    "orig_flash_ok": false,
+    "orig_flash_enter": "Bus to Notion",
+    "orig_flash_space": "Bus to Notion"
+  },
+  {
+    "set": "C_英語保持",
+    "romaji": "Road to Mac",
+    "expected": "Road とMac",
+    "judge": "英字一致",
+    "orig_flash_ok": false,
+    "orig_flash_enter": "Road to Mac",
+    "orig_flash_space": "Road to Mac"
+  },
+  {
+    "set": "C_英語保持",
+    "romaji": "Flight to Tokyo",
+    "expected": "Flight とTokyo",
+    "judge": "英字一致",
+    "orig_flash_ok": false,
+    "orig_flash_enter": "Flight to Tokyo",
+    "orig_flash_space": "Flight to Tokyo"
+  },
+  {
+    "set": "C_英語保持",
+    "romaji": "Trip to Tokyo ha",
+    "expected": "Trip to Tokyo は",
+    "judge": "英字一致",
+    "orig_flash_ok": false,
+    "orig_flash_enter": "Trip to Tokyo ha",
+    "orig_flash_space": "Trip to Tokyo ha"
+  },
+  {
+    "set": "C_英語保持",
+    "romaji": "Fun to be",
+    "expected": "Fun to be",
+    "judge": "完全一致",
+    "orig_flash_ok": true,
+    "orig_flash_enter": "Fun to be",
+    "orig_flash_space": "Fun to be"
+  },
+  {
+    "set": "C_英語保持",
+    "romaji": "Likely to be",
+    "expected": "Likely to be",
+    "judge": "完全一致",
+    "orig_flash_ok": true,
+    "orig_flash_enter": "Likely to be",
+    "orig_flash_space": "Likely to be"
+  },
+  {
+    "set": "C_英語保持",
+    "romaji": "Keen to do",
+    "expected": "Keen to do",
+    "judge": "完全一致",
+    "orig_flash_ok": true,
+    "orig_flash_enter": "Keen to do",
+    "orig_flash_space": "Keen to do"
+  },
+  {
+    "set": "C_英語保持",
+    "romaji": "Afraid to go",
+    "expected": "Afraid to go",
+    "judge": "完全一致",
+    "orig_flash_ok": true,
+    "orig_flash_enter": "Afraid to go",
+    "orig_flash_space": "Afraid to go"
+  },
+  {
+    "set": "C_英語保持",
+    "romaji": "Excited to be",
+    "expected": "Excited to be",
+    "judge": "完全一致",
+    "orig_flash_ok": true,
+    "orig_flash_enter": "Excited to be",
+    "orig_flash_space": "Excited to be"
+  },
+  {
+    "set": "C_英語保持",
+    "romaji": "Proud to be",
+    "expected": "Proud to be",
+    "judge": "完全一致",
+    "orig_flash_ok": true,
+    "orig_flash_enter": "Proud to be",
+    "orig_flash_space": "Proud to be"
+  },
+  {
+    "set": "C_英語保持",
+    "romaji": "Willing to do",
+    "expected": "Willing to do",
+    "judge": "完全一致",
+    "orig_flash_ok": true,
+    "orig_flash_enter": "Willing to do",
+    "orig_flash_space": "Willing to do"
+  },
+  {
+    "set": "C_英語保持",
+    "romaji": "Happen to be",
+    "expected": "Happen to be",
+    "judge": "完全一致",
+    "orig_flash_ok": true,
+    "orig_flash_enter": "Happen to be",
+    "orig_flash_space": "Happen to be"
+  },
+  {
+    "set": "C_英語保持",
+    "romaji": "Seems to be",
+    "expected": "Seems to be",
+    "judge": "完全一致",
+    "orig_flash_ok": true,
+    "orig_flash_enter": "Seems to be",
+    "orig_flash_space": "Seems to be"
+  },
+  {
+    "set": "C_英語保持",
+    "romaji": "Tends to go",
+    "expected": "Tends to go",
+    "judge": "完全一致",
+    "orig_flash_ok": true,
+    "orig_flash_enter": "Tends to go",
+    "orig_flash_space": "Tends to go"
+  },
+  {
+    "set": "C_英語保持",
+    "romaji": "Forced to go",
+    "expected": "Forced to go",
+    "judge": "完全一致",
+    "orig_flash_ok": true,
+    "orig_flash_enter": "Forced to go",
+    "orig_flash_space": "Forced to go"
+  },
+  {
+    "set": "C_英語保持",
+    "romaji": "Allowed to do",
+    "expected": "Allowed to do",
+    "judge": "完全一致",
+    "orig_flash_ok": true,
+    "orig_flash_enter": "Allowed to do",
+    "orig_flash_space": "Allowed to do"
+  },
+  {
+    "set": "C_英語保持",
+    "romaji": "Asked to go",
+    "expected": "Asked to go",
+    "judge": "完全一致",
+    "orig_flash_ok": true,
+    "orig_flash_enter": "Asked to go",
+    "orig_flash_space": "Asked to go"
+  },
+  {
+    "set": "C_英語保持",
+    "romaji": "Learn to be",
+    "expected": "Learn to be",
+    "judge": "完全一致",
+    "orig_flash_ok": true,
+    "orig_flash_enter": "Learn to be",
+    "orig_flash_space": "Learn to be"
+  },
+  {
+    "set": "C_英語保持",
+    "romaji": "Begin to do",
+    "expected": "Begin to do",
+    "judge": "完全一致",
+    "orig_flash_ok": true,
+    "orig_flash_enter": "Begin to do",
+    "orig_flash_space": "Begin to do"
+  },
+  {
+    "set": "C_英語保持",
+    "romaji": "Love to go",
+    "expected": "Love to go",
+    "judge": "完全一致",
+    "orig_flash_ok": true,
+    "orig_flash_enter": "Love to go",
+    "orig_flash_space": "Love to go"
+  },
+  {
+    "set": "C_英語保持",
+    "romaji": "Hate to go",
+    "expected": "Hate to go",
+    "judge": "完全一致",
+    "orig_flash_ok": true,
+    "orig_flash_enter": "Hate to go",
+    "orig_flash_space": "Hate to go"
+  },
+  {
+    "set": "C_英語保持",
+    "romaji": "Wish to be",
+    "expected": "Wish to be",
+    "judge": "完全一致",
+    "orig_flash_ok": true,
+    "orig_flash_enter": "Wish to be",
+    "orig_flash_space": "Wish to be"
+  },
+  {
+    "set": "C_英語保持",
+    "romaji": "Decided to go",
+    "expected": "Decided to go",
+    "judge": "完全一致",
+    "orig_flash_ok": true,
+    "orig_flash_enter": "Decided to go",
+    "orig_flash_space": "Decided to go"
+  },
+  {
+    "set": "C_英語保持",
+    "romaji": "Failed to do",
+    "expected": "Failed to do",
+    "judge": "完全一致",
+    "orig_flash_ok": true,
+    "orig_flash_enter": "Failed to do",
+    "orig_flash_space": "Failed to do"
+  },
+  {
+    "set": "C_英語保持",
+    "romaji": "Chose to be",
+    "expected": "Chose to be",
+    "judge": "完全一致",
+    "orig_flash_ok": true,
+    "orig_flash_enter": "Chose to be",
+    "orig_flash_space": "Chose to be"
+  },
+  {
+    "set": "C_英語保持",
+    "romaji": "Refused to go",
+    "expected": "Refused to go",
+    "judge": "完全一致",
+    "orig_flash_ok": true,
+    "orig_flash_enter": "Refused to go",
+    "orig_flash_space": "Refused to go"
+  },
+  {
+    "set": "C_英語保持",
+    "romaji": "Flying to Osaka",
+    "expected": "Flying to Osaka",
+    "judge": "完全一致",
+    "orig_flash_ok": true,
+    "orig_flash_enter": "Flying to Osaka",
+    "orig_flash_space": "Flying to Osaka"
+  },
+  {
+    "set": "C_英語保持",
+    "romaji": "Ways to do",
+    "expected": "Ways to do",
+    "judge": "完全一致",
+    "orig_flash_ok": true,
+    "orig_flash_enter": "Ways to do",
+    "orig_flash_space": "Ways to do"
+  },
+  {
+    "set": "C_英語保持",
+    "romaji": "Excited to",
+    "expected": "Excited to",
+    "judge": "完全一致",
+    "orig_flash_ok": true,
+    "orig_flash_enter": "Excited to",
+    "orig_flash_space": "Excited to"
+  },
+  {
+    "set": "C_英語保持",
+    "romaji": "Eager to be",
+    "expected": "Eager to be",
+    "judge": "完全一致",
+    "orig_flash_ok": true,
+    "orig_flash_enter": "Eager to be",
+    "orig_flash_space": "Eager to be"
+  },
+  {
+    "set": "C_英語保持",
+    "romaji": "Pleased to go",
+    "expected": "Pleased to go",
+    "judge": "完全一致",
+    "orig_flash_ok": true,
+    "orig_flash_enter": "Pleased to go",
+    "orig_flash_space": "Pleased to go"
+  },
+  {
+    "set": "C_英語保持",
+    "romaji": "What to do mo",
+    "expected": "What とども",
+    "judge": "英字一致",
+    "orig_flash_ok": true,
+    "orig_flash_enter": "What to do も",
+    "orig_flash_space": "What と度も"
+  },
+  {
+    "set": "C_英語保持",
+    "romaji": "What to do ga",
+    "expected": "What とどが",
+    "judge": "英字一致",
+    "orig_flash_ok": true,
+    "orig_flash_enter": "What と度が",
+    "orig_flash_space": "What と度が"
+  },
+  {
+    "set": "C_英語保持",
+    "romaji": "What to do wo",
+    "expected": "What とどを",
+    "judge": "英字一致",
+    "orig_flash_ok": true,
+    "orig_flash_enter": "What と度を",
+    "orig_flash_space": "What と度を"
+  },
+  {
+    "set": "C_英語保持",
+    "romaji": "What to do ni",
+    "expected": "What とどに",
+    "judge": "英字一致",
+    "orig_flash_ok": true,
+    "orig_flash_enter": "What と度に",
+    "orig_flash_space": "What と度に"
+  },
+  {
+    "set": "C_英語保持",
+    "romaji": "What to do de",
+    "expected": "What とどで",
+    "judge": "英字一致",
+    "orig_flash_ok": true,
+    "orig_flash_enter": "What と度で",
+    "orig_flash_space": "What と度で"
+  },
+  {
+    "set": "C_英語保持",
+    "romaji": "What to do ka",
+    "expected": "What とどか",
+    "judge": "英字一致",
+    "orig_flash_ok": true,
+    "orig_flash_enter": "What と度か",
+    "orig_flash_space": "What と度か"
+  },
+  {
+    "set": "C_英語保持",
+    "romaji": "What to do ne",
+    "expected": "What とどね",
+    "judge": "英字一致",
+    "orig_flash_ok": true,
+    "orig_flash_enter": "What と度ね",
+    "orig_flash_space": "What と度ね"
+  },
+  {
+    "set": "C_英語保持",
+    "romaji": "What to do!",
+    "expected": "What to do!",
+    "judge": "完全一致",
+    "orig_flash_ok": false,
+    "orig_flash_enter": "What とど！",
+    "orig_flash_space": "What と度!"
+  },
+  {
+    "set": "C_英語保持",
+    "romaji": "Where to.",
+    "expected": "Where to.",
+    "judge": "完全一致",
+    "orig_flash_ok": false,
+    "orig_flash_enter": "Where と。",
+    "orig_flash_space": "Where と。"
+  },
+  {
+    "set": "C_英語保持",
+    "romaji": "Welcome to Tokyo.",
+    "expected": "Welcome to Tokyo.",
+    "judge": "完全一致",
+    "orig_flash_ok": true,
+    "orig_flash_enter": "Welcome to Tokyo.",
+    "orig_flash_space": "Welcome to Tokyo."
+  },
+  {
+    "set": "C_英語保持",
+    "romaji": "Ready to go,",
+    "expected": "Ready to go,",
+    "judge": "完全一致",
+    "orig_flash_ok": true,
+    "orig_flash_enter": "Ready to go,",
+    "orig_flash_space": "Ready to go,"
+  },
+  {
+    "set": "C_英語保持",
+    "romaji": "Going to be;",
+    "expected": "Going to be;",
+    "judge": "完全一致",
+    "orig_flash_ok": true,
+    "orig_flash_enter": "Going to be;",
+    "orig_flash_space": "Going to be;"
+  },
+  {
+    "set": "C_英語保持",
+    "romaji": "Need to do:",
+    "expected": "Need to do:",
+    "judge": "完全一致",
+    "orig_flash_ok": true,
+    "orig_flash_enter": "Need to do:",
+    "orig_flash_space": "Need to do:"
+  },
+  {
+    "set": "C_英語保持",
+    "romaji": "How to do)",
+    "expected": "How to do)",
+    "judge": "完全一致",
+    "orig_flash_ok": true,
+    "orig_flash_enter": "How to do)",
+    "orig_flash_space": "How と度)"
+  },
+  {
+    "set": "C_英語保持",
+    "romaji": "Welcome to Tokyo)",
+    "expected": "Welcome to Tokyo)",
+    "judge": "完全一致",
+    "orig_flash_ok": false,
+    "orig_flash_enter": "Welcome とTokyo)",
+    "orig_flash_space": "Welcome とTokyo)"
+  },
+  {
+    "set": "C_英語保持",
+    "romaji": "What to do?!",
+    "expected": "What to do?!",
+    "judge": "完全一致",
+    "orig_flash_ok": false,
+    "orig_flash_enter": "What とど？！",
+    "orig_flash_space": "What と度?!"
+  },
+  {
+    "set": "C_英語保持",
+    "romaji": "Where to!",
+    "expected": "Where to!",
+    "judge": "完全一致",
+    "orig_flash_ok": false,
+    "orig_flash_enter": "Where と！",
+    "orig_flash_space": "Where と!"
+  },
+  {
+    "set": "C_英語保持",
+    "romaji": "Thanks to Google!",
+    "expected": "Thanks to Google!",
+    "judge": "完全一致",
+    "orig_flash_ok": true,
+    "orig_flash_enter": "Thanks to Google!",
+    "orig_flash_space": "Thanks to Google!"
+  },
+  {
+    "set": "C_英語保持",
+    "romaji": "masaka?",
+    "expected": "まさか？",
+    "judge": "英字一致",
+    "orig_flash_ok": true,
+    "orig_flash_enter": "まさか？",
+    "orig_flash_space": "まさか?"
+  },
+  {
+    "set": "C_英語保持",
+    "romaji": "hontou?",
+    "expected": "ほんとう？",
+    "judge": "英字一致",
+    "orig_flash_ok": true,
+    "orig_flash_enter": "ほんとう？",
+    "orig_flash_space": "本当?"
+  },
+  {
+    "set": "C_英語保持",
+    "romaji": "nani?",
+    "expected": "なに？",
+    "judge": "英字一致",
+    "orig_flash_ok": true,
+    "orig_flash_enter": "なに？",
+    "orig_flash_space": "なに?"
+  },
+  {
+    "set": "C_英語保持",
+    "romaji": "masaka!",
+    "expected": "まさか！",
+    "judge": "英字一致",
+    "orig_flash_ok": true,
+    "orig_flash_enter": "まさか！",
+    "orig_flash_space": "まさか!"
+  },
+  {
+    "set": "C_英語保持",
+    "romaji": "hontou.",
+    "expected": "ほんとう。",
+    "judge": "英字一致",
+    "orig_flash_ok": true,
+    "orig_flash_enter": "ほんとう。",
+    "orig_flash_space": "本当。"
+  },
+  {
+    "set": "C_英語保持",
+    "romaji": "kyou to asobu?",
+    "expected": "今日とあそぶ？",
+    "judge": "英字一致",
+    "orig_flash_ok": true,
+    "orig_flash_enter": "今日とあそぶ？",
+    "orig_flash_space": "今日と遊ぶ?"
+  },
+  {
+    "set": "C_英語保持",
+    "romaji": "what to do? ko ni iku",
+    "expected": "what とど？こにいく",
+    "judge": "英字一致",
+    "orig_flash_ok": false,
+    "orig_flash_enter": "what と度?個にいく",
+    "orig_flash_space": "what と度?個にいく"
+  },
+  {
+    "set": "C_英語保持",
+    "romaji": "what to do! ko ni iku",
+    "expected": "what とど！こにいく",
+    "judge": "英字一致",
+    "orig_flash_ok": false,
+    "orig_flash_enter": "what と度!個にいく",
+    "orig_flash_space": "what と度!個にいく"
+  },
+  {
+    "set": "C_英語保持",
+    "romaji": "what to do. ko ni iku",
+    "expected": "what とど。こにいく",
+    "judge": "英字一致",
+    "orig_flash_ok": true,
+    "orig_flash_enter": "what と度。個にいく",
+    "orig_flash_space": "what と度。個にいく"
+  },
+  {
+    "set": "C_英語保持",
+    "romaji": "What to?",
+    "expected": "What と？",
+    "judge": "英字一致",
+    "orig_flash_ok": true,
+    "orig_flash_enter": "What と？",
+    "orig_flash_space": "What と?"
+  },
+  {
+    "set": "C_英語保持",
+    "romaji": "try to!",
+    "expected": "try と！",
+    "judge": "英字一致",
+    "orig_flash_ok": false,
+    "orig_flash_enter": "try to!",
+    "orig_flash_space": "try to!"
+  },
+  {
+    "set": "C_英語保持",
+    "romaji": "Slack to?",
+    "expected": "Slack と？",
+    "judge": "英字一致",
+    "orig_flash_ok": false,
+    "orig_flash_enter": "Slack to?",
+    "orig_flash_space": "Slack to?"
+  },
+  {
+    "set": "C_英語保持",
+    "romaji": "ost",
+    "expected": "ost",
+    "judge": "完全一致",
+    "orig_flash_ok": true,
+    "orig_flash_enter": "ost",
+    "orig_flash_space": "ost"
+  },
+  {
+    "set": "C_英語保持",
+    "romaji": "ost wo tsukau",
+    "expected": "ost をつかう",
+    "judge": "英字一致",
+    "orig_flash_ok": true,
+    "orig_flash_enter": "ost をつかう",
+    "orig_flash_space": "ost を使う"
+  },
+  {
+    "set": "C_英語保持",
+    "romaji": "kosuto",
+    "expected": "こすと",
+    "judge": "英字一致",
+    "orig_flash_ok": true,
+    "orig_flash_enter": "こすと",
+    "orig_flash_space": "コスト"
+  },
+  {
+    "set": "C_英語保持",
+    "romaji": "osutoraria",
+    "expected": "おすとらりあ",
+    "judge": "英字一致",
+    "orig_flash_ok": true,
+    "orig_flash_enter": "おすとらりあ",
+    "orig_flash_space": "おストラリア"
+  },
+  {
+    "set": "C_英語保持",
+    "romaji": "kyouhaosutoda",
+    "expected": "きょうはおすとだ",
+    "judge": "英字一致",
+    "orig_flash_ok": true,
+    "orig_flash_enter": "きょうはおすとだ",
+    "orig_flash_space": "今日はおストだ"
+  },
+  {
+    "set": "C_英語保持",
+    "romaji": "korehaostdayo",
+    "expected": "これはostだよ",
+    "judge": "英字一致",
+    "orig_flash_ok": true,
+    "orig_flash_enter": "これはostだよ",
+    "orig_flash_space": "これはostだよ"
+  },
+  {
+    "set": "C_英語保持",
+    "romaji": "beep",
+    "expected": "beep",
+    "judge": "完全一致",
+    "orig_flash_ok": true,
+    "orig_flash_enter": "beep",
+    "orig_flash_space": "beep"
+  },
+  {
+    "set": "C_英語保持",
+    "romaji": "beep sound",
+    "expected": "beep sound",
+    "judge": "完全一致",
+    "orig_flash_ok": true,
+    "orig_flash_enter": "beep sound",
+    "orig_flash_space": "beep sound"
+  },
+  {
+    "set": "C_英語保持",
+    "romaji": "beep wo narasu",
+    "expected": "beep をならす",
+    "judge": "英字一致",
+    "orig_flash_ok": true,
+    "orig_flash_enter": "beep をならす",
+    "orig_flash_space": "beep を鳴らす"
+  },
+  {
+    "set": "C_英語保持",
+    "romaji": "beeru",
+    "expected": "べえる",
+    "judge": "英字一致",
+    "orig_flash_ok": true,
+    "orig_flash_enter": "べえる",
+    "orig_flash_space": "べエル"
+  },
+  {
+    "set": "C_英語保持",
+    "romaji": "bee",
+    "expected": "べえ",
+    "judge": "英字一致",
+    "orig_flash_ok": true,
+    "orig_flash_enter": "べえ",
+    "orig_flash_space": "ベエ"
+  },
+  {
+    "set": "C_英語保持",
+    "romaji": "beeper",
+    "expected": "beeper",
+    "judge": "完全一致",
+    "orig_flash_ok": true,
+    "orig_flash_enter": "beeper",
+    "orig_flash_space": "beeper"
+  },
+  {
+    "set": "C_英語保持",
+    "romaji": "iCloud",
+    "expected": "iCloud",
+    "judge": "完全一致",
+    "orig_flash_ok": true,
+    "orig_flash_enter": "iCloud",
+    "orig_flash_space": "iCloud"
+  },
+  {
+    "set": "C_英語保持",
+    "romaji": "iTunes",
+    "expected": "iTunes",
+    "judge": "完全一致",
+    "orig_flash_ok": false,
+    "orig_flash_enter": "いTunes",
+    "orig_flash_space": "いTunes"
+  },
+  {
+    "set": "C_英語保持",
+    "romaji": "iCloud wo tsukau",
+    "expected": "iCloud をつかう",
+    "judge": "英字一致",
+    "orig_flash_ok": true,
+    "orig_flash_enter": "iCloud をつかう",
+    "orig_flash_space": "iCloud を使う"
+  },
+  {
+    "set": "C_英語保持",
+    "romaji": "iCloudnoerror",
+    "expected": "iCloudのerror",
+    "judge": "英字一致",
+    "orig_flash_ok": false,
+    "orig_flash_enter": "iCloudのえっろr",
+    "orig_flash_space": "iCloudのエッロr"
+  },
+  {
+    "set": "C_英語保持",
+    "romaji": "ichi",
+    "expected": "いち",
+    "judge": "英字一致",
+    "orig_flash_ok": true,
+    "orig_flash_enter": "いち",
+    "orig_flash_space": "1"
+  },
+  {
+    "set": "C_英語保持",
+    "romaji": "ikou",
+    "expected": "いこう",
+    "judge": "英字一致",
+    "orig_flash_ok": true,
+    "orig_flash_enter": "いこう",
+    "orig_flash_space": "以降"
+  },
+  {
+    "set": "C_英語保持",
+    "romaji": "iPhone",
+    "expected": "iPhone",
+    "judge": "完全一致",
+    "orig_flash_ok": true,
+    "orig_flash_enter": "iPhone",
+    "orig_flash_space": "iPhone"
+  },
+  {
+    "set": "C_英語保持",
+    "romaji": "iCloudnihozon",
+    "expected": "iCloudにほぞん",
+    "judge": "英字一致",
+    "orig_flash_ok": true,
+    "orig_flash_enter": "iCloudにほぞん",
+    "orig_flash_space": "iCloudに保存"
+  },
+  {
+    "set": "C_英語保持",
+    "romaji": "karento",
+    "expected": "かれんと",
+    "judge": "英字一致",
+    "orig_flash_ok": true,
+    "orig_flash_enter": "かれんと",
+    "orig_flash_space": "カレント"
+  },
+  {
+    "set": "C_英語保持",
+    "romaji": "karentodesu",
+    "expected": "かれんとです",
+    "judge": "英字一致",
+    "orig_flash_ok": true,
+    "orig_flash_enter": "かれんとです",
+    "orig_flash_space": "カレントです"
+  },
+  {
+    "set": "C_英語保持",
+    "romaji": "kyouhakarentode",
+    "expected": "きょうはかれんとで",
+    "judge": "英字一致",
+    "orig_flash_ok": true,
+    "orig_flash_enter": "きょうはかれんとで",
+    "orig_flash_space": "今日はカレントで"
+  },
+  {
+    "set": "C_英語保持",
+    "romaji": "karen",
+    "expected": "karen",
+    "judge": "完全一致",
+    "orig_flash_ok": false,
+    "orig_flash_enter": "かれん",
+    "orig_flash_space": "可憐"
+  },
+  {
+    "set": "C_英語保持",
+    "romaji": "karenda",
+    "expected": "かれんだ",
+    "judge": "英字一致",
+    "orig_flash_ok": true,
+    "orig_flash_enter": "かれんだ",
+    "orig_flash_space": "カレンダ"
+  },
+  {
+    "set": "C_英語保持",
+    "romaji": "karenga",
+    "expected": "karenが",
+    "judge": "英字一致",
+    "orig_flash_ok": false,
+    "orig_flash_enter": "かれんが",
+    "orig_flash_space": "カレンが"
+  },
+  {
+    "set": "C_英語保持",
+    "romaji": "appleto",
+    "expected": "appleと",
+    "judge": "英字一致",
+    "orig_flash_ok": true,
+    "orig_flash_enter": "appleと",
+    "orig_flash_space": "appleと"
+  },
+  {
+    "set": "C_英語保持",
+    "romaji": "karendaha",
+    "expected": "かれんだは",
+    "judge": "英字一致",
+    "orig_flash_ok": true,
+    "orig_flash_enter": "かれんだは",
+    "orig_flash_space": "カレンダは"
+  },
+  {
+    "set": "C_英語保持",
+    "romaji": "karende",
+    "expected": "karenで",
+    "judge": "英字一致",
+    "orig_flash_ok": false,
+    "orig_flash_enter": "かれんで",
+    "orig_flash_space": "可憐で"
+  },
+  {
+    "set": "C_英語保持",
+    "romaji": "kinouhakarentoaimashita",
+    "expected": "きのうはかれんとあいました",
+    "judge": "英字一致",
+    "orig_flash_ok": true,
+    "orig_flash_enter": "きのうはかれんとあいました",
+    "orig_flash_space": "機能は可憐と会いました"
+  },
+  {
+    "set": "C_英語保持",
+    "romaji": "Karentohanashita",
+    "expected": "Karenとはなした",
+    "judge": "英字一致",
+    "orig_flash_ok": true,
+    "orig_flash_enter": "Karenとはなした",
+    "orig_flash_space": "Karenと話した"
+  },
+  {
+    "set": "C_英語保持",
+    "romaji": "colab",
+    "expected": "colab",
+    "judge": "完全一致",
+    "orig_flash_ok": true,
+    "orig_flash_enter": "colab",
+    "orig_flash_space": "colab"
+  },
+  {
+    "set": "C_英語保持",
+    "romaji": "collab",
+    "expected": "collab",
+    "judge": "完全一致",
+    "orig_flash_ok": false,
+    "orig_flash_enter": "こllab",
+    "orig_flash_space": "個llab"
+  },
+  {
+    "set": "C_英語保持",
+    "romaji": "kaggle",
+    "expected": "kaggle",
+    "judge": "完全一致",
+    "orig_flash_ok": true,
+    "orig_flash_enter": "kaggle",
+    "orig_flash_space": "kaggle"
+  },
+  {
+    "set": "C_英語保持",
+    "romaji": "colab wo tsukau",
+    "expected": "colab をつかう",
+    "judge": "英字一致",
+    "orig_flash_ok": true,
+    "orig_flash_enter": "colab をつかう",
+    "orig_flash_space": "colab を使う"
+  },
+  {
+    "set": "C_英語保持",
+    "romaji": "kaggle wo tsukau",
+    "expected": "kaggle をつかう",
+    "judge": "英字一致",
+    "orig_flash_ok": true,
+    "orig_flash_enter": "kaggle をつかう",
+    "orig_flash_space": "kaggle を使う"
+  },
+  {
+    "set": "C_英語保持",
+    "romaji": "korabo",
+    "expected": "こらぼ",
+    "judge": "英字一致",
+    "orig_flash_ok": true,
+    "orig_flash_enter": "こらぼ",
+    "orig_flash_space": "コラボ"
+  },
+  {
+    "set": "C_英語保持",
+    "romaji": "kore",
+    "expected": "これ",
+    "judge": "英字一致",
+    "orig_flash_ok": true,
+    "orig_flash_enter": "これ",
+    "orig_flash_space": "これ"
+  },
+  {
+    "set": "C_英語保持",
+    "romaji": "kaketa",
+    "expected": "かけた",
+    "judge": "英字一致",
+    "orig_flash_ok": true,
+    "orig_flash_enter": "かけた",
+    "orig_flash_space": "かけた"
+  },
+  {
+    "set": "C_英語保持",
+    "romaji": "kagu",
+    "expected": "かぐ",
+    "judge": "英字一致",
+    "orig_flash_ok": true,
+    "orig_flash_enter": "かぐ",
+    "orig_flash_space": "家具"
+  },
+  {
+    "set": "C_英語保持",
+    "romaji": "kagaku",
+    "expected": "かがく",
+    "judge": "英字一致",
+    "orig_flash_ok": true,
+    "orig_flash_enter": "かがく",
+    "orig_flash_space": "科学"
+  },
+  {
+    "set": "C_英語保持",
+    "romaji": "kyouhakorabo",
+    "expected": "きょうはこらぼ",
+    "judge": "英字一致",
+    "orig_flash_ok": true,
+    "orig_flash_enter": "きょうはこらぼ",
+    "orig_flash_space": "今日はコラボ"
+  },
+  {
+    "set": "C_英語保持",
+    "romaji": "pixiv",
+    "expected": "pixiv",
+    "judge": "完全一致",
+    "orig_flash_ok": true,
+    "orig_flash_enter": "pixiv",
+    "orig_flash_space": "pixiv"
+  },
+  {
+    "set": "C_英語保持",
+    "romaji": "pixivnitoukou",
+    "expected": "pixivにとうこう",
+    "judge": "英字一致",
+    "orig_flash_ok": true,
+    "orig_flash_enter": "pixivにとうこう",
+    "orig_flash_space": "pixivに投稿"
+  },
+  {
+    "set": "C_英語保持",
+    "romaji": "pixivde",
+    "expected": "pixivで",
+    "judge": "英字一致",
+    "orig_flash_ok": true,
+    "orig_flash_enter": "pixivで",
+    "orig_flash_space": "pixivで"
+  },
+  {
+    "set": "C_英語保持",
+    "romaji": "pixivga",
+    "expected": "pixivが",
+    "judge": "英字一致",
+    "orig_flash_ok": true,
+    "orig_flash_enter": "pixivが",
+    "orig_flash_space": "pixivが"
+  },
+  {
+    "set": "C_英語保持",
+    "romaji": "pixiv wo miru",
+    "expected": "pixiv をみる",
+    "judge": "英字一致",
+    "orig_flash_ok": true,
+    "orig_flash_enter": "pixiv をみる",
+    "orig_flash_space": "pixiv を見る"
+  },
+  {
+    "set": "C_英語保持",
+    "romaji": "pixi",
+    "expected": "ぴぃ",
+    "judge": "英字一致",
+    "orig_flash_ok": true,
+    "orig_flash_enter": "ぴぃ",
+    "orig_flash_space": "ぴぃ"
+  },
+  {
+    "set": "C_英語保持",
+    "romaji": "pixel",
+    "expected": "pixel",
+    "judge": "完全一致",
+    "orig_flash_ok": true,
+    "orig_flash_enter": "pixel",
+    "orig_flash_space": "pixel"
+  },
+  {
+    "set": "C_英語保持",
+    "romaji": "booth",
+    "expected": "booth",
+    "judge": "完全一致",
+    "orig_flash_ok": true,
+    "orig_flash_enter": "booth",
+    "orig_flash_space": "booth"
+  },
+  {
+    "set": "C_英語保持",
+    "romaji": "fanbox",
+    "expected": "fanbox",
+    "judge": "完全一致",
+    "orig_flash_ok": true,
+    "orig_flash_enter": "fanbox",
+    "orig_flash_space": "fanbox"
+  },
+  {
+    "set": "C_英語保持",
+    "romaji": "pinku",
+    "expected": "ぴんく",
+    "judge": "英字一致",
+    "orig_flash_ok": true,
+    "orig_flash_enter": "ぴんく",
+    "orig_flash_space": "ピンク"
+  },
+  {
+    "set": "C_英語保持",
+    "romaji": "piza",
+    "expected": "ぴざ",
+    "judge": "英字一致",
+    "orig_flash_ok": true,
+    "orig_flash_enter": "ぴざ",
+    "orig_flash_space": "ピザ"
+  },
+  {
+    "set": "C_英語保持",
+    "romaji": "pittari",
+    "expected": "ぴったり",
+    "judge": "英字一致",
+    "orig_flash_ok": true,
+    "orig_flash_enter": "ぴったり",
+    "orig_flash_space": "ぴったり"
+  },
+  {
+    "set": "C_英語保持",
+    "romaji": "endif",
+    "expected": "endif",
+    "judge": "完全一致",
+    "orig_flash_ok": false,
+    "orig_flash_enter": "えんぢf",
+    "orig_flash_space": "えんぢf"
+  },
+  {
+    "set": "C_英語保持",
+    "romaji": "elifndef",
+    "expected": "elifndef",
+    "judge": "完全一致",
+    "orig_flash_ok": true,
+    "orig_flash_enter": "elifndef",
+    "orig_flash_space": "elifndef"
+  },
+  {
+    "set": "C_英語保持",
+    "romaji": "ima",
+    "expected": "いま",
+    "judge": "英字一致",
+    "orig_flash_ok": true,
+    "orig_flash_enter": "いま",
+    "orig_flash_space": "今"
+  },
+  {
+    "set": "C_英語保持",
+    "romaji": "unde",
+    "expected": "うんで",
+    "judge": "英字一致",
+    "orig_flash_ok": true,
+    "orig_flash_enter": "うんで",
+    "orig_flash_space": "運で"
+  },
+  {
+    "set": "C_英語保持",
+    "romaji": "enda",
+    "expected": "えんだ",
+    "judge": "英字一致",
+    "orig_flash_ok": true,
+    "orig_flash_enter": "えんだ",
+    "orig_flash_space": "えんだ"
+  },
+  {
+    "set": "C_英語保持",
+    "romaji": "ifu",
+    "expected": "いふ",
+    "judge": "英字一致",
+    "orig_flash_ok": true,
+    "orig_flash_enter": "いふ",
+    "orig_flash_space": "いふ"
+  },
+  {
+    "set": "C_英語保持",
+    "romaji": "dekiru",
+    "expected": "できる",
+    "judge": "英字一致",
+    "orig_flash_ok": true,
+    "orig_flash_enter": "できる",
+    "orig_flash_space": "できる"
+  },
+  {
+    "set": "C_英語保持",
+    "romaji": "denwa",
+    "expected": "でんわ",
+    "judge": "英字一致",
+    "orig_flash_ok": true,
+    "orig_flash_enter": "でんわ",
+    "orig_flash_space": "電話"
+  },
+  {
+    "set": "C_英語保持",
+    "romaji": "jibundeftotemo",
+    "expected": "じぶんでとても",
+    "judge": "英字一致",
+    "orig_flash_ok": false,
+    "orig_flash_enter": "じぶんdefとても",
+    "orig_flash_space": "自分defとても"
+  },
+  {
+    "set": "C_英語保持",
+    "romaji": "yasundefgohan",
+    "expected": "やすんでごはん",
+    "judge": "英字一致",
+    "orig_flash_ok": false,
+    "orig_flash_enter": "やすんdefごはん",
+    "orig_flash_space": "休んdefご飯"
+  },
+  {
+    "set": "C_英語保持",
+    "romaji": "shinbundefdasu",
+    "expected": "しんぶんでだす",
+    "judge": "英字一致",
+    "orig_flash_ok": false,
+    "orig_flash_enter": "しんぶんdefだす",
+    "orig_flash_space": "新聞def出す"
+  },
+  {
+    "set": "C_英語保持",
+    "romaji": "shifndefure",
+    "expected": "しふぉんでふれ",
+    "judge": "英字一致",
+    "orig_flash_ok": true,
+    "orig_flash_enter": "しふぉんでふれ",
+    "orig_flash_space": "しfんで触れ"
+  },
+  {
+    "set": "D_コード・パス保護",
+    "romaji": "./src/main.ts",
+    "expected": "./src/main.ts",
+    "judge": "完全一致",
+    "orig_flash_ok": true,
+    "orig_flash_enter": "./src/main.ts",
+    "orig_flash_space": "./src/main.ts"
+  },
+  {
+    "set": "D_コード・パス保護",
+    "romaji": "./build.sh",
+    "expected": "./build.sh",
+    "judge": "完全一致",
+    "orig_flash_ok": true,
+    "orig_flash_enter": "./build.sh",
+    "orig_flash_space": "./build.sh"
+  },
+  {
+    "set": "D_コード・パス保護",
+    "romaji": "./build.shde",
+    "expected": "./build.shで",
+    "judge": "英字一致",
+    "orig_flash_ok": false,
+    "orig_flash_enter": "./build.shde",
+    "orig_flash_space": "./build.shde"
+  },
+  {
+    "set": "D_コード・パス保護",
+    "romaji": "./build.shwojikkousite",
+    "expected": "./build.shをじっこうして",
+    "judge": "英字一致",
+    "orig_flash_ok": false,
+    "orig_flash_enter": "./build.shwojikkousite",
+    "orig_flash_space": "./build.shwojikkousite"
+  },
+  {
+    "set": "D_コード・パス保護",
+    "romaji": "../README.mdwo",
+    "expected": "../README.mdを",
+    "judge": "英字一致",
+    "orig_flash_ok": false,
+    "orig_flash_enter": "../README.mdwo",
+    "orig_flash_space": "../README.mdwo"
+  },
+  {
+    "set": "D_コード・パス保護",
+    "romaji": "~/Documents",
+    "expected": "~/Documents",
+    "judge": "完全一致",
+    "orig_flash_ok": true,
+    "orig_flash_enter": "~/Documents",
+    "orig_flash_space": "~/Documents"
+  },
+  {
+    "set": "D_コード・パス保護",
+    "romaji": "/home/taro/project",
+    "expected": "/home/taro/project",
+    "judge": "完全一致",
+    "orig_flash_ok": true,
+    "orig_flash_enter": "/home/taro/project",
+    "orig_flash_space": "/home/taro/project"
+  },
+  {
+    "set": "D_コード・パス保護",
+    "romaji": "/tmp/fooni",
+    "expected": "/tmp/fooni",
+    "judge": "完全一致",
+    "orig_flash_ok": true,
+    "orig_flash_enter": "/tmp/fooni",
+    "orig_flash_space": "/tmp/fooni"
+  },
+  {
+    "set": "D_コード・パス保護",
+    "romaji": "/tmp/fooni hozon",
+    "expected": "/tmp/fooni ほぞん",
+    "judge": "英字一致",
+    "orig_flash_ok": true,
+    "orig_flash_enter": "/tmp/fooni ほぞん",
+    "orig_flash_space": "/tmp/fooni 保存"
+  },
+  {
+    "set": "D_コード・パス保護",
+    "romaji": "--no-install",
+    "expected": "--no-install",
+    "judge": "完全一致",
+    "orig_flash_ok": false,
+    "orig_flash_enter": "ーーのーinstall",
+    "orig_flash_space": "ーーのーinstall"
+  },
+  {
+    "set": "D_コード・パス保護",
+    "romaji": "mac/build.sh --no-install wo jikkou",
+    "expected": "mac/build.sh --no-install をじっこう",
+    "judge": "英字一致",
+    "orig_flash_ok": false,
+    "orig_flash_enter": "mac/build.shーーのーinstall をじっこう",
+    "orig_flash_space": "mac/build.shーーのーinstall を実行"
+  },
+  {
+    "set": "D_コード・パス保護",
+    "romaji": "~/.config/nvim wo",
+    "expected": "~/.config/nvim を",
+    "judge": "英字一致",
+    "orig_flash_ok": true,
+    "orig_flash_enter": "~/.config/nvim を",
+    "orig_flash_space": "~/.config/nvim を"
+  },
+  {
+    "set": "D_コード・パス保護",
+    "romaji": "./node_modules/.bin/tsc",
+    "expected": "./node_modules/.bin/tsc",
+    "judge": "完全一致",
+    "orig_flash_ok": true,
+    "orig_flash_enter": "./node_modules/.bin/tsc",
+    "orig_flash_space": "./node_modules/.bin/tsc"
+  },
+  {
+    "set": "D_コード・パス保護",
+    "romaji": "/etc/hosts ni",
+    "expected": "/etc/hosts に",
+    "judge": "英字一致",
+    "orig_flash_ok": true,
+    "orig_flash_enter": "/etc/hosts に",
+    "orig_flash_space": "/etc/hosts に"
+  },
+  {
+    "set": "D_コード・パス保護",
+    "romaji": "cd ~/Downloads",
+    "expected": "cd ~/Downloads",
+    "judge": "完全一致",
+    "orig_flash_ok": false,
+    "orig_flash_enter": "cd~/Downloads",
+    "orig_flash_space": "cd~/Downloads"
+  },
+  {
+    "set": "D_コード・パス保護",
+    "romaji": "`./build.sh` wo",
+    "expected": "`./build.sh` を",
+    "judge": "英字一致",
+    "orig_flash_ok": true,
+    "orig_flash_enter": "`./build.sh`を",
+    "orig_flash_space": "`./build.sh`を"
+  },
+  {
+    "set": "D_コード・パス保護",
+    "romaji": "(~/Documents)wo",
+    "expected": "(~/Documents)を",
+    "judge": "英字一致",
+    "orig_flash_ok": true,
+    "orig_flash_enter": "(~/Documents)を",
+    "orig_flash_space": "(~/Documents)を"
+  },
+  {
+    "set": "D_コード・パス保護",
+    "romaji": "[~/Documents]wo",
+    "expected": "「~/Documents」を",
+    "judge": "英字一致",
+    "orig_flash_ok": true,
+    "orig_flash_enter": "「~/Documents」を",
+    "orig_flash_space": "「~/Documents」を"
+  },
+  {
+    "set": "D_コード・パス保護",
+    "romaji": "--color=auto",
+    "expected": "--color=auto",
+    "judge": "完全一致",
+    "orig_flash_ok": false,
+    "orig_flash_enter": "ーーcolor=あうと",
+    "orig_flash_space": "ーーcolor=アウト"
+  },
+  {
+    "set": "D_コード・パス保護",
+    "romaji": "--help",
+    "expected": "--help",
+    "judge": "完全一致",
+    "orig_flash_ok": false,
+    "orig_flash_enter": "ーーhelp",
+    "orig_flash_space": "ーーhelp"
+  },
+  {
+    "set": "D_コード・パス保護",
+    "romaji": "--dry-run",
+    "expected": "--dry-run",
+    "judge": "完全一致",
+    "orig_flash_ok": false,
+    "orig_flash_enter": "ーーdryーるん",
+    "orig_flash_space": "ーーdryーるん"
+  },
+  {
+    "set": "D_コード・パス保護",
+    "romaji": "git --name",
+    "expected": "git --name",
+    "judge": "完全一致",
+    "orig_flash_ok": false,
+    "orig_flash_enter": "git ーーname",
+    "orig_flash_space": "git ーーname"
+  },
+  {
+    "set": "D_コード・パス保護",
+    "romaji": "$HOME/.zshrc",
+    "expected": "$HOME/.zshrc",
+    "judge": "完全一致",
+    "orig_flash_ok": true,
+    "orig_flash_enter": "$HOME/.zshrc",
+    "orig_flash_space": "$HOME/.zshrc"
+  },
+  {
+    "set": "D_コード・パス保護",
+    "romaji": "-la",
+    "expected": "-la",
+    "judge": "完全一致",
+    "orig_flash_ok": false,
+    "orig_flash_enter": "ーぁ",
+    "orig_flash_space": "ーァ"
+  },
+  {
+    "set": "D_コード・パス保護",
+    "romaji": "tar -xzvf a.tar.gz",
+    "expected": "tar -xzvf a.tar.gz",
+    "judge": "完全一致",
+    "orig_flash_ok": false,
+    "orig_flash_enter": "tar ーxzvfa.tar.gz",
+    "orig_flash_space": "tar ーxzvfa.tar.gz"
+  },
+  {
+    "set": "D_コード・パス保護",
+    "romaji": "gcc -Wall",
+    "expected": "gcc -Wall",
+    "judge": "完全一致",
+    "orig_flash_ok": false,
+    "orig_flash_enter": "gcc ーWall",
+    "orig_flash_space": "gcc ーWall"
+  },
+  {
+    "set": "D_コード・パス保護",
+    "romaji": "find . -name",
+    "expected": "find . -name",
+    "judge": "完全一致",
+    "orig_flash_ok": false,
+    "orig_flash_enter": "find 。ーname",
+    "orig_flash_space": "find 。ーname"
+  },
+  {
+    "set": "D_コード・パス保護",
+    "romaji": "-kyou",
+    "expected": "ーきょう",
+    "judge": "英字一致",
+    "orig_flash_ok": true,
+    "orig_flash_enter": "ーきょう",
+    "orig_flash_space": "ー今日"
+  },
+  {
+    "set": "D_コード・パス保護",
+    "romaji": "--sorekara",
+    "expected": "ーーそれから",
+    "judge": "英字一致",
+    "orig_flash_ok": true,
+    "orig_flash_enter": "ーーそれから",
+    "orig_flash_space": "ーーそれから"
+  },
+  {
+    "set": "D_コード・パス保護",
+    "romaji": "--sate",
+    "expected": "ーーさて",
+    "judge": "英字一致",
+    "orig_flash_ok": true,
+    "orig_flash_enter": "ーーさて",
+    "orig_flash_space": "ーーさて"
+  },
+  {
+    "set": "D_コード・パス保護",
+    "romaji": "--ko-hi-wo",
+    "expected": "ーーこーひーを",
+    "judge": "英字一致",
+    "orig_flash_ok": true,
+    "orig_flash_enter": "ーーこーひーを",
+    "orig_flash_space": "ーーコーヒーを"
+  },
+  {
+    "set": "D_コード・パス保護",
+    "romaji": "--ra-men",
+    "expected": "ーーらーめん",
+    "judge": "英字一致",
+    "orig_flash_ok": true,
+    "orig_flash_enter": "ーーらーめん",
+    "orig_flash_space": "ーーラーメン"
+  },
+  {
+    "set": "D_コード・パス保護",
+    "romaji": "--no-sushi",
+    "expected": "ーーのーすし",
+    "judge": "英字一致",
+    "orig_flash_ok": true,
+    "orig_flash_enter": "ーーのーすし",
+    "orig_flash_space": "ーーノース氏"
+  },
+  {
+    "set": "D_コード・パス保護",
+    "romaji": "1~2ko",
+    "expected": "1～2こ",
+    "judge": "英字一致",
+    "orig_flash_ok": true,
+    "orig_flash_enter": "1～2こ",
+    "orig_flash_space": "1~2個"
+  },
+  {
+    "set": "D_コード・パス保護",
+    "romaji": "aka/ao",
+    "expected": "あか/あお",
+    "judge": "英字一致",
+    "orig_flash_ok": true,
+    "orig_flash_enter": "あか/あお",
+    "orig_flash_space": "赤/青"
+  },
+  {
+    "set": "D_コード・パス保護",
+    "romaji": "$100",
+    "expected": "＄100",
+    "judge": "英字一致",
+    "orig_flash_ok": false,
+    "orig_flash_enter": "$100",
+    "orig_flash_space": "$100"
+  },
+  {
+    "set": "D_コード・パス保護",
+    "romaji": "a/b",
+    "expected": "あ/b",
+    "judge": "英字一致",
+    "orig_flash_ok": true,
+    "orig_flash_enter": "あ/b",
+    "orig_flash_space": "a/b"
+  },
+  {
+    "set": "D_コード・パス保護",
+    "romaji": "2026-10-05",
+    "expected": "2026-10-05",
+    "judge": "完全一致",
+    "orig_flash_ok": true,
+    "orig_flash_enter": "2026ー10ー05",
+    "orig_flash_space": "2026-10-05"
+  },
+  {
+    "set": "D_コード・パス保護",
+    "romaji": "taro.yamada@example.com",
+    "expected": "taro.yamada@example.com",
+    "judge": "完全一致",
+    "orig_flash_ok": true,
+    "orig_flash_enter": "taro.yamada@example.com",
+    "orig_flash_space": "taro.yamada@example.com"
+  },
+  {
+    "set": "D_コード・パス保護",
+    "romaji": "@yksr_melt arigatou",
+    "expected": "@yksr_melt ありがとう",
+    "judge": "英字一致",
+    "orig_flash_ok": true,
+    "orig_flash_enter": "@yksr_melt ありがとう",
+    "orig_flash_space": "@yksr_melt ありがとう"
+  },
+  {
+    "set": "D_コード・パス保護",
+    "romaji": "https://example.com wo mite",
+    "expected": "https://example.com をみて",
+    "judge": "英字一致",
+    "orig_flash_ok": true,
+    "orig_flash_enter": "https://example.com をみて",
+    "orig_flash_space": "https://example.com を見て"
+  },
+  {
+    "set": "D_コード・パス保護",
+    "romaji": "README.mdwo",
+    "expected": "README.mdを",
+    "judge": "英字一致",
+    "orig_flash_ok": false,
+    "orig_flash_enter": "README.mdwo",
+    "orig_flash_space": "README.mdwo"
+  },
+  {
+    "set": "D_コード・パス保護",
+    "romaji": "localhost:3000",
+    "expected": "localhost:3000",
+    "judge": "完全一致",
+    "orig_flash_ok": true,
+    "orig_flash_enter": "localhost:3000",
+    "orig_flash_space": "localhost:3000"
+  },
+  {
+    "set": "D_コード・パス保護",
+    "romaji": "--no-edit",
+    "expected": "--no-edit",
+    "judge": "完全一致",
+    "orig_flash_ok": false,
+    "orig_flash_enter": "ーーのーedit",
+    "orig_flash_space": "ーーのーedit"
+  },
+  {
+    "set": "D_コード・パス保護",
+    "romaji": "--ff-only",
+    "expected": "--ff-only",
+    "judge": "完全一致",
+    "orig_flash_ok": false,
+    "orig_flash_enter": "ーーっfーonly",
+    "orig_flash_space": "ーーっfーonly"
+  },
+  {
+    "set": "D_コード・パス保護",
+    "romaji": "--no-Sushi",
+    "expected": "--no-Sushi",
+    "judge": "完全一致",
+    "orig_flash_ok": false,
+    "orig_flash_enter": "ーーのーSushi",
+    "orig_flash_space": "ーーのーSushi"
+  },
+  {
+    "set": "D_コード・パス保護",
+    "romaji": "[[link]]",
+    "expected": "[[link]]",
+    "judge": "完全一致",
+    "orig_flash_ok": false,
+    "orig_flash_enter": "「「link」」",
+    "orig_flash_space": "「「link」」"
+  },
+  {
+    "set": "D_コード・パス保護",
+    "romaji": "kyouha[[nikki]]",
+    "expected": "きょうは[[にっき]]",
+    "judge": "英字一致",
+    "orig_flash_ok": false,
+    "orig_flash_enter": "きょうは「「にっき」」",
+    "orig_flash_space": "今日は「「日記」」"
+  },
+  {
+    "set": "D_コード・パス保護",
+    "romaji": "[[nikki]]",
+    "expected": "[[にっき]]",
+    "judge": "英字一致",
+    "orig_flash_ok": false,
+    "orig_flash_enter": "「「にっき」」",
+    "orig_flash_space": "「「日記」」"
+  },
+  {
+    "set": "D_コード・パス保護",
+    "romaji": "[[]]",
+    "expected": "[[]]",
+    "judge": "完全一致",
+    "orig_flash_ok": false,
+    "orig_flash_enter": "「「」」",
+    "orig_flash_space": "「「」」"
+  },
+  {
+    "set": "D_コード・パス保護",
+    "romaji": "[[kyouha",
+    "expected": "「「きょうは",
+    "judge": "英字一致",
+    "orig_flash_ok": true,
+    "orig_flash_enter": "「「きょうは",
+    "orig_flash_space": "「「今日は"
+  },
+  {
+    "set": "D_コード・パス保護",
+    "romaji": "kyouha]]",
+    "expected": "きょうは」」",
+    "judge": "英字一致",
+    "orig_flash_ok": true,
+    "orig_flash_enter": "きょうは」」",
+    "orig_flash_space": "今日は」」"
+  },
+  {
+    "set": "D_コード・パス保護",
+    "romaji": "[kyouha]",
+    "expected": "「きょうは」",
+    "judge": "英字一致",
+    "orig_flash_ok": true,
+    "orig_flash_enter": "「きょうは」",
+    "orig_flash_space": "「今日は」"
+  },
+  {
+    "set": "D_コード・パス保護",
+    "romaji": "Claude Code de kaku",
+    "expected": "Claude Code でかく",
+    "judge": "英字一致",
+    "orig_flash_ok": true,
+    "orig_flash_enter": "Claude Code でかく",
+    "orig_flash_space": "Claude Code で各"
+  },
+  {
+    "set": "D_コード・パス保護",
+    "romaji": "Codex de kakunin shite",
+    "expected": "Codex で確認して",
+    "judge": "英字一致",
+    "orig_flash_ok": true,
+    "orig_flash_enter": "Codex で確認して",
+    "orig_flash_space": "Codex で確認して"
+  },
+  {
+    "set": "D_コード・パス保護",
+    "romaji": "Hermes ni kiku",
+    "expected": "Hermes に聞く",
+    "judge": "英字一致",
+    "orig_flash_ok": true,
+    "orig_flash_enter": "Hermes にきく",
+    "orig_flash_space": "Hermes に聞く"
+  },
+  {
+    "set": "D_コード・パス保護",
+    "romaji": "Cursor de kodo wo kaku",
+    "expected": "Cursor でコードを書く",
+    "judge": "英字一致",
+    "orig_flash_ok": true,
+    "orig_flash_enter": "Cursor でこどをかく",
+    "orig_flash_space": "Cursor でこどを各"
+  },
+  {
+    "set": "D_コード・パス保護",
+    "romaji": "AGENTS.md wo yomu",
+    "expected": "AGENTS.md を読む",
+    "judge": "英字一致",
+    "orig_flash_ok": true,
+    "orig_flash_enter": "AGENTS.md をよむ",
+    "orig_flash_space": "AGENTS.md を読む"
+  },
+  {
+    "set": "D_コード・パス保護",
+    "romaji": "npm install shimasu",
+    "expected": "npm install します",
+    "judge": "英字一致",
+    "orig_flash_ok": true,
+    "orig_flash_enter": "npm install します",
+    "orig_flash_space": "npm install します"
+  },
+  {
+    "set": "D_コード・パス保護",
+    "romaji": "gpt-oss wo tsukau",
+    "expected": "gpt-oss を使う",
+    "judge": "英字一致",
+    "orig_flash_ok": false,
+    "orig_flash_enter": "gptーおっsをつかう",
+    "orig_flash_space": "gptーおっsを使う"
+  },
+  {
+    "set": "D_コード・パス保護",
+    "romaji": "gemma4-27b wo tsukau",
+    "expected": "gemma4-27b を使う",
+    "judge": "英字一致",
+    "orig_flash_ok": false,
+    "orig_flash_enter": "gemma4ー27bをつかう",
+    "orig_flash_space": "gemma4ー27bを使う"
+  },
+  {
+    "set": "D_コード・パス保護",
+    "romaji": "Claude",
+    "expected": "Claude",
+    "judge": "完全一致",
+    "orig_flash_ok": true,
+    "orig_flash_enter": "Claude",
+    "orig_flash_space": "Claude"
+  },
+  {
+    "set": "D_コード・パス保護",
+    "romaji": "git push origin main",
+    "expected": "git push origin main",
+    "judge": "完全一致",
+    "orig_flash_ok": true,
+    "orig_flash_enter": "git push origin main",
+    "orig_flash_space": "git push origin main"
+  },
+  {
+    "set": "D_コード・パス保護",
+    "romaji": "ollama run gemma",
+    "expected": "ollama run gemma",
+    "judge": "完全一致",
+    "orig_flash_ok": true,
+    "orig_flash_enter": "ollama run gemma",
+    "orig_flash_space": "ollama run gemma"
+  },
+  {
+    "set": "D_コード・パス保護",
+    "romaji": "claude --dangerously-skip-permissions",
+    "expected": "claude --dangerously-skip-permissions",
+    "judge": "完全一致",
+    "orig_flash_ok": false,
+    "orig_flash_enter": "claude ーーdangerouslyーskipーpermissions",
+    "orig_flash_space": "claude ーーdangerouslyーskipーpermissions"
+  },
+  {
+    "set": "D_コード・パス保護",
+    "romaji": "docker compose up -d",
+    "expected": "docker compose up -d",
+    "judge": "完全一致",
+    "orig_flash_ok": false,
+    "orig_flash_enter": "docker compose up ーd",
+    "orig_flash_space": "docker compose up ーd"
+  },
+  {
+    "set": "D_コード・パス保護",
+    "romaji": "brew install ripgrep",
+    "expected": "brew install ripgrep",
+    "judge": "完全一致",
+    "orig_flash_ok": true,
+    "orig_flash_enter": "brew install ripgrep",
+    "orig_flash_space": "brew install ripgrep"
+  },
+  {
+    "set": "D_コード・パス保護",
+    "romaji": "cd ~/Documents/Meltype",
+    "expected": "cd ~/Documents/Meltype",
+    "judge": "完全一致",
+    "orig_flash_ok": false,
+    "orig_flash_enter": "cd~/Documents/Meltype",
+    "orig_flash_space": "cd~/Documents/Meltype"
+  },
+  {
+    "set": "D_コード・パス保護",
+    "romaji": "python3 -m venv .venv",
+    "expected": "python3 -m venv .venv",
+    "judge": "完全一致",
+    "orig_flash_ok": false,
+    "orig_flash_enter": "python3ーmvenv .venv",
+    "orig_flash_space": "python3ーmvenv .venv"
+  },
+  {
+    "set": "D_コード・パス保護",
+    "romaji": "kubectl get pods",
+    "expected": "kubectl get pods",
+    "judge": "完全一致",
+    "orig_flash_ok": true,
+    "orig_flash_enter": "kubectl get pods",
+    "orig_flash_space": "kubectl get pods"
+  },
+  {
+    "set": "D_コード・パス保護",
+    "romaji": "npx create-next-app",
+    "expected": "npx create-next-app",
+    "judge": "完全一致",
+    "orig_flash_ok": false,
+    "orig_flash_enter": "npx createーnextーあっp",
+    "orig_flash_space": "npx createーnextーあっp"
+  },
+  {
+    "set": "D_コード・パス保護",
+    "romaji": "git commit -m \"fix bug\"",
+    "expected": "git commit -m \"fix bug\"",
+    "judge": "完全一致",
+    "orig_flash_ok": false,
+    "orig_flash_enter": "git commit ーm\"fix bug\"",
+    "orig_flash_space": "git commit ーm\"fix bug\""
+  },
+  {
+    "set": "D_コード・パス保護",
+    "romaji": "ssh user@example.com",
+    "expected": "ssh user@example.com",
+    "judge": "完全一致",
+    "orig_flash_ok": true,
+    "orig_flash_enter": "ssh user@example.com",
+    "orig_flash_space": "ssh user@example.com"
+  },
+  {
+    "set": "D_コード・パス保護",
+    "romaji": "apinoupdate",
+    "expected": "apiのupdate",
+    "judge": "英字一致",
+    "orig_flash_ok": true,
+    "orig_flash_enter": "apiのupdate",
+    "orig_flash_space": "apiのupdate"
+  },
+  {
+    "set": "D_コード・パス保護",
+    "romaji": "apinoconfig",
+    "expected": "apiのconfig",
+    "judge": "英字一致",
+    "orig_flash_ok": true,
+    "orig_flash_enter": "apiのconfig",
+    "orig_flash_space": "apiのconfig"
+  },
+  {
+    "set": "D_コード・パス保護",
+    "romaji": "urlnoerror",
+    "expected": "urlのerror",
+    "judge": "英字一致",
+    "orig_flash_ok": true,
+    "orig_flash_enter": "urlのerror",
+    "orig_flash_space": "urlのerror"
+  },
+  {
+    "set": "D_コード・パス保護",
+    "romaji": "sorenoerror",
+    "expected": "それのerror",
+    "judge": "英字一致",
+    "orig_flash_ok": true,
+    "orig_flash_enter": "それのerror",
+    "orig_flash_space": "それのerror"
+  },
+  {
+    "set": "D_コード・パス保護",
+    "romaji": "arewoupdate",
+    "expected": "あれをupdate",
+    "judge": "英字一致",
+    "orig_flash_ok": true,
+    "orig_flash_enter": "あれをupdate",
+    "orig_flash_space": "あれをupdate"
+  },
+  {
+    "set": "D_コード・パス保護",
+    "romaji": "sakenoerror",
+    "expected": "さけのerror",
+    "judge": "英字一致",
+    "orig_flash_ok": true,
+    "orig_flash_enter": "さけのerror",
+    "orig_flash_space": "さけのerror"
+  },
+  {
+    "set": "D_コード・パス保護",
+    "romaji": "sushinoset",
+    "expected": "すしのset",
+    "judge": "英字一致",
+    "orig_flash_ok": true,
+    "orig_flash_enter": "すしのset",
+    "orig_flash_space": "すしのset"
+  },
+  {
+    "set": "D_コード・パス保護",
+    "romaji": "kanjinoinput",
+    "expected": "かんじのinput",
+    "judge": "英字一致",
+    "orig_flash_ok": true,
+    "orig_flash_enter": "かんじのinput",
+    "orig_flash_space": "かんじのinput"
+  },
+  {
+    "set": "D_コード・パス保護",
+    "romaji": "takenoset",
+    "expected": "たけのset",
+    "judge": "英字一致",
+    "orig_flash_ok": true,
+    "orig_flash_enter": "たけのset",
+    "orig_flash_space": "たけのset"
+  },
+  {
+    "set": "D_コード・パス保護",
+    "romaji": "namenoset",
+    "expected": "なめのset",
+    "judge": "英字一致",
+    "orig_flash_ok": false,
+    "orig_flash_enter": "nameのset",
+    "orig_flash_space": "nameのset"
+  },
+  {
+    "set": "D_コード・パス保護",
+    "romaji": "pt-query-digest",
+    "expected": "pt-query-digest",
+    "judge": "完全一致",
+    "orig_flash_ok": false,
+    "orig_flash_enter": "ptーqueryーdigest",
+    "orig_flash_space": "ptーqueryーdigest"
+  },
+  {
+    "set": "D_コード・パス保護",
+    "romaji": "ls-files",
+    "expected": "ls-files",
+    "judge": "完全一致",
+    "orig_flash_ok": false,
+    "orig_flash_enter": "lsーfiles",
+    "orig_flash_space": "lsーfiles"
+  },
+  {
+    "set": "D_コード・パス保護",
+    "romaji": "cd-rom",
+    "expected": "cd-rom",
+    "judge": "完全一致",
+    "orig_flash_ok": false,
+    "orig_flash_enter": "cdーrom",
+    "orig_flash_space": "cdーrom"
+  },
+  {
+    "set": "D_コード・パス保護",
+    "romaji": "rm-rf",
+    "expected": "rm-rf",
+    "judge": "完全一致",
+    "orig_flash_ok": false,
+    "orig_flash_enter": "rmーrf",
+    "orig_flash_space": "rmーrf"
+  },
+  {
+    "set": "D_コード・パス保護",
+    "romaji": "kyouhapt-query",
+    "expected": "きょうはpt-query",
+    "judge": "英字一致",
+    "orig_flash_ok": false,
+    "orig_flash_enter": "きょうはptーquery",
+    "orig_flash_space": "きょうはptーquery"
+  },
+  {
+    "set": "D_コード・パス保護",
+    "romaji": "kyouhals-files",
+    "expected": "きょうはls-files",
+    "judge": "英字一致",
+    "orig_flash_ok": false,
+    "orig_flash_enter": "きょうはlsーfiles",
+    "orig_flash_space": "きょうはlsーfiles"
+  },
+  {
+    "set": "D_コード・パス保護",
+    "romaji": "kyouhara-men",
+    "expected": "きょうはらーめん",
+    "judge": "英字一致",
+    "orig_flash_ok": true,
+    "orig_flash_enter": "きょうはらーめん",
+    "orig_flash_space": "今日はラーメン"
+  }
+]

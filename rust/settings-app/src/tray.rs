@@ -6,7 +6,7 @@ use crate::{
     windows_services::{self, Hotkey},
 };
 use eframe::egui;
-use meltype_core::{settings::Settings, storage::Store};
+use meltype_core::{ai_model::AiModel, settings::Settings, storage::Store};
 use std::sync::mpsc::{self, Receiver};
 use tray_icon::{
     menu::{CheckMenuItem, Menu, MenuEvent, MenuId, MenuItem, PredefinedMenuItem, Submenu},
@@ -18,7 +18,10 @@ pub enum Action {
     Mode(String),
     Help,
     Page(usize),
+    KeyCount,
+    AutoDetection,
     Profile(String),
+    #[allow(dead_code)]
     Level(String),
     Folder,
     About,
@@ -29,6 +32,7 @@ pub enum Action {
     Uninstall,
     AutoUpdate,
     CheckUpdates,
+    ReleaseNotes,
     Quit,
     MaintenanceQuit,
     Startup,
@@ -39,6 +43,26 @@ enum Event {
     Menu(MenuId),
     Toggle,
 }
+fn ai_status_text(settings: &Settings) -> String {
+    let model = AiModel::selected(settings);
+    if model == AiModel::None {
+        return "AI変換: 使用しない".into();
+    }
+    let configured = if model == AiModel::Shunti {
+        settings.boolean("UseShunti") && !settings.text("ShuntiHelperPath").is_empty()
+    } else {
+        settings.boolean("UseZenzai")
+            && !settings.text("ZenzaiServerPath").is_empty()
+            && !settings.text("ZenzaiModelPath").is_empty()
+    };
+    let status = if configured {
+        "設定済み"
+    } else {
+        "設定を確認"
+    };
+    format!("AI変換: {}（{status}）", model.label())
+}
+
 pub struct Tray {
     stop_event: crate::tray_control::StopEvent,
     // Drop the subclass/hotkey before dropping its tray-owned native window.
@@ -49,8 +73,8 @@ pub struct Tray {
     status: MenuItem,
     ime_mode: CheckMenuItem,
     keyboard_mode: CheckMenuItem,
-    levels: Vec<(String, CheckMenuItem)>,
-    level_menu: Submenu,
+    auto_detection: CheckMenuItem,
+    ai_status: MenuItem,
     auto_update: CheckMenuItem,
     profiles: Submenu,
     profile_items: Vec<(String, CheckMenuItem)>,
@@ -64,6 +88,7 @@ pub struct Tray {
     ctx: egui::Context,
     warnings: Vec<String>,
     guid: u128,
+    directory: std::path::PathBuf,
     // Release only after the tray icon, callbacks and hotkeys have been dropped.
     _lock: std::fs::File,
 }
@@ -80,26 +105,28 @@ impl Tray {
         fs2::FileExt::try_lock_exclusive(&lock)
             .map_err(|_| "トレイは既に起動しています。設定画面を開きました。".to_owned())?;
         let menu = Menu::new();
-        let status = MenuItem::new("Meltype-flash", false, None);
+        let status = MenuItem::new("Meltype-FLASH", false, None);
+        let ai_status = MenuItem::new(ai_status_text(settings), false, None);
         let enabled = CheckMenuItem::new(
-            "Meltype-flash を有効にする",
+            "Meltype-FLASH を有効にする",
             true,
             settings.boolean("Enabled"),
             None,
         );
         menu.append(&status).map_err(|e| e.to_string())?;
+        menu.append(&ai_status).map_err(|e| e.to_string())?;
         menu.append(&PredefinedMenuItem::separator())
             .map_err(|e| e.to_string())?;
         menu.append(&enabled).map_err(|e| e.to_string())?;
         let mut actions = vec![(enabled.id().clone(), Action::Toggle)];
         let ime_mode = CheckMenuItem::new(
-            "Meltype-flash IME (入力欄に直接入力)",
+            "Meltype-FLASH IME (入力欄に直接入力)",
             true,
             settings.text("Mode") == "Tsf",
             None,
         );
         let keyboard_mode = CheckMenuItem::new(
-            "Meltype-flash キーボード (変換ボックスで入力)",
+            "Meltype-FLASH キーボード (変換ボックスで入力)",
             true,
             settings.text("Mode") == "Keyboard",
             None,
@@ -108,21 +135,15 @@ impl Tray {
         menu.append(&keyboard_mode).map_err(|e| e.to_string())?;
         actions.push((ime_mode.id().clone(), Action::Mode("Tsf".into())));
         actions.push((keyboard_mode.id().clone(), Action::Mode("Keyboard".into())));
-        let level_menu = Submenu::new("自動判定の強さ", true);
-        let mut levels = vec![];
-        for (name, label) in [
-            ("Aggressive", "積極的"),
-            ("Balanced", "標準"),
-            ("Conservative", "慎重"),
-            ("Manual", "手動 (提案のみ)"),
-        ] {
-            let item =
-                CheckMenuItem::new(label, true, settings.text("DetectionLevel") == name, None);
-            level_menu.append(&item).map_err(|e| e.to_string())?;
-            actions.push((item.id().clone(), Action::Level(name.into())));
-            levels.push((name.into(), item));
-        }
-        menu.append(&level_menu).map_err(|e| e.to_string())?;
+        // 本家と同じ並び: 自動判定の ON/OFF は、動作モードのすぐ後ろに置く。
+        let auto_detection = CheckMenuItem::new(
+            "英語 / 日本語を自動で判定する",
+            true,
+            settings.text("DetectionLevel") != "Manual",
+            None,
+        );
+        menu.append(&auto_detection).map_err(|e| e.to_string())?;
+        actions.push((auto_detection.id().clone(), Action::AutoDetection));
         let profiles = Submenu::new("プロファイル", true);
         menu.append(&profiles).map_err(|e| e.to_string())?;
         let startup_item = CheckMenuItem::new("Windows の起動時に起動", false, false, None);
@@ -157,8 +178,9 @@ impl Tray {
         for (label, action) in [
             ("不具合の報告・提案...", Action::Report),
             ("直した誤判定を報告...", Action::Corrections),
-            ("Meltype-flash について...", Action::About),
+            ("Meltype-FLASH について...", Action::About),
             ("学習した語...", Action::Page(3)),
+            ("打鍵数...", Action::KeyCount),
         ] {
             let item = MenuItem::new(label, true, None);
             menu.append(&item).map_err(|e| e.to_string())?;
@@ -186,6 +208,9 @@ impl Tray {
         let check = MenuItem::new("今すぐ更新を確認", true, None);
         updates.append(&check).map_err(|e| e.to_string())?;
         actions.push((check.id().clone(), Action::CheckUpdates));
+        let notes = MenuItem::new("リリースノート...", true, None);
+        updates.append(&notes).map_err(|e| e.to_string())?;
+        actions.push((notes.id().clone(), Action::ReleaseNotes));
         menu.append(&updates).map_err(|e| e.to_string())?;
         menu.append(&PredefinedMenuItem::separator())
             .map_err(|e| e.to_string())?;
@@ -196,7 +221,7 @@ impl Tray {
         let icon = TrayIconBuilder::new()
             .with_menu(Box::new(menu))
             .with_guid(guid)
-            .with_tooltip("Meltype-flash")
+            .with_tooltip("Meltype-FLASH")
             .with_icon(text_icon(settings.boolean("Enabled"))?)
             .build()
             .map_err(|e| e.to_string())?;
@@ -210,7 +235,7 @@ impl Tray {
         ) {
             Ok(hotkey) => {
                 if let Some(name) = hotkey.name.as_deref() {
-                    enabled.set_text(format!("Meltype-flash を有効にする ({name})"));
+                    enabled.set_text(format!("Meltype-FLASH を有効にする ({name})"));
                 } else {
                     warnings.push("一時停止/再開のホットキーは、候補がすべて使用中のため登録できませんでした。".into());
                 }
@@ -252,8 +277,8 @@ impl Tray {
             status,
             ime_mode,
             keyboard_mode,
-            levels,
-            level_menu,
+            auto_detection,
+            ai_status,
             auto_update,
             profiles,
             profile_items: vec![],
@@ -267,26 +292,42 @@ impl Tray {
             ctx: ctx.clone(),
             warnings,
             guid,
+            directory: store.directory.clone(),
         };
         tray.sync(settings)?;
         Ok(tray)
     }
     pub fn input_status(&self, settings: &Settings, active: bool) {
+        let count = meltype_core::keycount::load(&self.directory);
+        let tooltip = if count.show {
+            let today = count
+                .days
+                .get(&meltype_core::keycount::today())
+                .copied()
+                .unwrap_or(0);
+            format!(
+                "Meltype-FLASH 今日 {} 打",
+                meltype_core::keycount::group(today)
+            )
+        } else {
+            "Meltype-FLASH".to_owned()
+        };
+        let _ = self.icon.set_tooltip(Some(tooltip));
         if settings.boolean("Enabled") && settings.text("Mode") == "Keyboard" {
-            self.status.set_text(if active {
-                "Meltype-flash キーボード: 入力ON (Ctrl+Alt+J でOFF)"
-            } else {
-                "Meltype-flash キーボード: 入力OFF (Ctrl+Alt+J でON)"
-            });
+            let shortcut = settings.toggle_shortcuts_label();
+            self.status.set_text(format!(
+                "Meltype-FLASH キーボード: 入力{} ({shortcut} で切替)",
+                if active { "ON" } else { "OFF" }
+            ));
         }
     }
     pub fn sync(&mut self, settings: &Settings) -> Result<(), String> {
         let enabled = settings.boolean("Enabled");
         let message = if enabled != self.last_enabled {
             Some(if enabled {
-                "Meltype-flash を有効にしました".to_owned()
+                "Meltype-FLASH を有効にしました".to_owned()
             } else {
-                "Meltype-flash を一時停止しました".to_owned()
+                "Meltype-FLASH を一時停止しました".to_owned()
             })
         } else if settings.text("ActiveProfile") != self.last_profile {
             Some(format!(
@@ -302,11 +343,12 @@ impl Tray {
         self.keyboard_mode
             .set_checked(settings.text("Mode") == "Keyboard");
         self.status.set_text(if !enabled {
-            "Meltype-flash: 一時停止"
+            "一時停止中".to_owned()
         } else if settings.text("Mode") == "Keyboard" {
-            "Meltype-flash キーボード (Ctrl+Alt+J で入力ON/OFF)"
+            let shortcut = settings.toggle_shortcuts_label();
+            format!("Meltype-FLASH キーボード ({shortcut} で入力ON/OFF)")
         } else {
-            "Meltype-flash IME (Win + Space で Meltype-flash を選んで入力)"
+            "Meltype-FLASH IME (Win + Space で Meltype-FLASH を選んで入力)".to_owned()
         });
         if enabled != self.last_enabled {
             self.icon
@@ -315,15 +357,11 @@ impl Tray {
             self.last_enabled = enabled;
         }
         self.auto_update.set_checked(settings.boolean("AutoUpdate"));
-        self.level_menu.set_text(format!(
-            "自動判定の強さ: {}",
-            crate::metadata::choice("DetectionLevel", settings.text("DetectionLevel"))
-        ));
+        self.auto_detection
+            .set_checked(settings.text("DetectionLevel") != "Manual");
+        self.ai_status.set_text(ai_status_text(settings));
         self.profiles
             .set_text(format!("プロファイル: {}", settings.text("ActiveProfile")));
-        for (name, item) in &self.levels {
-            item.set_checked(name == settings.text("DetectionLevel"));
-        }
         let names: Vec<String> = settings.0["Profiles"]
             .as_array()
             .into_iter()
@@ -360,7 +398,7 @@ impl Tray {
                 windows_services::notify(
                     self.icon.window_handle(),
                     self.guid,
-                    "Meltype-flash",
+                    "Meltype-FLASH",
                     &message,
                 )?;
             }
@@ -401,9 +439,9 @@ impl Tray {
                 match result {
                     Ok(enabled) if self.startup_user_request => actions.push(Action::Status(
                         if enabled {
-                            "Windows の起動時に Meltype-flash を起動します。"
+                            "Windows の起動時に Meltype-FLASH を起動します。"
                         } else {
-                            "Windows の起動時に Meltype-flash を起動しません。"
+                            "Windows の起動時に Meltype-FLASH を起動しません。"
                         }
                         .into(),
                     )),
@@ -447,6 +485,14 @@ pub fn write_action(store: &Store, action: &Action) -> Result<(), String> {
                 }
                 settings.set("Mode", serde_json::json!(mode))
             }
+            Action::AutoDetection => settings.set(
+                "DetectionLevel",
+                serde_json::json!(if settings.text("DetectionLevel") == "Manual" {
+                    "Balanced"
+                } else {
+                    "Manual"
+                }),
+            ),
             Action::Level(level) => settings.set("DetectionLevel", serde_json::json!(level)),
             _ => Ok(()),
         })
@@ -490,6 +536,29 @@ fn text_icon(enabled: bool) -> Result<Icon, String> {
 #[cfg(test)]
 mod tests {
     use super::*;
+    #[test]
+    fn status_identifies_the_selected_model_even_with_shared_backend_flags() {
+        let mut settings = Settings::default();
+        for model in AiModel::ALL {
+            model.select(&mut settings, false);
+            if model == AiModel::None {
+                assert_eq!(ai_status_text(&settings), "AI変換: 使用しない");
+                continue;
+            }
+            assert_eq!(
+                ai_status_text(&settings),
+                format!("AI変換: {}（設定を確認）", model.label())
+            );
+            model.select(&mut settings, true);
+            for key in ["ShuntiHelperPath", "ZenzaiServerPath", "ZenzaiModelPath"] {
+                settings.set(key, serde_json::json!("path")).unwrap();
+            }
+            assert_eq!(
+                ai_status_text(&settings),
+                format!("AI変換: {}（設定済み）", model.label())
+            );
+        }
+    }
     #[test]
     fn tray_actions_write_shared_store_and_merge_with_an_open_settings_window() {
         let dir = tempfile::tempdir().unwrap();

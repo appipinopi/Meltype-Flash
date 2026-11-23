@@ -49,9 +49,71 @@ pub(super) fn modifiers(meta: i32) -> i32 {
         | (i32::from(meta & 2 != 0) << 2)
         | (i32::from(meta & 0x10000 != 0) << 3)
 }
+pub(super) fn kana_variant(c: char) -> Option<char> {
+    [
+        "かが",
+        "きぎ",
+        "くぐ",
+        "けげ",
+        "こご",
+        "さざ",
+        "しじ",
+        "すず",
+        "せぜ",
+        "そぞ",
+        "ただ",
+        "ちぢ",
+        "つっづ",
+        "てで",
+        "とど",
+        "はばぱ",
+        "ひびぴ",
+        "ふぶぷ",
+        "へべぺ",
+        "ほぼぽ",
+        "あぁ",
+        "いぃ",
+        "うぅゔ",
+        "えぇ",
+        "おぉ",
+        "やゃ",
+        "ゆゅ",
+        "よょ",
+        "わゎ",
+    ]
+    .iter()
+    .find_map(|group| {
+        let chars: Vec<_> = group.chars().collect();
+        chars
+            .iter()
+            .position(|candidate| *candidate == c)
+            .map(|index| chars[(index + 1) % chars.len()])
+    })
+}
 #[cfg(test)]
 mod tests {
     use super::*;
+    #[test]
+    fn flick_variants_cycle_voicing_and_small_kana() {
+        for (a, b) in [
+            ('か', 'が'),
+            ('が', 'か'),
+            ('は', 'ば'),
+            ('ば', 'ぱ'),
+            ('ぱ', 'は'),
+            ('つ', 'っ'),
+            ('っ', 'づ'),
+            ('づ', 'つ'),
+            ('う', 'ぅ'),
+            ('ぅ', 'ゔ'),
+            ('ゔ', 'う'),
+            ('や', 'ゃ'),
+            ('ゃ', 'や'),
+        ] {
+            assert_eq!(kana_variant(a), Some(b));
+        }
+        assert_eq!(kana_variant('ん'), None);
+    }
     #[test]
     fn privacy_and_direct_are_independent_and_class_scoped() {
         for class in 0..16 {

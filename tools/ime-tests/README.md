@@ -1,5 +1,9 @@
 # IME入力テスト
 
+<!-- meltype-flash-document-banner:start -->
+<p align="center"><img src="../../assets/branding/readme/documentation.svg" alt="Meltype-FLASH — 稲妻のように、言葉の壁を駆け抜ける日本語入力。" width="1000"></p>
+<!-- meltype-flash-document-banner:end -->
+
 Playwright Testで、製品IME(Meltype)を通したブラウザー入力を検査するためのツールです。
 
 テストは2種類あります。テストページや記録処理だけを確認する場合は、IMEを起動せずに実行できます。

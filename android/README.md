@@ -1,10 +1,115 @@
-# Meltype Rust — Android IME preview
+<!-- meltype-flash-platform:start -->
+<p align="center"><img src="../assets/branding/readme/logo.svg" alt="Meltype-FLASH" width="520"></p>
+<a id="meltype-for-android"></a>
+<p align="center"><img src="../assets/branding/readme/android/hero.svg" alt="Meltype-FLASH for Android" width="1000"></p>
+<p align="center"><b>稲妻のように、言葉の壁を駆け抜ける日本語入力。</b></p>
+<p align="center"><a href="https://github.com/appipinopi/Meltype-Flash/releases/latest"><img src="https://img.shields.io/badge/Flash-v1.1.7-ffe34a" alt="Flash v1.1.7"></a> <img src="https://img.shields.io/badge/status-正式版-666973" alt="正式版"></p>
+<p align="center"><a href="#インストール">ダウンロード・導入</a> · <a href="#使い方">使い方</a> · <a href="#困ったとき">困ったとき</a> · <a href="https://github.com/appipinopi/Meltype-Flash/issues/new/choose">不具合の報告・提案</a></p>
+<p align="center">
+  <a href="../rust/WINDOWS-PACKAGE.md"><img src="../assets/branding/readme/cards/os-windows.svg" alt="Windows" width="32%"></a>
+  <a href="../linux/README.md"><img src="../assets/branding/readme/cards/os-linux.svg" alt="Linux" width="32%"></a>
+  <a href="../mac/README.md"><img src="../assets/branding/readme/cards/os-mac.svg" alt="Mac" width="32%"></a>
+</p>
+<p align="center">
+  <a href="README.md"><img src="../assets/branding/readme/cards/os-android-active.svg" alt="Android" width="32%"></a>
+  <a href="../chromeos/README.md"><img src="../assets/branding/readme/cards/os-chromeos.svg" alt="ChromeOS" width="32%"></a>
+  <a href="../ios/README.md"><img src="../assets/branding/readme/cards/os-ios.svg" alt="iOS" width="32%"></a>
+</p>
+<p align="center"><a href="../README.md">トップのREADME</a></p>
+<!-- meltype-flash-platform:end -->
 
-Android 8.0 (API 26) 以降、arm64-v8a / x86_64。変換・入力欄処理・状態管理・入力ビュー生成と候補描画はRust、OSコールバック・クリック通知と管理画面はJavaです。ネットワーク権限は要求しません。元実装と同等の変換精度・機能を備えた完成版ではありません。
+Androidの画面キーボードとして動く、Rust Core + JNIの日本語入力プレビューです。
+変換・入力状態・フリック判定・設定画面・背景画像の処理はRustで実装しています。Android本体の手書きJava/Kotlinソースはありません。OSが要求する `InputMethodService` / Activity・リスナーなどの接続クラスは、Rustの [bridge.rs](bridge.rs) からビルド時に生成します。APKにはこの生成された接続クラスが含まれます。
+**公開中のdebug APKは開発検証用です。Play Store配布・正式な配布署名・物理端末での入力確認は未対応です。**
 
-必要なもの: Rust 1.88以上、JDK 17、Gradle 8.13、Android SDK platform 35 / build-tools 35.0.0、NDK 27.2.12479018。
+<a id="内容"></a>
+<h2><img src="../assets/branding/readme/android/headings/df8764ebcf5d.svg" alt="内容" width="1000"></h2>
 
-リポジトリのルートで:
+QWERTYローマ字入力、かな・補助辞書による変換、候補タップ、確定・削除・英数切替、外付けキーボードの入力に対応する実装です。
+AIモデルは「使用しない / shunti」から選べます。shuntiを選択すると導入ボタンを表示し、確認に同意した場合だけ辞書・モデルを別ダウンロードします。パス入力は不要です。Zenzは搭載しません。通常の変換とAI変換は端末内で処理し、入力内容を送信しません。
+設定画面から、入力設定・ユーザー辞書・定型文・学習削除・プロファイル・バックアップを扱います。
+「キーボードの背景・テーマ」から、システム・ライト・ダーク・ブルー・ピンク・ミントの配色と、好きな背景画像を選べます。プレビューで確認し、キーボードを開き直すと反映されます。フリックとQWERTYで共通です。
+画像はドキュメント選択画面で選び、長辺1280ピクセル以下へ縮小してアプリ専用領域に保存します。表示は中央基準で切り抜きます。「背景画像を外す」は画像だけを削除し、テーマ・辞書・学習は保持します。背景設定と画像は現在のCoreバックアップには含みません。
+公開APKと開発ブランチの機能が同じとは限らないため、試す版のリリース説明も確認してください。
+
+[動く環境](#動く環境) · [インストール](#インストール) · [使い方](#使い方) · [困ったとき](#困ったとき) · [アンインストール](#アンインストール) · [開発者向け](#開発者向け)
+
+<a id="動く環境"></a>
+<h2><img src="../assets/branding/readme/android/headings/f378dd1f4672.svg" alt="動く環境" width="1000"></h2>
+
+- Android 8.0（API 26）以降。
+- arm64-v8a / x86_64向けの開発用APK。
+- キーボードの追加とAPKの導入を許可できる端末。
+
+32bit専用のAndroid端末はこのAPKの対象ではありません。管理端末では組織のポリシーに従ってください。
+
+<a id="インストール"></a>
+<h2><img src="../assets/branding/readme/android/headings/4f36b3b314d8.svg" alt="インストール" width="1000"></h2>
+
+1. [最新正式版](https://github.com/appipinopi/Meltype-Flash/releases/latest) から `Meltype-flash-Android-debug.apk` を取得します。
+2. 取得したAPKを開き、Androidの案内に従って導入します。必要な場合は、取得に使ったアプリについてインストールを許可します。
+3. Androidの「設定 → システム → キーボード → 画面キーボード」などからMeltypeを有効にします。
+4. 文字入力欄を開き、キーボードの切替からMeltypeを選びます。
+
+OSやメーカーによって設定名は異なります。画面の名前に `Meltype Rust Preview` が残っている版もあります。
+debug署名はCIの生成版ごとに変わる場合があるため、別のAPKへの上書き更新ができないことがあります。
+その場合も、必要な辞書・バックアップを保存する前にアプリを削除しないでください。
+
+<a id="使い方"></a>
+<h2><img src="../assets/branding/readme/android/headings/936b17951891.svg" alt="使い方" width="1000"></h2>
+
+| ボタン | 操作 |
+| --- | --- |
+| 文字キー | ローマ字を入力 |
+| 変換/空白 | 変換・候補切替。未確定入力がなければ空白 |
+| 候補 | タップして確定 |
+| 確定/↵ | 未確定入力の確定、または入力欄のEnter動作 |
+| ⌫ / 取消 | 削除 / 取消 |
+| あ/A | 日本語と直接入力の切替 |
+| ← / →、縮める / 伸ばす | 文節選択・境界調整 |
+| 戻す / 再変換 | 対応する入力欄で確定Undo / 選択文字の再変換 |
+| 🌐 / 設定 | 入力方式の切替 / 管理画面 |
+
+パスワード・数字入力は直接入力を使います。読みを取得できない選択文字は再変換しません。
+各アプリのInputConnectionの対応により、再変換・Undo・選択範囲の操作などに差が出る場合があります。
+
+<a id="プライバシー"></a>
+<h2><img src="../assets/branding/readme/android/headings/733cbe4ad684.svg" alt="プライバシー" width="1000"></h2>
+
+ネットワーク権限は、AIモデル（shunti）の任意ダウンロードだけに使います。ストレージ全体へのアクセス権限は要求しません。通常の学習・辞書はアプリ専用領域に保存します。
+パスワードや学習禁止欄では保存しない方針です。辞書・バックアップの入出力はAndroidのドキュメント選択を使います。
+復元・学習の全消去は確認画面で内容を確認してから実行します。
+初回起動の同意画面で同意したあと、Aptabaseへ匿名の利用回数（アプリの版・OSの版・起動回数）を送ります。入力内容・入力履歴・辞書・設定値は送りません。この送信は設定から停止できません。
+
+<a id="困ったとき"></a>
+<h2><img src="../assets/branding/readme/android/headings/e959b3efbcc9.svg" alt="困ったとき" width="1000"></h2>
+
+<details>
+<summary>キーボードが出てこない</summary>
+
+APKを入れるだけでは有効になりません。システムのキーボード一覧で有効化し、入力欄で選び直してください。
+画面の名前にRust Previewと表示される版もあります。通常のキーボードに戻せることを確認してから試してください。
+
+</details>
+
+<details>
+<summary>候補が少ない・別のアプリで削除や再変換が動かない</summary>
+
+1.1.25以降のAndroid版はMozcの語彙・接続コストを同梱し、入力中の読みをSpaceで漢字に変換できます。辞書の追加インストールは不要です。アプリごとの入力欄実装にも違いがあります。
+OS・メーカー・APKの版・アプリ名・入力したキーと期待する結果を [Issues](https://github.com/appipinopi/Meltype-Flash/issues/new/choose) に記載してください。
+
+</details>
+
+<a id="アンインストール"></a>
+<h2><img src="../assets/branding/readme/android/headings/e6db153b59cc.svg" alt="アンインストール" width="1000"></h2>
+
+Androidの入力方式を別のキーボードへ切り替えてから、設定のアプリ一覧でMeltypeをアンインストールします。
+アプリ専用領域の設定・学習・辞書も失われるため、必要なものを先にバックアップしてください。
+
+<a id="開発者向け"></a>
+<h2><img src="../assets/branding/readme/android/headings/98935a8c563d.svg" alt="開発者向け" width="1000"></h2>
+
+Rust 1.88以上、JDK 17、Gradle 8.13、Android SDK platform 35 / build-tools 35.0.0、NDK 27.2.12479018が必要です。
 
 ```sh
 rustup target add aarch64-linux-android x86_64-linux-android
@@ -12,91 +117,16 @@ cargo install cargo-ndk --version 4.1.2 --locked
 export ANDROID_NDK_HOME="$ANDROID_HOME/ndk/27.2.12479018"
 CARGO_NDK_PLATFORM=26 cargo ndk -t arm64-v8a -t x86_64 -o android/app/src/main/jniLibs build -p meltype-native --release --locked
 gradle -p android assembleDebug lintDebug --no-daemon
-adb install -r android/app/build/outputs/apk/debug/app-debug.apk
 ```
 
-Windows では `export` の代わりに PowerShell の `$env:ANDROID_NDK_HOME = ...`、APIレベルには `$env:CARGO_NDK_PLATFORM = '26'` を使います。既存の `ANDROID_NDK_ROOT` / `ANDROID_NDK` があれば同じNDKのパスに揃えてください。
+Windowsでは環境変数をPowerShellの `$env:ANDROID_NDK_HOME` / `$env:CARGO_NDK_PLATFORM` で指定します。
+GradleはRustコンパイラーでアダプター生成ツールを作り、`android/app/build/generated` 以下へビルド種別ごとにOS接続クラスを出力します。生成されたファイルは編集せず、接続の定義は `android/bridge.rs`・`android/bridge_events.rs`、実際の処理は `rust/native/src/android/` を変更します。RustをPATHから実行できる必要があります。
+`ANDROID_NDK_ROOT` / `ANDROID_NDK` を使っている場合も同じNDKに揃えてください。
 
-設定 → システム → キーボード → 画面キーボードで **Meltype Rust Preview** を有効にし、入力方式を切り替えます。QWERTY ローマ字、変換・候補タップ・確定・削除、英数切替、ハードウェアキーに対応する実装です。パスワード・数字入力は直接入力にし、学習禁止の入力欄も入力を保持しません。通常の入力では学習とユーザー辞書をアプリ専用ディレクトリに保存します。パスワード欄と学習禁止欄では保存しません。予測候補はタップで確定できます。
+共通Coreの試験、デスクトップJVMでのJNI試験、Androidフレームワーク上のinstrumentation試験、実機での他アプリ入力は別の検証です。
+詳しいJVMコマンド・エミュレーター成果物・実装経緯は [開発・検証記録](DEVELOPMENT.md) を参照してください。
 
-アプリのアイコン、キーボードの「設定」、Androidの入力方式設定から管理画面を開けます。入力設定・プロファイル・辞書の登録/削除/取込/書出・定型文・学習削除・バックアップの保存/検査/復元に対応しています。ファイルの選択はAndroidのドキュメント画面を使い、ストレージ全体へのアクセス権限は要求しません。バックアップの復元と学習の全消去には確認画面を表示します。
+<a id="ライセンス"></a>
+<h2><img src="../assets/branding/readme/android/headings/bad2dd3c907b.svg" alt="ライセンス" width="1000"></h2>
 
-入力欄で文字列を選択して「再変換」を押すと、辞書・学習履歴から読みを取得して変換候補を表示します。読みが取得できない語は変更しません。「取消」または外付けキーボードのEscで取り消すと選択前の文字列に戻ります。
-
-文節は左右キーで選択し、「縮める」「伸ばす」で境界を調整します。「戻す」は直前の確定を未確定へ戻します。キャレット直前の文字列が一致した場合だけ削除します。外付けキーボードではShift＋左右でも境界を調整できます。
-
-漢字候補は同梱の補助辞書によるものです。Android版にはMozcのエンジン・辞書を同梱していません。フリック入力、配布署名、Play配布、実機検証は未対応です。CIのdebug APKは開発検証用です。
-
-API仕様: [InputMethodService](https://developer.android.com/reference/android/inputmethodservice/InputMethodService)、[Rust Android targets](https://doc.rust-lang.org/rustc/platform-support/android.html)。
-
-入力欄への応答反映はRustからJNIでInputConnectionを直接呼び出します。選択文字と削除前の文字をUTF-16単位で照合し、未確定文字の置換、確定、バッチ編集の開始・終了をRustで処理します。削除対象と選択範囲が競合する場合や、応答の表示データが不正な場合は書き込みません。編集が途中まで成功した後の失敗や、書込み中の例外ではキーを重ねて送らないようにし、コア状態をリセットします。Androidのバッチは通知をまとめるためのもので、書込みを巻き戻す仕組みではありません。
-
-`cargo build -p meltype-native --features android-jni-test --locked` と `python rust/native/tests/android_editor_smoke.py target/debug` は、JDK 17以降のJVMで実際のJNIを検証します。専用の入力欄を使い、絵文字・単独サロゲートの照合、選択、順次確定、拒否・例外・部分編集、未確定文字、実コアのローマ字変換と確定を確認します。Android端末への登録・操作を行う試験ではありません。サービスのライフサイクル、キーイベント、ソフトキーボードと管理画面には引き続きJavaが残っています。
-
-入力欄の開始時の判定と外付けキーの変換もRustへ移しました。InputTypeのクラス／バリエーションと学習禁止フラグから、直接入力・非公開入力を決め、前の入力状態と削除権限を解除します。KeyEventの公開キー値・メタ状態はRustで従来の仮想キー／修飾ビットへ変換し、修飾キー単体はコアへ送らず通します。JVM試験は旧Javaマッピングを比較用に残し、実コアに未確定文字がある状態で840ケースの応答一致、秘密欄から通常欄への切替と修飾キーを確認します。キーイベントの受取り自体、入力欄の周辺文字取得、サービスと画面はJavaに残っています。
-
-入力欄の前後4000 UTF-16単位の取得、削除対応の確認、表示中の未確定文字を文脈から取り除く処理、Undo時の周辺文字取得もRust／JNIへ移しました。非公開入力欄と修飾キー単体では取得APIを呼びません。取得が例外になった場合は削除を無効にし、空の文脈として扱います。ソフトキーの直接入力への代替もRustで、Unicode文字の確定、コードポイント単位の削除、左右キーのdown/up、EditorInfoのEnterアクション／改行を呼びます。
-
-ContextHostの実JVM試験は前後文字の受渡し、未確定文字の除外、秘密欄の無取得、取得例外、実コアの入力→確定→Undo、絵文字の入力／削除とEnter動作を確認します。左右キーのJNIコンストラクター／引数確認にはテスト専用のSDKと同じ形のKeyEventクラスを使います。Android端末上の実KeyEvent配信を検証したものではありません。InputMethodServiceのコールバック、ソフトキーボード・候補ボタンと管理画面のJava、端末での実動確認は残ります。
-
-入力終了時の最終確定とリセット、キャレット／選択範囲の変更時の未確定状態解除、再変換する選択文字の取得と検証もRust／JNIへ移しました。同じセッションの終了中に同期通知が再入した場合は二重に終了処理を行いません。入力終了の表示結果はJavaの描画関数へ返し、確定処理を重ねません。非公開欄・変換中・空／不正なUTF-16選択では再変換しません。
-
-LifecycleHostのJVM試験は、実コアの最終確定、繰り返し終了、キャレット位置を保つ通知、範囲選択の解除、終了通知の再入、書込拒否・入力欄なし・終了例外、読みのある／ない選択の再変換を確認します。InputMethodServiceのOSコールバックと画面描画はJavaが受け持ち、端末上でのフォーカス移動や各アプリとの動作確認は未完了です。
-
-Androidサービスが保持していた英数・非公開・Shift・未確定状態と表示文字を、セッションごとのRust所有領域へ移しました。Javaは表示時に状態を参照し、同じ値を独立に保持しません。入力欄の開始・明示リセット・選択変更で世代を更新し、古い編集／終了の結果は新しい入力欄の状態を上書きしません。世代変更後の追加書込みは止め、開始済みのバッチは終えます。すでに完了した編集のキーは、入力欄が切り替わった後も重ねて送り直しません。
-
-「あ/A」の確定からモード切替までをRust内で処理し、確定中に別の欄へ切り替わった場合は新しい欄のモードを変えません。選択通知後と入力ビューの再生成時はRustの現在の表示を使います。StateHostのJVM試験は独立した複数セッション、1回だけのShift、モード／非公開状態、未確定文字、書込み中の欄切替・失敗・破棄と、新しい入力状態の保持を確認します。ソフトキーボード・候補・管理画面のJava描画とOSコールバック、Android実機での確認は残ります。
-
-ソフトキーボードのウィジェット生成と、プレビュー・候補／予測ボタンの描画はRustからJNIで行います。キー列、57個のラベル／操作、等幅の重み、最小幅と余白、プレビュー20sp、候補欄の横スクロールと候補ボタンの標準スタイルを従来のJava実装から移しました。候補と予測の選択先は別の操作番号で対応します。表示処理で例外が起きても、入力欄に適用済みのキーを重ねて送りません。
-
-WidgetHostはSDKと同じメソッド形のテスト用ウィジェットをJVMに用意し、実際のJNI呼出しで階層・配置パラメーター・全キーのラベル／操作先、候補と予測、20回の生成、200候補と参照の解放、生成失敗後の復帰を検証します。Androidの実際の描画・ピクセル一致・タッチ入力を検証する試験ではありません。OSコールバック、クリック通知の受渡し、管理画面は引き続きJavaで、端末上でのUI確認は残っています。
-
-## Androidフレームワーク上の検証（追加、実行結果はCIで確認）
-
-`NativeAndroidTest` は実際のAndroidウィジェット、Editable／BaseInputConnection、KeyEventを使う12テストです。キーボードの構造と候補クリック、変換→確定→Undo、UTF-16削除と選択保護、非公開欄、直接入力への代替、入力欄切替時の世代保護を確認します。IMEの登録・有効化や、他アプリへの入力は行いません。矢印イベントはテスト用InputConnectionが受け取ります。
-
-CIはAPI 35 x86_64の専用AVDを一時フォルダーに作り、明示した `emulator-5580` だけにアプリとテストAPKをインストールします。同じシリアルが使用中なら中止します。AVDと起動したエミュレータープロセスは終了時に片付けます。`android/tests/run-emulator.sh` はLinuxのAndroid SDK／KVMと、組み立て済みの両APKがあるCI向けです。通常の端末には使用しません。
-
-実行方法は `gradle -p android assembleDebug assembleDebugAndroidTest lintDebug --no-daemon`、続いて `bash android/tests/run-emulator.sh` です。SDKにはemulatorと `system-images;android-35;google_apis;x86_64` が必要です。`dist/android-emulator/` にJUnitの実行記録、エミュレーター／logcat、Android自身で描画した `input-view.png`、SDK・ABI・画像寸法などの記録を保存します。12件の正常終了と7枚のPNG・測定記録を必須とし、0件・スキップ・クラッシュを成功とみなしません。この追加だけでは端末上での成功や元版との全UI一致を証明しません。
-
-テスト基盤は [AndroidJUnitRunner](https://developer.android.com/training/testing/instrumented-tests/androidx-test-libraries/runner) と [adbによる実行](https://developer.android.com/studio/test/command-line) に従います。
-
-クリック操作の振分けもRustへ移しました。文字・Shift・モード・候補／予測・Undo・再変換、設定IntentとAPI世代別IME切替をRustから呼びます。Javaのリスナーは操作番号と現在の入力欄を受け渡します。周辺文字の取得中に欄の世代が変わった場合は、残りの取得・コア操作・応答反映と代替入力を止めます。JVMのDispatchHostは生成済みのボタンを実際に押し、入力・確定・Undo・候補／予測と、捕捉した設定Intent／IME切替APIを確認します。端末テストも、実際のボタンからRustの操作振分けを通してEditableを更新する5件目を追加しました。
-
-9371829のCIでは、既存の4件がAPI 35・x86_64エミュレーターで成功しました（[実行記録](https://github.com/appipinopi/Meltype/actions/runs/39029589014)）。取得したPNGとSDK／ABI記録も確認済みです。0065fd4のCIでは操作振分けと折返し測定を含む6件が成功しました（[実行記録](https://github.com/appipinopi/Meltype/actions/runs/39030769321)）。3枚の生成画像も確認しました。物理端末・タッチ／他アプリ入力・IME登録と全UI一致は引き続き未検証です。
-
-折返しラベルの行内位置について、キー列と候補列の文字ベースライン揃えを無効にしました。折返し文字の最初の行に合わせてボタン全体が下へずれる処理を避け、セルを行内に保ちます。キー配列・ラベル・重み・文字サイズは変更していません。新しい6件目の端末テストで、1080px幅・720px幅・文字倍率1.5の各条件におけるボタン境界、文字レイアウトの高さ、末尾文字・省略の有無を確認し、狭幅と文字拡大時のPNG・測定記録も必須にしました。0065fd4では `OK (6 tests)` と3枚のPNGを確認済みです。測定は幅1080／720px・文字倍率1.5を通過し、合計11個の折返しラベルが行内に収まりました。
-
-Android設定の6ページ（入力設定・辞書・定型文・学習・プロファイル・バックアップ診断）の定義とページ固有の操作判断をRustへ移しました。JavaのSettingsPageはラベル・入力欄・スイッチ・ボタンを共通に描画し、フォーム値をJNIへ返します。既存13スイッチ・ラベル・入力項目と削除確認を維持しています。Rustの保存／再読込、辞書・定型文の追加削除、編集欄への復元、プロファイルの切替と使用中削除の拒否を単体試験とSettingsHostで確認しました。追加した7件目は実Androidの共通描画とクリックから保存までを検証しますが、その実行結果はまだ未確認です。OS画面の組立て、確認ダイアログ、ドキュメント選択とストリーム転送はJavaに残ります。
-
-辞書の取込／書出し、バックアップ作成／検査／復元のドキュメント転送もRust／JNIへ移しました。ContentResolverのストリームをRustから開閉し、入力上限32 MiBと復元前の確認を維持します。一時ファイルはRustが所有し、取消・エラー・画面破棄で削除します。復元確認に固有トークンを付け、古いダイアログが新しい復元対象を操作することを防ぎます。DocumentHostでは実JVMストリームによるUnicode辞書の往復、確認前の無変更、取消・再確認、容量超過・null・書込／close例外・読込中の破棄と一時ファイル削除を確認しました。8件目はAndroid ContentResolverとアプリ専用ファイルURIで往復を検証し、OSの選択画面や外部プロバイダーは操作しません。
-
-6355396のAndroid実行では7件目がスイッチのperformClick戻り値の検査で失敗しました。スイッチはクリックリスナーがなくても状態を変更するため、クリック後の状態と保存値を検査するよう修正しています。残り6件は成功しました。修正版7件目と新しい8件目のエミュレーター結果は未確認です。JavaにはOSコールバック・共通設定描画・ファイル選択Intentと確認ダイアログが残ります。
-
-ファイル選択Intentの生成と選択待ちの操作管理もRustへ移しました。操作からOPEN_DOCUMENT／CREATE_DOCUMENT、OPENABLE、MIMEと出力名を決定し、JNIで起動します。同時の選択開始は拒否し、起動失敗・取消・空の結果で待ち状態を解除します。異なるリクエスト番号は無視し、結果は一度だけ処理します。画面再生成時はBundleに渡した操作名をRustで検証して戻します。DocumentHostで4操作のIntent・起動失敗・取消・再生成・結果経由の入出力を確認済みです。9件目のAndroidテストは実Intentを捕捉して同じ経路を検証し、OSの選択画面は起動しません。Javaに残るのはOSコールバックの転送、共通設定ウィジェットと確認ダイアログの描画です。この追加のAndroid実行結果は未確認です。
-
-92c5d0dのAPI 35・x86_64エミュレーター検証は `OK (8 tests)` で成功しました（[実行記録](https://github.com/appipinopi/Meltype/actions/runs/39032881995)）。修正したスイッチ検査と、実ContentResolverによる辞書・バックアップ往復／取消／復元が通過しています。
-
-設定ページ内のウィジェット生成・入力値取得・編集もRustからJNIで行うようにしました。ラベル・EditText・Switch・Button、初期値を入れてから通知を登録する順序、複数行入力を維持します。JavaのSettingsPageは通知リスナーとJSONの受渡しのみです。ページ全体を検証してから置換し、編集先が欠ける場合は部分編集しません。ノードごとにJNIローカル参照を解放します。SettingsViewHostで全6ページ・13スイッチ、Unicodeと改行の取得／保存／編集、生成例外後の再構築、800入力欄での参照処理を確認しました。設定画面のPNGもCI成果物に追加しました。この変更のAndroid実行とPNGの目視確認は未完了です。OSコールバック、設定画面全体の枠と確認ダイアログにはJavaが残ります。
-
-設定Activityのスクロール、16dp余白、24spタイトル、状況欄、6ページ選択Spinnerと本文もRust／JNIで生成します。本文・状況欄を公開し、フォームを初期化してからリスナーを設定し、画面を接続します。ActivityViewHostでは階層・標準Spinnerリソース・全ラベル、最初の選択時にフォームが準備済みであること、初期化失敗後の再構築と20回の生成を確認しました。10件目のAndroidテストは実フレームワークで組立てと選択通知→6ページ描画を検証し、settings-activity.pngも必須成果物にします。選択通知はテストから呼び、タッチ／OSによるActivity起動の検証ではありません。この追加のAndroid実行と画像確認は未完了です。JavaにはOS／リスナー転送、操作結果の受渡しと確認ダイアログが残ります。
-
-3eeada1のAPI 35・x86_64エミュレーターでは `OK (9 tests)` を確認しました（[実行記録](https://github.com/appipinopi/Meltype/actions/runs/39033167999)）。実Intentを使うファイル選択メタデータ、取消・再生成・結果受取りからの入出力が成功しています。今回のRust製設定ページ／画面枠は後続の変更なので、別途実行結果が必要です。
-
-確認ダイアログの生成と応答の振分けもRust／JNIへ移しました。学習削除のメッセージ・削除／キャンセル、バックアップ復元のタイトル・検査結果・復元／キャンセルを維持し、表示に失敗した復元対象は解放します。Javaはクリック／キャンセル通知を渡し、Rustの結果を既存の画面更新へ送ります。DialogHostで否定・システム取消・肯定・再読込、復元の一度限りの実行、表示失敗時の一時ファイル削除、不正／破棄済みセッションを確認しました。
-
-11件目はCI専用エミュレーター上で実際のSettingsActivityを起動し、UiAutomationでパッケージ名を照合した自アプリの確認ボタンを操作します。学習削除の取消／実行、バックアップ復元の取消／実行と辞書状態を検証し、2枚の確認画面PNGも必須化します。ユーザーの端末・別アプリには操作せず、IMEも登録／有効化しません。この新しい実画面テストと画像確認はまだ未完了です。
-
-e78c73fのRust製設定ページ描画はAPI 35・x86_64で `OK (9 tests)` を確認しました（[実行記録](https://github.com/appipinopi/Meltype/actions/runs/39033563984)）。取得したsettings-page.pngも目視し、13個のスイッチ・説明・開始記号入力と保存ボタンを確認済みです。Activity枠と実ダイアログ操作は後続変更のため、その成功を含むものではありません。
-
-設定イベントの入力値取得→操作→結果反映（編集・ファイル選択・確認・ページ再描画）と完了／エラー表示をRustへ集約しました。SettingsActivityとSettingsPageからJSON解析と操作分岐を削除し、OS／リスナー通知を転送する形にしています。存在しないページの指定は現在のフォームを残してエラーを表示します。SettingsUiHostで初期画面・切替、スイッチ保存、定型文の保存／編集、辞書入出力、確認後の復元、エラー表示・破棄済み状態を実JNI経由で確認しました。既存11件目にも実Activityの保存／編集ボタン→Rust操作、辞書の失敗表示と保存を追加しました。この集約版のAndroid実行結果はまだ未確認です。
-
-e27d3f6の設定Activity枠はAPI 35・x86_64で `OK (10 tests)` を確認しました（[実行記録](https://github.com/appipinopi/Meltype/actions/runs/39033829017)）。取得したsettings-activity.pngも目視し、タイトル・ページ選択・本文と余白を確認しました。実Activityの確認ボタン操作と最新のイベント集約は後続変更のため、この結果には含みません。
-
-入力サービスの開始・ハードウェアキー・終了・選択通知・ビュー再生成とクリック通知の処理もRust／JNIへ移しました。JavaはOSコールバックとスーパークラスへの未処理キー転送を行います。キーごとにInputConnectionを一度だけ取得し、イベント／接続／EditorInfo取得中に入力欄の世代が変わった場合は古い操作を止めます。ServiceHostでハード／ソフト入力、終了確定・選択解除・表示再生成、非公開欄、接続なし／取得例外、取得中の欄切替と破棄を確認しました。12件目は実KeyEvent／Editableでこの経路を検証しますが、OSのIME登録・有効化や他アプリへの入力は行いません。この追加のAndroid実行は未確認です。
-
-1c47eddのAPI 35・x86_64エミュレーターでは `OK (11 tests)` を確認しました（[実行記録](https://github.com/appipinopi/Meltype/actions/runs/39034569336)）。実SettingsActivityの保存／編集、エラー表示、確認ボタンから学習削除・復元までが成功しました。学習削除・復元確認の2枚のスクリーンショットも目視済みです。
-
-その画像で復元確認に内部データの長い文字列が表示されていたため、作成日時・復元するデータの種類・対象ファイル数／容量・上書き説明へ変更しました。新しいbackup_preview操作は復元と共通のパス／base64検証を行い、書き込みや内部データの返却はしません。元のbackup_inspect APIは互換性のため維持しています。共通stateファイルに含まれる学習・ユーザー辞書・定型文も表示対象です。不正データ、対象外ファイル、作成日時、無変更を13件のfeatures試験で確認しました。この読みやすい確認版のAndroid実行・画像確認は未完了です。
-
-3172f5fのAPI 35・x86_64エミュレーターで `OK (12 tests)` を確認しました（[実行記録](https://github.com/appipinopi/Meltype/actions/runs/39034991787)）。実KeyEvent／Editableを使うサービス経路の入力・確定・表示再生成・非公開欄・getter内の欄切替が成功しています。IMEを登録／有効化した他アプリ入力や物理端末の証明ではありません。
+[GPL-3.0-or-later](../LICENSE)。辞書などの表示は [THIRD-PARTY-NOTICES.md](../THIRD-PARTY-NOTICES.md) を参照してください。

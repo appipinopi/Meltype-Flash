@@ -22,6 +22,9 @@ pub fn wheel_step(ui: &egui::Ui, response: &egui::Response, enabled: bool) -> i6
 /// Same 40×20 track, ON/OFF text and keyboard role as upstream ToggleSwitch.
 pub fn toggle(ui: &mut egui::Ui, value: &mut bool, label: &str) -> egui::Response {
     let (rect, mut response) = ui.allocate_exact_size(egui::vec2(88., 28.), egui::Sense::click());
+    #[cfg(test)]
+    ui.ctx()
+        .data_mut(|data| data.insert_temp(egui::Id::new(("toggle_rect", label)), rect));
     // egui's generic click also includes held Space/Enter repeats. A switch
     // should change only once per press, while keeping accessibility activation.
     let repeated_key = response.has_focus()

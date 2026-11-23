@@ -5,6 +5,7 @@
 //! Key/resume/abandoned state, SID, transport and UI tokens are freed by Drop.
 mod activate;
 mod apply;
+mod async_poll;
 mod commit;
 mod core;
 mod deactivate;
@@ -85,6 +86,7 @@ pub struct ServiceState {
     langbar: *mut c_void,
     candidates: *mut c_void,
     edit_epoch: u64,
+    full_width_space: bool,
 }
 impl Default for ServiceState {
     fn default() -> Self {
@@ -134,12 +136,14 @@ impl Default for ServiceState {
             langbar: ptr::null_mut(),
             candidates: ptr::null_mut(),
             edit_epoch: 0,
+            full_width_space: false,
         }
     }
 }
 impl Drop for ServiceState {
     fn drop(&mut self) {
         unsafe {
+            async_poll::cancel(self as *mut ServiceState);
             self.shutdown_phase = 2;
             self.deactivated = true;
             key_state::meltype_tsf_key_state_destroy(
@@ -325,6 +329,7 @@ pub unsafe extern "C" fn meltype_tsf_service_initialize(
     s.deactivated = false;
     s.server_active = false;
     s.direct_detection = false;
+    s.full_width_space = false;
     s.direct_word = false;
     s.last_hello = 0;
     s.caret_moved = false;
@@ -611,7 +616,7 @@ pub unsafe extern "C" fn meltype_tsf_service_state_destroy(data: *mut ServiceSta
 #[no_mangle]
 pub unsafe extern "C" fn meltype_tsf_service_state_layout(out: *mut u32, capacity: u32) -> u32 {
     let values = [
-        5,
+        6,
         size_of::<ServiceState>() as u32,
         align_of::<ServiceState>() as u32,
         offset_of!(ServiceState, refs) as u32,
@@ -659,6 +664,7 @@ pub unsafe extern "C" fn meltype_tsf_service_state_layout(out: *mut u32, capacit
         offset_of!(ServiceState, langbar) as u32,
         offset_of!(ServiceState, candidates) as u32,
         offset_of!(ServiceState, edit_epoch) as u32,
+        offset_of!(ServiceState, full_width_space) as u32,
     ];
     if !out.is_null() && capacity as usize >= values.len() {
         ptr::copy_nonoverlapping(values.as_ptr(), out, values.len());

@@ -15,6 +15,11 @@ pub struct GTypeQuery {
 }
 #[link(name = "gobject-2.0")]
 extern "C" {
+    pub fn g_object_new(type_: usize, first_property: *const c_char, ...) -> Obj;
+    pub fn g_type_class_ref(type_: usize) -> Obj;
+    pub fn g_type_class_unref(class: Obj);
+    pub fn g_object_class_find_property(class: Obj, name: *const c_char) -> Obj;
+    pub fn g_signal_lookup(name: *const c_char, type_: usize) -> u32;
     pub fn g_type_query(type_: usize, query: *mut GTypeQuery);
     pub fn g_type_register_static_simple(
         parent: usize,
@@ -62,6 +67,7 @@ extern "C" {
 #[link(name = "ibus-1.0")]
 extern "C" {
     pub fn ibus_init();
+    pub fn ibus_service_get_connection(service: Obj) -> Obj;
     pub fn ibus_bus_new() -> Obj;
     pub fn ibus_bus_is_connected(bus: Obj) -> c_int;
     pub fn ibus_bus_get_connection(bus: Obj) -> Obj;
@@ -103,6 +109,7 @@ extern "C" {
     );
     pub fn ibus_engine_delete_surrounding_text(engine: Obj, offset: i32, count: u32);
     pub fn ibus_engine_commit_text(engine: Obj, text: Obj);
+    pub fn ibus_engine_forward_key_event(engine: Obj, keyval: u32, keycode: u32, state: u32);
     pub fn ibus_engine_update_preedit_text_with_mode(
         engine: Obj,
         text: Obj,

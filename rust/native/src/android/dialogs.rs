@@ -10,6 +10,7 @@ type Result<T> = std::result::Result<T, String>;
 #[serde(tag = "kind", rename_all = "lowercase", deny_unknown_fields)]
 enum Action {
     Learning {},
+    Ai {},
     Restore { token: u64 },
 }
 fn read(env: &mut JNIEnv, input: JString) -> Result<String> {
@@ -22,7 +23,7 @@ fn build(env: &mut JNIEnv, activity: JObject, confirmation: &Value, action: &Act
         .as_str()
         .ok_or("確認メッセージがありません")?;
     let positive = match action {
-        Action::Learning {} => confirmation["positive"]
+        Action::Learning {} | Action::Ai {} => confirmation["positive"]
             .as_str()
             .ok_or("確認ボタンがありません")?,
         Action::Restore { .. } => "復元",
@@ -100,6 +101,8 @@ pub(super) fn show(
             return Err("確認操作が正しくありません".into());
         }
         Action::Restore { token }
+    } else if confirmation["action"] == json!({"action":"ai_install"}) {
+        Action::Ai {}
     } else if confirmation["action"] == json!({"action":"learning_clear"}) {
         Action::Learning {}
     } else {
@@ -116,6 +119,7 @@ pub(super) fn show(
 pub(super) fn complete(handle: jlong, payload: &str, accept: bool) -> Result<Value> {
     let action: Action = serde_json::from_str(payload).map_err(|e| e.to_string())?;
     match action {
+        Action::Ai {} => Ok(json!({"installShunti":accept})),
         Action::Learning {} if accept => {
             settings::action(handle, json!({"action":"learning_clear"}), json!({}))
         }

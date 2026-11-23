@@ -25,8 +25,13 @@ func testDictionaryDialog(_ editor:NativeEditorPolicy) throws {
         }
     }
     func optionalText(_ value:String?)->String {value.map {"value:"+$0} ?? "nil"}
+    var checkingNativeChooser = false
     let panelBlock:@convention(block)(AnyObject)->Int = {object in
         guard let panel=object as? NSOpenPanel else {fatalError("not actual NSOpenPanel")}
+        if checkingNativeChooser {
+            precondition(panel.level == .floating, "#716: chooser must stay above other windows")
+            precondition(panel.isVisible, "#716: chooser must be presented before runModal")
+        }
         trace.append("choose")
         panelState=[String(panel.allowsMultipleSelection),String(panel.canChooseDirectories),String(panel.canChooseFiles),
             String(panel.resolvesAliases),String(panel.showsHiddenFiles),String(panel.canCreateDirectories),
@@ -96,7 +101,9 @@ func testDictionaryDialog(_ editor:NativeEditorPolicy) throws {
         legacy {trace.append("directory");return name == "no directory" ? nil : oldFolder.path}
         let expectedTrace=trace,expectedPanel=panelState,expectedAlert=alertState,expectedNotifications=notifications
         trace=[];panelState=[];alertState=[];notifications=[]
+        checkingNativeChooser = true
         let result=editor.showDictionaryImport {trace.append("directory");return name == "no directory" ? nil : nativeFolder.path}
+        checkingNativeChooser = false
         precondition(trace==expectedTrace,"dialog order differs for \(name): \(trace), \(expectedTrace)")
         precondition(panelState==expectedPanel,"chooser defaults differ for \(name)")
         precondition(alertState==expectedAlert,"alert differs for \(name): \(alertState), \(expectedAlert)")

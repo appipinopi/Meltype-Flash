@@ -1,32 +1,71 @@
-name: Meltype-flash release
+name: リリース
 on:
+  pull_request:
+    paths:
+      - '.github/workflows/rust-release.yml'
+      - 'tools/*release*.py'
   workflow_dispatch:
     inputs:
       tag:
-        description: New Meltype-flash preview tag
+        description: 'Meltype-FLASHの正式版またはプレビュー版タグ'
         required: true
-        default: flash-v0.1.1-preview.1
+      benchmark_baseline:
+        description: '比較する以前の公開タグ（auto: 現在版より前の最新タグ）'
+        required: true
+        default: auto
+      skip_benchmark:
+        description: 'ベンチマークを実行せず、本文へ未実施と記載する'
+        type: boolean
+        default: false
+      update_existing:
+        description: '同じソースSHAで公開済みのリリースへ測定結果を追加する'
+        type: boolean
+        default: false
 permissions:
   contents: read
 concurrency:
-  group: rust-release
+  group: rust-release-${{ github.event_name == 'pull_request' && github.ref || 'publish' }}
   cancel-in-progress: false
 jobs:
-  validate:
+  release-policy:
     runs-on: ubuntu-latest
     steps:
+      - uses: actions/checkout@v5
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - run: python -m unittest discover -s tools -p 'test_*release*.py' -v
+  validate:
+    if: github.event_name == 'workflow_dispatch'
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v5
       - env:
-          TAG: ${{ inputs.tag || 'flash-v0.1.1-preview.1' }}
+          TAG: ${{ inputs.tag }}
         run: |
-          [[ "$TAG" =~ ^flash-v[0-9]+\.[0-9]+\.[0-9]+-preview\.[0-9]+$ ]]
-          test "$GITHUB_REPOSITORY" = appipinopi/Meltype
+          [[ "$TAG" =~ ^flash-v[0-9]+\.[0-9]+\.[0-9]+(-preview\.[0-9]+)?$ ]]
+          test "$GITHUB_REPOSITORY" = appipinopi/Meltype-Flash
           test "$GITHUB_REF" = refs/heads/rust
+          VERSION=$(python3 -c 'import tomllib; print(tomllib.load(open("Cargo.toml", "rb"))["workspace"]["package"]["version"])')
+          TAG_VERSION="${TAG#flash-v}"
+          CORE="${TAG_VERSION%%-*}"
+          SUFFIX="${TAG_VERSION#"$CORE"}"
+          NORMALIZED=$(python3 -c 'import sys; core=sys.argv[1]; print(".".join(str(int(part)) for part in core.split(".")))' "$CORE")
+          test "$VERSION" = "$NORMALIZED${SUFFIX//-preview./-pre.}"
   windows:
     needs: validate
     runs-on: windows-latest
     timeout-minutes: 60
     steps:
       - uses: actions/checkout@v5
+        with:
+          fetch-depth: 0
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: '10.0.x'
       - uses: dtolnay/rust-toolchain@stable
         with:
           components: clippy
@@ -37,6 +76,16 @@ jobs:
       - run: cargo clippy --workspace --all-targets --locked -- -D warnings
       - run: cargo test --workspace --locked
       - run: ./rust/build-windows.ps1 -WithTip
+      - name: Software OpenGL and actual tray lifecycle
+        shell: pwsh
+        run: |
+          ./tools/ci/setup-windows-opengl.ps1 -Directories target/x86_64-pc-windows-msvc/release
+      - name: Exercise normal and portable tray shutdown
+        shell: pwsh
+        run: |
+          ./rust/Test-TrayStop.ps1 -Binary target/x86_64-pc-windows-msvc/release/meltype-flash.exe
+          ./rust/Test-TrayStop.ps1 -Binary target/x86_64-pc-windows-msvc/release/meltype-flash.exe -SettingsLaunch
+          ./rust/Test-TrayStop.ps1 -Binary target/x86_64-pc-windows-msvc/release/meltype-flash.exe -Portable
       - name: Inspect native server and package lifecycle
         shell: pwsh
         run: |
@@ -57,41 +106,129 @@ jobs:
           if (-not $redist) { throw 'Redistributable CRT directory missing' }
           python rust/package-windows.py --settings target/x86_64-pc-windows-msvc/release/meltype-flash.exe --cli target/x86_64-pc-windows-msvc/release/meltype-rs.exe --worker-x64 target/x86_64-pc-windows-msvc/release/meltype-tip-worker.exe --worker-x86 target/i686-pc-windows-msvc/release/meltype-tip-worker.exe --redist-root $redist.FullName --output dist/Meltype-flash-Windows-x64
           if ($LASTEXITCODE -ne 0) { throw 'Package audit failed' }
+      - name: Assemble Windows setup with preinstalled Inno Setup
+        shell: pwsh
+        env:
+          RELEASE_TAG: ${{ inputs.tag }}
+        run: |
+          $ErrorActionPreference = 'Stop'
+          if ($env:RELEASE_TAG -notmatch '^flash-v(?<core>\d+\.\d+\.\d+)(?:-preview\.(?<preview>\d+))?$') { throw 'Flashのタグを指定してください。' }
+          $version = $Matches.core
+          if ($Matches.preview) { $version += '-pre.' + $Matches.preview }
+          $candidates = @(
+            (Join-Path ${env:ProgramFiles(x86)} 'Inno Setup 6/ISCC.exe'),
+            (Join-Path ${env:ProgramFiles(x86)} 'Inno Setup 7/ISCC.exe'),
+            (Join-Path $env:ProgramFiles 'Inno Setup 6/ISCC.exe'),
+            (Join-Path $env:ProgramFiles 'Inno Setup 7/ISCC.exe')
+          ) + @(Get-Command ISCC.exe -ErrorAction SilentlyContinue | Select-Object -ExpandProperty Source)
+          $compiler = $candidates | Where-Object { Test-Path -LiteralPath $_ -PathType Leaf } | Select-Object -First 1
+          if (-not $compiler) { throw 'プリインストール済みInno Setupがありません。追加インストールは行いません。' }
+          $source = (Resolve-Path -LiteralPath dist/Meltype-flash-Windows-x64).Path
+          $output = (Resolve-Path -LiteralPath dist).Path
+          & $compiler "/DAppVersion=$version" "/DSourceDir=$source" "/DOutputDir=$output" packaging/Meltype-flash.iss
+          if ($LASTEXITCODE -ne 0) { throw 'セットアップEXEのコンパイルに失敗しました。' }
+          Copy-Item -LiteralPath "dist/Meltype-flash-$version-setup.exe" -Destination dist/Meltype-flash-Windows-x64-setup.exe
+      - name: Build optional Windows shunti runtime without models
+        run: python rust/build-shunti.py dist/Meltype-flash-Shunti-Windows-x64.zip --windows
+      - name: Verify Windows shunti installer
+        run: powershell -NoProfile -ExecutionPolicy Bypass -File rust/Test-ShuntiSetup.ps1
       - uses: actions/upload-artifact@v4
         with:
           name: release-windows
-          path: dist/Meltype-flash-Windows-x64.zip
+          path: |
+            dist/Meltype-flash-Windows-x64.zip
+            dist/Meltype-flash-Windows-x64-setup.exe
+            dist/Meltype-flash-Shunti-Windows-x64.zip
           if-no-files-found: error
   linux:
     needs: validate
     runs-on: ubuntu-24.04
-    timeout-minutes: 40
+    timeout-minutes: 60
     steps:
+      - uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: '10.0.x'
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
       - uses: actions/checkout@v5
       - uses: dtolnay/rust-toolchain@stable
       - uses: Swatinem/rust-cache@v2
         with:
           shared-key: rust-release-linux
-      - run: sudo apt-get update && sudo apt-get install -y libibus-1.0-dev ibus gir1.2-ibus-1.0 python3-gi dbus-x11 xvfb fonts-noto-cjk libxkbcommon-x11-0
+      - run: sudo apt-get update && sudo apt-get install -y libibus-1.0-dev ibus gir1.2-ibus-1.0 python3-gi dbus-x11 xvfb fonts-noto-cjk libxkbcommon-x11-0 rpm dpkg-dev cpio zlib1g-dev
       - run: cargo test --workspace --locked
-      - run: bash rust/build-linux.sh
+      - uses: bazel-contrib/setup-bazel@0.15.0
+        with:
+          bazelisk-cache: true
+          disk-cache: linux-mozc
+      - name: Build required Linux kanji converter
+        run: |
+          sudo apt-get install -y clang libglib2.0-dev libgtk-3-dev libxcb-xfixes0-dev libxcb-keysyms1-dev
+          bash native/mozc/build-mozc-helper.sh "$RUNNER_TEMP/mozc"
+      - run: MELTYPE_REQUIRE_MOZC=1 bash rust/build-linux.sh
+      - name: Verify real Mozc conversion through the native ABI
+        run: |
+          MELTYPE_MOZC_HELPER="$PWD/linux/build/Meltype-flash-linux/mozc/meltype_mozc_helper" python3 rust/native/tests/linux_mozc_smoke.py target/release/libmeltype_native.so
       - name: Validate packaged IBus engine
         run: |
-          python3 rust/ibus/tests/installation.py target/release/meltype-ibus
+          /usr/bin/python3 rust/ibus/tests/installation.py target/release/meltype-ibus
           MELTYPE_IBUS_TEST_INSTALLED=1 xvfb-run -a dbus-run-session -- /usr/bin/python3 rust/ibus/tests/integration.py target/release/meltype-ibus
           cp linux/build/Meltype-flash-linux.tar.gz Meltype-flash-Linux-x64.tar.gz
+      - run: python3 -m unittest tools.test_linux_update tools.test_ai_setup tools.test_shunti_setup tools.test_linux_background_updates -v
+      - name: Build optional shunti runtime without model weights
+        run: python3 rust/build-shunti.py Meltype-flash-Shunti-Linux-x64.tar.gz
+      - name: Assemble Debian and RPM packages from the same Linux payload
+        run: |
+          VERSION=$(python3 -c 'import tomllib; print(tomllib.load(open("Cargo.toml", "rb"))["workspace"]["package"]["version"])')
+          python3 rust/package-linux.py linux/build/Meltype-flash-linux linux/build --version "$VERSION" --arch amd64 --formats deb rpm
+          cp linux/build/meltype-flash_*_amd64.deb Meltype-flash-Linux-x64.deb
+          cp linux/build/meltype-flash-*-1.x86_64.rpm Meltype-flash-Linux-x64.rpm
+          python3 tools/ci/verify-linux-packages.py --bundle linux/build/Meltype-flash-linux --deb Meltype-flash-Linux-x64.deb --rpm Meltype-flash-Linux-x64.rpm --version "$VERSION" --arch amd64
       - uses: actions/upload-artifact@v4
         with:
           name: release-linux
-          path: Meltype-flash-Linux-x64.tar.gz
+          path: |
+            Meltype-flash-Linux-x64.tar.gz
+            Meltype-flash-Linux-x64.deb
+            Meltype-flash-Linux-x64.rpm
+            Meltype-flash-Shunti-Linux-x64.tar.gz
           if-no-files-found: error
+      - name: Compare upstream 1.5.0, previous and current Rust on the same Linux runner
+        if: ${{ !inputs.skip_benchmark }}
+        timeout-minutes: 40
+        shell: bash
+        env:
+          PYTHONUTF8: '1'
+          BENCHMARK_BASELINE: ${{ inputs.benchmark_baseline }}
+          BENCHMARK_CURRENT_REF: ${{ inputs.update_existing && inputs.tag || github.sha }}
+        run: |
+          git fetch --tags https://github.com/yksr-melt/Meltype.git
+          python tools/compare-rust-benchmarks.py --build --with-csharp --fetch-tags --current-ref "$BENCHMARK_CURRENT_REF" --baseline-ref "$BENCHMARK_BASELINE" --output dist/release-benchmark --samples 3 --warmups 1 --rounds 9
+          python -m pip install --disable-pip-version-check matplotlib==3.10.8 numpy==2.4.2
+          python tools/plot-windows-benchmark.py dist/release-benchmark/report.json --output dist/release-benchmark/charts
+      - uses: actions/upload-artifact@v4
+        if: ${{ always() && !inputs.skip_benchmark && hashFiles('dist/release-benchmark/report.json') != '' }}
+        with:
+          name: release-benchmark
+          retention-days: 1
+          if-no-files-found: error
+          path: |
+            dist/release-benchmark/report.json
+            dist/release-benchmark/accuracy.json
+            dist/release-benchmark/charts/*.png
+            dist/release-benchmark/charts/*.svg
+            dist/release-benchmark/charts/README.md
+            dist/release-benchmark/charts/summary.json
   macos:
     needs: validate
+    env:
+      MACOSX_DEPLOYMENT_TARGET: '13.0'
     strategy:
       fail-fast: false
       matrix:
         include:
-          - os: macos-15
+          - os: macos-26
             arch: arm64
           - os: macos-15-intel
             arch: x64
@@ -112,28 +249,72 @@ jobs:
       - name: Inspect macOS package
         run: |
           codesign --verify --deep --strict mac/build/Meltype.app
+          python3 -c 'import plistlib,tomllib; assert plistlib.load(open("mac/build/Meltype.app/Contents/Info.plist","rb"))["CFBundleShortVersionString"] == tomllib.load(open("Cargo.toml","rb"))["workspace"]["package"]["version"]'
           MELTYPE_RUST_DATA_DIR="$RUNNER_TEMP/meltype-release-test" mac/build/Meltype.app/Contents/MacOS/Meltype --self-test
           bash mac/test/register-helper/run.sh "$PWD/mac/build/Meltype.app/Contents/MacOS/MeltypeRegisterInputSource"
           python3 rust/native/tests/macos_product_smoke.py target/release/libmeltype_native.dylib
           bash mac/package.sh Meltype-flash-macOS-${{ matrix.arch }}.zip
+      - name: Build optional macOS shunti runtime without models
+        run: python3 rust/build-shunti.py dist/Meltype-flash-Shunti-macOS-${{ matrix.arch }}.zip --macos ${{ matrix.arch == 'x64' && 'x86_64' || 'arm64' }}
       - uses: actions/upload-artifact@v4
         with:
           name: release-macos-${{ matrix.arch }}
-          path: dist/Meltype-flash-macOS-*.zip
+          path: |
+            dist/Meltype-flash-macOS-*.zip
+            dist/Meltype-flash-Shunti-macOS-*.zip
           if-no-files-found: error
-  android:
+  mobile-packages:
     needs: validate
-    uses: ./.github/workflows/rust-android.yml
-  chromeos:
+    uses: ./.github/workflows/rust.yml
+    with:
+      packages_only: true
+  ios:
     needs: validate
-    uses: ./.github/workflows/chromeos.yml
+    runs-on: macos-26
+    timeout-minutes: 45
+    steps:
+      - uses: actions/checkout@v5
+      - uses: dtolnay/rust-toolchain@stable
+      - uses: Swatinem/rust-cache@v2
+        with:
+          shared-key: flash-ios
+      - run: brew install xcodegen
+      - run: cargo test -p meltype-ios --locked
+      - run: cargo clippy -p meltype-ios --all-targets --locked -- -D warnings
+      - run: bash ios/build.sh
+      - name: Exercise keyboard controller on iOS Simulator
+        id: keyboard_tests
+        timeout-minutes: 15
+        run: |
+          DEVICE=$(xcrun simctl list devices available -j | python3 -c 'import json,sys; print(next(d["udid"] for devices in json.load(sys.stdin)["devices"].values() for d in devices if d["name"].startswith("iPhone")))')
+          # Run every unit and UI test, in separate simulator sessions.
+          xcodebuild -project ios/MeltypeFlash.xcodeproj -scheme MeltypeFlash -destination "platform=iOS Simulator,id=$DEVICE" -only-testing:KeyboardTests -test-timeouts-enabled YES -maximum-test-execution-time-allowance 120 -derivedDataPath ios/build/tests CODE_SIGNING_ALLOWED=NO test
+          xcrun simctl shutdown "$DEVICE" || true
+          xcrun simctl boot "$DEVICE"
+          xcrun simctl bootstatus "$DEVICE" -b
+          xcodebuild -project ios/MeltypeFlash.xcodeproj -scheme MeltypeFlash -destination "platform=iOS Simulator,id=$DEVICE" -only-testing:AppUITests -parallel-testing-enabled NO -test-timeouts-enabled YES -maximum-test-execution-time-allowance 120 -derivedDataPath ios/build/tests CODE_SIGNING_ALLOWED=NO test
+      - name: Export source for locally signed device builds
+        run: |
+          git archive --format=zip --output=dist/Meltype-flash-iOS-source.zip HEAD
+          cp ios/README.md dist/README-iOS.md
+      - uses: actions/upload-artifact@v4
+        with:
+          name: release-ios
+          path: |
+            dist/Meltype-flash-iOS-Simulator-arm64.zip
+            dist/Meltype-flash-iOS-unsigned.ipa
+            dist/Meltype-flash-iOS-source.zip
+            dist/README-iOS.md
+          if-no-files-found: error
   publish:
-    needs: [windows, linux, macos, android, chromeos]
+    needs: [release-policy, windows, linux, macos, mobile-packages, ios]
     runs-on: ubuntu-latest
     permissions:
       contents: write
     steps:
       - uses: actions/checkout@v5
+        with:
+          fetch-depth: 0
       - uses: actions/download-artifact@v4
         with:
           path: artifacts
@@ -141,11 +322,46 @@ jobs:
         run: |
           python3 -m unittest discover -s tools -p test_collect_rust_release.py -v
           python3 tools/collect-rust-release.py artifacts release-assets
-          cp LICENSE THIRD-PARTY-NOTICES.md rust/RELEASE-NOTES.md release-assets/
+          cp LICENSE THIRD-PARTY-NOTICES.md release-assets/
+      - name: Sign ChromeOS CRX and update manifest
+        env:
+          CHROMEOS_CRX_KEY: ${{ secrets.CHROMEOS_CRX_KEY }}
+          TAG: ${{ inputs.tag }}
+        run: |
+          test -n "$CHROMEOS_CRX_KEY"
+          KEY="$RUNNER_TEMP/chromeos-crx-key.pem"
+          printf '%s' "$CHROMEOS_CRX_KEY" | base64 -d > "$KEY"
+          chmod 600 "$KEY"
+          VERSION=$(python3 -c 'import tomllib; print(tomllib.load(open("Cargo.toml", "rb"))["workspace"]["package"]["version"])')
+          python3 tools/make-chromeos-crx.py \
+            --zip artifacts/Meltype-ChromeOS-preview/chromeos-preview.zip \
+            --key "$KEY" \
+            --version "$VERSION" \
+            --tag "$TAG" \
+            --output release-assets
+          rm -f "$KEY"
+      - name: Refresh checksums with the ChromeOS update files
+        run: |
+          cd release-assets
+          rm -f SHA256SUMS.txt
+          sha256sum Meltype-flash-* updates.xml LICENSE THIRD-PARTY-NOTICES.md > SHA256SUMS.txt
       - name: Publish all platforms together
         env:
           GH_TOKEN: ${{ github.token }}
-          TAG: ${{ inputs.tag || 'flash-v0.1.1-preview.1' }}
+          TAG: ${{ inputs.tag }}
+          SKIP_BENCHMARK: ${{ inputs.skip_benchmark }}
+          UPDATE_EXISTING: ${{ inputs.update_existing }}
+          GITHUB_SHA: ${{ github.sha }}
         run: |
-          gh release create "$TAG" release-assets/* --target "$GITHUB_SHA" --title "Meltype-flash $TAG" --notes-file rust/RELEASE-NOTES.md --prerelease --draft
-          gh release edit "$TAG" --draft=false
+          benchmark_args=(--benchmark artifacts/release-benchmark)
+          if [[ "$SKIP_BENCHMARK" == true ]]; then
+            benchmark_args=(--skip-benchmark)
+          fi
+          update_args=()
+          if [[ "$UPDATE_EXISTING" == true ]]; then
+            update_args=(--update-existing)
+            SOURCE_SHA=$(git rev-parse "$TAG^{commit}")
+          else
+            SOURCE_SHA="$GITHUB_SHA"
+          fi
+          python3 tools/publish-rust-release.py --tag "$TAG" --sha "$SOURCE_SHA" --assets release-assets "${benchmark_args[@]}" "${update_args[@]}" --output release-body.md --publish

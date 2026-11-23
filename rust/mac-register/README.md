@@ -1,5 +1,9 @@
 # macOS installer tools in Rust
 
+<!-- meltype-flash-document-banner:start -->
+<p align="center"><img src="../../assets/branding/readme/documentation.svg" alt="Meltype-FLASH — 稲妻のように、言葉の壁を駆け抜ける日本語入力。" width="1000"></p>
+<!-- meltype-flash-document-banner:end -->
+
 `meltype-register-input-source` replaces the standalone Swift registration tool.
 It keeps its optional app-path argument, Japanese messages, OSStatus failure,
 30 checks with 100 ms waits, enabled-bundle lookup and best-effort

@@ -103,7 +103,7 @@ unsafe extern "C" fn mode(_: *mut c_void, op: u32, value: i32) {
                 if value != 0 {
                     "つながりました"
                 } else {
-                    "使えません (動いていない・モードが Meltype-flash IME でない)"
+                    "使えません (動いていない・モードが Meltype-FLASH IME でない)"
                 }
             ),
             1 => "応答を読めません".into(),

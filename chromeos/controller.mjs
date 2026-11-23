@@ -1,16 +1,27 @@
 // SPDX-License-Identifier: GPL-3.0-or-later
 // Chrome callbacks are registered before asynchronous WASM/storage startup.
 import {translateKey} from "./keys.mjs";
-const editable = new Set(["text", "search", "url", "email"]);
+const editable = new Set(["text", "search", "url"]);
 export class ImeController {
-  constructor({ime, load, persist, report, now = () => performance.now(), incognito = false}) {
-    Object.assign(this, {ime, load, persist, report, now, incognito});
+  constructor({ime, load, persist, report, now = () => performance.now(), incognito = false, resolveMode = async () => "normal", convert = null, loadDictionary = null}) {
+    Object.assign(this, {ime, load, persist, report, now, incognito, resolveMode, convert, loadDictionary});
     this.engine = null; this.context = null; this.generation = 0;
     this.queue = Promise.resolve(); this.core = null; this.ownedKeys = new Set();
   }
   ready() {
-    if (!this.loading) this.loading = this.load().then(core => (this.core = core));
+    if (!this.loading) this.loading = this.load().then(core => (this.core = core)).catch(error => {
+      this.loading = null;
+      throw error;
+    });
     return this.loading;
+  }
+  prepareDictionary() {
+    if (!this.dictionaryTask) {
+      this.dictionaryTask = this.loadDictionary().then(() => {
+        this.loadDictionary = null;
+      }).finally(() => { this.dictionaryTask = null; });
+    }
+    return this.dictionaryTask;
   }
   enqueue(work) {
     const task = this.queue.then(work);
@@ -18,9 +29,29 @@ export class ImeController {
     return task;
   }
   invalidate() {
-    this.generation++; this.ownedKeys.clear();
+    this.generation++; this.ownedKeys.clear(); this.modeKey = null;
+    this.refreshMode();
     this.pending = null;
+    this.displayed = {};
+    this.converting = false;
+    this.nextConversion = null;
+    this.conversionToken = null;
     if (this.core) this.core.reset();
+  }
+  refreshMode() { this.modeTask = null; }
+  async prepareMode(core, engine, id, generation) {
+    while (this.valid(engine, id, generation)) {
+      const task = this.modeTask ??= {promise: this.resolveMode({...this.context})};
+      const mode = await task.promise;
+      if (!this.valid(engine, id, generation)) return false;
+      // A tab/permission event during lookup must not pass an unconverted letter
+      // into a live composition. Resolve the fresh policy for the same key.
+      if (this.modeTask !== task) continue;
+      // The core defers changes until composition ends; tab events never erase text.
+      core.set_code_mode?.(mode === "code");
+      return true;
+    }
+    return false;
   }
   activate(engine) { this.invalidate(); this.engine = engine; this.context = null; }
   deactivate(engine) {
@@ -48,6 +79,37 @@ export class ImeController {
   async call(name, parameters) {
     const result = await this.ime[name](parameters);
     if (result === false) throw new Error(`${name} rejected by ChromeOS`);
+  }
+  // Only an active request and the most recent waiting request retain input.
+  requestConversion(core, engine, id, generation) {
+    const request = core.ai_request && JSON.parse(core.ai_request());
+    if (!request || !this.convert) return;
+    const token = {};
+    this.conversionToken = token;
+    this.nextConversion = {core, engine, id, generation, request, token};
+    if (!this.converterBusy) void this.runConversions();
+  }
+  async runConversions() {
+    this.converterBusy = true;
+    try {
+      while (this.nextConversion) {
+        const {core, engine, id, generation, request, token} = this.nextConversion;
+        this.nextConversion = null;
+        try {
+          const candidates = await this.convert(request);
+          if (!candidates?.length || this.conversionToken !== token) continue;
+          // Serialize only the UI update with keys. Never put inference in that queue.
+          await this.enqueue(async () => {
+            if (this.conversionToken !== token || !this.valid(engine, id, generation) || this.pending) return;
+            if (core.ai_apply(request[0], JSON.stringify(candidates))) {
+              await this.render({commits: [], view: JSON.parse(core.view()).view}, engine, id, generation);
+            }
+          });
+        } catch (error) {
+          if (this.conversionToken === token) this.report(String(error));
+        }
+      }
+    } finally { this.converterBusy = false; }
   }
   async render(result, engine, id, generation) {
     const valid = () => this.valid(engine, id, generation);
@@ -96,23 +158,44 @@ export class ImeController {
     const prediction = view && !view.converting && (view.candidates?.length ?? 0) <= 1;
     const candidates = (prediction ? view?.predictions : view?.candidates) ?? [];
     const selected = prediction ? view.selectedPrediction : view?.selectedIndex;
-    await this.call("setCandidates", {contextID: id, candidates: candidates.map((candidate, index) => ({
-      candidate, id: index, label: index < 9 ? String(index + 1) : "", annotation: prediction ? "" : view.notes?.[index] ?? ""}))});
-    if (!valid()) return;
-    await this.call("setCandidateWindowProperties", {engineID: engine, properties: {
-      visible: candidates.length > 0, vertical: true, cursorVisible: Number.isInteger(selected) && selected >= 0, pageSize: 9,
-      auxiliaryText: view?.hint ?? "", auxiliaryTextVisible: Boolean(view?.hint), windowPosition: "composition"}});
-    if (valid() && candidates.length && Number.isInteger(selected) && selected >= 0 && selected < candidates.length) await this.call("setCursorPosition", {
-      contextID: id, candidateID: selected});
-    if (valid() && this.pending === pending) this.pending = null;
+    const rows = candidates.map((candidate, index) => ({
+      candidate, id: index, label: index < 9 ? String(index + 1) : "", annotation: prediction ? "" : view.notes?.[index] ?? ""}));
+    const rowKey = JSON.stringify(rows);
+    if (this.displayed.rows !== rowKey) {
+      await this.call("setCandidates", {contextID: id, candidates: rows});
+      if (!valid()) return;
+      this.displayed.rows = rowKey;
+      this.displayed.cursor = undefined;
+    }
+    const properties = {visible: candidates.length > 0, vertical: true, cursorVisible: Number.isInteger(selected) && selected >= 0, pageSize: 9,
+      auxiliaryText: view?.hint ?? "", auxiliaryTextVisible: Boolean(view?.hint), windowPosition: "composition"};
+    const windowKey = JSON.stringify(properties);
+    if (this.displayed.window !== windowKey) {
+      await this.call("setCandidateWindowProperties", {engineID: engine, properties});
+      if (!valid()) return;
+      this.displayed.window = windowKey;
+      this.displayed.cursor = undefined;
+    }
+    if (candidates.length && Number.isInteger(selected) && selected >= 0 && selected < candidates.length && this.displayed.cursor !== selected) {
+      await this.call("setCursorPosition", {contextID: id, candidateID: selected});
+      if (!valid()) return;
+      this.displayed.cursor = selected;
+    }
+    if (valid() && this.pending === pending) {
+      this.converting = Boolean(view?.converting);
+      this.pending = null;
+    }
   }
   key(engine, event, requestId) {
     // Older ChromeOS sends the acknowledgement ID inside keyData instead of
     // the third listener argument. Missing it used to pass every key through.
     if (typeof requestId !== "string" || !requestId) requestId = event.requestId;
     const mapped = translateKey(event);
+    const keyID = event.code || event.key;
     const id = this.context?.contextID, generation = this.generation;
-    if (!mapped || !this.valid(engine, id, generation) || id === undefined || event.extensionId || event.metaKey) return false;
+    const anonymousRelease = event.type === "keyup" && !event.code && ["", "Unidentified", "Process"].includes(event.key ?? "");
+    if ((!mapped && !anonymousRelease && !(event.type === "keyup" && this.ownedKeys.has(keyID)))
+        || !this.valid(engine, id, generation) || id === undefined || event.extensionId || event.metaKey) return false;
     if (event.type !== "keydown" && event.type !== "keyup") return false;
     if (typeof requestId !== "string" || !requestId) return false;
     this.enqueue(async () => {
@@ -121,25 +204,61 @@ export class ImeController {
         const core = await this.ready();
         if (!this.valid(engine, id, generation)) return;
         if (event.type === "keyup") {
-          handled = this.ownedKeys.delete(event.code);
+          handled = this.ownedKeys.delete(keyID);
+          if (this.modeKey != null && (this.modeKey === keyID || anonymousRelease || mapped?.mode && !event.code)) {
+            this.ownedKeys.delete(this.modeKey);
+            this.modeKey = null;
+            handled = true;
+          }
           return;
         }
         core.focusIfNeeded?.(generation, this.learning());
         if (this.pending) {
           // A failed retry must not let Enter submit the form underneath it.
-          if (mapped.vk === 13) { handled = true; this.ownedKeys.add(event.code); }
+          if (mapped.vk === 13 || mapped.mode) { handled = true; this.ownedKeys.add(keyID); }
           await this.resume(engine, id, generation);
           if (!this.valid(engine, id, generation)) return;
           if (this.learning()) await this.persist(core.snapshot());
-          // Enter retries the failed confirmation; do not also send a newline.
-          if (mapped.vk === 13) {
+          // 確定・モード切替の再試行で、改行や二度目の切替を起こさない。
+          if (mapped.vk === 13 || mapped.mode) {
             return;
           }
         }
-        const result = JSON.parse(core.key(mapped.vk, mapped.character, mapped.modifiers, this.now()));
+        if (!await this.prepareMode(core, engine, id, generation)) return;
+        let result;
+        if (mapped.mode) {
+          handled = true;
+          // 押し続けても一度だけ切り替える。keyupは通常の打鍵と同様に引き取る。
+          // Use a logical marker for mode keys so a changed keyup name cannot
+          // leave the half/full-width key stuck in the owned set.
+          if (this.modeKey != null) return;
+          this.modeKey = keyID;
+          this.ownedKeys.add(keyID);
+          const direct = mapped.mode === "toggle" ? !core.is_direct() : mapped.mode === "direct";
+          result = JSON.parse(core.set_direct(direct));
+        } else result = JSON.parse(core.key(mapped.vk, mapped.character, mapped.modifiers, this.now()));
+        this.conversionToken = null;
+        this.nextConversion = null;
+        const startConversion = result.view?.converting && !this.converting;
+        if (!this.valid(engine,id,generation)) return;
+        if (startConversion && this.loadDictionary) {
+          handled = result.consumed;
+          try {
+            await this.prepareDictionary();
+            if (!this.valid(engine, id, generation)) return;
+            if (core.apply_dictionary()) result.view = JSON.parse(core.view()).view;
+          } catch (error) { this.report(String(error)); }
+        }
         handled = result.consumed;
-        if (handled) this.ownedKeys.add(event.code);
+        if (handled) this.ownedKeys.add(keyID);
         await this.render(result, engine, id, generation);
+        if (this.loadDictionary && !result.view?.converting && /[ぁ-ヿ]/u.test(result.view?.text ?? "") && this.valid(engine, id, generation)) {
+          // 日本語を表示してから先読みする。次の文字は辞書を待たずに受け取る。
+          if (!this.dictionaryTask && !this.prefetchFailed) {
+            this.prepareDictionary().catch(error => { this.prefetchFailed = true; this.report(String(error)); });
+          }
+        }
+        if (startConversion && this.valid(engine, id, generation)) this.requestConversion(core, engine, id, generation);
         if (this.valid(engine, id, generation) && this.learning() && result.commits.length) {
           await this.persist(core.snapshot());
         }
@@ -164,6 +283,8 @@ export class ImeController {
       const prediction = view && !view.converting && (view.candidates?.length ?? 0) <= 1;
       const candidates = (prediction ? view?.predictions : view?.candidates) ?? [];
       if (candidateID >= candidates.length) return;
+      this.conversionToken = null;
+      this.nextConversion = null;
       const selected = prediction ? core.select_prediction(candidateID) : core.select(candidateID);
       await this.render(JSON.parse(selected), engine, id, generation);
       if (this.valid(engine, id, generation) && this.learning()) await this.persist(core.snapshot());

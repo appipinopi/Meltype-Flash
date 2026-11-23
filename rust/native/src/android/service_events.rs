@@ -117,6 +117,76 @@ fn key(
     .l()?;
     actions::apply(env, handle, service, &connection, &reply, Some(epoch))
 }
+fn restart(env: &mut JNIEnv, handle: jlong, service: &JObject, info: &JObject) -> Result<()> {
+    let Some(epoch) = service_state::epoch(handle) else {
+        return Ok(());
+    };
+    let flags = if info.is_null() {
+        0
+    } else {
+        crate::android_input::field_flags(
+            env.get_field(info, "inputType", "I")?.i()?,
+            env.get_field(info, "imeOptions", "I")?.i()?,
+        )
+    };
+    let old = service_state::flags(handle);
+    let connection = connection(env, service)?;
+    if service_state::epoch(handle) != Some(epoch) {
+        return Ok(());
+    }
+    let pending = service_state::pending(handle);
+    let compatible = old & 2 == flags & 2 && (flags & 1 == 0 || old & 1 != 0);
+    let mut matches = pending.is_empty();
+    if compatible && flags & 2 == 0 && !pending.is_empty() && !connection.is_null() {
+        let text = env
+            .call_method(
+                &connection,
+                "getTextBeforeCursor",
+                "(II)Ljava/lang/CharSequence;",
+                &[
+                    JValue::Int(pending.encode_utf16().count() as i32),
+                    JValue::Int(0),
+                ],
+            )?
+            .l()?;
+        if service_state::epoch(handle) != Some(epoch) {
+            return Ok(());
+        }
+        if !text.is_null() {
+            let text = env
+                .call_method(text, "toString", "()Ljava/lang/String;", &[])?
+                .l()?;
+            matches = String::from(env.get_string(&JString::from(text))?) == pending;
+        }
+    }
+    if compatible && matches && flags & 2 == 0 && !pending.is_empty() && !connection.is_null() {
+        let selected = env
+            .call_method(
+                &connection,
+                "getSelectedText",
+                "(I)Ljava/lang/CharSequence;",
+                &[JValue::Int(0)],
+            )?
+            .l()?;
+        if service_state::epoch(handle) != Some(epoch) {
+            return Ok(());
+        }
+        matches = selected.is_null() || env.call_method(selected, "length", "()I", &[])?.i()? == 0;
+    }
+    if compatible && matches {
+        service_state::restart(handle);
+        return refresh(env, handle, service);
+    }
+    // A changed editor owns its current text. Retire its old span without
+    // replacing it using the stale composition from before restartInput.
+    if !connection.is_null() {
+        env.call_method(&connection, "finishComposingText", "()Z", &[])?;
+        if service_state::epoch(handle) != Some(epoch) {
+            return Ok(());
+        }
+    }
+    start(env, handle, service, info)
+}
 fn finish(env: &mut JNIEnv, handle: jlong, service: &JObject) -> Result<()> {
     let Some(epoch) = service_state::epoch(handle) else {
         return Ok(());
@@ -222,6 +292,19 @@ pub extern "system" fn Java_moe_meltype_rust_Native_serviceStart(
 ) {
     let _ = std::panic::catch_unwind(AssertUnwindSafe(|| {
         start(&mut env, handle, &service, &info)
+    }));
+    clear(&mut env);
+}
+#[no_mangle]
+pub extern "system" fn Java_moe_meltype_rust_Native_serviceRestart(
+    mut env: JNIEnv,
+    _class: JClass,
+    handle: jlong,
+    service: JObject,
+    info: JObject,
+) {
+    let _ = std::panic::catch_unwind(AssertUnwindSafe(|| {
+        restart(&mut env, handle, &service, &info)
     }));
     clear(&mut env);
 }

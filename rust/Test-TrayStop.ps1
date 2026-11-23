@@ -1,19 +1,35 @@
 ﻿# SPDX-License-Identifier: GPL-3.0-or-later
 # Isolated real tray and cooperative shutdown. Never registers an IME or changes startup.
-param([Parameter(Mandatory=$true)][string]$Binary, [switch]$Portable)
+param([Parameter(Mandatory=$true)][string]$Binary, [switch]$Portable, [switch]$SettingsLaunch)
 $ErrorActionPreference = 'Stop'
 $exe = (Resolve-Path -LiteralPath $Binary).Path
 $root = Join-Path ([IO.Path]::GetTempPath()) ('meltype tray stop 日本語-' + [Guid]::NewGuid().ToString('N'))
 New-Item -ItemType Directory -Path $root | Out-Null
 $configPath = Join-Path $root 'config.json'
-$config = '{"SettingsVersion":5,"WelcomeShown":true,"TsfIntroduced":true,"AutoUpdate":false,"Enabled":true}'
+$settingsVersion = (Get-Content -LiteralPath (Join-Path $PSScriptRoot 'core/data/settings-defaults.json') -Raw -Encoding UTF8 | ConvertFrom-Json).SettingsVersion
+$config = [ordered]@{SettingsVersion=$settingsVersion;WelcomeShown=$true;TsfIntroduced=$true;AutoUpdate=$false;Enabled=$true} | ConvertTo-Json -Compress
 [IO.File]::WriteAllText($configPath, $config)
 $previousDataDirectory = $env:MELTYPE_RUST_DATA_DIR
+$previousFlashDirectory = $env:MELTYPE_FLASH_DATA_DIR
 $tray = $null; $helper = $null
 try {
     $env:MELTYPE_RUST_DATA_DIR = $root
+    $env:MELTYPE_FLASH_DATA_DIR = $root
+    if ($Portable) {
+        # --portable-keyboard intentionally selects Keyboard mode at startup.
+        # Prepare its canonical configuration first; shutdown must preserve these
+        # exact bytes, including Enabled, rather than compare against TSF mode.
+        $cli = Join-Path (Split-Path -Parent $exe) 'meltype-rs.exe'
+        & $cli --control '{"op":"settings_set","name":"Mode","value":"Keyboard"}' | Out-Null
+        if ($LASTEXITCODE -ne 0) { throw 'Could not prepare portable configuration' }
+        $config = [IO.File]::ReadAllText($configPath)
+        $prepared = $config | ConvertFrom-Json
+        if ($prepared.Mode -ne 'Keyboard' -or $prepared.Enabled -ne $true) { throw 'Invalid portable fixture' }
+    }
     $trayArguments = if ($Portable) { @('--tray','--portable-keyboard') } else { @('--tray') }
-    $tray = Start-Process -FilePath $exe -ArgumentList $trayArguments -WindowStyle Hidden -PassThru -RedirectStandardError (Join-Path $root 'tray.log')
+    $start = @{FilePath=$exe;WindowStyle='Hidden';PassThru=$true;RedirectStandardError=(Join-Path $root 'tray.log')}
+    if (-not $SettingsLaunch) { $start.ArgumentList = $trayArguments }
+    $tray = Start-Process @start
     $deadline = [DateTime]::UtcNow.AddSeconds(20)
     $ready = $false
     while ([DateTime]::UtcNow -lt $deadline) {
@@ -51,4 +67,5 @@ try {
         }
     }
     $env:MELTYPE_RUST_DATA_DIR = $previousDataDirectory
+    $env:MELTYPE_FLASH_DATA_DIR = $previousFlashDirectory
 }
