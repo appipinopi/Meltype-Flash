@@ -1,9 +1,9 @@
 {
   "corpus": 10000,
-  "note": "シャード数は、手元の実測（21〜26MBモデルで約23ms/文、2コア）から重いモデルだけ分割したものです。",
+  "note": "シャード数は手元実測（2コア）から: 21MB級=約23ms/文、jinen-small-f16=約240ms/文、Qwen/Shion 0.5B=約3.0秒/文（96トークン生成）。重いモデルだけ分割。",
   "shards": {
-    "gamma-3-1b-q4_k_m": 3,
-    "qwen2.5-0.5b-instruct-q4_k_m": 2,
-    "shion-qwen2.5-0.5b-q4_k_m": 2
+    "gamma-3-1b-q4_k_m": 5,
+    "qwen2.5-0.5b-instruct-q4_k_m": 3,
+    "shion-qwen2.5-0.5b-q4_k_m": 3
   }
 }
