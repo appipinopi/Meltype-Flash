@@ -129,10 +129,13 @@ def ensure_install(model, data_root):
     spec.write_text(json.dumps(model, ensure_ascii=False), encoding="utf-8")
     result = subprocess.run(
         [sys.executable, str(SETUP), str(data_root), str(spec)],
-        check=True,
         capture_output=True,
         text=True,
     )
+    if result.returncode != 0:
+        raise RuntimeError(
+            "モデルの導入に失敗しました: " + (result.stderr.strip().splitlines() or ["?"])[-1]
+        )
     paths = json.loads(result.stdout.strip().splitlines()[-1])
     return Path(paths["server"]), Path(paths["model"])
 
@@ -219,6 +222,9 @@ def run(args):
     server = None
     with out_path.open("w", encoding="utf-8") as out:
         try:
+            if not shard_cases:
+                meta["reason"] = "empty_shard"
+                raise SystemExit(0)
             install_began = time.monotonic()
             server_path, model_path = ensure_install(model, args.data_root)
             meta["install_seconds"] = round(time.monotonic() - install_began, 1)
@@ -263,6 +269,8 @@ def run(args):
                     break
             else:
                 meta["reason"] = "completed"
+        except SystemExit:
+            raise
         except Exception as failure:
             meta["reason"] = meta["reason"] if meta["reason"] == "deadline" else "failed"
             meta["error"] = str(failure)[:1000]
