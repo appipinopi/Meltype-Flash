@@ -29,3 +29,7 @@ tempfile = "3"
 [[example]]
 name = "probe"
 required-features = ["engine"]
+
+[[example]]
+name = "shunti_bench"
+required-features = ["engine", "download"]
