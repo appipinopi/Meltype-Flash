@@ -1,5 +1,9 @@
 # fcitx5 adapter migration
 
+<!-- meltype-flash-document-banner:start -->
+<p align="center"><img src="../../assets/branding/readme/documentation.svg" alt="Meltype-FLASH — 稲妻のように、言葉の壁を駆け抜ける日本語入力。" width="1000"></p>
+<!-- meltype-flash-document-banner:end -->
+
 The default `MELTYPE_RUST_CORE=ON` build requires the Rust native library,
 including `meltype_json_visit_utf8`, `meltype_fcitx_key` and
 `meltype_fcitx_modifiers` and `meltype_fcitx_mode`. JSON bytes, escapes and numbers are parsed

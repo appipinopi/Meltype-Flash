@@ -9,9 +9,15 @@ import tempfile
 root = Path(__file__).resolve().parents[3]
 library = Path(sys.argv[1]).resolve()
 with tempfile.TemporaryDirectory(prefix="meltype-jni-host-") as output:
+    generator = Path(output) / ("bridge.exe" if sys.platform == "win32" else "bridge")
+    subprocess.run(["rustc", "--edition=2021", str(root / "android/bridge.rs"), "-o", str(generator)], check=True)
+    generated = Path(output) / "generated"
+    subprocess.run([str(generator), str(generated)], check=True)
+    adapters = generated / "moe/meltype/rust"
     subprocess.run([
         "javac", "-encoding", "UTF-8", "--release", "17", "-d", output,
-        str(root / "android/app/src/main/java/moe/meltype/rust/Native.java"),
+        *(str(adapters / name) for name in ("Native.java", "Events.java", "FlickKeyboard.java", "FlickGesture.java")),
+        str(root / "rust/native/tests/android/FlickHost.java"),
         str(root / "rust/native/tests/android/EditorHost.java"),
         str(root / "rust/native/tests/android/InputHost.java"),
         str(root / "rust/native/tests/android/ContextHost.java"),
@@ -31,7 +37,7 @@ with tempfile.TemporaryDirectory(prefix="meltype-jni-host-") as output:
         str(root / "rust/native/tests/android/SettingsActivity.java"),
         *(str(path) for path in sorted((root / "rust/native/tests/android/widgets").glob("*.java"))),
     ], check=True)
-    for host in sys.argv[2:] or ["ServiceHost", "SettingsUiHost", "DialogHost", "ActivityViewHost", "SettingsViewHost", "DocumentHost", "SettingsHost", "DispatchHost", "WidgetHost", "StateHost", "LifecycleHost", "ContextHost", "InputHost", "EditorHost"]:
+    for host in sys.argv[2:] or ["FlickHost", "ServiceHost", "SettingsUiHost", "DialogHost", "ActivityViewHost", "SettingsViewHost", "DocumentHost", "SettingsHost", "DispatchHost", "WidgetHost", "StateHost", "LifecycleHost", "ContextHost", "InputHost", "EditorHost"]:
         subprocess.run([
             "java", "-Xcheck:jni", f"-Djava.library.path={library}", "-cp", output,
             f"moe.meltype.rust.{host}",

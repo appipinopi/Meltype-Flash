@@ -43,7 +43,7 @@ def main() -> None:
     (args.output / "instrumentation.txt").write_text(report, encoding="utf-8")
     print(report, flush=True)
     # Retrieve only this test app's own generated preview/metadata.
-    for name in ("input-view.png", "input-view-narrow.png", "input-view-large-text.png", "settings-page.png", "settings-activity.png", "learning-confirmation.png", "restore-confirmation.png", "device.txt", "label-fit.txt"):
+    for name in ("flick-view.png", "input-view.png", "input-view-narrow.png", "input-view-large-text.png", "settings-page.png", "settings-activity.png", "learning-confirmation.png", "restore-confirmation.png", "device.txt", "label-fit.txt"):
         artifact = subprocess.run([
             *adb, "exec-out", "run-as", "moe.meltype.rust", "cat",
             f"files/instrumentation-artifacts/{name}",
@@ -51,8 +51,8 @@ def main() -> None:
         if artifact.returncode == 0:
             (args.output / name).write_bytes(artifact.stdout)
     result.check_returncode()
-    verify_report(report, 12)
-    for name in ("input-view.png", "input-view-narrow.png", "input-view-large-text.png", "settings-page.png", "settings-activity.png", "learning-confirmation.png", "restore-confirmation.png"):
+    verify_report(report, 14)
+    for name in ("flick-view.png", "input-view.png", "input-view-narrow.png", "input-view-large-text.png", "settings-page.png", "settings-activity.png", "learning-confirmation.png", "restore-confirmation.png"):
         if not (args.output / name).read_bytes().startswith(b"\x89PNG\r\n\x1a\n"):
             raise RuntimeError(f"Android preview PNG is missing or invalid: {name}")
     for name in ("device.txt", "label-fit.txt"):

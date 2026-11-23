@@ -11,6 +11,7 @@ use std::collections::HashSet;
 pub struct Settings(pub Map<String, Value>);
 
 const SHARED: &[&str] = &[
+    "$schema",
     "Profiles",
     "ActiveProfile",
     "SettingsVersion",
@@ -26,6 +27,7 @@ const SHARED: &[&str] = &[
     "TsfOffered",
     "SettingsShowHelp",
     "SettingsWheelChangesValue",
+    "UiLanguage",
 ];
 fn same_type(default: &Value, value: &Value) -> bool {
     match default {
@@ -46,12 +48,86 @@ fn migrate_input_style(values: &mut Map<String, Value>) {
         values.insert("InputStyle".into(), json!("Romaji"));
     }
 }
+fn normalize_toggle_shortcuts(values: &mut Map<String, Value>, warnings: &mut Vec<String>) {
+    use crate::shortcuts::ToggleShortcut;
+    let mut shortcuts = match values.get("ToggleShortcuts").and_then(Value::as_array) {
+        Some(entries) => entries.clone(),
+        None if values.get("HankakuTogglesKeyboard") == Some(&json!(false)) => vec![],
+        None => serde_json::to_value(ToggleShortcut::defaults())
+            .unwrap()
+            .as_array()
+            .unwrap()
+            .clone(),
+    };
+    if let Some(text) = values
+        .get("ToggleKeyboardShortcuts")
+        .and_then(Value::as_str)
+    {
+        // Flashの旧ポータブル入力では空文字がCtrl+Alt+Jを意味した。
+        let text = if text.trim().is_empty() {
+            "Ctrl+Alt+J"
+        } else {
+            text
+        };
+        for part in text
+            .split([';', ',', '\n'])
+            .map(str::trim)
+            .filter(|part| !part.is_empty())
+        {
+            if let Some(shortcut) = ToggleShortcut::parse(part) {
+                if !shortcuts
+                    .iter()
+                    .filter_map(|entry| {
+                        serde_json::from_value::<ToggleShortcut>(entry.clone()).ok()
+                    })
+                    .any(|other| other.matches(shortcut.key, shortcut.modifiers))
+                {
+                    shortcuts.push(serde_json::to_value(shortcut).unwrap());
+                }
+            } else {
+                warnings.push(format!(
+                    "切替キー「{part}」を除外しました: キーの書式を解釈できません"
+                ));
+            }
+        }
+    }
+    values.remove("HankakuTogglesKeyboard");
+    values.remove("ToggleKeyboardShortcuts");
+    let settings = Settings(values.clone());
+    let mut accepted = Vec::new();
+    for entry in shortcuts {
+        match serde_json::from_value::<ToggleShortcut>(entry) {
+            Ok(mut shortcut) => {
+                shortcut.key = ToggleShortcut::normalize_key(shortcut.key);
+                match shortcut.validate(&settings, &accepted) {
+                    Ok(()) => accepted.push(shortcut),
+                    Err(reason) => warnings.push(format!(
+                        "切替キー「{}」を除外しました: {reason}",
+                        shortcut.label()
+                    )),
+                }
+            }
+            Err(_) => warnings.push("不正な入力モード切替キーを除外しました".into()),
+        }
+    }
+    values.insert(
+        "ToggleShortcuts".into(),
+        serde_json::to_value(accepted).unwrap(),
+    );
+}
 impl Default for Settings {
     fn default() -> Self {
-        Self(
+        let settings = Self(
             serde_json::from_str(include_str!("../data/settings-defaults.json"))
                 .expect("bundled settings"),
-        )
+        );
+        #[cfg(any(target_os = "android", target_os = "ios"))]
+        let settings = {
+            let mut settings = settings;
+            settings.remove_neural_settings();
+            settings
+        };
+        settings
     }
 }
 impl Settings {
@@ -60,6 +136,14 @@ impl Settings {
     }
     pub(crate) fn parse_migrating(text: &str) -> Result<(Self, bool), String> {
         let mut loaded: Map<String, Value> = json5::from_str(text).map_err(|e| e.to_string())?;
+        let neural_migrate = if cfg!(any(target_os = "android", target_os = "ios")) {
+            let mut document = Self(loaded);
+            let removed = document.remove_neural_settings();
+            loaded = document.0;
+            removed
+        } else {
+            false
+        };
         let mut defaults = Self::default();
         let version = loaded
             .get("SettingsVersion")
@@ -70,7 +154,10 @@ impl Settings {
                 s.eq_ignore_ascii_case("AutoSwitch") || s.eq_ignore_ascii_case("Both")
             })
         };
-        let migrate = version < 5
+        let migrate = neural_migrate
+            || version < 7
+            || loaded.contains_key("HankakuTogglesKeyboard")
+            || loaded.contains_key("ToggleKeyboardShortcuts")
             || removed(loaded.get("Mode"))
             || removed(loaded.get("InputStyle"))
             || loaded
@@ -78,7 +165,10 @@ impl Settings {
                 .and_then(Value::as_array)
                 .is_some_and(|profiles| {
                     profiles.iter().any(|p| {
-                        removed(p["Values"].get("Mode")) || removed(p["Values"].get("InputStyle"))
+                        removed(p["Values"].get("Mode"))
+                            || removed(p["Values"].get("InputStyle"))
+                            || p["Values"].get("HankakuTogglesKeyboard").is_some()
+                            || p["Values"].get("ToggleKeyboardShortcuts").is_some()
                     })
                 });
         if version < 2 {
@@ -124,7 +214,10 @@ impl Settings {
                 }
             }
         }
-        loaded.insert("SettingsVersion".into(), json!(5));
+        // version < 8: ReadingLattice と SpaceAroundEnglish は試験版・上流と同じく
+        // 既定では有効にしない。既存設定の値はそのまま保つ。
+        normalize_toggle_shortcuts(&mut loaded, &mut Vec::new());
+        loaded.insert("SettingsVersion".into(), json!(8));
         defaults.0.extend(loaded);
         defaults.normalize();
         Ok((defaults, migrate))
@@ -138,7 +231,121 @@ impl Settings {
     pub fn text(&self, name: &str) -> &str {
         self.0.get(name).and_then(Value::as_str).unwrap_or("")
     }
+    pub fn toggle_shortcuts(&self) -> Vec<crate::shortcuts::ToggleShortcut> {
+        self.0
+            .get("ToggleShortcuts")
+            .cloned()
+            .and_then(|value| serde_json::from_value(value).ok())
+            .unwrap_or_else(crate::shortcuts::ToggleShortcut::defaults)
+    }
+    pub fn toggle_shortcuts_label(&self) -> String {
+        let labels = self
+            .toggle_shortcuts()
+            .iter()
+            .map(|shortcut| shortcut.label())
+            .collect::<Vec<_>>();
+        if labels.is_empty() {
+            "切替キー未登録".into()
+        } else {
+            labels.join(" / ")
+        }
+    }
+    /// 設定画面の起動前に移行で除外されるキーと理由を取得する。
+    pub fn shortcut_migration_warnings(text: &str) -> Vec<String> {
+        let Ok(mut values) = json5::from_str::<Map<String, Value>>(text) else {
+            return vec![];
+        };
+        let mut warnings = Vec::new();
+        normalize_toggle_shortcuts(&mut values, &mut warnings);
+        if let Some(profiles) = values.get_mut("Profiles").and_then(Value::as_array_mut) {
+            for profile in profiles {
+                if let Some(values) = profile.get_mut("Values").and_then(Value::as_object_mut) {
+                    normalize_toggle_shortcuts(values, &mut warnings);
+                }
+            }
+        }
+        warnings
+    }
+    /// Hosts without Zenz discard its server configuration, including
+    /// inactive profiles imported from desktop settings. Other fields survive.
+    /// Return whether anything was removed, so persisted documents can migrate.
+    pub fn remove_neural_settings(&mut self) -> bool {
+        fn remove(values: &mut Map<String, Value>) -> bool {
+            let mut removed = false;
+            for key in [
+                "UseZenzai",
+                "ZenzaiServerPath",
+                "ZenzaiModelPath",
+                "ShuntiHelperPath",
+            ] {
+                removed |= values.remove(key).is_some();
+            }
+            if values
+                .get("AiModel")
+                .and_then(Value::as_str)
+                .and_then(crate::ai_model::AiModel::parse)
+                .is_some_and(|m| m.is_gguf())
+            {
+                values.insert("AiModel".into(), json!("None"));
+                removed = true;
+            }
+            removed
+        }
+        let mut removed = remove(&mut self.0);
+        if let Some(profiles) = self.0.get_mut("Profiles").and_then(Value::as_array_mut) {
+            for profile in profiles {
+                if let Some(values) = profile.get_mut("Values").and_then(Value::as_object_mut) {
+                    removed |= remove(values);
+                }
+            }
+        }
+        removed
+    }
     pub fn set(&mut self, name: &str, value: Value) -> Result<(), String> {
+        if [
+            "ZenzModelVariant",
+            "JinenModelVariant",
+            "KanakanjiModelVariant",
+            "ShuntiModelVariant",
+        ]
+        .contains(&name)
+            && !value
+                .as_str()
+                .and_then(crate::ai_catalog::find)
+                .is_some_and(|m| {
+                    crate::ai_model::AiModel::parse(&m.family)
+                        .is_some_and(|f| crate::ai_catalog::key(f) == name)
+                })
+        {
+            return Err("モデルのバージョンが一覧にありません".into());
+        }
+        if name == "AiModel"
+            && value
+                .as_str()
+                .and_then(crate::ai_model::AiModel::parse)
+                .is_none()
+        {
+            return Err("AIモデルは使用しない・Zenz・Jinen・kanakanji-edge・shuntelligenceから選択してください".into());
+        }
+        if name == "ToggleKeyboardShortcuts" && !value.is_string()
+            || name == "HankakuTogglesKeyboard" && !value.is_boolean()
+        {
+            return Err(format!("invalid type for {name}"));
+        }
+        if name == "ToggleShortcuts" {
+            let shortcuts: Vec<crate::shortcuts::ToggleShortcut> =
+                serde_json::from_value(value.clone()).map_err(|_| {
+                    "切替キーはKeyとModifiersを持つ一覧で指定してください".to_owned()
+                })?;
+            for (index, shortcut) in shortcuts.iter().enumerate() {
+                shortcut
+                    .validate(self, &shortcuts[..index])
+                    .map_err(|reason| format!("{}: {reason}", shortcut.label()))?;
+            }
+        }
+        if crate::settings_schema::OPTIONAL_BOOLEANS.contains(&name) && !value.is_boolean() {
+            return Err(format!("invalid type for {name}"));
+        }
         if let Some(default) = Self::default().0.get(name) {
             if !(default.is_boolean() && value.is_boolean()
                 || default.is_number() && value.is_i64()
@@ -153,7 +360,41 @@ impl Settings {
         Ok(())
     }
     pub fn normalize(&mut self) {
+        if let Some(value) = self.0.get("AiModel") {
+            let model = value
+                .as_str()
+                .and_then(crate::ai_model::AiModel::parse)
+                .unwrap_or(crate::ai_model::AiModel::None);
+            self.0.insert("AiModel".into(), json!(model.value()));
+            if !model.is_gguf() {
+                self.0.insert("UseZenzai".into(), json!(false));
+            }
+            if model != crate::ai_model::AiModel::Shunti {
+                self.0.insert("UseShunti".into(), json!(false));
+            }
+        }
+        if let Some(value) = self.0.get("CurrencyRateMode") {
+            let mode = value
+                .as_str()
+                .and_then(crate::currency::Mode::parse)
+                .unwrap_or_default();
+            self.0
+                .insert("CurrencyRateMode".into(), json!(mode.value()));
+        }
+        if self.0.contains_key("CurrencyDecimals") {
+            let digits = self
+                .integer("CurrencyDecimals")
+                .clamp(0, i64::from(crate::currency::MAX_DECIMALS));
+            self.0.insert("CurrencyDecimals".into(), json!(digits));
+        }
         let defaults = Self::default();
+        for key in crate::settings_schema::OPTIONAL_BOOLEANS {
+            if let Some(value) = self.0.get_mut(*key) {
+                if !value.is_boolean() {
+                    *value = json!(false);
+                }
+            }
+        }
         // Removed choices are read case-insensitively by the 1.3.0 converters.
         // Only a top-level AutoSwitch restarts the first-run TSF introduction.
         if self.text("Mode").eq_ignore_ascii_case("AutoSwitch") {
@@ -161,6 +402,7 @@ impl Settings {
             self.0.insert("TsfIntroduced".into(), json!(false));
         }
         migrate_input_style(&mut self.0);
+        normalize_toggle_shortcuts(&mut self.0, &mut Vec::new());
         for (name, default) in &defaults.0 {
             let value = self
                 .0
@@ -238,6 +480,7 @@ impl Settings {
                 let mut values = p["Values"].clone();
                 if let Some(values) = values.as_object_mut() {
                     migrate_input_style(values);
+                    normalize_toggle_shortcuts(values, &mut Vec::new());
                     // Mode is shared; old profile copies must not reintroduce it.
                     if values
                         .get("Mode")
@@ -271,6 +514,8 @@ impl Settings {
             profiles.insert(0, json!({"Name":name,"Values":null}));
         }
         self.0.insert("Profiles".into(), json!(profiles));
+        #[cfg(any(target_os = "android", target_os = "ios"))]
+        self.remove_neural_settings();
     }
     fn profile_values(&self) -> Value {
         Value::Object(
@@ -405,6 +650,11 @@ impl Settings {
             current["Values"] = values;
         }
         let defaults = Self::default();
+        // Older profiles omit Flash-only options; absence means false, not
+        // the option inherited from the profile we just left.
+        for key in crate::settings_schema::OPTIONAL_BOOLEANS {
+            self.0.remove(*key);
+        }
         for (key, value) in defaults
             .0
             .iter()
@@ -470,19 +720,24 @@ impl Settings {
         self.delete_profile(name)
     }
     pub fn export_profile(&self) -> Value {
-        json!({"format":"meltype-profile","version":5,"name":self.text("ActiveProfile"),"values":self.profile_values()})
+        json!({"format":"meltype-profile","version":7,"name":self.text("ActiveProfile"),"values":self.profile_values()})
     }
     pub fn import_profile(&mut self, text: &str) -> Result<String, String> {
         let file: Value = json5::from_str(text).map_err(|e| e.to_string())?;
         if file["format"] != "meltype-profile" {
             return Err("not a Meltype profile".into());
         }
-        let raw = file["values"]
+        let mut raw = file["values"]
             .as_object()
-            .ok_or("profile values must be an object")?;
+            .ok_or("profile values must be an object")?
+            .clone();
+        normalize_toggle_shortcuts(&mut raw, &mut Vec::new());
         let mut imported = Self::default();
-        for (key, value) in raw {
-            if imported.0.contains_key(key) && !SHARED.contains(&key.as_str()) {
+        for (key, value) in &raw {
+            if (imported.0.contains_key(key)
+                || crate::settings_schema::OPTIONAL_BOOLEANS.contains(&key.as_str()))
+                && !SHARED.contains(&key.as_str())
+            {
                 imported.set(key, value.clone())?;
             }
         }
@@ -519,19 +774,27 @@ impl Settings {
         Ok(unique)
     }
     pub fn for_app(&self, process: &str) -> Self {
+        self.for_app_on(process, crate::app_identity::Platform::current())
+    }
+    fn application_rule(
+        &self,
+        process: &str,
+        platform: crate::app_identity::Platform,
+    ) -> Option<&Value> {
+        let find = |identity: &str| {
+            self.0["AppRules"].as_array()?.iter().rev().find(|rule| {
+                rule["Process"]
+                    .as_str()
+                    .is_some_and(|name| name.to_lowercase() == identity.to_lowercase())
+            })
+        };
+        find(process).or_else(|| crate::app_identity::legacy_rule(process, platform).and_then(find))
+    }
+    pub fn for_app_on(&self, process: &str, platform: crate::app_identity::Platform) -> Self {
         let mut settings = self.clone();
         settings.0.insert("AppProfile".into(), json!("General"));
         settings.0.insert("StartInEnglish".into(), json!(false));
-        let rule = self.0["AppRules"]
-            .as_array()
-            .unwrap()
-            .iter()
-            .rev()
-            .find(|r| {
-                r["Process"]
-                    .as_str()
-                    .is_some_and(|s| s.to_lowercase() == process.to_lowercase())
-            });
+        let rule = self.application_rule(process, platform);
         if let Some(rule) = rule {
             if rule["Enabled"] == false {
                 settings.0.insert("Enabled".into(), json!(false));
@@ -550,7 +813,7 @@ impl Settings {
                     "AppProfile".into(),
                     kind.get("Base").cloned().unwrap_or(json!("General")),
                 );
-                for key in ["DetectionLevel", "LiveConversion", "StartInEnglish"] {
+                for key in ["DetectionLevel", "LiveConversion", "StartInEnglish", ""] {
                     if let Some(v) = kind.get(key).filter(|v| !v.is_null()) {
                         settings.0.insert(key.into(), v.clone());
                     }
@@ -563,16 +826,12 @@ impl Settings {
         settings
     }
     /// Shared effective app policy; executable matching follows upstream and
-    /// deliberately keeps extensions significant.
+    /// keeps extensions significant, with explicit aliases for native applications.
     pub fn app_policy(&self, process: &str, looks_like_game: bool) -> Value {
         let app = self.for_app(process);
-        let explicit = self.0["AppRules"].as_array().is_some_and(|rules| {
-            rules.iter().any(|r| {
-                r["Process"]
-                    .as_str()
-                    .is_some_and(|p| p.to_lowercase() == process.to_lowercase())
-            })
-        });
-        json!({"enabled":app.boolean("Enabled") && !(self.boolean("StopInGames")&&looks_like_game&&!explicit),"profile":app.text("AppProfile"),"level":app.text("DetectionLevel"),"live":app.boolean("LiveConversion"),"startInEnglish":app.boolean("StartInEnglish")})
+        let explicit = self
+            .application_rule(process, crate::app_identity::Platform::current())
+            .is_some();
+        json!({"enabled":app.boolean("Enabled") && !(self.boolean("StopInGames")&&looks_like_game&&!explicit),"profile":app.text("AppProfile"),"level":app.text("DetectionLevel"),"live":app.boolean("LiveConversion"),"startInEnglish":app.boolean("StartInEnglish"),})
     }
 }

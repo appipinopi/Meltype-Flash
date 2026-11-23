@@ -172,6 +172,28 @@ pub(super) fn dispatch(
         return Ok(());
     }
     match action {
+        12 if service_state::flags(handle) & 7 == 4 => {
+            let reply = core_reply(
+                env,
+                run(handle as *mut c_void, |s| {
+                    let next = (!s.is_converting())
+                        .then(|| {
+                            s.raw()
+                                .chars()
+                                .next_back()
+                                .and_then(crate::android_input::kana_variant)
+                        })
+                        .flatten();
+                    if let Some(next) = next {
+                        s.key(8, 0, 0);
+                        s.key(0, next as i32, 0)
+                    } else {
+                        s.result(false)
+                    }
+                }),
+            )?;
+            apply(env, handle, service, connection, &reply, epoch)?;
+        }
         0 => {
             let scalar = native(
                 env,

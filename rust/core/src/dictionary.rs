@@ -3,24 +3,31 @@
 use crate::romaji;
 use std::{
     collections::{HashMap, HashSet},
-    sync::OnceLock,
+    sync::{Arc, OnceLock},
 };
 mod composition;
+mod lattice;
+mod packed_words;
 mod scored;
 
 #[derive(Clone)]
 pub struct Dictionary {
     custom_names: HashMap<String, String>,
     custom_kana: Option<PrefixIndex>,
-    english: HashSet<String>,
-    japanese: HashSet<String>,
-    candidates: HashMap<String, Vec<String>>,
-    emoji: HashMap<String, Vec<String>>,
-    kana_words: HashSet<String>,
-    common_english: HashSet<String>,
-    readable_english: HashSet<String>,
-    proper: HashSet<String>,
-    japanese_origin: HashSet<String>,
+    english: Arc<HashSet<String>>,
+    japanese: Arc<HashSet<String>>,
+    candidates: Arc<HashMap<String, Vec<String>>>,
+    // 分野の辞書 (dictionaries/domain-*.txt。医療・駅名・人名など)。ふだん使わない人には
+    // 誤った候補になりうるので、ほかの候補と分けて持ち、ひらがな・カタカナの後ろに並べる (#1650)。
+    domain: Arc<HashMap<&'static str, Vec<&'static str>>>,
+    head_only_phrases: HashSet<String>,
+    emoji: Arc<HashMap<String, Vec<String>>>,
+    kana_words: PrefixIndex,
+    common_english: Arc<HashSet<String>>,
+    readable_english: Arc<HashSet<String>>,
+    standalone_english: Arc<HashSet<String>>,
+    proper: Arc<HashSet<String>>,
+    japanese_origin: Arc<HashSet<String>>,
     english_index: PrefixIndex,
     japanese_index: PrefixIndex,
     common_index: PrefixIndex,
@@ -67,7 +74,63 @@ fn words(text: &str) -> impl Iterator<Item = &str> {
         .flat_map(|line| line.split('#').next().unwrap_or("").split_whitespace())
 }
 
+/// 国名の語 (dictionaries/countries.txt)。英語として扱う固有名詞に足す (#1615)。
+/// ローマ字として最後まで読める語 (Oman・San・Mayotte) は入れない (ワークアラウンド #1869)。
+/// 固有名詞を語の頭でも英語と判定するので、日本語の語の頭とぶつかる (omanjuu → oman中)。
+/// #1869 で判定を直したら、この絞り込みを外して国名の語をすべて入れる。
+pub fn country_words() -> &'static [&'static str] {
+    static WORDS: OnceLock<Vec<&'static str>> = OnceLock::new();
+    WORDS.get_or_init(|| {
+        // Country keys are ASCII alphanumeric. NUL keeps substring matches
+        // within one spelling while allowing a contiguous search.
+        let mut spellings = String::new();
+        for word in words(crate::system_data::text("japanese.txt")) {
+            for spelling in romaji::spelling_variants(word, 64) {
+                spellings.push_str(&spelling);
+                spellings.push('\0');
+            }
+        }
+        words(crate::system_data::text("countries.txt"))
+            .filter(|word| word.bytes().all(|b| b.is_ascii_alphanumeric()))
+            // 2 文字の略 (St・El) は、英単語として扱うとローマ字の語 (ost) の区切りを変えてしまうため入れない (#1123)。
+            // 大文字だけの略 (SAR・UK・DRC) も、国名として打つ語ではないので入れない
+            .filter(|word| word.len() >= 3 && !word.bytes().all(|b| b.is_ascii_uppercase()))
+            .filter(|word| {
+                let lower = word.to_ascii_lowercase();
+                let analysis = romaji::analyze(&lower, false);
+                if analysis.valid && (analysis.partial.is_empty() || analysis.partial == "n") {
+                    return false;
+                }
+                // 日本語の語のローマ字の途中と重なる語 (hong は nihongo、sar は saru) は入れない。
+                // 語の途中で英語にすると、もとの日本語の区切りが変わる (#1648 の凍結試験)
+                !spellings.contains(&lower)
+            })
+            .collect()
+    })
+}
+
 impl Dictionary {
+    pub(super) fn nasal_continues(lower: &str, next: &str) -> bool {
+        lower
+            .as_bytes()
+            .last()
+            .is_some_and(|c| b"aiueo".contains(c))
+            && next
+                .as_bytes()
+                .first()
+                .is_some_and(|c| c.eq_ignore_ascii_case(&b'n'))
+            && next
+                .as_bytes()
+                .get(1)
+                .is_none_or(|c| !b"aiueoy".contains(&c.to_ascii_lowercase()))
+    }
+    fn prefers_standalone_english(&self, raw: &str, level: &str) -> bool {
+        // Capitalized spellings already use the ordinary English rules. Keep
+        // the hot lower-case lookup allocation-free for unrelated inputs.
+        level != "Manual"
+            && self.standalone_english.contains(raw)
+            && crate::language_memory::get(raw) != Some(false)
+    }
     #[cfg(feature = "filesystem")]
     pub(crate) fn profile(
         directory: &std::path::Path,
@@ -107,15 +170,15 @@ impl Dictionary {
                             .entry(lower.clone())
                             .or_insert_with(|| word.into());
                     }
-                    dictionary.proper.insert(lower.clone());
-                    dictionary.common_english.insert(lower.clone());
-                    dictionary.english.insert(lower);
+                    Arc::make_mut(&mut dictionary.proper).insert(lower.clone());
+                    Arc::make_mut(&mut dictionary.common_english).insert(lower.clone());
+                    Arc::make_mut(&mut dictionary.english).insert(lower);
                 } else if lower.bytes().all(|c| c.is_ascii_lowercase()) {
                     if name == "english.txt" {
-                        dictionary.common_english.insert(lower.clone());
-                        dictionary.english.insert(lower);
+                        Arc::make_mut(&mut dictionary.common_english).insert(lower.clone());
+                        Arc::make_mut(&mut dictionary.english).insert(lower);
                     } else {
-                        dictionary.japanese.insert(lower);
+                        Arc::make_mut(&mut dictionary.japanese).insert(lower);
                     }
                 }
             }
@@ -140,6 +203,7 @@ impl Dictionary {
             let mut names = HashMap::new();
             for word in words(crate::system_data::text("propernouns.txt"))
                 .flat_map(|s| s.split(','))
+                .chain(country_words().iter().copied())
                 .filter(|s| !s.is_empty() && s.bytes().all(|b| b.is_ascii_alphanumeric()))
             {
                 names
@@ -179,12 +243,12 @@ impl Dictionary {
             let mut dict = Self {
                 custom_names: HashMap::new(),
                 custom_kana: None,
-                english: HashSet::new(),
+                english: Arc::default(),
                 english_index: PrefixIndex::default(),
                 japanese_index: PrefixIndex::default(),
                 common_index: PrefixIndex::default(),
                 proper_index: PrefixIndex::default(),
-                japanese_origin: {
+                japanese_origin: Arc::new({
                     let mut section = false;
                     let mut result = HashSet::new();
                     for line in crate::system_data::text("english.txt").lines() {
@@ -197,29 +261,43 @@ impl Dictionary {
                         }
                     }
                     result
-                },
-                proper: words(crate::system_data::text("propernouns.txt"))
-                    .chain(words(crate::system_data::text("brands.txt")))
-                    .filter(|word| word.is_ascii())
-                    .map(str::to_ascii_lowercase)
-                    .collect(),
-                japanese: words(crate::system_data::text("japanese.txt"))
-                    .map(str::to_owned)
-                    .collect(),
-                candidates: HashMap::new(),
-                emoji: HashMap::new(),
-                kana_words: crate::system_data::text("readings.txt")
-                    .lines()
-                    .filter(|l| !l.starts_with('#'))
-                    .filter_map(|l| l.split_whitespace().next())
-                    .map(str::to_owned)
-                    .collect(),
-                common_english: words(crate::system_data::text("english.txt"))
-                    .map(str::to_owned)
-                    .collect(),
-                readable_english: words(crate::system_data::text("english-readable.txt"))
-                    .map(str::to_owned)
-                    .collect(),
+                }),
+                proper: Arc::new(
+                    words(crate::system_data::text("propernouns.txt"))
+                        .chain(words(crate::system_data::text("brands.txt")))
+                        .chain(country_words().iter().copied())
+                        .filter(|word| word.is_ascii())
+                        .map(str::to_ascii_lowercase)
+                        .collect(),
+                ),
+                japanese: Arc::new(
+                    words(crate::system_data::text("japanese.txt"))
+                        .map(str::to_owned)
+                        .collect(),
+                ),
+                candidates: Arc::default(),
+                domain: Arc::default(),
+                head_only_phrases: HashSet::new(),
+                emoji: Arc::default(),
+                kana_words: PrefixIndex::bundled(include_bytes!(concat!(
+                    env!("OUT_DIR"),
+                    "/kana.fst"
+                ))),
+                common_english: Arc::new(
+                    words(crate::system_data::text("english.txt"))
+                        .map(str::to_owned)
+                        .collect(),
+                ),
+                readable_english: Arc::new(
+                    words(crate::system_data::text("english-readable.txt"))
+                        .map(str::to_owned)
+                        .collect(),
+                ),
+                standalone_english: Arc::new(
+                    words(crate::system_data::text("english-standalone.txt"))
+                        .map(str::to_owned)
+                        .collect(),
+                ),
             };
             for source in [
                 crate::system_data::text("english.txt"),
@@ -227,10 +305,9 @@ impl Dictionary {
                 crate::system_data::text("propernouns.txt"),
                 crate::system_data::text("brands.txt"),
             ] {
-                dict.english
-                    .extend(words(source).map(str::to_ascii_lowercase));
+                Arc::make_mut(&mut dict.english).extend(words(source).map(str::to_ascii_lowercase));
             }
-            dict.english.extend(dict.readable_english.iter().cloned());
+            Arc::make_mut(&mut dict.english).extend(dict.readable_english.iter().cloned());
             for source in [
                 crate::system_data::text("candidates.txt"),
                 crate::system_data::text("loanwords.txt"),
@@ -247,6 +324,34 @@ impl Dictionary {
                     }
                 }
             }
+            // 分野の辞書 (domain-*.txt)。形式は「読み<Tab>表記<Tab>表記 …」、行頭が # の行はコメント
+            for name in crate::system_data::domain_names() {
+                for line in crate::system_data::text(name).lines() {
+                    if line.starts_with('#') {
+                        continue;
+                    }
+                    // 読みの後ろはタブ区切り。表記の中の空白は語の一部なので、行全体をタブで分ける
+                    let mut fields = line.split('\t');
+                    let Some(reading) = fields.next().map(str::trim) else {
+                        continue;
+                    };
+                    let values: Vec<_> = fields
+                        .map(str::trim)
+                        .filter(|word| !word.is_empty())
+                        .collect();
+                    if reading.is_empty() || values.is_empty() {
+                        continue;
+                    }
+                    let entry = Arc::make_mut(&mut dict.domain)
+                        .entry(reading)
+                        .or_insert_with(|| Vec::with_capacity(values.len()));
+                    for value in values {
+                        if !entry.contains(&value) {
+                            entry.push(value);
+                        }
+                    }
+                }
+            }
             for (source, emoji) in [
                 (crate::system_data::text("phrases.txt"), false),
                 (crate::system_data::text("emoji.txt"), true),
@@ -256,14 +361,24 @@ impl Dictionary {
                     let fields: Vec<_> = line.split('\t').collect();
                     if fields.len() > 1 {
                         if emoji {
-                            let entries = dict.emoji.entry(fields[0].to_owned()).or_default();
+                            let entries = Arc::make_mut(&mut dict.emoji)
+                                .entry(fields[0].to_owned())
+                                .or_insert_with(|| Vec::with_capacity(fields.len() - 1));
                             for word in &fields[1..] {
                                 if !word.is_empty() && !entries.iter().any(|s| s == word) {
                                     entries.push((*word).to_owned());
                                 }
                             }
                         } else {
-                            dict.add(fields[0], fields[1..].iter().copied());
+                            let reading = fields[0].trim_start_matches('^').replace('|', "");
+                            if fields[0].starts_with('^') {
+                                dict.head_only_phrases.insert(reading.clone());
+                            }
+                            let values: Vec<_> = fields[1..]
+                                .iter()
+                                .map(|word| word.replace('|', ""))
+                                .collect();
+                            dict.add(&reading, values.iter().map(String::as_str));
                         }
                     }
                 }
@@ -281,7 +396,11 @@ impl Dictionary {
     }
 
     fn add<'a>(&mut self, reading: &str, values: impl Iterator<Item = &'a str>) {
-        let entry = self.candidates.entry(reading.to_owned()).or_default();
+        // System rows already tell us their initial candidate count. Avoid Vec's
+        // four-element minimum allocation for the common one-candidate row.
+        let entry = Arc::make_mut(&mut self.candidates)
+            .entry(reading.to_owned())
+            .or_insert_with(|| Vec::with_capacity(values.size_hint().0));
         for value in values.filter(|s| !s.is_empty()) {
             if !entry.iter().any(|v| v == value) {
                 entry.push(value.to_owned());
@@ -289,8 +408,29 @@ impl Dictionary {
         }
     }
 
-    pub fn candidates(&self, reading: &str) -> Vec<String> {
-        let words = self.candidates.get(reading).cloned().unwrap_or_default();
+    pub fn candidates(&self, reading: &str, timezone: &str) -> Vec<String> {
+        self.candidates_with_front(
+            reading,
+            timezone,
+            &crate::version::default_front(),
+            &crate::currency::Currency::default(),
+        )
+    }
+
+    /// `candidates` と同じだが、「ばーじょん」の候補に OS とフロントを書き (#1868)、
+    /// 通貨の換算に使うレートを渡す (固定・自動・手入力)。
+    pub fn candidates_with_front(
+        &self,
+        reading: &str,
+        timezone: &str,
+        front: &str,
+        currency: &crate::currency::Currency,
+    ) -> Vec<String> {
+        let words = self
+            .candidates
+            .get(reading)
+            .map(Vec::as_slice)
+            .unwrap_or(&[]);
         let mut values: Vec<_> = words
             .iter()
             .filter(|s| {
@@ -313,13 +453,26 @@ impl Dictionary {
                 values.push(value);
             }
         }
+        // 分野の辞書の語 (病名・駅名など) は、使わない人には要らない候補なので、
+        // ふだんの候補 (変換エンジンの候補・ひらがな・カタカナ) を 1 つも後ろに押さないよう、その後ろに並べる。
+        // こうすれば誰にとっても困らないので、分野ごとに外す設定は作らない (#1650)。
+        for word in self.domain_words(reading) {
+            if !values.contains(&word) {
+                values.push(word);
+            }
+        }
         values.extend(crate::time_candidates::candidates(
             reading,
             chrono::Local::now().naive_local(),
+            timezone,
         ));
+        values.extend(currency.candidates(reading));
+        if reading == "ばーじょん" {
+            values.push(crate::version::candidate(front));
+        }
         for word in words {
-            if !values.contains(&word) {
-                values.push(word);
+            if !values.contains(word) {
+                values.push(word.clone());
             }
         }
         for word in self.emoji(reading) {
@@ -329,6 +482,32 @@ impl Dictionary {
         }
         values
     }
+
+    /// 分野の辞書の候補 (病名・駅名・人名など)。文節の読みは助詞などを含む (せんたんきょだいしょうの) ので、
+    /// 辞書にある最長の先頭部分を置き換え、残りはかなのまま付ける (先端巨大症の)。
+    pub fn domain_words(&self, reading: &str) -> Vec<String> {
+        // 語の後ろに付いていてよい助詞・「だ」など
+        const ENDINGS: &[&str] = &[
+            "", "を", "が", "は", "に", "で", "と", "も", "へ", "の", "や", "な", "だ", "です",
+            "から", "まで", "より", "って", "とか", "さ", "ね", "よ",
+        ];
+        for end in reading.char_indices().map(|(i, c)| i + c.len_utf8()).rev() {
+            // 1 文字の読み (い → 位 胃 …) は、その読みだけの文節のときだけ (いきを → 位きを にしない)
+            if reading[..end].encode_utf16().count() == 1 && end < reading.len() {
+                break;
+            }
+            let suffix = &reading[end..];
+            // 残りが助詞など (はし|を) のときだけ。語の途中 (ふく|ざつな) では使わない
+            if !ENDINGS.contains(&suffix) {
+                continue;
+            }
+            if let Some(words) = self.domain.get(&reading[..end]) {
+                return words.iter().map(|word| format!("{word}{suffix}")).collect();
+            }
+        }
+        Vec::new()
+    }
+
     pub fn emoji(&self, reading: &str) -> Vec<String> {
         self.emoji
             .get(reading)
@@ -357,6 +536,7 @@ impl Dictionary {
     pub fn convert(&self, reading: &str) -> String {
         let mut rest = reading;
         let mut out = String::new();
+        let mut boundary = true;
         while !rest.is_empty() {
             let longest = rest
                 .char_indices()
@@ -365,6 +545,7 @@ impl Dictionary {
                 .find_map(|end| {
                     self.candidates
                         .get(&rest[..end])
+                        .filter(|_| boundary || !self.head_only_phrases.contains(&rest[..end]))
                         .filter(|_| rest[..end].chars().count() >= 2)
                         .and_then(|values| {
                             values
@@ -380,10 +561,12 @@ impl Dictionary {
             if let Some((end, text)) = longest {
                 out.push_str(text);
                 rest = &rest[end..];
+                boundary = true;
             } else {
                 let c = rest.chars().next().unwrap();
                 out.push(c);
                 rest = &rest[c.len_utf8()..];
+                boundary = false;
             }
         }
         out
@@ -466,7 +649,18 @@ impl Dictionary {
                             } else {
                                 before
                             };
-                            if english_context
+                            let after_long_vowel =
+                                out.ends_with('ー') && !self.known_english(&run) && {
+                                    let analysis = romaji::analyze(&run, true);
+                                    analysis.valid
+                                        && (analysis.partial.is_empty()
+                                            || final_input && analysis.partial == "n")
+                                };
+                            if after_long_vowel {
+                                // #1091: the English prefix "this" inside
+                                // pa-thisyon is part of the same loanword.
+                                out.push_str(&romaji::hiragana(&run, final_input));
+                            } else if english_context
                                 && self.scored_english(
                                     &run,
                                     true,
@@ -590,7 +784,23 @@ impl Dictionary {
         let Some(start) = word.find(|c: char| c.is_ascii_digit()) else {
             return false;
         };
+        // 金額 (100doru・1manen) は、数字と通貨の読みでできていれば日本語の入力。
+        // 英語の綴りとして残すと、入力中の候補 (通貨の換算) が出ない。
+        if crate::currency::parse(&crate::romaji::hiragana(word, false)).is_some() {
+            return true;
+        }
         let suffix = word[start..].trim_start_matches(|c: char| c.is_ascii_digit());
+        if start >= 2 && word.as_bytes()[start - 1].is_ascii_uppercase() {
+            let stem = &word[..start - 1];
+            let reading = romaji::analyze(stem, true);
+            if stem.bytes().all(|c| c.is_ascii_lowercase())
+                && reading.valid
+                && reading.partial.is_empty()
+                && !self.known_english(stem)
+            {
+                return true;
+            }
+        }
         let units = [
             "ji", "fun", "pun", "gatsu", "nichi", "nen", "jikan", "en", "nin", "sai", "mai", "hon",
             "bon", "ko", "kai", "kakeru", "waru", "tasu", "hiku", "purasu", "mainasu", "iko-ru",
@@ -604,7 +814,57 @@ impl Dictionary {
         units.iter().any(|unit| suffix.starts_with(unit))
     }
     fn mixed_word(&self, raw: &str, final_input: bool) -> String {
+        if self.prefers_standalone_english(raw, "Balanced") {
+            return raw.to_owned();
+        }
+        if let Some(end) = self.english_compound_end(raw) {
+            return format!(
+                "{}{}",
+                &raw[..end],
+                self.mixed_word(&raw[end..], final_input)
+            );
+        }
         let lower = raw.to_ascii_lowercase();
+        // Split English word + attached Japanese particle or verb suffix
+        if !self.is_english(&lower) && !self.common_english.contains(lower.as_str()) {
+            for particle in [
+                "kara", "made", "yori", "nara", "shite", "shita", "shimasu", "suru", "desu", "no",
+                "ga", "wo", "ni", "de", "to", "ha", "mo", "wa", "he", "ya",
+            ] {
+                for eng_len in (3..=lower.len().saturating_sub(particle.len())).rev() {
+                    let stem = &lower[..eng_len];
+                    if (self.common_english.contains(stem) || self.english.contains(stem))
+                        && !self.is_japanese(stem)
+                        && lower[eng_len..].starts_with(particle)
+                    {
+                        let tail = &raw[eng_len + particle.len()..];
+                        if tail.is_empty()
+                            || romaji::analyze(&lower[eng_len + particle.len()..], true).valid
+                        {
+                            let tail_result = if tail.is_empty() {
+                                String::new()
+                            } else {
+                                self.mixed_word(tail, final_input)
+                            };
+                            return format!(
+                                "{}{}{}",
+                                &raw[..eng_len],
+                                romaji::hiragana(particle, true),
+                                tail_result
+                            );
+                        }
+                    }
+                }
+            }
+        }
+        if self.starts_with_japanese_reading(raw) {
+            let upper = raw.bytes().position(|c| c.is_ascii_uppercase()).unwrap();
+            return format!(
+                "{}{}",
+                romaji::hiragana(&raw[..upper], true),
+                self.mixed_word(&raw[upper..], final_input)
+            );
+        }
         let canonical_case = Self::allows_mixed_case(raw);
         if let Some(end) = self.capitalized_split(raw, final_input) {
             return format!(
@@ -650,6 +910,7 @@ impl Dictionary {
         // Japanese exclusion (macO, but koreX -> これX).
         if raw.len() >= 4
             && raw.as_bytes().last().is_some_and(u8::is_ascii_uppercase)
+            && !self.starts_with_japanese_reading(raw)
             && raw[..raw.len() - 1].bytes().all(|c| c.is_ascii_lowercase())
             && !self.japanese.contains(&lower[..lower.len() - 1])
             && !crate::typo::Corrector::bundled().is_common_japanese(&lower[..lower.len() - 1])
@@ -661,6 +922,7 @@ impl Dictionary {
         // The remaining suffix can itself satisfy IsTrailingCapitalName.
         if raw.len() >= 4
             && raw.as_bytes().last().is_some_and(u8::is_ascii_uppercase)
+            && !self.starts_with_japanese_reading(raw)
             && raw[..raw.len() - 1].bytes().all(|c| c.is_ascii_lowercase())
         {
             let (bounds, _) = romaji::unit_boundaries(
@@ -707,7 +969,7 @@ impl Dictionary {
             return romaji::hiragana(raw, final_input);
         }
         let reading = romaji::hiragana(raw, final_input);
-        if !self.readable_english.contains(&lower) && self.kana_words.contains(&reading) {
+        if !self.readable_english.contains(&lower) && self.kana_words.0.contains(&reading) {
             return reading;
         }
         if canonical_case && self.english.contains(&lower) {
@@ -781,7 +1043,7 @@ impl Dictionary {
         // Shortest-path segmentation over ASCII byte boundaries. Unknown syllables
         // remain kana; dictionary words can form English islands inside Japanese.
         let n = raw.len();
-        let (boundaries, pending_start) = romaji::unit_boundaries(
+        let (mut boundaries, pending_start) = romaji::unit_boundaries(
             &lower,
             |prefix| {
                 (0..prefix.len().saturating_sub(2)).any(|start| {
@@ -794,6 +1056,33 @@ impl Dictionary {
             },
             |prefix| self.known_english(prefix),
         );
+        let start_points: Vec<usize> = (0..n).filter(|&s| s == 0 || boundaries[s]).collect();
+        for start in start_points {
+            for end in start + 3..=n.min(start + 24) {
+                let piece = &lower[start..end];
+                if (self.common_english.contains(piece)
+                    || self.english.contains(piece)
+                    || self.readable_english.contains(piece)
+                    || self.proper.contains(piece))
+                    && !self.is_japanese(piece)
+                {
+                    let follows_particle = [
+                        "wo", "ga", "ni", "de", "to", "ha", "mo", "wa", "he", "ya", "kara", "made",
+                        "yori", "nara", "shite", "shita", "suru", "desu", "da", "na",
+                    ]
+                    .iter()
+                    .any(|p| lower[end..].starts_with(p));
+                    let preceded_by_jp = start == 0 || boundaries[start] || {
+                        let prev = (0..start).rev().find(|&p| boundaries[p]).unwrap_or(0);
+                        romaji::analyze(&lower[prev..start], true).valid
+                    };
+                    if follows_particle || preceded_by_jp || end == n {
+                        boundaries[start] = true;
+                        boundaries[end] = true;
+                    }
+                }
+            }
+        }
         let mut costs = vec![f64::INFINITY; n + 1];
         let mut paths = vec![(0, false); n + 1];
         costs[0] = 0.0;
@@ -829,7 +1118,7 @@ impl Dictionary {
                         && !self.proper.contains(piece)
                         && romaji::analyze(piece, true).valid)
                     && (self.japanese.contains(piece)
-                        || self.kana_words.contains(piece_reading)
+                        || self.kana_words.0.contains(piece_reading)
                         || [
                             "ha", "wa", "wo", "ga", "no", "ni", "de", "to", "mo", "he", "ya",
                         ]
@@ -858,6 +1147,8 @@ impl Dictionary {
                         && romaji::analyze(&piece[1..], true).valid);
                 let english_piece = boundaries[i]
                     && boundaries[end]
+                    && !(self.readable_english.contains(piece)
+                        && Self::nasal_continues(piece, &raw[end..]))
                     && !(end < n && raw.as_bytes()[end-1] == raw.as_bytes()[end]
                         && raw.as_bytes()[end].is_ascii_alphabetic()
                         && !b"aeioun".contains(&raw.as_bytes()[end]))
@@ -907,16 +1198,29 @@ impl Dictionary {
                     && !strict.partial.is_empty()
                     && !self.proper.contains(piece)
                     && !self.readable_english.contains(piece)
+                    && !(strict.partial == "n"
+                        && end < n
+                        && raw.as_bytes()[end] == b'n'
+                        && self.common_english.contains(piece)
+                        && boundaries[end])
                     && (strict.partial == "n" && (end < n || !paths[i].1)
                         || !final_input && !paths[i].1 && self.japanese_prefix(piece)
                         || i > 0 && !paths[i].1 && !self.common_english.contains(piece));
                 // Readable English candidates after Japanese need the same
                 // contextual evidence as IsEnglishSpan (kono|tea -> このてあ).
+                let followed_by_jp_particle = [
+                    "wo", "ga", "ni", "de", "to", "ha", "mo", "wa", "he", "ya", "kara", "made",
+                    "yori", "nara", "shite", "shita", "shimasu", "suru", "desu", "da", "na",
+                ]
+                .iter()
+                .any(|p| lower[end..].starts_with(p));
                 let ambiguous_japanese = english_piece
                     && i > 0
                     && !paths[i].1
                     && strict.valid
                     && strict.partial.is_empty()
+                    && !(followed_by_jp_particle
+                        && (self.common_english.contains(piece) || self.english.contains(piece)))
                     && {
                         let next = (end + 1..=n).find(|p| boundaries[*p]).unwrap_or(n);
                         let next = if pending_start == Some(next) { n } else { next };
@@ -939,14 +1243,27 @@ impl Dictionary {
                 // A listed c-row word is an English span before kana-word
                 // matching. Keep that decision when another letter follows;
                 // cheap Japanese subspans must not turn camera|a back to kana.
-                let cost = if en
+                let separates_n_particle = en
                     && piece.len() >= 4
-                    && piece.contains('c')
-                    && !piece.contains("ch")
+                    && strict.partial == "n"
                     && self.common_english.contains(piece)
-                    && !self.japanese_prefix(piece)
+                    && ["ni", "no"]
+                        .iter()
+                        .any(|particle| lower[end..].starts_with(particle));
+                let cost = if separates_n_particle
+                    || en
+                        && piece.len() >= 4
+                        && piece.contains('c')
+                        && !piece.contains("ch")
+                        && self.common_english.contains(piece)
+                        && !self.japanese_prefix(piece)
                 {
                     0.1
+                } else if en
+                    && followed_by_jp_particle
+                    && (self.common_english.contains(piece) || self.english.contains(piece))
+                {
+                    0.2
                 } else if jp {
                     0.3
                 } else if en {
@@ -1042,6 +1359,9 @@ impl Dictionary {
                 && (self.common_english.contains(&lower[..head_end])
                     || self.proper.contains(&lower[..head_end]))
                 && pieces.iter().skip(1).all(|(_, _, en)| !en)
+                && romaji::hiragana(&raw[head_end..], final_input)
+                    .chars()
+                    .any(|c| c.is_ascii_alphabetic())
                 && ![
                     "kara", "made", "yori", "ga", "wo", "ni", "de", "no", "to", "mo", "ha", "wa",
                     "ya",
@@ -1253,6 +1573,10 @@ impl Dictionary {
     pub fn known_english(&self, raw: &str) -> bool {
         self.is_english(raw) || self.spell_word(raw)
     }
+    /// english-readable.txt の「ローマ字としても読めるが英語で打つことの多い語」。
+    pub fn is_readable_english(&self, raw: &str) -> bool {
+        self.readable_english.contains(&raw.to_ascii_lowercase())
+    }
     pub fn is_english(&self, raw: &str) -> bool {
         self.english.contains(&raw.to_ascii_lowercase())
     }
@@ -1262,9 +1586,24 @@ impl Dictionary {
     pub fn is_common_english(&self, raw: &str) -> bool {
         self.common_english.contains(&raw.to_ascii_lowercase())
     }
+    pub(crate) fn splits_known_kana_word(&self, text: &str, registered_bytes: usize) -> bool {
+        // #487: 登録名「ちな」を既知語「ちなみに」の途中へ強制挿入しない。
+        let fst = self.kana_words.0.as_fst();
+        let mut node = fst.root();
+        for (offset, byte) in text.bytes().enumerate() {
+            let Some(index) = node.find_input(byte) else {
+                break;
+            };
+            node = fst.node(node.transition_addr(index));
+            if offset + 1 > registered_bytes && node.is_final() {
+                return true;
+            }
+        }
+        false
+    }
     pub fn is_japanese(&self, raw: &str) -> bool {
         self.japanese.contains(&raw.to_ascii_lowercase())
-            || self.kana_words.contains(&romaji::hiragana(raw, true))
+            || self.kana_words.0.contains(romaji::hiragana(raw, true))
     }
     pub fn english_prefix(&self, raw: &str) -> bool {
         let raw = raw.to_ascii_lowercase();
@@ -1279,25 +1618,36 @@ impl Dictionary {
             return vec![];
         }
         let lower = raw.to_ascii_lowercase();
-        let mut words: Vec<_> = self
-            .english
-            .iter()
-            .filter(|s| s.starts_with(&lower) && s.len() > lower.len())
-            .collect();
-        words.sort_by_key(|s| (!self.common_english.contains(*s), s.len(), *s));
+        use fst::{IntoStreamer, Streamer};
+        // Enumerate only the prefix range and retain the five best words.
+        // Rank exactly as before: common words, length, then lexical order.
+        let mut stream = self.english_index.0.range().gt(&lower).into_stream();
+        let mut words: Vec<(bool, usize, String)> = Vec::with_capacity(5);
+        while let Some(key) = stream.next() {
+            if !key.starts_with(lower.as_bytes()) {
+                break;
+            }
+            let word = std::str::from_utf8(key).expect("dictionary key is UTF-8");
+            let rank = (!self.common_english.contains(word), word.len(), word);
+            let at = words
+                .partition_point(|(uncommon, len, text)| (*uncommon, *len, text.as_str()) < rank);
+            if at < 5 {
+                if words.len() == 5 {
+                    words.pop();
+                }
+                words.insert(at, (rank.0, rank.1, word.to_owned()));
+            }
+        }
+        let uppercase = raw.bytes().all(|c| c.is_ascii_uppercase());
         words
             .into_iter()
-            .take(5)
-            .map(|s| {
-                if raw.bytes().all(|c| c.is_ascii_uppercase()) {
-                    s.to_ascii_uppercase()
+            .map(|(_, _, mut word)| {
+                if uppercase {
+                    word.make_ascii_uppercase();
                 } else if raw.as_bytes()[0].is_ascii_uppercase() {
-                    let mut s = s.clone();
-                    s[..1].make_ascii_uppercase();
-                    s
-                } else {
-                    s.clone()
+                    word[..1].make_ascii_uppercase();
                 }
+                word
             })
             .collect()
     }
@@ -1306,6 +1656,58 @@ impl Dictionary {
 #[cfg(test)]
 mod prefix_tests {
     use super::*;
+    #[test]
+    fn v140_scored_pending_capitalized_word() {
+        let d = Dictionary::bundled();
+        assert_eq!(
+            d.composition_scored("Goog", false, "", "", "Balanced"),
+            "Goおg"
+        );
+        assert_eq!(
+            d.composition_scored("Goog", true, "", "", "Balanced"),
+            "Goog"
+        );
+    }
+    #[test]
+    fn cloned_dictionary_shares_system_data_and_detaches_only_modified_records() {
+        let bundled = Dictionary::bundled();
+        let mut profile = bundled.clone();
+        assert!(Arc::ptr_eq(&bundled.english, &profile.english));
+        assert!(Arc::ptr_eq(&bundled.candidates, &profile.candidates));
+        assert!(Arc::ptr_eq(&bundled.emoji, &profile.emoji));
+        assert!(Arc::ptr_eq(&bundled.kana_words.0, &profile.kana_words.0));
+        let reading = "__profile_only__";
+        profile.add(reading, std::iter::once("個別候補"));
+        assert!(!bundled.candidates.contains_key(reading));
+        assert_eq!(profile.candidates[reading], ["個別候補"]);
+        assert!(!Arc::ptr_eq(&bundled.candidates, &profile.candidates));
+        assert!(Arc::ptr_eq(&bundled.english, &profile.english));
+        assert!(Arc::ptr_eq(&bundled.emoji, &profile.emoji));
+    }
+    #[test]
+    fn bundled_reading_index_preserves_the_source_vocabulary() {
+        let expected: std::collections::BTreeSet<_> = ["readings.txt", "readings-extra.txt"]
+            .into_iter()
+            .flat_map(|name| crate::system_data::text(name).lines())
+            .filter(|line| !line.starts_with('#'))
+            .filter_map(|line| line.split_whitespace().next())
+            .collect();
+        let index = &Dictionary::bundled().kana_words;
+        assert_eq!(index.0.len(), expected.len());
+        for reading in expected {
+            assert!(index.0.contains(reading), "{reading}");
+        }
+    }
+    #[test]
+    fn candidate_storage_preserves_order_without_four_slot_minimum() {
+        let mut dictionary = Dictionary::bundled().clone();
+        let reading = "__compact_candidate_test__";
+        dictionary.add(reading, std::iter::once("候補一"));
+        assert_eq!(dictionary.candidates[reading], ["候補一"]);
+        assert_eq!(dictionary.candidates[reading].capacity(), 1);
+        dictionary.add(reading, ["候補一", "候補二", "候補二"].into_iter());
+        assert_eq!(dictionary.candidates[reading], ["候補一", "候補二"]);
+    }
     #[test]
     #[ignore = "manual performance comparison; run with --release --ignored --nocapture"]
     fn prefix_lookup_timing() {
@@ -1354,6 +1756,68 @@ mod prefix_tests {
         }
         assert!(rows.windows(2).all(|r| r[0]["hits"] == r[1]["hits"]));
         println!("PREFIX_BENCH={}", serde_json::json!(rows));
+    }
+    #[test]
+    fn predictions_match_full_dictionary_ranking() {
+        let reference = |dictionary: &Dictionary, raw: &str| {
+            if raw.len() < 3 || !raw.bytes().all(|c| c.is_ascii_alphabetic()) {
+                return Vec::new();
+            }
+            let lower = raw.to_ascii_lowercase();
+            let mut words: Vec<_> = dictionary
+                .english
+                .iter()
+                .filter(|s| s.starts_with(&lower) && s.len() > lower.len())
+                .collect();
+            words.sort_by_key(|s| (!dictionary.common_english.contains(*s), s.len(), *s));
+            words
+                .into_iter()
+                .take(5)
+                .map(|s| {
+                    let mut value = s.clone();
+                    if raw.bytes().all(|c| c.is_ascii_uppercase()) {
+                        value.make_ascii_uppercase();
+                    } else if raw.as_bytes()[0].is_ascii_uppercase() {
+                        value[..1].make_ascii_uppercase();
+                    }
+                    value
+                })
+                .collect::<Vec<_>>()
+        };
+        let bundled = Dictionary::bundled();
+        let mut custom = bundled.clone();
+        for word in ["hel", "helzz", "helcustom", "helcommon", "zzzxcustom"] {
+            Arc::make_mut(&mut custom.english).insert(word.into());
+        }
+        Arc::make_mut(&mut custom.common_english).insert("helcommon".into());
+        custom.english_index = PrefixIndex::new(&custom.english);
+        for dictionary in [bundled, &custom] {
+            for raw in [
+                "",
+                "he",
+                "hel",
+                "Hel",
+                "HEL",
+                "hEl",
+                "hello",
+                "com",
+                "con",
+                "pro",
+                "rea",
+                "mel",
+                "google",
+                "zzzx",
+                "qqqzzz",
+                "日本語",
+                "hel1",
+            ] {
+                assert_eq!(
+                    dictionary.predict_english(raw),
+                    reference(dictionary, raw),
+                    "{raw}"
+                );
+            }
+        }
     }
     #[test]
     fn node_prefix_matches_range_lookup() {

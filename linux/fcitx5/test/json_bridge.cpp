@@ -37,7 +37,7 @@ static int collectView(void *context,uint32_t op,int arg,const uint8_t *text,uin
     try { static_cast<ViewTrace *>(context)->emplace_back(op,arg,std::string(reinterpret_cast<const char *>(text),length)); return 1; }
     catch(...) { return 0; }
 }
-// Reference the former show() policy independently from the Rust planner.
+// Independent panel specification, including typing and prediction lists.
 static ViewTrace referenceView(const Json &result) {
     ViewTrace out;
     const auto emit=[&](uint32_t op,int arg=0,std::string text={}) {out.emplace_back(op,arg,std::move(text));};
@@ -56,11 +56,13 @@ static ViewTrace referenceView(const Json &result) {
     const auto suggestion=view->str("suggestion");
     if(!suggestion.empty())hint=suggestion+"　"+hint;
     if(!hint.empty())emit(3,0,hint);
-    const auto candidates=view->strings("candidates");
-    if(converting&&candidates.size()>1) {
+    auto candidates=view->strings("candidates");
+    const bool predicting=!converting&&candidates.size()<=1;
+    if(predicting)candidates=view->strings("predictions");
+    if((predicting&&!candidates.empty())||(!predicting&&candidates.size()>1)) {
         emit(4,9);
         for(size_t i=0;i<candidates.size();i++)emit(5,static_cast<int>(i),candidates[i]);
-        const int selected=view->integer("selectedIndex",0);
+        const int selected=view->integer(predicting?"selectedPrediction":"selectedIndex",predicting?-1:0);
         emit(6,selected>=0&&selected<static_cast<int>(candidates.size())?selected:-1);
     }
     emit(7);return out;
@@ -124,6 +126,20 @@ int main(int argc,char **argv) {
                 for(const auto clauses:{"[]",R"(["仮","名"])",R"([3,null,"かな"])","null"})
                     compareView(std::string(R"({"view":{"text":"かな","clauses":)")+clauses+",\"converting\":"+converting+",\"selectedClause\":"+std::to_string(selected)+",\"selectedIndex\":"+std::to_string(selected)+R"(,"candidates":["仮名","かな"],"suggestion":"候補","hint":"案内"}})");
             }
+        }
+        // Explicit new-policy cases also assert list contents and selection,
+        // so the differential reference cannot silently agree on a missing list.
+        for(const bool typing:{false,true}) {
+            const std::string text=typing
+                ? R"({"view":{"text":"かな","converting":false,"candidates":["仮名","かな"],"predictions":["予測"],"selectedIndex":1,"selectedPrediction":0}})"
+                : R"({"view":{"text":"かな","converting":false,"candidates":["かな"],"predictions":["予測"],"selectedPrediction":0}})";
+            compareView(text);
+            ViewTrace actual;
+            check(viewPlan(reinterpret_cast<const uint8_t *>(text.data()),text.size(),&actual,collectView)==1,"typing/prediction panel");
+            std::vector<std::string> items;int selected=-2;
+            for(const auto &[op,arg,value]:actual) {if(op==5)items.push_back(value);if(op==6)selected=arg;}
+            check(items==(typing?std::vector<std::string>{"仮名","かな"}:std::vector<std::string>{"予測"}),"explicit candidate contents");
+            check(selected==(typing?1:0),"explicit candidate selection");
         }
         ViewTrace invalidView;
         const std::string invalidPlan=R"({"view":{},"bad":)";

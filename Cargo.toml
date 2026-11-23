@@ -1,16 +1,16 @@
 [workspace]
-members = ["rust/core", "rust/native", "rust/cli", "rust/settings-app", "rust/ibus", "rust/tip-worker", "rust/mac-register", "rust/browser"]
+members = ["rust/ai", "rust/core", "rust/native", "rust/cli", "rust/settings-app", "rust/ibus", "rust/tip-worker", "rust/mac-register", "rust/browser", "rust/ios"]
 resolver = "2"
 
 [workspace.package]
-version = "0.1.0"
+version = "2.0.0-pre"
 edition = "2021"
 rust-version = "1.88"
 license = "GPL-3.0-or-later"
-repository = "https://github.com/appipinopi/Meltype"
+repository = "https://github.com/appipinopi/Meltype-Flash"
 
 [workspace.dependencies]
-meltype-core = { path = "rust/core" }
+meltype-core = { path = "rust/core", features = ["bundled-mozc"] }
 serde = { version = "1", features = ["derive"] }
 serde_json = "1"
 

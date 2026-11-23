@@ -1,3 +1,7 @@
+<!-- meltype-flash-document-banner:start -->
+<p align="center"><img src="../../assets/branding/readme/documentation.svg" alt="Meltype-FLASH — 稲妻のように、言葉の壁を駆け抜ける日本語入力。" width="1000"></p>
+<!-- meltype-flash-document-banner:end -->
+
 <a name="性能の計測"></a>
 <img src="../../docs/images/headings/performance/title.svg" alt="性能の計測" height="80">
 
@@ -122,3 +126,6 @@ URL 以外の確定した文字列は、baseline と同じでなければなり�
 `report.json` には、生の計測値・中央値・倍率・辞書とプログラムのハッシュ・SDK と PC の情報が入ります。
 今の版の合計の時間の中央値が baseline の 50% を超えるか、変わってはいけない確定の文字列が変わると、コマンドは失敗します。
 これは手元で動かす合成の性能の確認です。IMK・IBus・Windows の画面とのやり取りの遅延や、変換エンジンの時間は測りません。NativeAOT のビルドの診断は別に保存します。
+# Core・各OSの測定
+
+Windows・macOS・Linuxの旧版／現在版、C#との比較、Android・iOS・ChromeOSの未測定状況は[各OSの測定手順](PLATFORMS.md)を参照してください。

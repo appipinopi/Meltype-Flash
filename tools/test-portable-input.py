@@ -40,6 +40,11 @@ def main():
         "SetWindowTextW": (w.BOOL, [ptr, w.LPCWSTR]),
         "DestroyWindow": (w.BOOL, [ptr]),
         "EnumWindows": (w.BOOL, [ptr, c.c_ssize_t]),
+        "EnumChildWindows": (w.BOOL, [ptr, ptr, c.c_ssize_t]),
+        "GetWindowRect": (w.BOOL, [ptr, c.POINTER(w.RECT)]),
+        "GetCursorPos": (w.BOOL, [c.POINTER(w.POINT)]),
+        "SetCursorPos": (w.BOOL, [c.c_int, c.c_int]),
+        "GetAsyncKeyState": (c.c_short, [c.c_int]),
         "IsWindowVisible": (w.BOOL, [ptr]),
         "GetClassNameW": (c.c_int, [ptr, w.LPWSTR, c.c_int]),
         "GetMessageW": (w.BOOL, [ptr, ptr, w.UINT, w.UINT]),
@@ -63,6 +68,10 @@ def main():
 
     class Payload(c.Union):
         _fields_ = [("key", Keyboard), ("padding", c.c_byte * (32 if c.sizeof(ptr) == 8 else 24))]
+
+    class Mouse(c.Structure):
+        _fields_ = [("dx", w.LONG), ("dy", w.LONG), ("data", w.DWORD),
+                    ("flags", w.DWORD), ("time", w.DWORD), ("extra", c.c_size_t)]
 
     class Input(c.Structure):
         _fields_ = [("type", w.DWORD), ("payload", Payload)]
@@ -127,9 +136,9 @@ def main():
 
     def toggle():
         key(0x11)
-        key(0x12)
-        press(ord("J"))
-        key(0x12, True)
+        key(0x10)
+        press(ord("K"))
+        key(0x10, True)
         key(0x11, True)
         time.sleep(.5)
 
@@ -151,7 +160,7 @@ def main():
 
     with tempfile.TemporaryDirectory(prefix="meltype-portable-test-") as directory:
         data = Path(directory)
-        (data / "config.json").write_text(json.dumps({"Mode": "Keyboard", "WelcomeShown": True, "TsfIntroduced": True, "AutoUpdate": False}), encoding="utf-8")
+        (data / "config.json").write_text(json.dumps({"Mode": "Keyboard", "WelcomeShown": True, "TsfIntroduced": True, "AutoUpdate": False, "ToggleKeyboardShortcuts": "Ctrl+Shift+K"}), encoding="utf-8")
         ticks = int(time.time() * 10_000_000) + 621355968000000000
         predictions = {"橋の近くで待っています": "はしのちかくでまっています", "箸をお願いします": "はしをおねがいします"}
         (data / "phrases.txt").write_text("".join(f"{reading}\t{word}\t2\t{ticks}\n" for word, reading in sorted(predictions.items())), encoding="utf-8")
@@ -165,19 +174,54 @@ def main():
             thread.start()
             assert ready.wait(5), "Test window unavailable"
             time.sleep(1)
+            # Recover only the modifiers used by this fixture, including after
+            # an interrupted previous run; keep the destination owned here.
+            for vk in [0x10, 0x11, 0x12]:
+                key(vk, True)
             type_text("abc")
             expect("edit", "abc")
+            user.SetWindowTextW(handles["edit"], "")
+            type_text("a" * 140)
+            expect("edit", "a" * 140)
             user.SetWindowTextW(handles["edit"], "")
             toggle()
             deadline = time.monotonic() + 10
             while not (data / "ready-host").exists() and time.monotonic() < deadline:
                 time.sleep(.05)
             assert (data / "ready-host").exists(), "Input host did not finish UI Automation initialization"
+            print("PASS: the configured Ctrl+Shift+K shortcut enables input")
             type_text("nihongo")
             expect("edit", "")
             press(13)
             expect("edit", "にほんご")
             print("PASS: external Edit receives buffered Japanese commit")
+            user.SetWindowTextW(handles["edit"], "")
+            type_text("a" * 140)
+            press(0x79)  # F10: compare the complete raw input, not its preview.
+            press(13)
+            expect("edit", "a" * 140)
+            print("PASS: input beyond the old 128-character limit is retained and committed")
+            user.SetWindowTextW(handles["edit"], "")
+            type_text("nihongo")
+            key(0x11)
+            press(0x4F)  # Ctrl+O edits the composition as F10.
+            key(0x11, True)
+            press(13)
+            expect("edit", "nihongo")
+            user.SetWindowTextW(handles["edit"], "")
+            type_text("nihongo")
+            key(0x11)
+            press(0x23)  # Ctrl+End passes to the editor after committing.
+            key(0x11, True)
+            expect("edit", "にほんご")
+            # The Unicode commit arrives before the following shortcut's key
+            # edges. Assert its completed state, rather than that intermediate
+            # point in the asynchronous batch.
+            deadline = time.monotonic() + 4
+            while user.GetAsyncKeyState(0x11) & 0x8000 and time.monotonic() < deadline:
+                time.sleep(.01)
+            assert not (user.GetAsyncKeyState(0x11) & 0x8000), "Control remained pressed after the shortcut"
+            print("PASS: Control editing and a Control shortcut preserve the buffered input")
             user.SetWindowTextW(handles["edit"], "")
             type_text("nihon")
             user.SendMessageW(handles["window"], 0x8001, 1, 0)
@@ -207,6 +251,7 @@ def main():
             user.SetWindowTextW(handles["edit"], "")
             type_text("hashi")
             popup_text = []
+            candidate_windows = {}
             enum_proc = c.WINFUNCTYPE(w.BOOL, ptr, c.c_ssize_t)
             @enum_proc
             def inspect_popup(hwnd, _):
@@ -219,10 +264,23 @@ def main():
                         value = c.create_unicode_buffer(4096)
                         user.GetWindowTextW(hwnd, value, len(value))
                         popup_text.append(value.value)
+                        if value.value in predictions or any(value.value.endswith(" " + word) for word in predictions):
+                            candidate_windows[hwnd] = value.value
+                        user.EnumChildWindows(hwnd, inspect_child, 0)
+                return True
+            @enum_proc
+            def inspect_child(hwnd, _):
+                if user.IsWindowVisible(hwnd):
+                    value = c.create_unicode_buffer(4096)
+                    user.GetWindowTextW(hwnd, value, len(value))
+                    popup_text.append(value.value)
+                    if any(value.value.endswith(" " + word) for word in predictions):
+                        candidate_windows[hwnd] = value.value
                 return True
             deadline = time.monotonic() + 4
             while time.monotonic() < deadline:
                 popup_text.clear()
+                candidate_windows.clear()
                 user.EnumWindows(inspect_popup, 0)
                 if all(any(word in label for label in popup_text) for word in predictions): break
                 time.sleep(.1)
@@ -233,6 +291,31 @@ def main():
             while text("edit") not in predictions and time.monotonic() < deadline: time.sleep(.05)
             assert text("edit") in predictions, "Tab/Enter did not commit a displayed predictive phrase"
             print("PASS: real popup shows learned predictive phrases; Tab/Enter commits the selected phrase")
+            user.SetWindowTextW(handles["edit"], "")
+            type_text("hashi")
+            popup_text.clear()
+            candidate_windows.clear()
+            user.EnumWindows(inspect_popup, 0)
+            assert candidate_windows, "No clickable candidate rows were rendered"
+            row, label = next(iter(candidate_windows.items()))
+            expected = next(word for word in predictions if label.endswith(" " + word))
+            rect, previous_cursor = w.RECT(), w.POINT()
+            assert user.GetWindowRect(row, c.byref(rect))
+            assert user.GetCursorPos(c.byref(previous_cursor))
+            assert user.GetForegroundWindow() == handles["window"], "Owned editor lost focus before candidate click"
+            try:
+                assert user.SetCursorPos((rect.left + rect.right) // 2, (rect.top + rect.bottom) // 2)
+                for flag in [2, 4]:  # LEFTDOWN / LEFTUP, only on the owned host's candidate.
+                    value = Input()
+                    mouse = Mouse(0, 0, 0, flag, 0, 0x4d525054)
+                    c.memmove(c.byref(value.payload), c.byref(mouse), c.sizeof(mouse))
+                    assert user.SendInput(1, c.byref(value), c.sizeof(value)) == 1
+                    time.sleep(.1)
+            finally:
+                user.SetCursorPos(previous_cursor.x, previous_cursor.y)
+            expect("edit", expected)
+            assert user.GetForegroundWindow() == handles["window"], "Candidate click stole the editor focus"
+            print("PASS: mouse selects and commits the displayed predictive phrase without stealing focus")
             if args.unit_host:
                 (data / "stop-host").touch()
             else:
@@ -247,6 +330,9 @@ def main():
                 process.terminate()
                 process.wait(timeout=10)
             if handles.get("window"):
+                if user.GetForegroundWindow() == handles["window"]:
+                    for vk in [0x10, 0x11, 0x12]:
+                        key(vk, True)
                 user.SendMessageW(handles["window"], 0x8002, 0, 0)
                 thread.join(timeout=5)
 

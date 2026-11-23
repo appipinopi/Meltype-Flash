@@ -86,6 +86,27 @@ pub unsafe extern "C" fn meltype_fcitx_key_event(
             return 1;
         }
     }
+    let packed = meltype_fcitx_key(symbol, scalar);
+    let vk = packed as u32 as i32;
+    let mode_vk = match symbol {
+        // US配列で届いたEsc下のキーも半角/全角として扱う。
+        0x60 if meltype_fcitx_modifiers(states) == 0 => 0x19,
+        0xff21 if states & 8 != 0 => 0xc0,
+        0xff21 | 0xff28..=0xff2a => 0x19,
+        0xff30 | 0xff22 => 0x1a,
+        0xff23 => 0x1c,
+        0xff27 => 0x15,
+        _ => vk,
+    };
+    let modifiers = meltype_fcitx_modifiers(states) | i32::from(symbol == 0xfe20);
+    if let Some((bytes, _)) = reply(meltype_mode_key(handle, mode_vk, modifiers)) {
+        apply(handle, &bytes, context, callback);
+        if let Some(direct) = sync_input_mode(handle) {
+            let label = if direct { "A" } else { "あ" };
+            callback(context, 14, 0, label.as_ptr(), label.len() as u32);
+        }
+        return 1;
+    }
     if mode & 1 != 0 {
         if let Some((bytes, _)) = reply(meltype_commit(handle)) {
             apply(handle, &bytes, context, callback);
@@ -96,8 +117,6 @@ pub unsafe extern "C" fn meltype_fcitx_key_event(
         callback(context, 14, 0, label.as_ptr(), label.len() as u32);
         return 1;
     }
-    let packed = meltype_fcitx_key(symbol, scalar);
-    let vk = packed as u32 as i32;
     if vk == 0 {
         return 0;
     }
@@ -124,7 +143,7 @@ pub unsafe extern "C" fn meltype_fcitx_key_event(
         handle,
         vk,
         (packed >> 32) as i32,
-        meltype_fcitx_modifiers(states),
+        modifiers,
         before.as_ref().map_or(std::ptr::null(), |s| s.as_ptr()),
         after.as_ref().map_or(std::ptr::null(), |s| s.as_ptr()),
     );
@@ -134,7 +153,9 @@ pub unsafe extern "C" fn meltype_fcitx_key_event(
     apply(handle, &bytes, context, callback);
     i32::from(value.get("consumed").and_then(serde_json::Value::as_bool) == Some(true))
 }
-/// Commit pending input (action 0) or select a candidate (action 1/index).
+/// Actions: 0 commit, 1 select the displayed list, 2 remember host-committed
+/// preedit without reinsertion, 3 cancel without commit or learning,
+/// 4 commit exactly the displayed preedit (server-side preedit).
 /// # Safety
 /// Same callback/buffer contract as meltype_fcitx_key_event.
 #[no_mangle]
@@ -149,17 +170,38 @@ pub unsafe extern "C" fn meltype_fcitx_action(
     let (Some(query), Some(callback)) = (query, callback) else {
         return 0;
     };
-    if action > 1 || !sync(handle, context, query) {
+    if action > 4 || !sync(handle, context, query) {
         return 0;
     }
-    let pointer = if action == 0 {
-        meltype_commit(handle)
-    } else {
-        meltype_select_candidate(handle, index)
+    let pointer = match action {
+        0 => meltype_commit(handle),
+        1 if predicting(handle) => meltype_select_prediction(handle, index),
+        1 => meltype_select_candidate(handle, index),
+        2 => {
+            let pointer = meltype_commit_preedit(handle);
+            if pointer.is_null() {
+                return 0;
+            }
+            meltype_free(pointer.cast());
+            let reset = meltype_reset(handle);
+            meltype_free(reset.cast());
+            meltype_caret_moved(handle, 0, 0);
+            sync_input_mode(handle);
+            set_predicting(handle, false);
+            meltype_fcitx_set_preedit(handle, 0);
+            return i32::from(callback(context, 8, 0, b"".as_ptr(), 0) > 0);
+        }
+        3 => meltype_reset(handle),
+        4 => meltype_commit_preedit(handle),
+        _ => unreachable!(),
     };
     let Some((bytes, _)) = reply(pointer) else {
         return 0;
     };
     apply(handle, &bytes, context, callback);
+    if action == 4 {
+        meltype_caret_moved(handle, 0, 0);
+        sync_input_mode(handle);
+    }
     1
 }

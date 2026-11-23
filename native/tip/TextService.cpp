@@ -45,6 +45,33 @@ private:
 };
 #endif
 
+#ifdef MELTYPE_RUST_CORE
+class AsyncEditSession final : public ITfEditSession {
+public:
+    explicit AsyncEditSession(std::function<HRESULT(TfEditCookie)> action) : action_(std::move(action)) {}
+    STDMETHODIMP QueryInterface(REFIID riid, void** ppv) override {
+        if (ppv == nullptr) return E_INVALIDARG;
+        if (IsEqualIID(riid, IID_IUnknown) || IsEqualIID(riid, IID_ITfEditSession)) {
+            *ppv = static_cast<ITfEditSession*>(this);
+            AddRef();
+            return S_OK;
+        }
+        *ppv = nullptr;
+        return E_NOINTERFACE;
+    }
+    STDMETHODIMP_(ULONG) AddRef() override { return InterlockedIncrement(&refs_); }
+    STDMETHODIMP_(ULONG) Release() override {
+        ULONG count = InterlockedDecrement(&refs_);
+        if (count == 0) delete this;
+        return count;
+    }
+    STDMETHODIMP DoEditSession(TfEditCookie ec) override { return action_(ec); }
+private:
+    LONG refs_ = 1;
+    std::function<HRESULT(TfEditCookie)> action_;
+};
+#endif
+
 #ifndef MELTYPE_RUST_CORE
 // 入力欄の種類 (InputScope) のプロパティ。{1713DD5A-68E7-4A5B-9AF6-592A595C778D}
 constexpr GUID kPropInputScope = {0x1713dd5a, 0x68e7, 0x4a5b, {0x9a, 0xf6, 0x59, 0x2a, 0x59, 0x5c, 0x77, 0x8d}};
@@ -248,6 +275,9 @@ TextService::TextService() {
 }
 
 TextService::~TextService() {
+#ifdef MELTYPE_RUST_CORE
+    CancelAsync();
+#endif
 #ifndef MELTYPE_RUST_CORE
     deactivated_=true;
     ClearResume();
@@ -437,6 +467,7 @@ STDMETHODIMP TextService::ActivateEx(ITfThreadMgr* threadMgr, TfClientId clientI
 
 STDMETHODIMP TextService::Deactivate() {
 #ifdef MELTYPE_RUST_CORE
+    CancelAsync();
     return RustServiceShutdown(state_.value,ServiceInterface<ITfTextInputProcessorEx>(),ServiceInterface<ITfCompositionSink>());
 #else
     TipLog(L"Deactivate");
@@ -551,6 +582,7 @@ STDMETHODIMP TextService::OnSetFocus(ITfDocumentMgr* focus, ITfDocumentMgr*) {
 
 STDMETHODIMP TextService::OnSetFocus(BOOL foreground) {
 #ifdef MELTYPE_RUST_CORE
+    if (!foreground) CancelAsync();
     return ServiceFocus(nullptr,foreground?1:0);
 #else
     if (!foreground) HideCandidates();
@@ -1103,6 +1135,12 @@ STDMETHODIMP TextService::OnKeyUp(ITfContext*, WPARAM wParam, LPARAM, BOOL* eate
 
 #ifdef MELTYPE_RUST_CORE
 HRESULT TextService::DispatchKey(unsigned int kind,ITfContext* context,UINT key,LPARAM message,BOOL* eaten) {
+    if (kind == 1 && context != nullptr && (key == VK_SPACE || key == VK_CONVERT)) {
+        if (BeginAsync(context)) {
+            *eaten = TRUE;
+            return S_OK;
+        }
+    }
     *eaten=RustServiceDispatchKey(state_.value,ServiceInterface<ITfTextInputProcessorEx>(),ServiceInterface<ITfCompositionSink>(),kind,context,key,message)?TRUE:FALSE;
     return S_OK;
 }
@@ -1394,6 +1432,84 @@ void TextService::Reinject(UINT vk) {
     }
 #endif
 }
+
+#ifdef MELTYPE_RUST_CORE
+bool TextService::RequestRaw(const std::string& json, std::string& raw, JsonValue& reply, DWORD timeoutMs) {
+    struct Context { std::string* raw; JsonValue* reply; };
+    Context context{&raw, &reply};
+    return RustServiceExchange(state_.value, ServiceInterface<ITfTextInputProcessorEx>(), json, timeoutMs, false, &context,
+        [](void* p, const unsigned char* data, unsigned int length) -> int {
+            try {
+                auto* c = static_cast<Context*>(p);
+                c->raw->assign(length ? reinterpret_cast<const char*>(data) : "", length);
+                return ParseJson(*c->raw, *c->reply) ? 1 : 0;
+            } catch (...) { return 0; }
+        },
+        [](void*) { try { TipLog(L"応答を読めません"); } catch (...) {} });
+}
+
+bool TextService::BeginAsync(ITfContext* context) {
+    if (context == nullptr || !serverActive_ || deactivated_) return false;
+    JsonValue reply;
+    const std::string request = "{\"op\":\"async_begin_session\",\"sid\":\"" + SessionId() + "\"}";
+    if (!Request(request, reply, 150)) return false;
+    if (!reply[L"asyncActive"].Bool()) return false;
+    CancelAsync();
+    asyncActive_ = true;
+    asyncContext_ = context;
+    asyncContext_->AddRef();
+    asyncTimer_ = SetTimer(nullptr, reinterpret_cast<UINT_PTR>(this), 10, AsyncTimerProc);
+    if (asyncTimer_ == 0) { CancelAsync(); return false; }
+    return true;
+}
+
+void TextService::CancelAsync() {
+    if (asyncTimer_ != 0) {
+        KillTimer(nullptr, asyncTimer_);
+        asyncTimer_ = 0;
+    }
+    asyncActive_ = false;
+    if (asyncContext_ != nullptr) {
+        asyncContext_->Release();
+        asyncContext_ = nullptr;
+    }
+}
+
+void CALLBACK TextService::AsyncTimerProc(HWND, UINT, UINT_PTR id, DWORD) {
+    auto* service = reinterpret_cast<TextService*>(id);
+    if (service != nullptr) service->PollAsync();
+}
+
+void TextService::PollAsync() {
+    if (!asyncActive_) return;
+    std::string raw;
+    JsonValue reply;
+    if (!RequestRaw("{\"op\":\"async_poll_apply\",\"sid\":\"" + SessionId() + "\"}", raw, reply, 300)) {
+        CancelAsync();
+        return;
+    }
+    ITfContext* context = asyncContext_;
+    CancelAsync();
+    if (context == nullptr || raw.empty()) return;
+    context->AddRef();
+    auto* session = new AsyncEditSession([this, context, raw](TfEditCookie ec) -> HRESULT {
+        RustServiceApplyReplyBytes(
+            state_.value,
+            ServiceInterface<ITfTextInputProcessorEx>(),
+            ServiceInterface<ITfCompositionSink>(),
+            ec,
+            context,
+            reinterpret_cast<const unsigned char*>(raw.data()),
+            static_cast<unsigned int>(raw.size()));
+        context->Release();
+        return S_OK;
+    });
+    if (FAILED(context->RequestEditSession(clientId_, session, TF_ES_SYNC | TF_ES_READWRITE, nullptr))) {
+        context->Release();
+    }
+    session->Release();
+}
+#endif
 
 bool TextService::Request(const std::string& json, JsonValue& reply, DWORD timeoutMs, bool optional) {
 #ifdef MELTYPE_RUST_CORE

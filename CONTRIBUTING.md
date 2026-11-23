@@ -14,8 +14,8 @@
 GitHub のアカウントが無い場合は、Meltype のトレイのメニュー「不具合の報告・提案...」から開くフォームで送れます (送った内容は Issue になります。仕組みは [tools/report-form](tools/report-form/README.md))。
 自動の判定を自分で直したとき (F6〜F10・変換の候補で英字 / かなを選び直したとき) は、トレイの「直した誤判定を報告...」から、打ったもの・出たもの・直した結果が入った状態で「変換・判定の間違い」の報告を始められます (Meltype キーボード。記録は Meltype を終了すると消え、押すまで送りません)。
 
-[Issue](https://github.com/yksr-melt/Meltype/issues/new/choose) のひな形 (不具合 / 変換・判定の間違い / 辞書 / 提案) から選んで書いてください。
-Mac 版・Linux 版はプレビュー版です。気づいたことは小さなことでも報告してもらえると助かります。
+[Meltype-flashのIssue](https://github.com/appipinopi/Meltype-Flash/issues/new/choose) のひな形 (不具合 / 変換・判定の間違い / 辞書 / 提案) から選んで書いてください。Windows・macOS・Linux・Android・ChromeOS・iOSの報告を受け付けます。
+本家Meltype（C#版）だけの画面・機能や公式サイト・botの報告は、[本家の窓口](https://github.com/yksr-melt/Meltype/issues/new/choose)へお願いします。両方で起きる場合や判断できない場合は、Flash側で受け付けます。詳しくは[報告先と確認範囲](docs/ISSUE-TRIAGE.md)を参照してください。
 どのひな形でも、大事なのは次の 3 つです。
 
 1. どのアプリで (メモ帳 / Chrome / Discord など)
@@ -129,20 +129,9 @@ Meltype は、打った文字を外部のサービス (AI を含む) に送り�
 <img src="docs/images/headings/contributing/05.svg" alt="bot のコマンド" height="53"><br>
 
 
-Issue・Pull Request のコメントの 1 行目に書くと、bot が GitHub Actions で実行して結果をコメントします。
+Flashでは、`/help` でRust版の検証・公開ワークフローを案内します。本家から継承した `/repro`・`/explain`・`/ca`・`/test`・`/pack` などのC#版用コマンドは実行しません。誤判定のIssueからC#版の自動再現も起動しません。
 
-| コマンド | すること | 使える人 |
-|---|---|---|
-| `/repro <打ったキー> [space\|enter\|none]` | 最新のコード (と最新のリリース) で打ってみて、結果を返す | だれでも |
-| `/explain <打ったキー>` | 英数状態の検知での 1 文字ずつの判定理由 | だれでも |
-| `/ca <打ったキー>` | Space で変換して、文節の区切りと最初の文節の候補 (9 件まで) を出す (最新のコードと最新のリリース) | だれでも |
-| `/test <SHA>` | Pull Request のコードでテストを流す | メンテナー |
-| `/pack <SHA>` | Pull Request のコードで Windows のテスト版の zip を作る | メンテナー |
-| `/help` | コマンドの一覧 | だれでも |
-
-`/test`・`/pack` の `<SHA>` は、中身を確かめた commit の SHA (40 桁) です。PR の今の head と違えば動かしません。
-
-「変換・判定の間違い」の Issue を作ると、`/repro` と同じことを自動で行います。漢字の変換は再現しません (日本語 / 英語の判定だけを見ます)。
+Flashの再現はRust版のコードと対象OSで確かめ、入力・結果・版を記録します。[Issueの扱い](docs/ISSUE-TRIAGE.md#自動再現公開コマンド)と[全OS検証](https://github.com/appipinopi/Meltype-Flash/actions/workflows/rust.yml)を参照してください。本家C#版のコマンドは[本家の貢献案内](https://github.com/yksr-melt/Meltype/blob/main/CONTRIBUTING.md#bot-のコマンド)にあります。
 
 <a name="自動の仕分け"></a>
 <img src="docs/images/headings/contributing/s06.svg" alt="自動の仕分け" height="40">
@@ -154,7 +143,7 @@ Issue・Pull Request のコメントの 1 行目に書くと、bot が GitHub Ac
 - OS・環境: `windows` `mac` `linux` `win11` `win10` `企業PC` `管理者で実行` `Mozcなし` `かな入力` `USキーボード` `高DPI`、版 (`v0.2.0` など)。Meltype の「不具合の報告・提案...」から報告すると入る実行環境から付けます
 - 不具合の優先度: `優先: 高` (止まる・入力できない・文字が消えるなど) / `優先: 中`
 - 起きたアプリ: `アプリ: チャット` `アプリ: コード` `アプリ: ブラウザー` `アプリ: ゲーム` `アプリ: Office`、`インストール`
-- `情報待ち` (版や打ったキーが足りない)、`再現済み` (bot が再現した)
+- `情報待ち` (版や打ったキーが足りない)。C#版の再現結果から、Flashの報告に `再現済み` は付けません。
 
 <br>
 

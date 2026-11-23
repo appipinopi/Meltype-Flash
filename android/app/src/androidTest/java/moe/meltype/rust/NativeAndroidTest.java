@@ -15,8 +15,10 @@ import android.text.Editable;
 import android.text.Selection;
 import android.view.ContextThemeWrapper;
 import android.view.KeyEvent;
+import android.view.MotionEvent;
 import android.view.View;
 import android.view.accessibility.AccessibilityNodeInfo;
+import android.view.accessibility.AccessibilityWindowInfo;
 import android.view.inputmethod.BaseInputConnection;
 import android.view.inputmethod.InputConnection;
 import android.view.inputmethod.EditorInfo;
@@ -46,6 +48,51 @@ import static org.junit.Assert.*;
 /** Runs on Android's real framework, without registering or activating an IME. */
 @RunWith(AndroidJUnit4.class)
 public final class NativeAndroidTest {
+    private static void flick(Button key,float dx,float dy) {
+        long now=android.os.SystemClock.uptimeMillis();
+        for(int action:new int[]{MotionEvent.ACTION_DOWN,MotionEvent.ACTION_MOVE,MotionEvent.ACTION_UP}) {
+            MotionEvent event=MotionEvent.obtain(now,now+action,action,100+(action==0?0:dx),100+(action==0?0:dy),0);
+            try {assertTrue(key.dispatchTouchEvent(event));}finally{event.recycle();}
+        }
+    }
+    @Test public void flickGesturesAndEditingRegressionsUseFrameworkObjects()throws Throwable {ui(()->{
+        try(Profile profile=new Profile()) {
+            ServiceFrame service=new ServiceFrame(profile.session);service.fresh();
+            LinearLayout root=(LinearLayout)Native.serviceView(profile.session,service);
+            boolean[] saved={true};
+            FlickKeyboard keyboard=FlickKeyboard.attach(service,root,new FlickKeyboard.Listener(){
+                public void key(int scalar){Native.serviceClick(profile.session,service,0,scalar);}
+                public void variant(int kind){Native.serviceClick(profile.session,service,12,kind);}
+                public void layout(boolean flick){saved[0]=flick;}
+            },true);
+            root.measure(View.MeasureSpec.makeMeasureSpec(1080,View.MeasureSpec.EXACTLY),View.MeasureSpec.makeMeasureSpec(1920,View.MeasureSpec.AT_MOST));
+            root.layout(0,0,root.getMeasuredWidth(),root.getMeasuredHeight());
+            LinearLayout panel=(LinearLayout)root.getChildAt(2);
+            Button a=(Button)((LinearLayout)panel.getChildAt(0)).getChildAt(0);
+            float distance=48*service.getResources().getDisplayMetrics().density;
+            float[][] moves={{0,0},{-distance,0},{0,-distance},{distance,0},{0,distance}};
+            for(int i=0;i<5;i++){service.fresh();flick(a,moves[i][0],moves[i][1]);assertEquals(String.valueOf("あいうえお".charAt(i)),service.editor.text.toString());}
+            service.fresh();flick(a,0,0);Native.serviceClick(profile.session,service,3,8);assertEquals("",service.editor.text.toString());
+            flick(a,0,0);Native.serviceClick(profile.session,service,3,27);assertEquals("",service.editor.text.toString());
+            MotionEvent down=MotionEvent.obtain(0,0,MotionEvent.ACTION_DOWN,100,100,0);
+            MotionEvent up=MotionEvent.obtain(0,1,MotionEvent.ACTION_UP,100,100,0);
+            try{a.dispatchTouchEvent(down);keyboard.cancelGestures();a.dispatchTouchEvent(up);}finally{down.recycle();up.recycle();}
+            assertEquals("",service.editor.text.toString());
+            service.fresh();Native.serviceClick(profile.session,service,0,'は');
+            Button variant=(Button)((LinearLayout)panel.getChildAt(3)).getChildAt(0);
+            variant.performClick();assertEquals("ば",service.editor.text.toString());variant.performClick();assertEquals("ぱ",service.editor.text.toString());
+            service.fresh();for(char c:"kana".toCharArray())assertTrue(service.key(c));
+            Native.serviceRestart(profile.session,service,service.info);for(char c:"kana".toCharArray())assertTrue(service.key(c));assertEquals("かなかな",service.editor.text.toString());
+            service.fresh();service.editor.replace("前選択後",1,3);Native.serviceClick(profile.session,service,3,8);assertEquals("前後",service.editor.text.toString());
+            service.fresh();service.editor.replace("前😀",3,3);Native.serviceClick(profile.session,service,3,8);assertEquals("前",service.editor.text.toString());
+            service.fresh();String reply="{\"consumed\":true,\"commits\":[{\"text\":\"()\",\"caretBack\":1}],\"view\":null}";
+            Native.applyEditor(profile.session,service.editor,reply,"");assertEquals("()",service.editor.text.toString());assertEquals(2,service.editor.events.size());assertEquals(KeyEvent.KEYCODE_DPAD_LEFT,service.editor.events.get(0).getKeyCode());assertEquals(KeyEvent.ACTION_UP,service.editor.events.get(1).getAction());
+            Button toggle=(Button)root.getChildAt(root.getChildCount()-1);toggle.performClick();assertFalse(saved[0]);assertEquals(View.GONE,panel.getVisibility());toggle.performClick();assertTrue(saved[0]);
+            Bitmap image=Bitmap.createBitmap(root.getWidth(),root.getHeight(),Bitmap.Config.ARGB_8888);Canvas canvas=new Canvas(image);canvas.drawColor(android.graphics.Color.WHITE);root.draw(canvas);
+            File artifacts=new File(context().getFilesDir(),"instrumentation-artifacts");assertTrue(artifacts.isDirectory()||artifacts.mkdirs());
+            try(FileOutputStream out=new FileOutputStream(new File(artifacts,"flick-view.png"))){assertTrue(image.compress(Bitmap.CompressFormat.PNG,100,out));}finally{image.recycle();}
+        }
+    });}
     public static final class ServiceFrame extends ContextThemeWrapper {
         LinearLayout candidates;TextView preview;Editor editor=new Editor();EditorInfo info=new EditorInfo();long session;
         int connections;Runnable onConnection,onInfo;
@@ -79,9 +126,18 @@ public final class NativeAndroidTest {
     private static void idle(Instrumentation instrumentation,UiAutomation automation)throws Exception {
         instrumentation.waitForIdleSync();automation.waitForIdle(100,10000);
     }
+    private static AccessibilityNodeInfo ownRoot(UiAutomation automation) {
+        String pkg=context().getPackageName();
+        AccessibilityNodeInfo active=automation.getRootInActiveWindow();
+        if(active!=null&&pkg.contentEquals(active.getPackageName()))return active;
+        for(AccessibilityWindowInfo window:automation.getWindows()) {
+            AccessibilityNodeInfo root=window.getRoot();
+            if(root!=null&&pkg.contentEquals(root.getPackageName()))return root;
+        }
+        return null;
+    }
     private static void clickOwnDialogButton(UiAutomation automation,String label) {
-        AccessibilityNodeInfo root=automation.getRootInActiveWindow();assertNotNull("active test-app dialog",root);
-        assertEquals(context().getPackageName(),String.valueOf(root.getPackageName()));
+        AccessibilityNodeInfo root=ownRoot(automation);assertNotNull("active test-app dialog",root);
         for(AccessibilityNodeInfo node:root.findAccessibilityNodeInfosByText(label)) {
             if(node.getText()!=null&&node.getPackageName()!=null&&label.contentEquals(node.getText())&&context().getPackageName().contentEquals(node.getPackageName())&&node.isClickable()) {
                 assertTrue("click "+label,node.performAction(AccessibilityNodeInfo.ACTION_CLICK));return;
@@ -90,8 +146,7 @@ public final class NativeAndroidTest {
         throw new AssertionError("missing dialog button: "+label);
     }
     private static void captureDialog(UiAutomation automation,String name)throws Exception {
-        AccessibilityNodeInfo root=automation.getRootInActiveWindow();assertNotNull(root);
-        assertEquals(context().getPackageName(),String.valueOf(root.getPackageName()));
+        AccessibilityNodeInfo root=ownRoot(automation);assertNotNull("active test-app dialog",root);
         Bitmap image=automation.takeScreenshot();assertNotNull("dialog screenshot",image);
         File artifacts=new File(context().getFilesDir(),"instrumentation-artifacts");assertTrue(artifacts.isDirectory()||artifacts.mkdirs());
         try(FileOutputStream stream=new FileOutputStream(new File(artifacts,name))){assertTrue(image.compress(Bitmap.CompressFormat.PNG,100,stream));}finally{image.recycle();}
@@ -111,7 +166,7 @@ public final class NativeAndroidTest {
     }
     @Test public void realSettingsActivityConfirmationButtons()throws Throwable {
         Instrumentation instrumentation=InstrumentationRegistry.getInstrumentation();UiAutomation automation=instrumentation.getUiAutomation();
-        SettingsActivity activity=(SettingsActivity)instrumentation.startActivitySync(new Intent(context(),SettingsActivity.class).addFlags(Intent.FLAG_ACTIVITY_NEW_TASK));
+        SettingsActivity activity=(SettingsActivity)instrumentation.startActivitySync(new Intent(context(),SettingsActivity.class).addFlags(Intent.FLAG_ACTIVITY_NEW_TASK).putExtra("moe.meltype.rust.SKIP_CONSENT",true));
         long[] handle={0};
         try(Profile files=new Profile()) {
             ui(()->{
@@ -220,6 +275,47 @@ public final class NativeAndroidTest {
             try{action.run();}catch(Throwable error){failure.set(error);}
         });
         if(failure.get()!=null)throw failure.get();
+    }
+    @Test public void backgroundImageIsBoundedCachedAndRemovableWithoutLosingTheme()throws Throwable {
+        File directory=new File(context().getCacheDir(),"appearance-"+UUID.randomUUID());assertTrue(directory.mkdirs());
+        String preferences="appearance-test-"+UUID.randomUUID();
+        Context isolated=new ContextWrapper(context()){
+            @Override public File getFilesDir(){return directory;}
+            @Override public android.content.SharedPreferences getSharedPreferences(String name,int mode){return context().getSharedPreferences(preferences,mode);}
+        };
+        File source=new File(directory,"source.jpg");
+        try {
+            Bitmap large=Bitmap.createBitmap(4096,2048,Bitmap.Config.RGB_565);large.eraseColor(android.graphics.Color.BLUE);
+            try(FileOutputStream output=new FileOutputStream(source)){assertTrue(large.compress(Bitmap.CompressFormat.JPEG,90,output));}finally{large.recycle();}
+            KeyboardAppearance.theme(isolated,"dark");
+            KeyboardAppearance.importImage(isolated,Uri.fromFile(source));
+            try(java.io.InputStream input=KeyboardAppearance.imageFile(isolated).openRead()){
+                Bitmap prepared=android.graphics.BitmapFactory.decodeStream(input);assertNotNull(prepared);
+                assertTrue(prepared.getWidth()<=1280&&prepared.getHeight()<=1280);prepared.recycle();
+            }
+            ui(()->{
+                LinearLayout root=new LinearLayout(isolated);KeyboardAppearance appearance=new KeyboardAppearance(isolated);appearance.apply(root);
+                // 入力中に候補を追加しても画像を再読込せず、テーマだけを適用する。
+                KeyboardAppearance.imageFile(isolated).delete();
+                Button candidate=new Button(isolated);candidate.setText("候補");root.addView(candidate);
+                assertEquals(android.graphics.Color.WHITE,candidate.getCurrentTextColor());
+                appearance.apply(root);
+                root.getBackground().setBounds(0,0,320,160);
+                Bitmap rendered=Bitmap.createBitmap(320,160,Bitmap.Config.ARGB_8888);
+                root.getBackground().draw(new Canvas(rendered));
+                assertTrue(android.graphics.Color.blue(rendered.getPixel(160,80))>150);rendered.recycle();
+                KeyboardAppearance.clearImage(isolated);appearance.apply(root);
+                assertEquals("dark",KeyboardAppearance.preferences(isolated).getString("theme",""));
+                assertFalse(KeyboardAppearance.preferences(isolated).contains("imageRevision"));
+            });
+            File corrupt=new File(directory,"corrupt.png");
+            try(FileOutputStream output=new FileOutputStream(corrupt)){output.write(new byte[]{1,2,3});}
+            try{KeyboardAppearance.importImage(isolated,Uri.fromFile(corrupt));fail("corrupt image accepted");}catch(java.io.IOException expected){}
+            assertFalse(KeyboardAppearance.preferences(isolated).contains("imageRevision"));
+        } finally {
+            isolated.getSharedPreferences("appearance",0).edit().clear().commit();
+            for(File file:directory.listFiles())assertTrue(file.delete());assertTrue(directory.delete());
+        }
     }
     private static Context context(){return InstrumentationRegistry.getInstrumentation().getTargetContext();}
     public static final class Widgets extends ContextThemeWrapper {
@@ -409,7 +505,7 @@ public final class NativeAndroidTest {
             assertTrue(frame.content instanceof ScrollView);LinearLayout root=(LinearLayout)((ScrollView)frame.content).getChildAt(0);
             assertEquals(4,root.getChildCount());assertEquals(LinearLayout.VERTICAL,root.getOrientation());
             int padding=(int)(16*frame.getResources().getDisplayMetrics().density);assertEquals(padding,root.getPaddingLeft());assertEquals(padding,root.getPaddingBottom());
-            assertEquals("Meltype Rust 設定",((TextView)root.getChildAt(0)).getText().toString());assertSame(frame.status,root.getChildAt(1));assertSame(frame.body,root.getChildAt(3));
+            assertEquals("Meltype-FLASH 設定",((TextView)root.getChildAt(0)).getText().toString());assertSame(frame.status,root.getChildAt(1));assertSame(frame.body,root.getChildAt(3));
             Spinner navigation=(Spinner)root.getChildAt(2);assertEquals(6,navigation.getAdapter().getCount());
             String[] labels={"入力設定","ユーザー辞書","定型文","学習","プロファイル","バックアップ・診断"};
             for(int page=0;page<6;page++) {

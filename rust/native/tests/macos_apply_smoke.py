@@ -45,3 +45,36 @@ for payload in [b"{",b'{"commits":[{"deleteBefore":0,"text":"x"},{}]}',b'{"commi
 mismatch=json.dumps({"commits":[{"deleteBefore":3,"text":"NG","expect":"違文字"},{"deleteBefore":0,"text":"later"}],"view":{"text":"NG"}}).encode()
 assert run(mismatch)==(0,"前😀",[0,1,2])
 print("macOS Rust apply ABI: dependent edits, live query order, five host-failure stops, full validation before callbacks and mismatch stopping later edits/view passed")
+
+# #137: 未確定範囲の外を置換できない入力欄も、解除してからなら置換できる。
+def marked_replacement(actual="すし", expected="すし", fail_clear=False):
+    document=actual+"wow"; marked=True; trace=[]; buffers=[]; errors=[]
+    @Host
+    def callback(_,op,location,length,text,count,out):
+        nonlocal document,marked
+        trace.append(op)
+        try:
+            if op==0:out[0]=len(actual);out[1]=3
+            elif op==1:out[0]=len(document);out[1]=0
+            elif op==2:
+                value=document[location:location+length].encode("utf-16-le")
+                buffer=(c.c_uint16*max(1,len(value)//2))();c.memmove(buffer,value,len(value))
+                buffers.append(buffer);out[0]=c.addressof(buffer);out[1]=len(value)//2
+            elif op==5:
+                if fail_clear:return 0
+                document=document[:len(actual)];marked=False
+            elif op==3:
+                value=c.string_at(text,count*2).decode("utf-16-le")
+                if marked:document+=value  # 未確定範囲外の置換要求を無視するホスト。
+                else:document=document[:location]+value+document[location+length:]
+            elif op!=4:raise AssertionError(op)
+            return 1
+        except BaseException as error:errors.append(error);return 0
+    payload=json.dumps({"commits":[{"deleteBefore":len(expected),"expect":expected,"text":"sushi wow "}],"view":None}).encode()
+    result=api.meltype_macos_apply_utf8(payload,len(payload),None,callback)
+    assert not errors,errors
+    return result,document,trace
+assert marked_replacement()==(1,"sushi wow ",[0,2,5,3,4]),marked_replacement()
+assert marked_replacement("別文")== (0,"別文wow",[0,2])
+assert marked_replacement(fail_clear=True)==(0,"すしwow",[0,2,5])
+print("#137: marked preedit cleared only after expected-text verification; failed clear prevents insertion")

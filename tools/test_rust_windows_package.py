@@ -65,7 +65,7 @@ class PackageTests(unittest.TestCase):
         path.write_bytes(path.read_bytes().replace(uuid.UUID('C540BAF6-88B1-5B30-B524-2C8702B034FC').bytes_le, b'X'*16))
         result = audit.inspect(self.root)
         self.assertFalse(result['passed'])
-        self.assertTrue(any('missing Meltype-flash' in error for error in result['errors']))
+        self.assertTrue(any('missing Meltype-FLASH' in error for error in result['errors']))
 
     def test_complete_layout(self):
         self.assertTrue(audit.inspect(self.root)['passed'])

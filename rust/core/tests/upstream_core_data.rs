@@ -47,9 +47,24 @@ fn original_levels_context_learning_custom_tables_and_retained_edits() {
     }
 }
 
+fn canonical_modifiers(settings: &mut Value) {
+    if let Some(shortcuts) = settings.get_mut("ToggleShortcuts") {
+        let bindings: Vec<meltype_core::shortcuts::ToggleShortcut> =
+            serde_json::from_value(shortcuts.clone()).unwrap();
+        *shortcuts = serde_json::to_value(bindings).unwrap();
+    }
+    if let Some(profiles) = settings.get_mut("Profiles").and_then(Value::as_array_mut) {
+        for profile in profiles {
+            if let Some(values) = profile.get_mut("Values") {
+                canonical_modifiers(values);
+            }
+        }
+    }
+}
 fn known_settings(settings: &Settings, baseline: &Value) -> Value {
     let mut value = serde_json::to_value(settings).unwrap();
     let known = baseline.as_object().unwrap();
+    canonical_modifiers(&mut value);
     value
         .as_object_mut()
         .unwrap()
@@ -63,10 +78,10 @@ fn known_settings(settings: &Settings, baseline: &Value) -> Value {
 }
 
 #[test]
-fn v130_known_settings_normalization_and_profile_lifecycle() {
-    // Removed choices intentionally differ from the old 45e14f8 reference.
+fn v140_known_settings_normalization_and_profile_lifecycle() {
+    // Settings v7 migrates legacy toggle keys and removes their serialized names.
     let fixture: Value =
-        serde_json::from_str(include_str!("data/upstream-v130-settings.json")).unwrap();
+        serde_json::from_str(include_str!("data/upstream-v140-settings.json")).unwrap();
     assert_eq!(fixture["settings"].as_array().unwrap().len(), 120);
     for case in fixture["settings"].as_array().unwrap() {
         let mut settings = Settings::parse(&case["config"].to_string()).unwrap();
@@ -94,6 +109,8 @@ fn v130_known_settings_normalization_and_profile_lifecycle() {
             .map(|step| {
                 let mut settings = fixture["baseSettings"].as_object().unwrap().clone();
                 settings.extend(step["settingsDelta"].as_object().unwrap().clone());
+                let mut settings = Value::Object(settings);
+                canonical_modifiers(&mut settings);
                 json!({"accepted":step["accepted"],"settings":settings})
             })
             .collect();

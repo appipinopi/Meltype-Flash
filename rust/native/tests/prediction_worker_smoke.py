@@ -9,7 +9,7 @@ import sys
 import tempfile
 
 worker=Path(sys.argv[1]).resolve()
-fixture=json.loads((Path(__file__).resolve().parents[2]/'core/tests/data/upstream-prediction-keys.json').read_text(encoding='utf-8'))
+fixture=json.loads((Path(__file__).resolve().parents[2]/'core/tests/data/upstream-prediction-keys-v150.json').read_text(encoding='utf-8'))
 rows=[r for r in fixture['cases'] if r['case']['learning']]
 assert len(rows)==4
 with tempfile.TemporaryDirectory(prefix='meltype-prediction-worker-') as directory:

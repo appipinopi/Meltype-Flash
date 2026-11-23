@@ -69,7 +69,7 @@ def projection(result):
                 view={k: view[k] for k in fields} if view else None)
 
 
-fixture = Path(sys.argv[2]) if len(sys.argv) > 2 else Path(__file__).resolve().parents[2] / 'core/tests/data/upstream-prediction-keys.json'
+fixture = Path(sys.argv[2]) if len(sys.argv) > 2 else Path(__file__).resolve().parents[2] / 'core/tests/data/upstream-prediction-keys-v150.json'
 golden = json.loads(fixture.read_text(encoding='utf-8'))
 assert len(golden['cases']) == 110
 with tempfile.TemporaryDirectory(prefix='meltype-prediction-keys-') as directory:

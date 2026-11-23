@@ -1,8 +1,11 @@
 blank_issues_enabled: false
 contact_links:
-  - name: セキュリティの問題 (公開しないで報告)
+  - name: 本家Meltype（C#版）だけの不具合・提案
+    url: https://github.com/yksr-melt/Meltype/issues/new/choose
+    about: 本家専用の画面・機能・公式サイト・botに関する報告はこちらへ。Flashでも起きる場合や判断できない場合は、Flash用フォームを使えます。
+  - name: 本家Meltype（C#版）のセキュリティ報告（非公開）
     url: https://github.com/yksr-melt/Meltype/security/advisories/new
-    about: キー入力を扱うソフトなので、悪用できそうな問題は Issue ではなくこちらから非公開で報告してください。
-  - name: 非公開で利用したい (GPL の条件で使えない) 場合
+    about: 本家Meltype（C#版）の作者への非公開窓口です。本家に関する悪用できそうな問題は公開Issueへ書かず、こちらへ報告してください。
+  - name: 本家Meltype（C#版）の非公開利用・ライセンス相談
     url: https://github.com/yksr-melt/Meltype#ライセンス
-    about: メールでご相談ください (連絡先は README の「ライセンス」に書いてあります)
+    about: 本家Meltypeの作者への相談先です。連絡先は本家READMEの「ライセンス」に書いてあります。

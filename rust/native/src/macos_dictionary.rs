@@ -4,6 +4,19 @@
 use serde::Deserialize;
 use std::ffi::{c_char, c_void};
 use unicode_normalization::UnicodeNormalization;
+
+#[cfg(any(target_os = "macos", test))]
+fn decode_existing_utf8(bytes: &[u8], consume_bom: bool) -> Result<&str, std::str::Utf8Error> {
+    // macOS 26のFoundationは先頭BOMを1個消費し、以前の版は保持する。
+    // どちらもNULを含む全バイトを厳密に検証する。
+    let bytes = if consume_bom {
+        bytes.strip_prefix(&[0xef, 0xbb, 0xbf]).unwrap_or(bytes)
+    } else {
+        bytes
+    };
+    std::str::from_utf8(bytes)
+}
+
 #[derive(Deserialize)]
 struct Merge {
     entries: Vec<[String; 2]>,
@@ -134,7 +147,7 @@ mod native {
         rc::Retained,
         runtime::{AnyClass, AnyObject},
     };
-    use objc2_foundation::{NSArray, NSString};
+    use objc2_foundation::{NSArray, NSProcessInfo, NSString};
     unsafe fn class(name: &std::ffi::CStr) -> &'static AnyClass {
         AnyClass::get(name).expect("Foundation class unavailable")
     }
@@ -290,11 +303,13 @@ mod native {
             } else {
                 std::slice::from_raw_parts(pointer, byte_count)
             };
-            // Match the actual macOS SDK Swift file initializer: preserve BOM,
-            // validate the complete bytes (including NUL), else corrupt-file 259.
-            // Foundation main's newer BOM policy differs; the independent SDK
-            // fixture pins the behavior of the original frontend on this SDK.
-            let Ok(text) = std::str::from_utf8(buffer) else {
+            // 実行中のFoundationに合わせる。型付きAPIでOSの版を取得し、
+            // UTF-8として不正な場合のcorrupt-file 259は以前と同じにする。
+            let consume_bom = NSProcessInfo::processInfo()
+                .operatingSystemVersion()
+                .majorVersion
+                >= 26;
+            let Ok(text) = decode_existing_utf8(buffer, consume_bom) else {
                 let domain = NSString::from_str("NSCocoaErrorDomain");
                 let failure: Retained<AnyObject> = msg_send![class(c"NSError"),errorWithDomain:&*domain,code:259isize,userInfo:std::ptr::null::<AnyObject>()];
                 capture(Retained::as_ptr(&failure).cast_mut(), error);
@@ -324,5 +339,76 @@ mod native {
             }
         }
         count as i64
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::{decode_existing_utf8, merge, Merge};
+
+    #[test]
+    fn existing_utf8_without_bom_and_nuls_are_preserved_in_both_modes() {
+        for text in ["", "かな\t単語\n", "a\0b\0", "a\u{feff}b"] {
+            for consume_bom in [false, true] {
+                assert_eq!(decode_existing_utf8(text.as_bytes(), consume_bom), Ok(text));
+            }
+        }
+    }
+
+    #[test]
+    fn existing_utf8_consumes_exactly_one_leading_bom_in_new_mode() {
+        let line = "かな\t単語\n";
+        let one = format!("\u{feff}{line}");
+        let two = format!("\u{feff}{one}");
+        assert_eq!(
+            decode_existing_utf8(one.as_bytes(), false),
+            Ok(one.as_str())
+        );
+        assert_eq!(decode_existing_utf8(one.as_bytes(), true), Ok(line));
+        assert_eq!(
+            decode_existing_utf8(two.as_bytes(), false),
+            Ok(two.as_str())
+        );
+        assert_eq!(decode_existing_utf8(two.as_bytes(), true), Ok(one.as_str()));
+    }
+
+    #[test]
+    fn existing_utf8_rejects_invalid_bytes_even_after_nul_or_bom() {
+        let cases: [&[u8]; 5] = [
+            &[0xc0, 0xaf],
+            &[0xe3, 0x81],
+            &[0xff, 0xfe, 0x41, 0],
+            b"valid\0\xff",
+            b"\xef\xbb\xbfvalid\0\xc0\xaf",
+        ];
+        for bytes in cases {
+            for consume_bom in [false, true] {
+                assert!(decode_existing_utf8(bytes, consume_bom).is_err());
+            }
+        }
+    }
+
+    #[test]
+    fn existing_utf8_bom_policy_preserves_dictionary_duplicate_boundary() {
+        let line = "かな\t単語\n";
+        let original = format!("\u{feff}{line}");
+        for (consume_bom, expected_count) in [(false, 1), (true, 0)] {
+            let existing = decode_existing_utf8(original.as_bytes(), consume_bom)
+                .unwrap()
+                .to_owned();
+            let (merged, count) = merge(Merge {
+                entries: vec![["かな".into(), "単語".into()]],
+                existing,
+            });
+            assert_eq!(count, expected_count);
+            assert_eq!(
+                merged,
+                if consume_bom {
+                    line.to_owned()
+                } else {
+                    format!("{original}{line}")
+                }
+            );
+        }
     }
 }

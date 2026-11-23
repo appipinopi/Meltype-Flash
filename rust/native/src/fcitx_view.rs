@@ -53,13 +53,27 @@ fn plan(result: &Value) -> Vec<Event> {
     if !hint.is_empty() {
         events.push(Event(3, 0, hint));
     }
-    let candidates = strings(view, "candidates");
-    if converting && candidates.len() > 1 {
+    let typing = strings(view, "candidates");
+    let predicting = !converting && typing.len() <= 1;
+    let candidates = if predicting {
+        strings(view, "predictions")
+    } else {
+        typing
+    };
+    if candidates.len() > usize::from(!predicting) {
         events.push(Event(4, 9, String::new()));
         for (index, candidate) in candidates.iter().enumerate() {
             events.push(Event(5, index as i32, (*candidate).into()));
         }
-        let selected = integer(view, "selectedIndex", 0);
+        let selected = integer(
+            view,
+            if predicting {
+                "selectedPrediction"
+            } else {
+                "selectedIndex"
+            },
+            if predicting { -1 } else { 0 },
+        );
         let selected = if selected >= 0 && (selected as usize) < candidates.len() {
             selected
         } else {
@@ -106,7 +120,8 @@ pub unsafe extern "C" fn meltype_fcitx_view_utf8(
 /// Apply the response in upstream order. Callback 9 queries a live expected
 /// suffix (argument: UTF-16 units), returning SDK character count, zero for a
 /// mismatch or negative on host failure. Operations 10/11/12 delete characters,
-/// commit text, and reset the panel without notifications. Panel events 0..8
+/// commit text, and reset the panel without notifications. Operation 15 commits
+/// an exact bracket pair with the cursor at codepoint 1. Panel events 0..8
 /// follow edits. A mismatch resets the core and hides without applying the view.
 /// # Safety
 /// Same buffer/callback requirements as meltype_fcitx_view_utf8. handle is an
@@ -130,8 +145,29 @@ pub unsafe extern "C" fn meltype_fcitx_apply_utf8(
     else {
         return 0;
     };
+    // 削除やパネル変更を送る前に括弧移動の形式も検査する。
+    if result
+        .get("commits")
+        .and_then(Value::as_array)
+        .is_some_and(|commits| {
+            commits.iter().any(|edit| {
+                let caret = integer(edit, "caretBack", 0);
+                caret != 0
+                    && (caret != 1
+                        || !meltype_core::shortcuts::is_bracket_pair(string(edit, "text")))
+            })
+        })
+    {
+        return 0;
+    }
     // Validate and allocate the view before applying any editor mutation.
     let view = plan(&result);
+    let predicting = result.get("view").is_some_and(|v| {
+        v.is_object()
+            && v.get("converting").and_then(Value::as_bool) != Some(true)
+            && strings(v, "candidates").len() <= 1
+    });
+    super::fcitx::set_predicting(handle, predicting);
     let emit = |kind, argument, text: &str| {
         callback(context, kind, argument, text.as_ptr(), text.len() as u32)
     };
@@ -155,7 +191,11 @@ pub unsafe extern "C" fn meltype_fcitx_apply_utf8(
                 return 0;
             }
             let text = string(edit, "text");
-            if !text.is_empty() && emit(11, 0, text) <= 0 {
+            let caret = integer(edit, "caretBack", 0);
+            if caret != 0 && (caret != 1 || !meltype_core::shortcuts::is_bracket_pair(text)) {
+                return 0;
+            }
+            if !text.is_empty() && emit(if caret != 0 { 15 } else { 11 }, caret, text) <= 0 {
                 return 0;
             }
         }
@@ -170,6 +210,55 @@ pub unsafe extern "C" fn meltype_fcitx_apply_utf8(
 #[cfg(test)]
 mod tests {
     use super::*;
+    #[test]
+    fn typing_candidates_take_priority_over_predictions() {
+        for (candidates, predictions, expected, selected) in [
+            (vec!["仮名", "かな"], vec!["予測"], vec!["仮名", "かな"], 1),
+            (vec!["かな"], vec!["予測"], vec!["予測"], 0),
+        ] {
+            let events = plan(
+                &serde_json::json!({"view":{"text":"かな", "converting":false,
+                "candidates":candidates,"predictions":predictions,"selectedIndex":1,"selectedPrediction":0}}),
+            );
+            assert_eq!(
+                events
+                    .iter()
+                    .filter(|e| e.0 == 5)
+                    .map(|e| e.2.as_str())
+                    .collect::<Vec<_>>(),
+                expected
+            );
+            assert_eq!(events.iter().find(|e| e.0 == 6).unwrap().1, selected);
+        }
+    }
+    #[test]
+    fn malformed_caret_request_does_not_mutate_host() {
+        let input = br#"{"commits":[{"text":"abc","deleteBefore":3,"caretBack":1}]}"#;
+        let mut events = Vec::<u32>::new();
+        unsafe extern "C" fn record(
+            ctx: *mut c_void,
+            kind: u32,
+            _: i32,
+            _: *const u8,
+            _: u32,
+        ) -> i32 {
+            (*(ctx as *mut Vec<u32>)).push(kind);
+            1
+        }
+        assert_eq!(
+            unsafe {
+                meltype_fcitx_apply_utf8(
+                    std::ptr::null_mut(),
+                    input.as_ptr(),
+                    input.len() as u32,
+                    (&mut events as *mut Vec<u32>).cast(),
+                    Some(record),
+                )
+            },
+            0
+        );
+        assert!(events.is_empty());
+    }
     #[test]
     fn clauses_visibility_and_candidate_selection_keep_original_policy() {
         let events = plan(

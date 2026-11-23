@@ -1,25 +1,43 @@
 # SPDX-License-Identifier: GPL-3.0-or-later
 # Download only a published Rust Windows package from this fork. No arbitrary URLs.
 [CmdletBinding(SupportsShouldProcess=$true)]
-param([ValidateSet('Check','Stage','Apply')][string]$Action = 'Check')
+param([ValidateSet('Check','Stage','Apply')][string]$Action = 'Check',
+      [ValidatePattern('^$|^[a-f0-9]{32}$')][string]$RunId = '')
 $ErrorActionPreference = 'Stop'
-$repository = 'appipinopi/Meltype'
+$repository = 'appipinopi/Meltype-Flash'
 $limit = 268435456L
 function Installed-Root {
     $machine = [Microsoft.Win32.RegistryKey]::OpenBaseKey([Microsoft.Win32.RegistryHive]::LocalMachine, [Microsoft.Win32.RegistryView]::Registry64)
     try {
         $key = $machine.OpenSubKey('SOFTWARE\Microsoft\Windows\CurrentVersion')
-        try { return (Join-Path ([string]$key.GetValue('ProgramFilesDir')) 'Meltype-flash') } finally { $key.Dispose() }
+        try { return (Join-Path ([string]$key.GetValue('ProgramFilesDir')) 'Meltype-FLASH') } finally { $key.Dispose() }
     } finally { $machine.Dispose() }
 }
+function Read-UpdateFailure([string]$Path) {
+    if (Test-Path -LiteralPath $Path -PathType Leaf) {
+        $item = Get-Item -LiteralPath $Path -Force
+        if (-not ($item.Attributes -band [IO.FileAttributes]::ReparsePoint)) {
+            $detail = (Get-Content -LiteralPath $Path -Tail 40 -ErrorAction SilentlyContinue) -join [Environment]::NewLine
+            if ($detail.Length -gt 4000) { $detail = $detail.Substring($detail.Length - 4000) }
+            return "Detailed log: $Path$([Environment]::NewLine)$detail"
+        }
+    }
+    return "No detailed log was created. Expected log: $Path"
+}
 if ($Action -eq 'Apply' -and -not $WhatIfPreference) {
+    if (-not $RunId) { $RunId = [Guid]::NewGuid().ToString('N') }
     $installedRoot = Installed-Root
     if (-not (Test-Path -LiteralPath (Join-Path $installedRoot 'installed.json'))) { throw 'No managed Rust IME installation. Use Manage-Windows.ps1 -Action Install first; portable use supports Stage only.' }
     $principal = New-Object Security.Principal.WindowsPrincipal([Security.Principal.WindowsIdentity]::GetCurrent())
     if (-not $principal.IsInRole([Security.Principal.WindowsBuiltInRole]::Administrator)) {
         $shell = Join-Path ([Environment]::GetFolderPath('Windows')) 'System32/WindowsPowerShell/v1.0/powershell.exe'
-        $process = Start-Process -FilePath $shell -Verb RunAs -ArgumentList @('-NoProfile','-ExecutionPolicy','Bypass','-File',('"'+$PSCommandPath+'"'),'-Action','Apply') -WindowStyle Hidden -Wait -PassThru
-        try { if ($process.ExitCode -ne 0) { throw "Elevated updater failed: $($process.ExitCode)" } } finally { $process.Dispose() }
+        $process = Start-Process -FilePath $shell -Verb RunAs -ArgumentList @('-NoProfile','-ExecutionPolicy','Bypass','-File',('"'+$PSCommandPath+'"'),'-Action','Apply','-RunId',$RunId) -WindowStyle Hidden -Wait -PassThru
+        try {
+            if ($process.ExitCode -ne 0) {
+                $detail = Read-UpdateFailure (Join-Path $installedRoot "update-logs\$RunId.log")
+                throw "Elevated updater failed: $($process.ExitCode)$([Environment]::NewLine)$detail"
+            }
+        } finally { $process.Dispose() }
         $installed = Get-Content -LiteralPath (Join-Path $installedRoot 'installed.json') -Raw | ConvertFrom-Json
         $newExe = [IO.Path]::GetFullPath((Join-Path ([string]$installed.package) 'meltype-flash.exe'))
         if (-not $newExe.StartsWith($installedRoot+'\versions\',[StringComparison]::OrdinalIgnoreCase) -or -not (Test-Path -LiteralPath $newExe -PathType Leaf)) { throw 'Invalid updated tray path' }
@@ -32,24 +50,36 @@ if ($Action -eq 'Apply' -and -not $WhatIfPreference) {
         if ((Test-Path -LiteralPath $path) -and ((Get-Item -LiteralPath $path -Force).Attributes -band [IO.FileAttributes]::ReparsePoint)) { throw 'Reparse point in update log path' }
     }
     New-Item -ItemType Directory -Path $logRoot -Force | Out-Null
-    Start-Transcript -LiteralPath (Join-Path $logRoot (([Guid]::NewGuid().ToString('N'))+'.log')) | Out-Null
+    Start-Transcript -LiteralPath (Join-Path $logRoot ($RunId+'.log')) | Out-Null
 }
 function Get-Releases {
-    Invoke-RestMethod -Uri "https://api.github.com/repos/$repository/releases?per_page=20" -Headers @{ 'User-Agent' = 'Meltype-flash-Updater'; Accept = 'application/vnd.github+json' } -TimeoutSec 20
+    foreach ($release in (Invoke-RestMethod -Uri "https://api.github.com/repos/$repository/releases?per_page=20" -Headers @{ 'User-Agent' = 'Meltype-flash-Updater'; Accept = 'application/vnd.github+json' } -TimeoutSec 20)) { $release }
 }
 function Select-Release($Releases) {
+    # GitHub のリリース一覧は版の順に並ぶとは限らない (1.0.9 が 1.0.10 より前に来ることがある)。
+    # 一覧の先頭ではなく、一番新しい版を選ぶ。
+    $best = $null
+    $bestVersion = $null
     foreach ($release in $Releases) {
         if ($release.draft -or $release.prerelease) { continue }
+        $version = $null
+        if ([string]$release.tag_name -match '^flash-v(\d+)\.(\d+)\.(\d+)$') {
+            $version = [version]::new([int]$Matches[1], [int]$Matches[2], [int]$Matches[3])
+        }
+        if ($null -eq $version) { continue }
+        if ($null -ne $bestVersion -and $version -le $bestVersion) { continue }
         foreach ($asset in $release.assets) {
             if ($asset.name -notmatch '(?i)^Meltype[-_.]flash[-_.]Windows[-_.a-z0-9]*\.zip$') { continue }
             if ($asset.size -le 0 -or $asset.size -gt $limit) { continue }
             if ($asset.digest -notmatch '^sha256:[a-fA-F0-9]{64}$') { continue }
             $expected = "https://github.com/$repository/releases/download/$([Uri]::EscapeDataString([string]$release.tag_name))/$([Uri]::EscapeDataString([string]$asset.name))"
             if ($asset.browser_download_url -cne $expected) { continue }
-            return @{ release = $release; asset = $asset; uri = $expected; sha256 = $asset.digest.Substring(7) }
+            $bestVersion = $version
+            $best = @{ release = $release; asset = $asset; uri = $expected; sha256 = $asset.digest.Substring(7) }
+            break
         }
     }
-    return $null
+    return $best
 }
 function Download-Asset([string]$Uri, [string]$Destination, [long]$ExpectedSize) {
     Add-Type -AssemblyName System.Net.Http
@@ -148,7 +178,7 @@ try {
     $key = $machine.OpenSubKey('SOFTWARE\Microsoft\Windows\CurrentVersion')
     try { $programFiles = [string]$key.GetValue('ProgramFilesDir') } finally { $key.Dispose() }
 } finally { $machine.Dispose() }
-$installRoot = Join-Path $programFiles 'Meltype-flash'
+$installRoot = Join-Path $programFiles 'Meltype-FLASH'
 $state = Get-Content -LiteralPath (Join-Path $installRoot 'installed.json') -Raw | ConvertFrom-Json
 $expected = Join-Path (Join-Path $installRoot 'versions') ((Get-FileHash -LiteralPath (Join-Path $package 'SHA256SUMS.json')).Hash.Substring(0,16))
 if ([IO.Path]::GetFullPath([string]$state.package) -ne [IO.Path]::GetFullPath($expected)) { throw 'Updated installation receipt does not match downloaded package' }

@@ -94,6 +94,29 @@ pub fn scan(raw: &str) -> Vec<Span> {
             }
         }
         if found.is_none() && (i == 0 || !path(chars[i - 1].1)) {
+            // A leading dot belongs to a filename or fractional number, not
+            // Japanese punctuation (#844, #442). Limit this to token starts
+            // so a sentence-ending dot before Japanese remains punctuation.
+            let token_start =
+                i == 0 || chars[i - 1].1.is_whitespace() || "([{'\"=:+".contains(chars[i - 1].1);
+            if token_start && c == '.' && i + 1 < n && chars[i + 1].1.is_ascii_alphanumeric() {
+                let mut j = i + 1;
+                if chars[j].1.is_ascii_digit() {
+                    while j < n && chars[j].1.is_ascii_digit() {
+                        j += 1;
+                    }
+                    found = Some((i, j, "number"));
+                } else {
+                    while j < n
+                        && (chars[j].1.is_ascii_alphanumeric() || "._-".contains(chars[j].1))
+                    {
+                        j += 1;
+                    }
+                    found = Some((i, j, "filename"));
+                }
+            }
+        }
+        if found.is_none() && (i == 0 || !path(chars[i - 1].1)) {
             let offset = if rest.starts_with("../") {
                 3
             } else if rest.starts_with("./") || rest.starts_with("~/") {
@@ -109,6 +132,46 @@ pub fn scan(raw: &str) -> Vec<Span> {
                     j += 1;
                 }
                 found = Some((i, j, "posix_path"));
+            }
+        }
+        if found.is_none()
+            && (i == 0
+                || chars[i - 1].1.is_whitespace()
+                || chars[i - 1].1 == '='
+                || chars[i - 1].1 == '"')
+            && c == '-'
+            && i + 1 < n
+            && (chars[i + 1].1 == '-' || chars[i + 1].1.is_ascii_alphanumeric())
+        {
+            let mut j = i + 1;
+            if j < n && chars[j].1 == '-' {
+                j += 1;
+            }
+            while j < n
+                && (chars[j].1.is_ascii_alphanumeric() || chars[j].1 == '-' || chars[j].1 == '_')
+            {
+                j += 1;
+            }
+            if j > i + 1 {
+                found = Some((i, j, "cli_flag"));
+            }
+        }
+        if found.is_none()
+            && (i == 0 || chars[i - 1].1.is_whitespace() || !chars[i - 1].1.is_ascii_alphanumeric())
+        {
+            for cmd in [
+                "pt-query-digest",
+                "pt-query",
+                "ls-files",
+                "cd-rom",
+                "rm-rf",
+                "gpt-oss",
+                "create-next-app",
+            ] {
+                if raw[byte..].starts_with(cmd) {
+                    found = Some((i, i + cmd.len(), "hyphenated_command"));
+                    break;
+                }
             }
         }
         if let Some((start, end, kind)) = found {

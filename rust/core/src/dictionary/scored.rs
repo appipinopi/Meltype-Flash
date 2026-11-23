@@ -120,8 +120,42 @@ impl Dictionary {
         level: &str,
         retained: Option<&crate::composition_units::Units>,
     ) -> String {
+        if self.prefers_standalone_english(raw, level) {
+            return raw.to_owned();
+        }
         if !raw.bytes().all(|b| b.is_ascii_alphabetic()) || raw.is_empty() {
             return self.composition(raw, final_input, before, after, level);
+        }
+        // A plural followed by the particle wo can look like the syllable swo.
+        // Keep the scored English word intact while the particle is being typed.
+        if level != "Manual" {
+            if let Some((stem, particle)) = raw
+                .strip_suffix("wo")
+                .map(|s| (s, "を"))
+                .or_else(|| raw.strip_suffix('w').map(|s| (s, "w")))
+                .filter(|(stem, _)| stem.ends_with('s'))
+            {
+                let previous = self.composition_scored(stem, false, before, after, level);
+                let word = previous
+                    .rsplit(|c: char| !c.is_ascii_alphabetic())
+                    .next()
+                    .unwrap_or("");
+                if word.len() >= 3 && self.scored_known(word) {
+                    return previous + particle;
+                }
+            }
+        }
+        if level != "Manual" {
+            if let Some(mixed) = self.english_particle_pair(raw) {
+                return mixed;
+            }
+            if let Some(end) = self.english_compound_end(raw) {
+                return format!(
+                    "{}{}",
+                    &raw[..end],
+                    self.composition_scored(&raw[end..], final_input, &raw[..end], after, level)
+                );
+            }
         }
         if let Some(end) = self.capitalized_split(raw, final_input) {
             return format!(
@@ -150,7 +184,7 @@ impl Dictionary {
                     if word.ends_with('t') && lower[prefix.len()..].starts_with('s') {
                         let reading =
                             format!("{}つ", romaji::hiragana(&word[..word.len() - 1], true));
-                        if self.kana_words.iter().any(|w| w.starts_with(&reading)) {
+                        if self.kana_words.contains(&reading) {
                             return false;
                         }
                     }
@@ -245,23 +279,19 @@ impl Dictionary {
                 } else {
                     -1
                 };
-                // Capitalized words are forced before the Japanese transition.
-                if raw.as_bytes()[offsets[i]].is_ascii_uppercase() {
+                // Only an explicit capitalized-word boundary is forced. A
+                // growing name such as Goo may still score as Go + お.
+                if level != "Manual" && raw.as_bytes()[offsets[i]].is_ascii_uppercase() {
                     let suffix = &raw[offsets[i]..];
                     let stop = self
                         .capitalized_split(suffix, final_input)
-                        .map(|end| offsets[i] + end)
-                        .unwrap_or(raw.len());
-                    if let Some(j) = offsets.iter().position(|p| *p == stop) {
+                        .map(|end| offsets[i] + end);
+                    if let Some(j) = stop.and_then(|stop| offsets.iter().position(|p| *p == stop)) {
                         offer(&mut best[j][1], extend(&path, i, j, false));
                         continue;
                     }
                 }
-                let mut japanese = path.clone();
-                if unreadable[i] {
-                    japanese.score -= weights.unreadable;
-                }
-                offer(&mut best[i + 1][0], japanese);
+                let mut offered_english = false;
                 for j in (i + 1..=n).rev() {
                     let word = &raw[offsets[i]..if j == n { raw.len() } else { offsets[j] }];
                     let next = if j < n {
@@ -293,21 +323,34 @@ impl Dictionary {
                         level,
                     ) {
                         offer(&mut best[j][1], extend(&path, i, j, false));
+                        offered_english = true;
                     }
+                }
+                let acronym = raw.as_bytes()[offsets[i]].is_ascii_uppercase()
+                    && raw
+                        .as_bytes()
+                        .get(offsets[i] + 1)
+                        .is_some_and(u8::is_ascii_uppercase);
+                if !offered_english || !acronym {
+                    let mut japanese = path.clone();
+                    if unreadable[i] {
+                        japanese.score -= weights.unreadable;
+                    }
+                    offer(&mut best[i + 1][0], japanese);
                 }
                 for j in (i + 1..n).rev() {
                     let unit = &raw[offsets[j]..offsets[j + 1]];
                     if unit.len() != 3
                         || !unit.as_bytes()[0].is_ascii_lowercase()
                         || b"aiueon".contains(&unit.as_bytes()[0])
-                        || &unit[1..] != "ha"
+                        || !["ha", "wa"].contains(&&unit[1..])
                     {
                         continue;
                     }
                     let covered = (j.saturating_sub(8)..=j).any(|start| {
                         (j + 1..=n.min(j + 9)).any(|end| {
                             let reading = kana[start..end].concat();
-                            reading.chars().count() >= 3 && self.kana_words.contains(&reading)
+                            reading.chars().count() >= 3 && self.kana_words.0.contains(&reading)
                         })
                     });
                     if covered
@@ -327,7 +370,7 @@ impl Dictionary {
                             -1,
                             i == 0,
                             true,
-                            "ha",
+                            &unit[1..],
                             level,
                         )
                     {
@@ -389,6 +432,13 @@ impl Dictionary {
                 && !split
                 && head <= 3
                 && head < raw.len()
+                && (kana[stop..]
+                    .iter()
+                    .any(|part| part.chars().any(|c| c.is_ascii_alphabetic()))
+                    || final_input
+                        && romaji::hiragana(&raw[end..], true)
+                            .chars()
+                            .any(|c| c.is_ascii_alphabetic()))
                 && (self.common_english.contains(&lower[..head])
                     || self.proper.contains(&lower[..head]))
                 && !PARTICLES.iter().any(|p| lower[head..].starts_with(p))
@@ -515,6 +565,9 @@ impl Dictionary {
             return true;
         }
         if level == "Manual" {
+            return false;
+        }
+        if readable && Self::nasal_continues(&lower, next) {
             return false;
         }
         if readable {

@@ -21,6 +21,7 @@ HR = c.c_int32
 INVALID = -2147024809
 NO_INTERFACE = -2147467262
 NOT_IMPLEMENTED = -2147467263
+TF_LBI_CLK_LEFT = 2  # Windows SDKの左クリック。0はunknown-clickの負例に残す。
 
 class Guid(c.Structure):
     _fields_ = [("a", U32), ("b", c.c_uint16), ("c", c.c_uint16), ("d", c.c_ubyte * 8)]
@@ -43,9 +44,9 @@ FACTORY = Guid.parse("00000001-0000-0000-c000-000000000046")
 SERVICE = Guid.parse("c540baf6-88b1-5b30-b524-2c8702b034fc")
 RUST_MODULES = set()
 SPECS = [
-    ("51987acc-d57a-5c81-ad25-5c1e8d83f258", "Meltype-flash: 入力中", 2, 0, 0),
-    ("52a75cec-c221-5443-bb39-eb8d777c688f", "Meltype-flash: 変換した文節", 1, 0, 2),
-    ("711d8fcb-cfbd-56d2-9a8e-672ee6ed74c1", "Meltype-flash: 選んでいる文節", 1, 1, 1),
+    ("51987acc-d57a-5c81-ad25-5c1e8d83f258", "Meltype-FLASH: 入力中", 2, 0, 0),
+    ("52a75cec-c221-5443-bb39-eb8d777c688f", "Meltype-FLASH: 変換した文節", 1, 0, 2),
+    ("711d8fcb-cfbd-56d2-9a8e-672ee6ed74c1", "Meltype-FLASH: 選んでいる文節", 1, 1, 1),
 ]
 
 def invoke(pointer, slot, result, args, *values):
@@ -164,7 +165,7 @@ def verify_langbar(native):
     assert invoke(pointer, 3, HR, [c.POINTER(ItemInfo)], c.byref(info)) == 0
     assert bytes(info.service) == uuid.UUID("c540baf6-88b1-5b30-b524-2c8702b034fc").bytes_le
     assert bytes(info.item) == uuid.UUID("2c77a81e-41cc-4178-a3a7-5f8a987568e6").bytes_le
-    assert (info.description, info.style, info.sort) == ("Meltype-flash の入力モード", 65538, 0)
+    assert (info.description, info.style, info.sort) == ("Meltype-FLASH の入力モード", 65538, 0)
     assert invoke(pointer, 3, HR, [c.POINTER(ItemInfo)], None) == INVALID
     value = U32(123)
     assert invoke(pointer, 4, HR, [c.POINTER(U32)], c.byref(value)) == 0 and value.value == 0
@@ -179,7 +180,7 @@ def verify_langbar(native):
         finally:
             allocator.SysFreeString(text)
     assert get_text() == "あ"
-    assert get_text(6) == "Meltype-flash: 日本語 (クリックで英数)"
+    assert get_text(6) == "Meltype-FLASH: 日本語 (クリックで英数)"
     source = P()
     source_id = Guid.parse("4ea48a35-60ae-446f-8fd6-e6a8d82459f7")
     assert invoke(pointer, 0, HR, [c.POINTER(Guid), c.POINTER(P)], c.byref(source_id), c.byref(source)) == 0
@@ -227,8 +228,10 @@ def verify_langbar(native):
     assert other_cookie.value == 0xffffffff
     assert invoke(source, 4, HR, [U32], 123) == HR(0x80040200).value
     assert invoke(pointer, 7, HR, [HR, Point, P], 0, Point(), None) == 0
+    assert get_text() == "あ", "Unknown clicks must not toggle the input mode"
+    assert invoke(pointer, 7, HR, [HR, Point, P], TF_LBI_CLK_LEFT, Point(), None) == 0
     assert get_text() == "A"
-    assert get_text(6) == "Meltype-flash: 英数 (クリックで日本語)"
+    assert get_text(6) == "Meltype-FLASH: 英数 (クリックで日本語)"
     assert updates == [7] and refs[0] == 2
     # Foreign-thread calls cannot invoke callbacks into an STA text service.
     before = len(reads)
@@ -294,7 +297,7 @@ def verify_langbar(native):
     native.meltype_tsf_langbar_detach(pointer)
     before = len(reads)
     assert get_text() == "あ"
-    assert invoke(pointer, 7, HR, [HR, Point, P], 0, Point(), None) == 0
+    assert invoke(pointer, 7, HR, [HR, Point, P], TF_LBI_CLK_LEFT, Point(), None) == 0
     assert not mode[0] and len(reads) == before
     japanese_icon = draw_icon(inspect=True)
     assert latin_icon[:2] == japanese_icon[:2] and latin_icon[2] != japanese_icon[2]

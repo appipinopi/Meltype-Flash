@@ -125,6 +125,7 @@ unsafe extern "C" fn snapshot(data: *mut c_void, out: *mut keys::Snapshot) {
         stale_tries: stale.tries,
         stale_vk: stale.key,
         stale_time: stale.time,
+        full_width_space: i32::from((*s).full_width_space),
     });
 }
 unsafe extern "C" fn update(data: *mut c_void, op: u32, a: u64, b: u64) {
@@ -190,6 +191,7 @@ unsafe extern "C" fn pass(data: *mut c_void, reason: u32) {
         4 => w!("英語の単語の続き").as_ptr(),
         5 => w!("meltype-flash.exe が使えない").as_ptr(),
         6 => w!("パスワードの入力欄").as_ptr(),
+        7 => w!("メニューを開いている").as_ptr(),
         _ => ptr::null(),
     };
     let changed = (*s).pass_reason != label;
@@ -197,6 +199,10 @@ unsafe extern "C" fn pass(data: *mut c_void, reason: u32) {
     if changed && !label.is_null() {
         relay(data, 6, reason as i32);
     }
+}
+unsafe extern "C" fn up_event(data: *mut c_void, _context: *mut c_void, key: u32) {
+    let o = &*data.cast::<Owner>();
+    let _ = super::key_work::run_up(o.state, o.lifetime, o.worker, key, o.adapter, o.notice);
 }
 unsafe extern "C" fn would(
     data: *mut c_void,
@@ -367,6 +373,7 @@ pub unsafe extern "C" fn meltype_tsf_service_key_event(
         composing: Some(composing),
         toggle: Some(toggle),
         handle: Some(handle),
+        up: Some(up_event),
     };
     key_state::meltype_tsf_key_event((*state).keys, kind, context, key, message, &entry)
 }

@@ -53,6 +53,7 @@ struct RustServiceState {
     void* langbar; // Rust-owned COM reference.
     void* candidates; // Rust-owned thread-local window token.
     unsigned long long edit_epoch;
+    bool full_width_space;
 };
 static_assert(std::is_standard_layout<RustServiceState>::value);
 class RustServiceStateStorage final {

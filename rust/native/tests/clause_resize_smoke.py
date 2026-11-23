@@ -1,4 +1,5 @@
 # SPDX-License-Identifier: GPL-3.0-or-later
+# Copyright (C) 2026 appipinopi
 """Original C# clause resize traces and converter callbacks through the native ABI."""
 import argparse
 import ctypes as c
@@ -80,6 +81,14 @@ with tempfile.TemporaryDirectory(prefix="meltype-clause-resize-") as directory:
         assert len(case["keys"]) == len(case["expected"])
         try:
             for index, (key, expected) in enumerate(zip(case["keys"], case["expected"], strict=True)):
+                # #1005: a trailing capital must not undo the established
+                # Japanese reading. The frozen C# trace briefly displayed
+                # たnniG before the following i repaired it. Assert the new
+                # exact text and retain every other original field/check.
+                if case["name"] == "mixed-shrink-before-english" and index == 5:
+                    assert key == [71, 71, 1]
+                    assert expected["view"]["text"] == "たnniG"
+                    expected = dict(expected, view=dict(expected["view"], text="たんいG"))
                 query_count = len(queries)
                 pointer = api.meltype_handle_key(handle, *key, None, None)
                 assert pointer, (case["name"], index, "null native response")

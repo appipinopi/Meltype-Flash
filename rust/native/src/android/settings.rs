@@ -41,17 +41,110 @@ const TOGGLES: &[(&str, &str)] = &[
     ("ContinueAfterConversion", "変換後も入力を続ける"),
     ("SeparateKeyRoles", "変換キーの役割を分ける"),
 ];
+fn ai_installed(handle: jlong, id: &str) -> bool {
+    let Some(model) = meltype_core::ai_catalog::find(id).filter(|m| m.family == "Shunti") else {
+        return false;
+    };
+    sessions().lock().ok().is_some_and(|sessions| {
+        sessions
+            .get(&(handle as usize))
+            .and_then(|s| s.data_directory())
+            .is_some_and(|root| {
+                let directory = root.join("ai").join(format!("{}-data", model.directory));
+                let receipt = std::fs::read(directory.join("receipt.json"))
+                    .ok()
+                    .and_then(|bytes| serde_json::from_slice::<Value>(&bytes).ok());
+                receipt.is_some_and(|r| {
+                    model.files.iter().all(|f| {
+                        r["files"][&f.name] == f.sha256
+                            && directory
+                                .join(&f.name)
+                                .metadata()
+                                .is_ok_and(|m| m.len() == f.size)
+                    })
+                })
+            })
+    })
+}
 pub(super) fn page(handle: jlong, page: jint) -> Result<Value> {
     let mut nodes = Vec::new();
     match page {
         0 => {
             let settings = request(handle, json!({"op":"settings_get"}))?;
+            let selected = settings["AiModel"] == "Shunti"
+                || settings["AiModel"].is_null() && settings["UseShunti"] == true;
+            label(&mut nodes, "AIモデル");
+            nodes.push(json!({"type":"select","text":"AIモデル","choices":["使用しない","shunti"],"selected":i32::from(selected),"action":{"action":"ai_select"},"enabled":!ai_ui::busy(handle)}));
+            if selected {
+                label(
+                    &mut nodes,
+                    "shuntiの辞書・モデルは任意ダウンロードです。パス入力は不要です。",
+                );
+                let variants: Vec<_> = meltype_core::ai_catalog::models()
+                    .iter()
+                    .filter(|m| m.family == "Shunti")
+                    .collect();
+                let id = settings["ShuntiModelVariant"]
+                    .as_str()
+                    .unwrap_or("shunti-v7-s8p");
+                nodes.push(json!({"type":"select","text":"バージョン・モデルサイズ","choices":variants.iter().map(|m| &m.label).collect::<Vec<_>>(),"selected":variants.iter().position(|m| m.id == id).unwrap_or(0),"action":{"action":"ai_variant"},"enabled":!ai_ui::busy(handle)}));
+                let ready = ai_installed(handle, id);
+                nodes.push(json!({"type":"button","text":if ready {"インストール済み"} else {"このモデルをインストール"},"action":{"action":"ai_install"},"enabled":!ready && !ai_ui::busy(handle)}));
+                label(
+                    &mut nodes,
+                    if ready {
+                        "インストール済み"
+                    } else {
+                        "未導入。インストール後に有効になります。"
+                    },
+                );
+            }
             for (name, text) in TOGGLES {
                 nodes.push(json!({"type":"toggle","text":text,"checked":settings[name].as_bool().unwrap_or(false),"action":{"action":"toggle","name":name}}));
             }
             label(
                 &mut nodes,
+                "利用状況は、アプリの版・OSの版・起動回数だけを匿名で送ります。入力内容・入力履歴・辞書・設定値は送りません。利用状況の送信は停止できません。",
+            );
+            label(
+                &mut nodes,
                 "ソフトキーボードはローマ字入力です。JISかな入力は外付けキーボードで使用できます。",
+            );
+            label(&mut nodes, "通貨の換算");
+            // Android はネットからレートを取らないので、固定と手入力の 2 つ
+            let modes = ["Fixed", "Manual"];
+            let mode = settings["CurrencyRateMode"].as_str().unwrap_or("Fixed");
+            nodes.push(json!({
+                "type":"select",
+                "text":"通貨のレート",
+                "choices":["固定（同梱のレート）","手入力"],
+                "selected":modes.iter().position(|m| *m == mode).unwrap_or(0),
+                "action":{"action":"currency_mode"},
+                "enabled":true,
+            }));
+            let digits = settings["CurrencyDecimals"]
+                .as_i64()
+                .unwrap_or(1)
+                .clamp(0, 4);
+            nodes.push(json!({
+                "type":"select",
+                "text":"換算した額の小数の桁",
+                "choices":["0","1","2","3","4"],
+                "selected":digits as i32,
+                "action":{"action":"currency_digits"},
+                "enabled":true,
+            }));
+            field(
+                &mut nodes,
+                "currency",
+                "手入力のレート（1単位あたりの円）",
+                settings["CurrencyManualRates"].as_str().unwrap_or(""),
+                2,
+            );
+            button(
+                &mut nodes,
+                "レートを保存",
+                json!({"action":"currency_save"}),
             );
             field(
                 &mut nodes,
@@ -236,6 +329,87 @@ fn string<'a>(value: &'a Value, key: &str) -> Result<&'a str> {
 pub(super) fn action(handle: jlong, action: Value, fields: Value) -> Result<Value> {
     let kind = string(&action, "action")?;
     let (request, page) = match kind {
+        "ai_select" => {
+            if ai_ui::busy(handle) {
+                return Ok(json!({}));
+            }
+            let model = match action["value"].as_i64() {
+                Some(0) => "None",
+                Some(1) => "Shunti",
+                _ => return Err("AIモデルが正しくありません".into()),
+            };
+            let current = request(handle, json!({"op":"settings_get"}))?;
+            if current["AiModel"] == model {
+                return Ok(json!({}));
+            }
+            request(
+                handle,
+                json!({"op":"settings_set","name":"UseShunti","value":false}),
+            )?;
+            request(
+                handle,
+                json!({"op":"settings_set","name":"AiModel","value":model}),
+            )?;
+            if model == "Shunti" {
+                let id = current["ShuntiModelVariant"]
+                    .as_str()
+                    .unwrap_or("shunti-v7-s8p");
+                let ready = ai_installed(handle, id);
+                // The runtime verifies the fixed hashes again before inference.
+                request(
+                    handle,
+                    json!({"op":"settings_set","name":"UseShunti","value":ready}),
+                )?;
+            }
+            return Ok(json!({"page":0}));
+        }
+        "ai_variant" => {
+            if ai_ui::busy(handle) {
+                return Ok(json!({}));
+            }
+            let variants: Vec<_> = meltype_core::ai_catalog::models()
+                .iter()
+                .filter(|m| m.family == "Shunti")
+                .collect();
+            let model = action["value"]
+                .as_u64()
+                .and_then(|i| variants.get(i as usize))
+                .ok_or("AIモデルが正しくありません")?;
+            let current = request(handle, json!({"op":"settings_get"}))?;
+            if current["ShuntiModelVariant"]
+                .as_str()
+                .unwrap_or("shunti-v7-s8p")
+                == model.id
+            {
+                return Ok(json!({}));
+            }
+            request(
+                handle,
+                json!({"op":"settings_set","name":"ShuntiModelVariant","value":model.id}),
+            )?;
+            request(
+                handle,
+                json!({"op":"settings_set","name":"UseShunti","value":ai_installed(handle,&model.id)}),
+            )?;
+            return Ok(json!({"page":0}));
+        }
+        "ai_install" => {
+            if ai_ui::busy(handle) {
+                let current = request(handle, json!({"op":"settings_get"}))?;
+                if ai_installed(
+                    handle,
+                    current["ShuntiModelVariant"]
+                        .as_str()
+                        .unwrap_or("shunti-v7-s8p"),
+                ) {
+                    return Ok(json!({}));
+                }
+                return Ok(json!({}));
+            }
+            return Ok(
+                json!({"confirm":{"title":"shuntiの環境を作成してよいですか？","message":"shuntiの辞書（CC BY-SA 4.0）・モデル（CC BY 4.0）を別ダウンロードします。入力内容は送信しません。","positive":"はい、作成する","action":{"action":"ai_install"}}}),
+            );
+        }
         "toggle" => {
             let name = string(&action, "name")?;
             if !TOGGLES.iter().any(|(allowed, _)| name == *allowed) {
@@ -249,6 +423,35 @@ pub(super) fn action(handle: jlong, action: Value, fields: Value) -> Result<Valu
         "mark" => (
             json!({"op":"settings_set","name":"SnippetMark","value":string(&fields,"mark")?}),
             None,
+        ),
+        "currency_mode" => {
+            let mode = match action["value"].as_i64() {
+                Some(0) => "Fixed",
+                Some(1) => "Manual",
+                _ => return Err("通貨のレートが正しくありません".into()),
+            };
+            // 画面を作り直すと、選択の通知 (onItemSelected) で同じ操作が続く。
+            // 表示は選択の部品が自分で変わるので、作り直さずに値だけ保存する。
+            (
+                json!({"op":"settings_set","name":"CurrencyRateMode","value":mode}),
+                None,
+            )
+        }
+        "currency_digits" => {
+            let digits = action["value"]
+                .as_i64()
+                .filter(|digits| {
+                    (0..=i64::from(meltype_core::currency::MAX_DECIMALS)).contains(digits)
+                })
+                .ok_or("小数の桁が正しくありません")?;
+            (
+                json!({"op":"settings_set","name":"CurrencyDecimals","value":digits}),
+                None,
+            )
+        }
+        "currency_save" => (
+            json!({"op":"settings_set","name":"CurrencyManualRates","value":string(&fields,"currency")?}),
+            Some(0),
         ),
         "dictionary_add" => (
             json!({"op":"dictionary_set","reading":string(&fields,"reading")?,"word":string(&fields,"word")?}),

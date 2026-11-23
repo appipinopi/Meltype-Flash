@@ -41,16 +41,23 @@ mod native {
         if MainThreadMarker::new().is_none() {
             return 0;
         }
-        let (Some(panel_class), Some(alert_class), Some(center_class)) = (
+        let (Some(panel_class), Some(alert_class), Some(center_class), Some(app_class)) = (
             AnyClass::get(c"NSOpenPanel"),
             AnyClass::get(c"NSAlert"),
             AnyClass::get(c"NSDistributedNotificationCenter"),
+            AnyClass::get(c"NSApplication"),
         ) else {
             return 0;
         };
+        // #716/#766: an input method is a background app. Activate it before
+        // entering the modal chooser so clicks do not immediately dismiss it.
+        let application: Retained<AnyObject> = msg_send![app_class, sharedApplication];
+        let _: () = msg_send![&application, activateIgnoringOtherApps:true];
         let panel: Retained<AnyObject> = msg_send![panel_class, new];
         let _: () = msg_send![&panel, setAllowsMultipleSelection:false];
         let _: () = msg_send![&panel, setCanChooseDirectories:false];
+        let _: () = msg_send![&panel, setLevel:3isize];
+        let _: () = msg_send![&panel, makeKeyAndOrderFront:std::ptr::null::<AnyObject>()];
         let response: isize = msg_send![&panel, runModal];
         if response != 1 {
             return 1;
@@ -74,6 +81,7 @@ mod native {
         let Ok(length) = u32::try_from(units.len()) else {
             return 1;
         };
+        let _: () = msg_send![&application, activateIgnoringOtherApps:true];
         let alert: Retained<AnyObject> = msg_send![alert_class, new];
         let mut failure = std::ptr::null_mut();
         let count = crate::macos_dictionary::meltype_macos_dictionary_import(

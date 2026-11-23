@@ -32,6 +32,7 @@ unsafe extern "C" fn update(data: *mut c_void, op: u32, value: u64) {
         1 => {
             (*state).server_active = value & 1 != 0;
             (*state).direct_detection = value & 2 != 0;
+            (*state).full_width_space = value & 1 != 0 && value & 8 != 0;
             (*state).code_app = value & 4 != 0;
             (*state).direct_word = false;
         }
@@ -74,7 +75,8 @@ unsafe extern "C" fn request(data: *mut c_void, text: *const c_char, flags: *mut
     flags.write(
         u32::from(value["active"].as_bool().unwrap_or(false))
             | (u32::from(value["directDetection"].as_bool().unwrap_or(false)) << 1)
-            | (u32::from(value["code"].as_bool().unwrap_or(false)) << 2),
+            | (u32::from(value["code"].as_bool().unwrap_or(false)) << 2)
+            | (u32::from(value["fullWidthSpace"].as_bool().unwrap_or(false)) << 3),
     );
     1
 }

@@ -18,7 +18,7 @@ pub fn hiragana(text: &str) -> String {
         .collect()
 }
 pub fn valid(reading: &str, word: &str) -> bool {
-    reading.chars().count() >= 2
+    !reading.is_empty()
         && reading
             .chars()
             .all(|c| ('ぁ'..='ゖ').contains(&c) || "ー・".contains(c) || c.is_ascii_alphanumeric())

@@ -34,7 +34,15 @@ unsafe extern "C" fn scope(data: *mut c_void, op: u32, value: i32) {
     }
 }
 unsafe extern "C" fn mode_changed(data: *mut c_void, english: i32) {
-    log(data, 5, english);
+    // 設定で「あ / A」の表示を切れる。読めないときは表示しない。
+    let enabled =
+        meltype_core::storage::Store::new(meltype_core::storage::Store::default_directory())
+            .settings()
+            .map(|settings| settings.boolean("ShowTsfModeIndicator"))
+            .unwrap_or(false);
+    if enabled {
+        log(data, 5, english);
+    }
 }
 unsafe extern "C" fn read(data: *mut c_void) -> u32 {
     let s = (*data.cast::<Owner>()).state;
@@ -61,6 +69,7 @@ unsafe extern "C" fn update(data: *mut c_void, op: u32, value: u32) {
             (*s).server_active = value & 1 != 0;
             (*s).direct_detection = value & 2 != 0;
             (*s).direct_word = value & 4 != 0;
+            (*s).full_width_space = value & 1 != 0 && value & 8 != 0;
         }
         4 => (*s).server_active = false,
         5 => (*s).last_hello = 0,
@@ -163,6 +172,61 @@ unsafe extern "C" fn edit(data: *mut c_void, op: u32, cookie: u32, context: *mut
     }
     0
 }
+unsafe extern "C" fn ignore_reply(_data: *mut c_void, _bytes: *const u8, _length: u32) -> i32 {
+    1
+}
+/// Send a key-up event to the worker as `"is_up": true`.
+/// No edit session or reply application is needed for a release event.
+#[allow(clippy::too_many_arguments)]
+pub(super) unsafe fn run_up(
+    state: *mut ServiceState,
+    lifetime: *mut c_void,
+    worker: *const c_char,
+    key: u32,
+    adapter: *mut c_void,
+    notice: Option<Notice>,
+) -> HRESULT {
+    if state.is_null() || lifetime.is_null() || worker.is_null() {
+        return E_INVALIDARG;
+    }
+    // Key-up is only meaningful for an active composition/held-key chord.
+    if (*state).composition.is_null() {
+        return S_OK;
+    }
+    let sid = CStr::from_ptr(meltype_tsf_service_sid(state)).to_string_lossy();
+    let process = String::from_utf16_lossy(&process::name());
+    let request = serde_json::json!({
+        "op": "key",
+        "sid": sid,
+        "process": process,
+        "vk": key,
+        "ch": 0,
+        "mods": 0,
+        "is_up": true,
+    });
+    let request = match CString::new(request.to_string()) {
+        Ok(request) => request,
+        Err(_) => return E_INVALIDARG,
+    };
+    let bytes = request.as_bytes();
+    let Ok(length) = u32::try_from(bytes.len()) else {
+        return E_INVALIDARG;
+    };
+    super::exchange::meltype_tsf_service_exchange(
+        state,
+        worker,
+        lifetime,
+        bytes.as_ptr(),
+        length,
+        200,
+        0,
+        ptr::null_mut(),
+        Some(ignore_reply),
+        None,
+    );
+    let _ = (adapter, notice);
+    S_OK
+}
 unsafe extern "C" fn parsed(data: *mut c_void, bytes: *const u8, length: u32) -> i32 {
     let bytes = std::slice::from_raw_parts(bytes, length as usize);
     let Some((flags, mode)) = crate::json_bridge::key_reply(bytes) else {
@@ -259,6 +323,11 @@ pub(super) unsafe fn run(
 ) -> HRESULT {
     if state.is_null() || lifetime.is_null() || worker.is_null() {
         return E_INVALIDARG;
+    }
+    if matches!(key, 0x20 | 0x1c)
+        && super::async_poll::begin(state, lifetime, sink, worker, context, adapter, notice)
+    {
+        return S_OK;
     }
     let sid = CStr::from_ptr(meltype_tsf_service_sid(state)).to_string_lossy();
     let process = String::from_utf16_lossy(&process::name());

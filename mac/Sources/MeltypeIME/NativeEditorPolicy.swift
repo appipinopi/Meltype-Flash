@@ -165,9 +165,9 @@ struct NativeEditorPolicy {
     @discardableResult
     func apply(_ result: SessionResult, marked: @escaping () -> NSRange, selected: @escaping () -> NSRange,
                substring: @escaping (NSRange) -> String?, insert: @escaping (String, NSRange) -> Void,
-               render: @escaping () -> Void) -> Bool {
+               clearMarked: @escaping () -> Void, render: @escaping () -> Void) -> Bool {
         guard let data = try? JSONEncoder().encode(result), let count = UInt32(exactly: data.count) else { return false }
-        let sink = NativeEditSink(marked: marked, selected: selected, substring: substring, insert: insert, render: render)
+        let sink = NativeEditSink(marked: marked, selected: selected, substring: substring, insert: insert, clearMarked: clearMarked, render: render)
         return withExtendedLifetime(sink) {
             data.withUnsafeBytes { bytes in
                 applyFunction(bytes.bindMemory(to: UInt8.self).baseAddress, count, Unmanaged.passUnretained(sink).toOpaque(), nativeEditHost) != 0
@@ -408,10 +408,11 @@ private final class NativeEditSink {
     let selected: () -> NSRange
     let substring: (NSRange) -> String?
     let insert: (String, NSRange) -> Void
+    let clearMarked: () -> Void
     let render: () -> Void
     var buffer: UnsafeMutablePointer<UInt16>?
-    init(marked: @escaping () -> NSRange, selected: @escaping () -> NSRange, substring: @escaping (NSRange) -> String?, insert: @escaping (String, NSRange) -> Void, render: @escaping () -> Void) {
-        self.marked = marked; self.selected = selected; self.substring = substring; self.insert = insert; self.render = render
+    init(marked: @escaping () -> NSRange, selected: @escaping () -> NSRange, substring: @escaping (NSRange) -> String?, insert: @escaping (String, NSRange) -> Void, clearMarked: @escaping () -> Void, render: @escaping () -> Void) {
+        self.marked = marked; self.selected = selected; self.substring = substring; self.insert = insert; self.clearMarked = clearMarked; self.render = render
     }
     deinit { buffer?.deallocate() }
 }
@@ -438,6 +439,7 @@ private let nativeEditHost: NativeEditHost = { context, operation, location, len
         guard let at = Int(exactly: location), let size = Int(exactly: length), let text else { return 0 }
         sink.insert(String(decoding: UnsafeBufferPointer(start: text, count: Int(count)), as: UTF16.self), NSRange(location: at, length: size))
     case 4: sink.render()
+    case 5: sink.clearMarked()
     default: return 0
     }
     return 1

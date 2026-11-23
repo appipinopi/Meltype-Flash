@@ -1,70 +1,118 @@
-name: Rust preview
+name: 全OSビルド・テスト
 on:
   workflow_dispatch:
+    inputs:
+      platform:
+        description: ビルド対象（iosでiOS版だけを実行）
+        type: choice
+        options: [all, ios]
+        default: all
+  workflow_call:
+    inputs:
+      packages_only:
+        description: リリースからAndroid・ChromeOSだけを再利用する
+        type: boolean
+        default: false
   pull_request:
-    paths: ['rust/**', 'android/**', 'Cargo.*', 'dictionaries/**', 'native/tip/**', 'linux/fcitx5/**', 'tools/parity/*.py', 'tools/check-rust-windows-package.py', 'tools/test_rust_windows_package.py', 'tools/parity/settings-candidates/**', 'tools/parity/settings-apps/**', 'tools/parity/windows-converter/**', 'tools/parity/mozc-lifecycle/**', '.github/workflows/rust.yml']
+    paths:
+      - 'rust/**'
+      - 'android/**'
+      - 'Cargo.*'
+      - 'dictionaries/**'
+      - 'native/tip/**'
+      - 'linux/**'
+      - 'src/**'
+      - 'assets/branding/**'
+      - 'tools/parity/**'
+      - 'tools/ci/**'
+      - 'tools/*rust*'
+      - 'tools/benchmark-windows.py'
+      - 'tools/plot-windows-benchmark.py'
+      - 'tools/performance/windows/*.py'
+      - 'tools/performance/windows/*.cs'
+      - 'tools/performance/windows/*.csproj'
+      - 'tools/extract-rust-settings-ui.py'
+      - '.github/workflows/rust.yml'
+      - '.github/workflows/rust-release.yml'
+      - 'chromeos/**'
+      - 'mac/**'
+      - 'ios/**'
+      - 'tools/test-mac-*'
 permissions:
   contents: read
+concurrency:
+  group: all-os-${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: ${{ github.event_name == 'pull_request' }}
 jobs:
+  macos-intel-ai:
+    if: ${{ !inputs.packages_only && inputs.platform != 'ios' }}
+    runs-on: macos-15-intel
+    env:
+      MACOSX_DEPLOYMENT_TARGET: '13.0'
+    steps:
+      - uses: actions/checkout@v5
+      - uses: dtolnay/rust-toolchain@stable
+      - uses: Swatinem/rust-cache@v2
+        with:
+          shared-key: shunti-macos-intel
+      - run: cargo test -p meltype-ai --all-features --locked
+      - run: cargo build -p meltype-native -p meltype-settings --release --locked
+      - run: python3 rust/build-shunti.py dist/shunti-runtime-test.zip --macos x86_64
   desktop:
+    if: ${{ !inputs.packages_only && inputs.platform != 'ios' }}
     strategy:
       fail-fast: false
       matrix:
         os: [windows-latest, ubuntu-latest, macos-latest]
     runs-on: ${{ matrix.os }}
+    timeout-minutes: 90
     concurrency:
-      group: rust-preview-${{ github.head_ref || github.ref_name }}-${{ matrix.os }}
-      # Finish each active platform without blocking other platforms.
-      cancel-in-progress: false
+      group: rust-preview-${{ github.workflow }}-${{ github.ref }}-${{ matrix.os }}
+      # PR の更新では古い検査を止め、手動実行は最後まで動かす。
+      cancel-in-progress: ${{ github.event_name == 'pull_request' }}
     steps:
       - uses: actions/checkout@v5
       - uses: dtolnay/rust-toolchain@stable
         with:
           components: rustfmt, clippy
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
       - name: Linux IBus development and isolated-test runtime
         if: runner.os == 'Linux'
         run: |
           sudo apt-get update
           sudo apt-get install -y libibus-1.0-dev ibus gir1.2-ibus-1.0 python3-gi dbus-x11 xvfb fonts-noto-cjk libxkbcommon-x11-0
       - run: cargo fmt --all --check
+        if: runner.os == 'Linux'
       - run: cargo clippy --workspace --all-targets --locked -- -D warnings
+      - name: Compile the fixed IME Q&A accuracy evaluator
+        run: cargo check -p meltype-ai --features download --example accuracy --locked
       - run: cargo clippy -p meltype-native --all-targets --features tsf-server --locked -- -D warnings
         if: runner.os == 'Windows'
       - run: cargo test --workspace --locked
       - run: cargo run -p meltype-core --example quality -- quality-report.json --check
-      - name: Build fcitx5 adapter
-        if: runner.os == 'Linux'
-        run: |
-          sudo apt-get update
-          sudo apt-get install -y cmake libfcitx5core-dev libfcitx5utils-dev libfcitx5config-dev
-          cmake -S linux/fcitx5 -B linux/build/fcitx5-rust -DMELTYPE_RUST_CORE=ON -DMELTYPE_RUST_ABI_TESTS=ON
-          cmake --build linux/build/fcitx5-rust --parallel 2
-          cmake -S linux/fcitx5 -B linux/build/fcitx5-legacy -DMELTYPE_RUST_CORE=OFF
-          cmake --build linux/build/fcitx5-legacy --parallel 2
       - run: cargo build --workspace --release --locked
+      - name: Verify optional macOS shunti runtime build
+        if: runner.os == 'macOS'
+        run: python3 rust/build-shunti.py dist/shunti-runtime-test.zip --macos "$(uname -m)"
       - name: Windows converter batch ABI bounds and cleanup
         if: runner.os == 'Windows'
         run: python rust/native/tests/windows_converter_batch_smoke.py target/release/meltype_native.dll
-      - name: fcitx5 Rust JSON ABI and reference/core projection parity
-        if: runner.os == 'Linux'
-        run: |
-          python3 linux/fcitx5/test/json_bridge.py target/release/libmeltype_native.so
-          linux/build/fcitx5-rust/testkeymapping "${{ github.workspace }}/target/release/libmeltype_native.so"
-          python3 linux/fcitx5/test/state_abi.py target/release/libmeltype_native.so
-          python3 linux/fcitx5/test/event_abi.py target/release/libmeltype_native.so
       - name: Rust IBus engine through a private daemon and input context
         if: runner.os == 'Linux'
         run: |
           xvfb-run -a dbus-run-session -- /usr/bin/python3 rust/ibus/tests/integration.py target/release/meltype-ibus
           MELTYPE_IBUS_TEST_INSTALLED=1 xvfb-run -a dbus-run-session -- /usr/bin/python3 rust/ibus/tests/integration.py target/release/meltype-ibus
           /usr/bin/python3 rust/ibus/tests/installation.py target/release/meltype-ibus
-      - uses: actions/setup-python@v5
-        with:
-          python-version: '3.12'
       - name: Batch evidence and resume integrity
         run: python -m unittest discover -s tools/parity -p test_batch_compare.py -v
       - name: Windows preview file and PE dependency integrity
         run: python -m unittest discover -s tools -p test_rust_windows_package.py -v
+      - name: Software OpenGL for real Windows tray and settings tests
+        if: runner.os == 'Windows'
+        shell: pwsh
+        run: ./tools/ci/setup-windows-opengl.ps1 -Directories target/release,target/debug
       - name: Windows package lifecycle over isolated files
         if: runner.os == 'Windows'
         run: |
@@ -149,7 +197,12 @@ jobs:
           if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
           python rust/native/tests/prediction_worker_smoke.py target/release/meltype-tip-worker.exe
           if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
-          dotnet build tools/parity/mozc-lifecycle/MozcLifecycle.csproj --nologo
+          git fetch --no-tags --depth=1 https://github.com/yksr-melt/Meltype.git 45e14f86558aa6ea34f2c2ecd038ba95ca8c3c46
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+          python tools/parity/mozc-lifecycle/prepare_reference.py dist/frozen-csharp-reference
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+          $frozenCore = Join-Path $PWD 'dist/frozen-csharp-reference/src/Meltype.Core/Meltype.Core.csproj'
+          dotnet build tools/parity/mozc-lifecycle/MozcLifecycle.csproj "-p:CoreProject=$frozenCore" --nologo
           if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
           dotnet run --no-build --project tools/parity/mozc-lifecycle/MozcLifecycle.csproj -- --filter tools/parity/mozc-lifecycle/filter-cases.json > mozc-learning-filter-reference.jsonl
           if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
@@ -189,7 +242,8 @@ jobs:
         if: runner.os == 'Windows'
         shell: pwsh
         run: |
-          dotnet run --project tools/parity/misspellings/Misspellings.csproj -- tools/parity/misspellings/cases.json > misspelling-reference.jsonl
+          $frozenCore = Join-Path $PWD 'dist/frozen-csharp-reference/src/Meltype.Core/Meltype.Core.csproj'
+          dotnet run --project tools/parity/misspellings/Misspellings.csproj "-p:CoreProject=$frozenCore" -- tools/parity/misspellings/cases.json > misspelling-reference.jsonl
           if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
           python rust/native/tests/misspelling_reference.py misspelling-reference.jsonl
           if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
@@ -203,11 +257,23 @@ jobs:
         run: python rust/native/tests/hook_smoke.py
       - name: Settings UI labels match upstream
         run: |
-          git fetch --no-tags --depth=1 origin 6310c44b728d5ad88284853f9ef37ea224993b18
+          git fetch --no-tags --depth=1 https://github.com/yksr-melt/Meltype.git 46db6ca2f941eb9580f4d5ed103ee0bee71111c7
           python tools/extract-rust-settings-ui.py --check
+      - uses: bazel-contrib/setup-bazel@0.15.0
+        if: runner.os == 'Linux'
+        with:
+          bazelisk-cache: true
+          disk-cache: linux-mozc
+      - name: Build Linux kanji converter
+        if: runner.os == 'Linux'
+        run: |
+          sudo apt-get install -y clang libglib2.0-dev libgtk-3-dev libxcb-xfixes0-dev libxcb-keysyms1-dev
+          bash native/mozc/build-mozc-helper.sh "$RUNNER_TEMP/mozc"
       - name: Package standalone Rust IBus engine
         if: runner.os == 'Linux'
-        run: bash rust/build-linux.sh
+        run: |
+          MELTYPE_REQUIRE_MOZC=1 bash rust/build-linux.sh
+          MELTYPE_MOZC_HELPER="$PWD/linux/build/Meltype-flash-linux/mozc/meltype_mozc_helper" python3 rust/native/tests/linux_mozc_smoke.py target/release/libmeltype_native.so
       - uses: actions/upload-artifact@v4
         if: runner.os == 'Linux'
         with:
@@ -437,10 +503,12 @@ jobs:
             rust/README.md
             quality-report.json
   android:
+    if: ${{ inputs.platform != 'ios' }}
     runs-on: ubuntu-latest
+    timeout-minutes: 45
     concurrency:
-      group: rust-preview-${{ github.head_ref || github.ref_name }}-android
-      cancel-in-progress: false
+      group: rust-android-${{ github.workflow }}-${{ github.ref }}
+      cancel-in-progress: ${{ github.event_name == 'pull_request' }}
     steps:
       - uses: actions/checkout@v5
       - uses: dtolnay/rust-toolchain@stable
@@ -473,6 +541,11 @@ jobs:
           export ANDROID_NDK_ROOT="$ANDROID_NDK_HOME"
           export ANDROID_NDK="$ANDROID_NDK_HOME"
           cargo ndk -t arm64-v8a -t x86_64 -o android/app/src/main/jniLibs build -p meltype-native --release --locked
+          for pair in arm64-v8a:aarch64-linux-android x86_64:x86_64-linux-android; do
+            abi=${pair%:*}
+            triple=${pair#*:}
+            cp "$ANDROID_NDK_HOME/toolchains/llvm/prebuilt/linux-x86_64/sysroot/usr/lib/$triple/libc++_shared.so" "android/app/src/main/jniLibs/$abi/"
+          done
       - run: gradle -p android assembleDebug assembleDebugAndroidTest lintDebug --no-daemon
       - name: Instrumentation result gate checks
         run: python3 android/tests/test_instrument_report.py
@@ -500,3 +573,211 @@ jobs:
             android/app/build/reports/lint-results-debug.html
             LICENSE
             THIRD-PARTY-NOTICES.md
+  extension:
+    if: ${{ inputs.platform != 'ios' }}
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v5
+      - uses: dtolnay/rust-toolchain@stable
+        with:
+          targets: wasm32-unknown-unknown
+          components: clippy
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: Install pinned wasm-bindgen CLI
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          cd "$RUNNER_TEMP"
+          gh release download 0.2.129 --repo wasm-bindgen/wasm-bindgen --pattern '*x86_64-unknown-linux-musl.tar.gz*'
+          python3 -c 'import hashlib,pathlib; p=pathlib.Path("wasm-bindgen-0.2.129-x86_64-unknown-linux-musl.tar.gz"); assert hashlib.sha256(p.read_bytes()).hexdigest()==pathlib.Path(str(p)+".sha256sum").read_text().split()[0]'
+          tar -xzf wasm-bindgen-0.2.129-x86_64-unknown-linux-musl.tar.gz
+          echo "$RUNNER_TEMP/wasm-bindgen-0.2.129-x86_64-unknown-linux-musl" >> "$GITHUB_PATH"
+      - run: cargo clippy -p meltype-browser --target wasm32-unknown-unknown --locked -- -D warnings
+      - run: sudo apt-get update && sudo apt-get install -y emscripten
+      - run: python3 chromeos/build.py
+      - uses: actions/upload-artifact@v4
+        with:
+          name: Meltype-ChromeOS-preview
+          path: dist/chromeos-preview.zip
+  fcitx-sdk:
+    if: ${{ !inputs.packages_only && inputs.platform != 'ios' }}
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@v5
+      - uses: dtolnay/rust-toolchain@stable
+        with:
+          components: clippy
+      - name: Install fcitx5 development SDK
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y cmake libfcitx5core-dev libfcitx5utils-dev libfcitx5config-dev
+      - run: cargo clippy -p meltype-native --all-targets --locked -- -D warnings
+      - run: cargo test -p meltype-native --lib --locked
+      - run: cargo build -p meltype-native --release --locked
+      - name: Build Rust and legacy SDK adapters
+        run: |
+          cmake -S linux/fcitx5 -B linux/build/fcitx5-rust -DMELTYPE_RUST_CORE=ON -DMELTYPE_RUST_ABI_TESTS=ON
+          cmake --build linux/build/fcitx5-rust --parallel 2
+          cmake -S linux/fcitx5 -B linux/build/fcitx5-legacy -DMELTYPE_RUST_CORE=OFF
+          cmake --build linux/build/fcitx5-legacy --parallel 2
+      - name: Compare production adapters with references and actual Rust core
+        run: |
+          set -euo pipefail
+          mkdir -p dist/fcitx-abi
+          python3 linux/fcitx5/test/json_bridge.py target/release/libmeltype_native.so | tee dist/fcitx-abi/json.txt
+          linux/build/fcitx5-rust/testkeymapping "$PWD/target/release/libmeltype_native.so" | tee dist/fcitx-abi/keys.txt
+          python3 linux/fcitx5/test/state_abi.py target/release/libmeltype_native.so | tee dist/fcitx-abi/state.txt
+          python3 linux/fcitx5/test/event_abi.py target/release/libmeltype_native.so | tee dist/fcitx-abi/events.txt
+          dpkg-query -W -f='${Package} ${Version}\n' libfcitx5core-dev libfcitx5utils-dev > dist/fcitx-abi/sdk.txt
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: fcitx-rust-abi-evidence
+          path: dist/fcitx-abi
+          if-no-files-found: ignore
+  macos-sdk:
+    if: ${{ !inputs.packages_only && inputs.platform != 'ios' }}
+    runs-on: macos-26
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v5
+      - uses: dtolnay/rust-toolchain@stable
+        with:
+          components: clippy
+      - run: cargo clippy -p meltype-native -p meltype-mac-register --all-targets --locked -- -D warnings
+      - run: cargo test -p meltype-native -p meltype-mac-register --lib --locked
+      - run: cargo build -p meltype-native -p meltype-mac-register --release --locked
+      - name: Compare actual Swift bridge and Rust ABI with Carbon SDK policy
+        run: |
+          set -euo pipefail
+          mkdir -p dist/macos-sdk
+          bash mac/test/register-helper/run.sh "$PWD/target/release/meltype-register-input-source" | tee dist/macos-sdk/register-helper.txt
+          bash mac/test/key-policy/run.sh "$PWD/target/release/libmeltype_native.dylib" | tee dist/macos-sdk/keys.txt
+          swift --version > dist/macos-sdk/swift.txt
+          sw_vers > dist/macos-sdk/system.txt
+      - name: Controlled IMK and Unicode boundary integration
+        run: |
+          set -euo pipefail
+          python3 rust/native/tests/macos_product_smoke.py target/release/libmeltype_native.dylib | tee dist/macos-sdk/product-abi.txt
+          python3 rust/native/tests/macos_registration_smoke.py target/release/libmeltype_native.dylib | tee dist/macos-sdk/registration.txt
+          python3 rust/native/tests/macos_dictionary_smoke.py target/release/libmeltype_native.dylib | tee dist/macos-sdk/dictionary.txt
+          python3 rust/native/tests/macos_meaning_smoke.py target/release/libmeltype_native.dylib | tee dist/macos-sdk/meaning.txt
+          python3 rust/native/tests/macos_candidates_smoke.py target/release/libmeltype_native.dylib | tee dist/macos-sdk/candidates.txt
+          python3 rust/native/tests/macos_view_smoke.py target/release/libmeltype_native.dylib | tee dist/macos-sdk/composition.txt
+          python3 rust/native/tests/macos_apply_smoke.py target/release/libmeltype_native.dylib | tee dist/macos-sdk/apply.txt
+          python3 rust/native/tests/word_checker_smoke.py target/release/libmeltype_native.dylib | tee dist/macos-sdk/word-checker.txt
+          python3 rust/native/tests/macos_boundary_smoke.py target/release/libmeltype_native.dylib | tee dist/macos-sdk/native-boundaries.txt
+          python3 tools/test-mac-boundaries.py target/release/libmeltype_native.dylib --rust-core | tee dist/macos-sdk/boundaries.txt
+          python3 tools/test-mac-events.py target/release/libmeltype_native.dylib --rust-core | tee dist/macos-sdk/events.txt
+      - name: Pinned azooKey engine through actual Rust and controlled IMK callbacks
+        run: |
+          set -euo pipefail
+          python3 tools/test-mac-events.py target/release/libmeltype_native.dylib --rust-core --real-converter | tee dist/macos-sdk/real-converter.txt
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: macos-rust-sdk-evidence
+          path: dist/macos-sdk
+          if-no-files-found: ignore
+  production-swift:
+    if: ${{ !inputs.packages_only && inputs.platform != 'ios' }}
+    runs-on: macos-26
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@v5
+      - uses: actions/cache@v5
+        with:
+          path: mac/.build
+          key: mac-rust-swiftpm-${{ hashFiles('mac/Package.swift', 'mac/Package.resolved') }}
+      - name: Compile complete Swift adapter against the Rust boundary
+        run: swift build --package-path mac --product MeltypeIME -c release -Xswiftc -DMELTYPE_RUST_CORE
+      - uses: dtolnay/rust-toolchain@stable
+      - name: Package and execute the signed standalone Rust registration helper
+        run: |
+          set -euo pipefail
+          cargo build --release --locked -p meltype-native -p meltype-mac-register
+          MELTYPE_NATIVE_LIBRARY="$PWD/target/release/libmeltype_native.dylib" \
+            MELTYPE_RUST_REGISTER_HELPER="$PWD/target/release/meltype-register-input-source" \
+            MELTYPE_RUST_SELECT_HELPER="$PWD/target/release/meltype-select-input-source" \
+            MELTYPE_RUST_CORE=1 MELTYPE_VERSION=0.1.0 bash mac/build.sh --no-install
+          codesign --verify --deep --strict mac/build/Meltype.app
+          mkdir -p dist/macos-package
+          MELTYPE_RUST_DATA_DIR="$RUNNER_TEMP/meltype-package-data" mac/build/Meltype.app/Contents/MacOS/Meltype --self-test | tee dist/macos-package/product-self-test.txt
+          bash mac/test/register-helper/run.sh "$PWD/mac/build/Meltype.app/Contents/MacOS/MeltypeRegisterInputSource" | tee dist/macos-package/register-helper.txt
+          otool -L mac/build/Meltype.app/Contents/MacOS/MeltypeRegisterInputSource > dist/macos-package/helper-libraries.txt
+          test -x mac/build/Meltype.app/Contents/MacOS/MeltypeSelectInputSource
+          otool -L mac/build/Meltype.app/Contents/MacOS/MeltypeSelectInputSource > dist/macos-package/selector-libraries.txt
+          if grep -i libswift dist/macos-package/selector-libraries.txt; then exit 1; fi
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: macos-rust-package-evidence
+          path: dist/macos-package
+          if-no-files-found: ignore
+  ios:
+    if: ${{ !inputs.packages_only }}
+    runs-on: macos-26
+    timeout-minutes: 45
+    steps:
+      - uses: actions/checkout@v5
+      - uses: dtolnay/rust-toolchain@stable
+      - uses: Swatinem/rust-cache@v2
+        with:
+          shared-key: flash-ios
+      - run: brew install xcodegen
+      - run: cargo test -p meltype-ios --locked
+      - run: cargo clippy -p meltype-ios --all-targets --locked -- -D warnings
+      - run: python3 -m unittest discover -s tools -p test_flash_distributions.py -v
+      - run: bash ios/build.sh
+      - name: Exercise keyboard controller on iOS Simulator
+        id: keyboard_tests
+        timeout-minutes: 15
+        run: |
+          DEVICE=$(xcrun simctl list devices available -j | python3 -c 'import json,sys; print(next(d["udid"] for devices in json.load(sys.stdin)["devices"].values() for d in devices if d["name"].startswith("iPhone")))')
+          # Run every unit and UI test, in separate simulator sessions.
+          xcodebuild -project ios/MeltypeFlash.xcodeproj -scheme MeltypeFlash -destination "platform=iOS Simulator,id=$DEVICE" -only-testing:KeyboardTests -test-timeouts-enabled YES -maximum-test-execution-time-allowance 120 -derivedDataPath ios/build/tests CODE_SIGNING_ALLOWED=NO test
+          xcrun simctl shutdown "$DEVICE" || true
+          xcrun simctl boot "$DEVICE"
+          xcrun simctl bootstatus "$DEVICE" -b
+          xcodebuild -project ios/MeltypeFlash.xcodeproj -scheme MeltypeFlash -destination "platform=iOS Simulator,id=$DEVICE" -only-testing:AppUITests -parallel-testing-enabled NO -test-timeouts-enabled YES -maximum-test-execution-time-allowance 120 -derivedDataPath ios/build/tests CODE_SIGNING_ALLOWED=NO test
+      - name: Capture iPhone UI previews
+        if: always() && steps.keyboard_tests.outcome != 'skipped'
+        timeout-minutes: 3
+        run: |
+          mkdir -p output/ios-ui
+          for RESULT in ios/build/tests/Logs/Test/*.xcresult; do
+            [ -d "$RESULT" ] || continue
+            xcrun xcresulttool export attachments --path "$RESULT" --output-path "output/ios-ui/$(basename "$RESULT" .xcresult)"
+          done
+          DEVICE=$(xcrun simctl list devices available -j | python3 -c 'import json,sys; print(next(d["udid"] for ds in json.load(sys.stdin)["devices"].values() for d in ds if d["name"].startswith("iPhone")))')
+          xcrun simctl boot "$DEVICE" || true
+          xcrun simctl bootstatus "$DEVICE" -b
+          xcrun simctl ui "$DEVICE" appearance dark
+          xcrun simctl install "$DEVICE" ios/build/iphonesimulator/Build/Products/Release-iphonesimulator/MeltypeFlash.app
+          xcrun simctl terminate "$DEVICE" com.appipinopi.meltypeflash || true
+          xcrun simctl launch "$DEVICE" com.appipinopi.meltypeflash
+          sleep 3
+          xcrun simctl io "$DEVICE" screenshot output/ios-ui/home-dark.png
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: ios-ui-previews
+          path: output/ios-ui
+          retention-days: 3
+          if-no-files-found: warn
+      - name: Export source for locally signed device builds
+        run: |
+          git archive --format=zip --output=dist/Meltype-flash-iOS-source.zip HEAD
+          cp ios/README.md dist/README-iOS.md
+      - uses: actions/upload-artifact@v4
+        with:
+          name: release-ios
+          path: |
+            dist/Meltype-flash-iOS-Simulator-arm64.zip
+            dist/Meltype-flash-iOS-unsigned.ipa
+            dist/Meltype-flash-iOS-source.zip
+            dist/README-iOS.md
+          if-no-files-found: error

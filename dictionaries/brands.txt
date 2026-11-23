@@ -229,3 +229,21 @@
 ひょんだい Hyundai
 ひゅんだい Hyundai
 れくさす Lexus
+
+# Meltype v1.4.0 の追加候補
+めるたいぷ Meltype
+# Issue #1318
+あいぞとーぷ iZotope
+にゅーとろん Neutron
+おぞん Ozone
+
+# Issue #1548 (IME の名前)
+ぜんざい Zenzai
+あずーきー azooKey
+はずきー Hazkey
+もずきー Mozkey
+かるかん Karukan
+# Issue #1490
+えくすぷろーらー explorer
+# Issue #1460
+さいき PSYQUI

@@ -1,9 +1,11 @@
 // SPDX-License-Identifier: GPL-3.0-or-later
 // Copyright (C) 2026 appipinopi
+mod ai;
 mod clause_metadata;
 mod direct;
 mod engine_learning;
 mod misspelling;
+mod mode;
 mod reconversion;
 mod v130;
 #[cfg(feature = "filesystem")]
@@ -20,6 +22,23 @@ pub use reconversion::ReconversionPart;
 use serde::{Deserialize, Serialize};
 use std::collections::BTreeMap;
 
+/// A predicted continuation shown by Tab (#974, upstream v1.5.0).
+#[derive(Clone, Debug)]
+pub(crate) struct Prediction {
+    pub(crate) text: String,
+    pub(crate) before: String,
+    pub(crate) reading: String,
+}
+impl Prediction {
+    fn display(&self) -> String {
+        format!("{}{}", self.before, self.text)
+    }
+}
+
+/// 金額の読みに使う数字と小数点 (半角・全角)。
+fn amount_char(c: char) -> bool {
+    c.is_ascii_digit() || ('０'..='９').contains(&c) || matches!(c, '.' | '．')
+}
 fn is_zero(value: &u32) -> bool {
     *value == 0
 }
@@ -71,6 +90,39 @@ pub struct Preferences {
     pub user_dictionary: BTreeMap<String, Vec<String>>,
 }
 
+/// A recorded key event for replay and NICOLA press/release handling.
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct KeyEvent {
+    pub vk: i32,
+    pub ch: i32,
+    pub modifiers: i32,
+    pub is_up: bool,
+    pub now_ms: u64,
+}
+
+/// Async conversion request state machine (feature 3).
+#[derive(Debug, Clone, Copy, Serialize, Deserialize, PartialEq, Eq)]
+#[serde(rename_all = "snake_case")]
+pub enum AsyncConversionPhase {
+    Idle,
+    Pending,
+    Ready,
+    Cancelled,
+    TimedOut,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct AsyncConversion {
+    pub id: u64,
+    pub reading: String,
+    pub context: String,
+    pub requested_ms: u64,
+    pub phase: AsyncConversionPhase,
+    pub candidates: Vec<Vec<String>>,
+    pub error: Option<String>,
+}
+
 /// One converter segment. Reading boundaries are Unicode scalar boundaries.
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct Clause {
@@ -85,6 +137,8 @@ pub struct Clause {
     pub raw: Option<String>,
     /// True only after an explicit candidate selection; reset by reconversion.
     pub changed: bool,
+    /// この文節の推論で実際に返った候補。
+    pub ai_candidates: Vec<String>,
     /// Translation membership belongs to this clause, not the whole sentence.
     pub translations: Vec<String>,
     /// Separate engine calls retain their place before auxiliary words.
@@ -115,6 +169,7 @@ impl Clause {
             kana: None,
             raw: None,
             changed: false,
+            ai_candidates: Vec::new(),
             translations: Vec::new(),
             standalone: None,
             expansion: None,
@@ -143,7 +198,7 @@ struct CommittedInput {
 
 pub struct Session {
     v130: v130::State,
-    profile_dictionary: Option<Dictionary>,
+    profile_dictionary: Option<std::sync::Arc<Dictionary>>,
     candidate_sources: std::sync::Arc<crate::candidate_sources::Sources>,
     profile_misspellings: Option<Linguistics>,
     probe_cache: std::sync::Arc<romaji::probes::Cache>,
@@ -181,6 +236,8 @@ pub struct Session {
     kana_text: String,
     process: String,
     pub can_delete: bool,
+    /// Host can place the caret inside a newly committed bracket pair.
+    pub can_move_caret: bool,
     last_commit: Option<CommittedInput>,
     typed_keys: Vec<(i32, char, bool)>,
     reconversion_origin: Option<String>,
@@ -197,8 +254,18 @@ pub struct Session {
     key_time_ms: u64,
     interval_last_ms: Option<u64>,
     key_intervals: std::collections::VecDeque<serde_json::Value>,
+    key_events: Vec<KeyEvent>,
+    kana_engine: Option<crate::kana_layout::Engine>,
+    kana_engine_layout: crate::kana_layout::Layout,
+    async_conversion: Option<AsyncConversion>,
+    next_async_conversion_id: u64,
+    skk: crate::skk::State,
+    skk_dictionary: crate::skk::Dictionary,
+    skk_user: crate::skk::Dictionary,
     direct_pending: String,
     direct_last_key_ms: Option<u64>,
+    /// 変換エンジンへ渡す読みには、ユーザー辞書の置換を混ぜない。
+    conversion_reading_without_user_dictionary: std::cell::Cell<bool>,
     #[cfg(feature = "filesystem")]
     hook_session: crate::input_session::InputSession,
 }
@@ -244,6 +311,7 @@ impl Default for Session {
             kana_text: String::new(),
             process: String::new(),
             can_delete: false,
+            can_move_caret: true,
             last_commit: None,
             typed_keys: vec![],
             reconversion_origin: None,
@@ -260,8 +328,17 @@ impl Default for Session {
             key_time_ms: 0,
             interval_last_ms: None,
             key_intervals: Default::default(),
+            key_events: Vec::new(),
+            kana_engine: None,
+            kana_engine_layout: crate::kana_layout::Layout::Jis,
+            async_conversion: None,
+            next_async_conversion_id: 1,
+            skk: Default::default(),
+            skk_dictionary: crate::skk::Dictionary::new(),
+            skk_user: crate::skk::Dictionary::new(),
             direct_pending: String::new(),
             direct_last_key_ms: None,
+            conversion_reading_without_user_dictionary: std::cell::Cell::new(false),
             #[cfg(feature = "filesystem")]
             hook_session: Default::default(),
         }
@@ -271,7 +348,7 @@ impl Default for Session {
 impl Session {
     fn dictionary(&self) -> &Dictionary {
         self.profile_dictionary
-            .as_ref()
+            .as_deref()
             .unwrap_or_else(|| Dictionary::bundled())
     }
     #[cfg(feature = "filesystem")]
@@ -287,8 +364,13 @@ impl Session {
             };
         let mut hook_session = crate::input_session::InputSession::default();
         let profile_dictionary =
-            Dictionary::profile(&store.directory.join("dictionaries"), custom_romaji.clone());
+            Dictionary::profile(&store.directory.join("dictionaries"), custom_romaji.clone())
+                .map(std::sync::Arc::new);
         hook_session.set_model(state.prefix_model.clone());
+        let skk_directory = store.directory.join("dictionaries");
+        let skk_user = crate::skk::Dictionary::load_user(&skk_directory);
+        let mut skk_dictionary = crate::skk::Dictionary::load_dir(&skk_directory);
+        skk_dictionary.merge_front(&skk_user);
         Ok(Self {
             profile_dictionary,
             candidate_sources,
@@ -303,8 +385,14 @@ impl Session {
             selected_prediction: -1,
             custom_romaji,
             storage_error,
+            skk_dictionary,
+            skk_user,
             ..Default::default()
         })
+    }
+    #[cfg(feature = "filesystem")]
+    pub fn data_directory(&self) -> Option<&std::path::Path> {
+        self.store.as_ref().map(|store| store.directory.as_path())
     }
     pub fn set_context(&mut self, before: Option<&str>, after: Option<&str>) {
         if self.private {
@@ -352,7 +440,12 @@ impl Session {
                 self.profile_dictionary = Dictionary::profile(
                     &store.directory.join("dictionaries"),
                     self.custom_romaji.clone(),
-                );
+                )
+                .map(std::sync::Arc::new);
+                let skk_directory = store.directory.join("dictionaries");
+                self.skk_user = crate::skk::Dictionary::load_user(&skk_directory);
+                self.skk_dictionary = crate::skk::Dictionary::load_dir(&skk_directory);
+                self.skk_dictionary.merge_front(&self.skk_user);
             }
         }
         Ok(())
@@ -424,13 +517,11 @@ impl Session {
         self.state.preferences = self.preferences.clone();
         #[cfg(feature = "filesystem")]
         if let Some(store) = &self.store {
-            match store.record(changes) {
-                Ok(state) => {
-                    self.state = state;
-                    self.preferences = self.state.preferences.clone();
-                }
-                Err(e) => self.storage_error = Some(e.to_string()),
+            for change in &changes {
+                self.state.apply(change.clone());
             }
+            self.preferences = self.state.preferences.clone();
+            store.record_async(changes);
             return;
         }
         for change in changes {
@@ -438,21 +529,25 @@ impl Session {
         }
         self.preferences = self.state.preferences.clone();
     }
-    pub fn predictions(&self) -> Vec<String> {
+    /// A predicted continuation: `text` is the word shown in the prediction
+    /// list, `before` the already-shown clauses it follows, and `reading` the
+    /// typed reading it was predicted from (#974).
+    fn prediction_entries(&self) -> Vec<Prediction> {
+        self.prediction_entries_with_explicit(false)
+    }
+    fn prediction_entries_with_explicit(&self, allow_explicit: bool) -> Vec<Prediction> {
         let _romaji = romaji::Scope::new(self.custom_romaji.clone());
         if self.private
             || !self.settings.boolean("PredictiveCandidates")
             || self.is_converting()
             || self.raw.is_empty()
             || self.function_key != 0
-            || self.explicit.is_some()
+            || !allow_explicit && self.explicit.is_some()
             || self.language_suggestion().is_some()
             || self.composition_misspelling().is_some()
         {
             return vec![];
         }
-        let mut state = self.state.clone();
-        state.preferences = self.preferences.clone();
         let displayed = self.display(false);
         let english = displayed == self.raw && self.raw.bytes().all(|c| c.is_ascii_alphabetic());
         let reading = if self.uses_kana() {
@@ -462,38 +557,103 @@ impl Session {
         } else {
             romaji::hiragana(&self.raw, false)
         };
-        let mut predictions = if !english
+        // 金額 (100どる) は数字も読みのうち。数字を外すと通貨の換算が入力中に出ない。
+        let kana = !english
+            && reading.chars().any(crate::linguistics::kana)
             && reading
                 .chars()
-                .all(|c| ('ぁ'..='ゖ').contains(&c) || c == 'ー')
-        {
-            Linguistics::bundled().predict(&reading, &state)
+                .all(|c| crate::linguistics::kana(c) || c == 'ー' || amount_char(c));
+        let mut predictions = if kana {
+            // Whole reading, then the last live-conversion clause (#974).
+            // The clause form lets a phrase learned from its beginning be
+            // predicted from its last clause too; the earlier clauses are
+            // kept as shown and prefixed to the committed text.
+            let mut starts: Vec<(String, String, Vec<String>)> =
+                vec![(String::new(), reading.clone(), vec![])];
+            if self.settings.boolean("LiveConversion") && self.live_clauses.len() >= 2 {
+                if let Some(last) = self.live_clauses.last() {
+                    let shown = if displayed.ends_with(last.text()) {
+                        Some(last.text())
+                    } else if displayed.ends_with(last.reading.as_str()) {
+                        Some(last.reading.as_str())
+                    } else {
+                        None
+                    };
+                    if let Some(shown) = shown {
+                        starts.push((
+                            displayed[..displayed.len() - shown.len()].to_owned(),
+                            last.reading.clone(),
+                            vec![last.text().to_owned(), last.reading.clone()],
+                        ));
+                    }
+                }
+            }
+            let mut entries = Vec::new();
+            for (before, start, heads) in starts {
+                let mut predicted = Linguistics::bundled().predict_with_preferences(
+                    &start,
+                    &self.state.phrases,
+                    &self.preferences,
+                );
+                if self.settings.boolean("EnglishNamePredictions") {
+                    predicted.extend(crate::candidate_sources::Sources::english_names(&start));
+                }
+                for word in predicted {
+                    if (heads.is_empty() || heads.iter().any(|head| word.starts_with(head)))
+                        && !entries.iter().any(|entry: &Prediction| entry.text == word)
+                    {
+                        entries.push(Prediction {
+                            text: word,
+                            before: before.clone(),
+                            reading: start.clone(),
+                        });
+                        if entries.len() == 5 {
+                            break;
+                        }
+                    }
+                }
+                if entries.len() == 5 {
+                    break;
+                }
+            }
+            entries
         } else {
             vec![]
         };
-        if !english && self.settings.boolean("EnglishNamePredictions") {
-            for word in crate::candidate_sources::Sources::english_names(&reading) {
-                if predictions.len() < 5 && !predictions.contains(&word) {
-                    predictions.push(word);
-                }
-            }
-        }
         for word in self
             .dictionary()
             .predict_english(&self.raw)
             .into_iter()
             .filter(|_| english || self.raw.len() >= 4)
         {
-            if predictions.len() < 5 && !predictions.contains(&word) {
-                predictions.push(word);
+            if predictions.len() < 5 && !predictions.iter().any(|entry| entry.text == word) {
+                predictions.push(Prediction {
+                    text: word,
+                    before: String::new(),
+                    reading: self.raw.clone(),
+                });
             }
         }
         predictions
     }
+    pub fn predictions(&self) -> Vec<String> {
+        self.prediction_entries()
+            .into_iter()
+            .map(|entry| entry.text)
+            .collect()
+    }
+    fn prediction_at(&self, index: i32) -> Option<Prediction> {
+        (index >= 0)
+            .then(|| self.prediction_entries_with_explicit(true))
+            .and_then(|entries| entries.get(index as usize).cloned())
+    }
     pub fn select_prediction(&mut self, index: usize) -> SessionResult {
-        let predictions = self.predictions();
-        if let Some(text) = predictions.get(index) {
-            self.explicit = Some(text.clone());
+        if let Some(text) = self
+            .prediction_entries()
+            .get(index)
+            .map(Prediction::display)
+        {
+            self.explicit = Some(text);
             self.selected_prediction = index as i32;
             self.commit()
         } else {
@@ -590,6 +750,9 @@ impl Session {
     }
     pub fn reading(&self) -> String {
         let _romaji = romaji::Scope::new(self.custom_romaji.clone());
+        if self.v130.slash_at_start && self.raw.starts_with('/') {
+            return format!("・{}", romaji::hiragana(&self.raw[1..], true));
+        }
         if self.reconversion_origin.is_some() {
             self.raw.clone()
         } else if self.uses_kana() {
@@ -622,12 +785,18 @@ impl Session {
     /// This is separate from the reading used by edit and repair operations.
     pub fn conversion_reading(&self) -> String {
         let _romaji = romaji::Scope::new(self.custom_romaji.clone());
+        if self.v130.slash_at_start && self.raw.starts_with('/') {
+            return self.display(true);
+        }
         if self.reconversion_origin.is_some() {
             self.reading()
         } else if self.uses_kana() {
             self.kana_display(true)
         } else {
-            self.mixed_reading(true)
+            self.conversion_reading_without_user_dictionary.set(true);
+            let reading = self.mixed_reading(true);
+            self.conversion_reading_without_user_dictionary.set(false);
+            reading
         }
     }
     fn mixed_reading(&self, final_input: bool) -> String {
@@ -676,7 +845,23 @@ impl Session {
         {
             return raw.into();
         }
-        if Dictionary::uses_scored(self.settings.boolean("ScoredSegmentation")) {
+        if self.settings.boolean("ReadingLattice") {
+            let empty_dictionary = std::collections::BTreeMap::new();
+            let user_dictionary = if self.conversion_reading_without_user_dictionary.get() {
+                &empty_dictionary
+            } else {
+                &self.preferences.user_dictionary
+            };
+            dictionary.composition_lattice_with_learning(
+                raw,
+                final_input,
+                &self.before,
+                &self.after,
+                level,
+                &self.preferences.english,
+                user_dictionary,
+            )
+        } else if Dictionary::uses_scored(self.settings.boolean("ScoredSegmentation")) {
             dictionary.composition_scored_units(
                 raw,
                 final_input,
@@ -694,49 +879,126 @@ impl Session {
             return;
         }
         self.kana_text.clear();
+        let layout = crate::kana_layout::Layout::parse(self.settings.text("KanaLayout"));
+        if layout != crate::kana_layout::Layout::Jis {
+            // Replay the full down/up event stream so NICOLA hold state and
+            // thumb taps are reflected exactly as they were typed.
+            let mut engine = crate::kana_layout::Engine::new(layout);
+            for event in &self.key_events {
+                if event.is_up {
+                    let _ = engine.up(event.vk);
+                    continue;
+                }
+                let ch = char::from_u32(event.ch as u32).unwrap_or(' ');
+                let fallback = match ch {
+                    '-' => 'ー',
+                    ',' => '、',
+                    '.' => '。',
+                    '[' => '「',
+                    ']' => '」',
+                    _ => ch,
+                };
+                let Some(stroke) = engine.down(event.vk, event.modifiers & 1 != 0, event.now_ms)
+                else {
+                    self.kana_text.push(fallback);
+                    continue;
+                };
+                for _ in 0..stroke.remove_last {
+                    self.kana_text.pop();
+                }
+                for kana in stroke.kana.chars() {
+                    if "゛゜".contains(kana) {
+                        if let Some(combined) = self
+                            .kana_text
+                            .chars()
+                            .next_back()
+                            .and_then(|previous| crate::kana::combine(previous, kana))
+                        {
+                            self.kana_text.pop();
+                            self.kana_text.push(combined);
+                            continue;
+                        }
+                    }
+                    self.kana_text.push(kana);
+                }
+            }
+            return;
+        }
+        let mut engine = crate::kana_layout::Engine::new(layout);
         for (vk, ch, shift) in &self.typed_keys {
-            // Non-JIS keys still pass through CompositionText.Symbol in the
+            // Non-layout keys still pass through CompositionText.Symbol in the
             // original kana input path (e.g. a character-only '-' event).
-            let kana = crate::kana::key(*vk, *shift).unwrap_or(match ch {
+            let fallback = match ch {
                 '-' => 'ー',
                 ',' => '、',
                 '.' => '。',
                 '[' => '「',
                 ']' => '」',
                 _ => *ch,
-            });
-            if "゛゜".contains(kana) {
-                if let Some(combined) = self
-                    .kana_text
-                    .chars()
-                    .next_back()
-                    .and_then(|previous| crate::kana::combine(previous, kana))
-                {
-                    self.kana_text.pop();
-                    self.kana_text.push(combined);
-                    continue;
-                }
+            };
+            let Some(stroke) = engine.down(*vk, *shift, 0) else {
+                self.kana_text.push(fallback);
+                continue;
+            };
+            for _ in 0..stroke.remove_last {
+                self.kana_text.pop();
             }
-            self.kana_text.push(kana);
+            for kana in stroke.kana.chars() {
+                if "゛゜".contains(kana) {
+                    if let Some(combined) = self
+                        .kana_text
+                        .chars()
+                        .next_back()
+                        .and_then(|previous| crate::kana::combine(previous, kana))
+                    {
+                        self.kana_text.pop();
+                        self.kana_text.push(combined);
+                        continue;
+                    }
+                }
+                self.kana_text.push(kana);
+            }
         }
     }
     fn kana_display(&self, final_input: bool) -> String {
         let _memory = self.language_scope();
-        self.dictionary().composition_kana(
-            &self.raw,
-            &self.kana_text,
-            final_input,
-            &self.before,
-            &self.after,
-            if self.balanced_override {
-                "Balanced"
-            } else {
-                self.settings.text("DetectionLevel")
-            },
-        )
+        let level = if self.balanced_override {
+            "Balanced"
+        } else {
+            self.settings.text("DetectionLevel")
+        };
+        if self.settings.boolean("ReadingLattice") {
+            self.dictionary().composition_lattice_kana(
+                &self.raw,
+                &self.kana_text,
+                final_input,
+                &self.before,
+                &self.after,
+                level,
+                &self.preferences.english,
+                &self.preferences.user_dictionary,
+            )
+        } else {
+            self.dictionary().composition_kana(
+                &self.raw,
+                &self.kana_text,
+                final_input,
+                &self.before,
+                &self.after,
+                level,
+            )
+        }
     }
     fn uses_kana(&self) -> bool {
         self.settings.text("InputStyle") == "Kana"
+    }
+    fn looks_like_path(text: &str) -> bool {
+        text.starts_with('/')
+            && text.len() > 1
+            && text[1..].chars().any(|c| c == '/' || c == '.')
+            && text
+                .chars()
+                .all(|c| c.is_ascii_alphanumeric() || "/._-~\\".contains(c))
     }
     fn romaji_fix(&self) -> Option<crate::typo::Fix> {
         if self.v130.enter_as_shown
@@ -794,11 +1056,22 @@ impl Session {
         if let Some(text) = &self.explicit {
             return text.clone();
         }
+        if self.skk.is_active() {
+            return self.skk.display();
+        }
         if !self.clauses.is_empty() {
             return self.clauses.iter().map(Clause::text).collect();
         }
         if let Some(text) = self.candidates.get(self.selected) {
             return text.clone();
+        }
+        if self.v130.slash_at_start
+            && self.raw.starts_with('/')
+            && self.function_key == 0
+            && !Self::looks_like_path(&self.raw)
+        {
+            return self
+                .punctuate(self.detect_composition(&format!("・{}", &self.raw[1..]), final_input));
         }
         if self.english_first() {
             return self.raw.clone();
@@ -845,14 +1118,62 @@ impl Session {
             .edited_units
             .as_ref()
             .filter(|u| u.raw() == self.raw)
-            .filter(|_| !Dictionary::uses_scored(self.settings.boolean("ScoredSegmentation")))
+            .filter(|u| {
+                !Dictionary::uses_scored(self.settings.boolean("ScoredSegmentation"))
+                    || u.has_z_symbols()
+            })
             .filter(|_| {
                 !crate::protection::scan(&self.raw)
                     .iter()
                     .any(|span| span.start == 0 && span.end == self.raw.len())
             })
             .map_or(text.clone(), |u| u.render(&text, final_input));
-        self.punctuate(text)
+        // Markdown markers keep the typed half-width spelling while typing
+        // (---, **bold**); a single - or * is still shown as kana until Space.
+        if self.raw.as_bytes().first() == Some(&b'-') && self.horizontal_rule() {
+            return self.raw.clone();
+        }
+        let text = self.punctuate(text);
+        if self.raw.as_bytes().contains(&b'*') && self.raw.matches('*').count() >= 2 {
+            return text.replace('＊', "*");
+        }
+        text
+    }
+    /// A single Markdown marker that Space commits as typed plus a space (#1560).
+    fn markdown_marker(&self) -> bool {
+        !self.uses_kana()
+            && !self.direct
+            && (matches!(self.raw.as_str(), "-" | ">" | "*" | "+")
+                || (!self.raw.is_empty()
+                    && self.raw.chars().count() <= 6
+                    && self.raw.chars().all(|c| c == '#')))
+    }
+    /// Three or more hyphens are a Markdown rule/front matter fence.
+    fn horizontal_rule(&self) -> bool {
+        !self.uses_kana()
+            && !self.direct
+            && self.raw.chars().count() >= 3
+            && self.raw.chars().all(|c| c == '-')
+    }
+    /// The displayed bracket shape for a 1-2 unit bracket composition.
+    fn bracket_input(&self) -> Option<String> {
+        if self.direct || !crate::protection::scan(&self.raw).is_empty() {
+            return None;
+        }
+        // Braces and angle brackets are read raw; square/round brackets use
+        // the displayed shape (SquareBrackets, FullWidthParentheses, z symbols).
+        // The displayed length is what counts: z[z] is two units even though
+        // the typed spelling is four characters.
+        let input = if self.raw.chars().count() <= 2 && self.raw.chars().all(|c| "{}<>".contains(c))
+        {
+            self.raw.clone()
+        } else {
+            self.display(false)
+        };
+        (1..=2)
+            .contains(&input.chars().count())
+            .then(|| crate::bracket_candidates::groups(&input).map(|_| input))
+            .flatten()
     }
     fn language_suggestion(&self) -> Option<String> {
         if self.settings.text("DetectionLevel") != "Manual"
@@ -996,10 +1317,12 @@ impl Session {
             && self.display(false) != self.raw
         {
             let reading = romaji::hiragana(&self.raw, false);
+            // 金額 (100どる) は数字も読みのうち。数字を外すと通貨の換算が入力中に出ない。
             if reading.chars().count() >= 2
+                && reading.chars().any(crate::linguistics::kana)
                 && reading
                     .chars()
-                    .all(|c| ('ぁ'..='ゖ').contains(&c) || c == 'ー')
+                    .all(|c| ('ぁ'..='ゖ').contains(&c) || c == 'ー' || amount_char(c))
             {
                 let mut values = self
                     .preferences
@@ -1007,7 +1330,11 @@ impl Session {
                     .get(&reading)
                     .cloned()
                     .unwrap_or_default();
-                values.extend(self.candidate_sources.candidates(&reading));
+                values.extend(self.candidate_sources.candidates(
+                    &reading,
+                    self.settings.text("TimeZone"),
+                    &crate::currency::Currency::from_settings(&self.settings),
+                ));
                 let mut unique = Vec::new();
                 for value in values {
                     if !unique.contains(&value) {
@@ -1026,9 +1353,35 @@ impl Session {
     }
     pub fn result(&self, consumed: bool) -> SessionResult {
         let _romaji = romaji::Scope::new(self.custom_romaji.clone());
+        if self.skk.is_active() {
+            return SessionResult {
+                consumed,
+                selection_expect: None,
+                commits: vec![],
+                view: Some(View {
+                    text: self.skk.display(),
+                    converting: self.skk.mode == crate::skk::Mode::Convert,
+                    selected_index: self.skk.selected,
+                    selected_clause: 0,
+                    hint: String::new(),
+                    candidates: self.skk.candidates.clone(),
+                    clauses: vec![],
+                    meaning: None,
+                    suggestion: None,
+                    predictions: vec![],
+                    selected_prediction: -1,
+                    typed: None,
+                    notes: vec![],
+                }),
+            };
+        }
         let preview = self.preview_candidates();
         let language_suggestion = self.language_suggestion();
-        let predictions = self.predictions();
+        let prediction_entries = self.prediction_entries();
+        let predictions: Vec<String> = prediction_entries
+            .iter()
+            .map(|entry| entry.text.clone())
+            .collect();
         SessionResult {
             consumed,
             selection_expect: None,
@@ -1037,9 +1390,9 @@ impl Session {
                 None
             } else {
                 Some(View {
-                    text: predictions
+                    text: prediction_entries
                         .get(self.selected_prediction as usize)
-                        .cloned()
+                        .map(Prediction::display)
                         .unwrap_or_else(|| self.display(false)),
                     converting: self.is_converting(),
                     selected_index: preview
@@ -1096,6 +1449,14 @@ impl Session {
                             if self
                                 .clauses
                                 .get(self.selected_clause)
+                                .is_some_and(|clause| clause.ai_candidates.contains(c))
+                            {
+                                let model = crate::ai_model::AiModel::selected(&self.settings);
+                                return Some(format!("AI · {}", model.value().to_lowercase()));
+                            }
+                            if self
+                                .clauses
+                                .get(self.selected_clause)
                                 .map(|clause| &clause.translations)
                                 .unwrap_or(&self.translation_candidates)
                                 .contains(c)
@@ -1149,6 +1510,7 @@ impl Session {
         self.raw.clear();
         self.edited_units = None;
         self.typed_keys.clear();
+        self.key_events.clear();
         self.candidates.clear();
         self.clauses.clear();
         self.live_clauses.clear();
@@ -1161,6 +1523,9 @@ impl Session {
         self.balanced_override = false;
         self.case_cycle = 0;
         self.kana_text.clear();
+        self.kana_engine = None;
+        self.async_conversion = None;
+        self.skk.reset();
     }
     /// A host such as IBus has already committed its displayed preedit on
     /// focus loss. Record that exact text, without finalizing pending letters,
@@ -1219,6 +1584,19 @@ impl Session {
         result.consumed = false;
         result
     }
+    fn commit_skk_text(&mut self, text: String) -> SessionResult {
+        self.reset();
+        self.before.push_str(&text);
+        let mut result = self.result(true);
+        result.commits.push(TextEdit {
+            text,
+            delete_before: 0,
+            caret_back: 0,
+            expect: None,
+        });
+        result
+    }
+
     pub fn commit(&mut self) -> SessionResult {
         self.commit_with_spacing(self.settings.boolean("SpaceAroundEnglish"))
     }
@@ -1228,19 +1606,21 @@ impl Session {
     fn commit_with_options(&mut self, space_around: bool, format_phrases: bool) -> SessionResult {
         let _romaji = romaji::Scope::new(self.custom_romaji.clone());
         let mut text = self.display(true);
-        if self.selected_prediction >= 0 {
-            if let Some(prediction) = self.predictions().get(self.selected_prediction as usize) {
-                text = prediction.clone();
-            }
+        let selected_prediction = self.prediction_at(self.selected_prediction);
+        if let Some(entry) = &selected_prediction {
+            text = entry.display();
         }
         let reading = self.reading();
-        let prediction = self.selected_prediction >= 0;
-        let phrase_reading = if prediction {
+        let prediction = selected_prediction.is_some();
+        let remembered = selected_prediction
+            .as_ref()
+            .map_or_else(|| text.clone(), |entry| entry.text.clone());
+        let phrase_reading = if let Some(entry) = &selected_prediction {
             self.state
                 .phrases
                 .iter()
-                .find(|p| p.text == text && p.reading.starts_with(&reading))
-                .map_or_else(|| reading.clone(), |p| p.reading.clone())
+                .find(|p| p.text == entry.text && p.reading.starts_with(&entry.reading))
+                .map_or_else(|| entry.reading.clone(), |p| p.reading.clone())
         } else if self.is_converting() && !self.clauses.is_empty() {
             self.clauses
                 .iter()
@@ -1250,6 +1630,8 @@ impl Session {
         } else {
             reading.clone()
         };
+        #[cfg(all(windows, feature = "filesystem"))]
+        self.record_report_correction(&text);
         self.record_engine_learning();
         if !self.private
             && !self.no_learning
@@ -1269,10 +1651,11 @@ impl Session {
                     .chain(&self.live_clauses)
                     .any(|c| crate::time_candidates::is_dynamic_choice(&c.reading, c.text()));
             let remember_phrase = self.settings.boolean("PredictiveCandidates")
+                && !Linguistics::is_version_text(&remembered)
                 && if prediction {
-                    !text.is_ascii()
+                    !remembered.is_ascii()
                 } else {
-                    text.chars().any(crate::linguistics::kanji)
+                    remembered.chars().any(crate::linguistics::kanji)
                         && !phrase_reading.chars().any(|c| c.is_ascii_alphabetic())
                 };
             let mut changes = if dynamic || !remember_phrase {
@@ -1280,7 +1663,7 @@ impl Session {
             } else {
                 vec![Change::Phrase {
                     reading: phrase_reading,
-                    text: text.clone(),
+                    text: remembered,
                 }]
             };
             changes.extend(self.clause_language_changes());
@@ -1323,7 +1706,15 @@ impl Session {
             text = crate::phrase_spacing::format(&text);
         }
         if space_around {
-            text = space_english(&text, &self.before, &self.after);
+            text = space_words(&text, &self.before, &self.after, true, false);
+        }
+        if format_phrases
+            && self.settings.boolean("SpaceAroundNumbers")
+            && !self.direct
+            && !self.private
+            && !self.code_english()
+        {
+            text = crate::phrase_spacing::space_numbers(&text, &self.before, &self.after);
         }
         let english =
             !text.trim().is_empty() && text.trim().bytes().all(|b| b.is_ascii_alphabetic());
@@ -1412,7 +1803,8 @@ impl Session {
             });
         }
         let caret_back = u32::from(
-            self.settings.boolean("CursorIntoBrackets")
+            self.can_move_caret
+                && self.settings.boolean("CursorIntoBrackets")
                 && correction.is_none()
                 && crate::shortcuts::is_bracket_pair(&text),
         );
@@ -1628,17 +2020,44 @@ impl Session {
         if self.v130_conversion() {
             return;
         }
+        // A lone bracket or an empty matched pair converts only within its
+        // family; no dictionary or engine candidates are mixed in (#1162).
+        if let Some(input) = self.bracket_input() {
+            if let Some(values) = crate::bracket_candidates::groups(&input) {
+                self.candidates = values;
+                self.selected = 0;
+                self.explicit = None;
+                self.selected_prediction = -1;
+                return;
+            }
+        }
         if !self.live_clauses.is_empty() {
             let clauses = std::mem::take(&mut self.live_clauses);
             self.begin_clauses(clauses);
             return;
         }
-        let reading = self.reading();
+        let mixed = self.conversion_reading();
+        // Mixed prose must keep English islands when matching converter clauses.
+        // Explicit conversion of an English-only word still uses its kana reading.
+        let reading = if mixed.chars().any(crate::linguistics::kana)
+            && mixed.chars().any(|c| c.is_ascii_alphabetic())
+        {
+            mixed
+        } else {
+            self.reading()
+        };
         // A residual alphabetic reading with no engine response still has a
         // Japanese clause and width alternatives. This also applies when the
         // platform adapter declines converter calls because Enabled is false
         // while an already-open composition is being edited.
         if external.is_empty() && !self.external_converter_only {
+            #[cfg(any(target_os = "android", target_os = "ios", feature = "bundled-mozc"))]
+            if reading.chars().any(crate::linguistics::kana) {
+                let clauses = crate::portable_mozc::bundled().clauses(self, &reading);
+                if self.begin_clauses(clauses) {
+                    return;
+                }
+            }
             let mut runs: Vec<(bool, String)> = Vec::new();
             for c in reading.chars() {
                 let english = c.is_ascii_alphabetic();
@@ -1680,8 +2099,19 @@ impl Session {
             // callbacks. With no converter result, preserve the complete reading.
             candidates.push(reading.clone());
         } else {
-            candidates.extend(self.dictionary().candidates(&self.display(true)));
-            candidates.extend(self.dictionary().candidates(&reading));
+            // 「ばーじょん」には OS とフロント (IME方式・キーボード方式) も書く (#1868)
+            let timezone = self.settings.text("TimeZone");
+            let display = self.display(true);
+            let front = self.version_front(&display);
+            let currency = crate::currency::Currency::from_settings(&self.settings);
+            candidates.extend(
+                self.dictionary()
+                    .candidates_with_front(&display, timezone, &front, &currency),
+            );
+            candidates.extend(
+                self.dictionary()
+                    .candidates_with_front(&reading, timezone, &front, &currency),
+            );
             candidates.extend(Linguistics::bundled().words(&reading));
             candidates.extend(self.clipboard_candidates(&reading));
             if let Some(context) =
@@ -1709,7 +2139,22 @@ impl Session {
         unique.extend(emoji);
         unique.extend(crate::number_candidates::candidates(&self.raw));
         crate::math_candidates::augment(&reading, &self.before, &mut unique);
-        if let Some(learned) = self.preferences.selected.get(&reading) {
+        // Markdown rules and emphasis keep the typed half-width spelling as
+        // the first candidate (#1560).
+        if self.horizontal_rule()
+            || self.raw.as_bytes().contains(&b'*') && self.raw.matches('*').count() >= 2
+        {
+            let shown = self.display(true);
+            unique.retain(|candidate| candidate != &shown);
+            unique.insert(0, shown);
+        }
+        crate::kanji_parts::prepend(crate::kanji_parts::find(&reading), &mut unique);
+        if let Some(learned) = self
+            .preferences
+            .selected
+            .get(&reading)
+            .filter(|learned| !Linguistics::is_version_text(learned))
+        {
             if let Some(i) = unique.iter().position(|s| s == learned) {
                 let value = unique.remove(i);
                 unique.insert(0, value);
@@ -1722,6 +2167,9 @@ impl Session {
     }
     /// Request live conversion only for settled Japanese input. English islands
     /// and protected tokens retain their original text.
+    ///
+    /// 金額 (`100どる`・`1.5まんえん`) は、数字と小数点も読みのうちとして扱う。
+    /// 数字を除くと、通貨の換算の候補が入力中に出なくなる (#1901)。
     pub fn live_reading(&self) -> Option<String> {
         let _romaji = romaji::Scope::new(self.custom_romaji.clone());
         if !self.settings.boolean("LiveConversion")
@@ -1745,12 +2193,16 @@ impl Session {
         }
         if reading.encode_utf16().count() < 4
             || romaji::hiragana(&self.raw, false) != reading
-            || self
-                .dictionary()
-                .mixed(&self.raw, false)
+            || (!reading.chars().any(amount_char)
+                && self
+                    .dictionary()
+                    .mixed(&self.raw, false)
+                    .chars()
+                    .any(|c| c.is_ascii_alphabetic()))
+            || !reading.chars().any(crate::linguistics::kana)
+            || reading
                 .chars()
-                .any(|c| c.is_ascii_alphabetic())
-            || reading.chars().any(|c| !crate::linguistics::kana(c))
+                .any(|c| !crate::linguistics::kana(c) && !amount_char(c))
         {
             return None;
         }
@@ -1804,7 +2256,15 @@ impl Session {
                 .iter()
                 .filter(|(key, (_, user))| {
                     reading[cursor..].starts_with(key.as_str())
-                        && (!*user || engine.is_empty() || boundaries.contains_key(&cursor))
+                        && (!self.candidate_sources.head_only(key)
+                            || *user
+                            || engine.is_empty() && cursor == 0
+                            || boundaries.contains_key(&cursor))
+                        && (!*user
+                            || (engine.is_empty() || boundaries.contains_key(&cursor))
+                                && !self
+                                    .dictionary()
+                                    .splits_known_kana_word(&reading[cursor..], key.len()))
                 })
                 .max_by_key(|(key, _)| key.len());
             if let Some((key, (word, _))) = matched.filter(|(_, (word, _))| {
@@ -1815,7 +2275,11 @@ impl Session {
                 if !plain.is_empty() {
                     pieces.push((std::mem::take(&mut plain), None));
                 }
-                pieces.push((key.clone(), Some(word.clone())));
+                if let Some(parts) = self.candidate_sources.phrase_parts(key, word) {
+                    pieces.extend(parts.iter().map(|(r, w)| (r.clone(), Some(w.clone()))));
+                } else {
+                    pieces.push((key.clone(), Some(word.clone())));
+                }
                 cursor += key.len();
                 found = true;
             } else {
@@ -1827,7 +2291,9 @@ impl Session {
         if !plain.is_empty() {
             pieces.push((plain, None));
         }
-        (found && pieces.len() > 1).then_some(pieces)
+        // A whole-reading registration must also replace an external engine's
+        // split clauses; otherwise its candidates disappear from the panel.
+        found.then_some(pieces)
     }
     /// Adapters must retain Space provenance when they fetch engine clauses
     /// before Core handles the key; post-commit correction uses that separator.
@@ -1846,20 +2312,51 @@ impl Session {
             return true;
         }
         let _romaji = romaji::Scope::new(self.custom_romaji.clone());
+        let whole_reading: String = clauses
+            .iter()
+            .map(|clause| clause.reading.as_str())
+            .collect();
         if self.raw.is_empty()
             || clauses.is_empty()
             || clauses.iter().any(|c| {
                 c.reading.is_empty() || c.candidates.is_empty() || c.selected >= c.candidates.len()
             })
-            || clauses
-                .iter()
-                .map(|c| c.reading.as_str())
-                .collect::<String>()
-                != self.conversion_reading()
+            || whole_reading != self.conversion_reading()
         {
             return false;
         }
-        clauses = crate::time_candidates::join(clauses);
+        let radical_candidates = crate::kanji_parts::find(&whole_reading);
+        if !radical_candidates.is_empty() && clauses.len() > 1 {
+            let rendered: String = clauses.iter().map(Clause::text).collect();
+            clauses = vec![Clause::new(whole_reading, vec![rendered])];
+        }
+        let mut divided = Vec::new();
+        let mut phrase_parts = Vec::new();
+        let joined = crate::time_candidates::join(clauses);
+        let prescribed = self.fixed_phrase_choices(&joined);
+        for (clause, prescribed) in joined.into_iter().zip(prescribed) {
+            let registered = self.candidate_sources.registered(&clause.reading);
+            let parts = (!clause.english)
+                .then(|| {
+                    self.preferences
+                        .user_dictionary
+                        .get(&clause.reading)
+                        .and_then(|words| words.first())
+                        .or_else(|| registered.first())
+                        .and_then(|word| self.candidate_sources.phrase_parts(&clause.reading, word))
+                })
+                .flatten();
+            if let Some(parts) = parts {
+                for (reading, text) in parts {
+                    phrase_parts.push(Some(text.clone()));
+                    divided.push(Clause::new(reading.clone(), vec![text.clone()]));
+                }
+            } else {
+                phrase_parts.push(prescribed);
+                divided.push(clause);
+            }
+        }
+        clauses = divided;
         for clause in &mut clauses {
             if clause.english {
                 continue;
@@ -1911,8 +2408,11 @@ impl Session {
         self.translation_candidates.clear();
         let mut preceding = self.before.clone();
         let mut previous_english = false;
-        for ((clause, original_input), surrounding) in
-            clauses.iter_mut().zip(original_inputs).zip(surroundings)
+        for (((clause, original_input), surrounding), phrase_part) in clauses
+            .iter_mut()
+            .zip(original_inputs)
+            .zip(surroundings)
+            .zip(phrase_parts)
         {
             clause.raw = original_input;
             if clause.english {
@@ -1948,7 +2448,11 @@ impl Session {
                 values.push(standalone.clone());
             }
             if !self.external_converter_only {
-                values.extend(self.candidate_sources.candidates(&clause.reading));
+                values.extend(self.candidate_sources.candidates(
+                    &clause.reading,
+                    self.settings.text("TimeZone"),
+                    &crate::currency::Currency::from_settings(&self.settings),
+                ));
                 values.extend(self.clipboard_candidates(&clause.reading));
                 // MeaningDictionary supplies annotations in the original, not
                 // extra conversion candidates. Adding its reverse readings
@@ -1962,7 +2466,12 @@ impl Session {
                 {
                     values.insert(0, user.clone());
                 }
-                if let Some(learned) = self.preferences.selected.get(&clause.reading) {
+                if let Some(learned) = self
+                    .preferences
+                    .selected
+                    .get(&clause.reading)
+                    .filter(|learned| !Linguistics::is_version_text(learned))
+                {
                     values.insert(0, learned.clone());
                 }
                 if let Some(context) = self
@@ -1970,6 +2479,9 @@ impl Session {
                     .context(&clause.reading, &surrounding)
                 {
                     values.insert(0, context);
+                }
+                if let Some(preferred) = &phrase_part {
+                    values.insert(0, preferred.clone());
                 }
                 if !self.preferences.selected.contains_key(&clause.reading)
                     && self
@@ -2019,6 +2531,15 @@ impl Session {
                 Vec::new()
             };
             crate::math_candidates::augment(&clause.reading, &preceding, &mut values);
+            // The running app version is a candidate for ばーじょん even when
+            // the engine supplied the clause (v1.5.0, #1272). Older learned
+            // version strings are dropped so an update does not resurrect them.
+            if clause.reading == "ばーじょん" {
+                // 不具合の報告にそのまま貼れるように、OS とフロント (IME方式・キーボード方式) も書く (#1868)
+                let current = crate::version::candidate(&crate::version::front(&self.settings));
+                values.retain(|value| !Linguistics::is_version_text(value) || value == &current);
+                values.push(current);
+            }
             // AddRawCandidates in the original controller places the typed
             // spelling and its fullwidth form after the Japanese alternatives;
             // MoveEmojiLast then moves emoji behind those spellings.
@@ -2076,7 +2597,7 @@ impl Session {
                     .first()
                     .and_then(|text| text.chars().next())
                     .is_some_and(|ch| !crate::linguistics::kana(ch));
-            if !has_preference && particle || suru {
+            if phrase_part.is_none() && (!has_preference && particle || suru) {
                 values.insert(0, clause.reading.clone());
             }
             // MoreCandidates is expanded after the base list is complete;
@@ -2084,24 +2605,90 @@ impl Session {
             if !values.is_empty() {
                 values.splice(1..1, more);
             }
+            if self.settings.text("CurrencyRateMode") == "Auto"
+                && crate::currency::parse(&clause.reading).is_some()
+                && crate::currency::auto_rates().is_some()
+            {
+                let amounts = crate::currency::Currency::from_settings(&self.settings)
+                    .candidates(&clause.reading);
+                let first = values.first().cloned();
+                values.retain(|word| Some(word) == first.as_ref() || !amounts.contains(word));
+                let insert = 1.min(values.len());
+                values.splice(
+                    insert..insert,
+                    amounts
+                        .into_iter()
+                        .filter(|word| Some(word) != first.as_ref()),
+                );
+            }
             let raw = clause.raw.take();
+            let generated = std::mem::take(&mut clause.ai_candidates);
             *clause = Clause::new(clause.reading.clone(), values);
+            clause.ai_candidates = generated;
             clause.raw = raw;
             clause.translations = translations;
             preceding.push_str(clause.text());
             previous_english = false;
         }
+        // A Markdown rule/front-matter fence keeps the typed hyphens as the
+        // first candidate instead of the kana long-mark spelling (#1560).
+        if self.raw.as_bytes().first() == Some(&b'-')
+            && self.horizontal_rule()
+            && clauses.len() == 1
+        {
+            let shown = self.raw.clone();
+            clauses[0]
+                .candidates
+                .retain(|candidate| candidate != &shown);
+            clauses[0].candidates.insert(0, shown);
+            clauses[0].selected = 0;
+        }
+        if clauses.len() == 1 && !radical_candidates.is_empty() {
+            crate::kanji_parts::prepend(radical_candidates, &mut clauses[0].candidates);
+            clauses[0].selected = 0;
+        }
         self.rank_clauses(&mut clauses);
         self.live_clauses.clear();
         self.clauses = clauses;
-        self.selected_clause = 0;
+        self.selected_clause = if self.settings.boolean("StartConversionAtLastClause") {
+            self.clauses.len().saturating_sub(1)
+        } else {
+            0
+        };
+        self.selected = self
+            .clauses
+            .get(self.selected_clause)
+            .map_or(0, |clause| clause.selected);
         self.explicit = None;
         self.selected_prediction = -1;
         self.sync_clause();
         true
     }
+    fn fixed_phrase_choices(&self, clauses: &[Clause]) -> Vec<Option<String>> {
+        let mut choices = vec![None; clauses.len()];
+        for parts in self.candidate_sources.phrase_groups() {
+            for (start, group) in clauses.windows(parts.len()).enumerate() {
+                if group.iter().zip(parts).all(|(clause, (reading, word))| {
+                    &clause.reading == reading && clause.candidates.first() == Some(word)
+                }) {
+                    for (slot, (_, word)) in
+                        choices[start..start + parts.len()].iter_mut().zip(parts)
+                    {
+                        *slot = Some(word.clone());
+                    }
+                }
+            }
+        }
+        choices
+    }
     fn rank_clauses(&self, clauses: &mut [Clause]) {
-        for clause in clauses {
+        // A bundled split phrase keeps its own word choices. Learning 市 for
+        // いち must not change 一|学期 into 市|学期, including live previews.
+        let choices = self.fixed_phrase_choices(clauses);
+        for (clause, phrase_part) in clauses.iter_mut().zip(choices) {
+            if phrase_part.is_some() {
+                continue;
+            }
             if clause.english {
                 continue;
             }
@@ -2150,23 +2737,63 @@ impl Session {
     fn local_clause(&self, reading: String) -> Clause {
         self.local_clause_with_external(reading, vec![])
     }
+    /// 「ばーじょん」の候補に書く OS とフロント (#1868)。ほかの読みでは空のままにする (打つたびに作らない)。
+    fn version_front(&self, reading: &str) -> String {
+        if reading == "ばーじょん" {
+            crate::version::front(&self.settings)
+        } else {
+            String::new()
+        }
+    }
     fn local_clause_with_external(&self, reading: String, external: Vec<String>) -> Clause {
+        self.prepare_local_clause(reading, external)()
+    }
+
+    fn prepare_local_clause(
+        &self,
+        reading: String,
+        external: Vec<String>,
+    ) -> impl FnOnce() -> Clause + Send + 'static {
         let mut candidates = self
             .preferences
             .user_dictionary
             .get(&reading)
             .cloned()
             .unwrap_or_default();
-        candidates.extend(external);
-        if !self.external_converter_only {
-            candidates.extend(self.dictionary().candidates(&reading));
-            candidates.extend(Linguistics::bundled().words(&reading));
+        let learned = self.preferences.selected.get(&reading).cloned();
+        let local = (!self.external_converter_only).then(|| {
+            (
+                self.profile_dictionary.clone(),
+                self.settings.text("TimeZone").to_owned(),
+                self.version_front(&reading),
+                crate::currency::Currency::from_settings(&self.settings),
+            )
+        });
+        move || {
+            candidates.extend(external);
+            if let Some((profile, timezone, front, currency)) = local {
+                let dictionary = profile.as_deref().unwrap_or_else(|| Dictionary::bundled());
+                candidates.extend(
+                    dictionary.candidates_with_front(&reading, &timezone, &front, &currency),
+                );
+                candidates.extend(Linguistics::bundled().words(&reading));
+            }
+            if let Some(learned) = learned {
+                candidates.insert(0, learned);
+            }
+            Clause::new(reading, candidates)
         }
-        if let Some(learned) = self.preferences.selected.get(&reading) {
-            candidates.insert(0, learned.clone());
-        }
-        Clause::new(reading, candidates)
     }
+
+    /// Snapshot just the selected reading's inputs so lookup can run outside the session lock.
+    pub fn prepare_dictionary_candidates(
+        &self,
+        reading: String,
+    ) -> impl FnOnce() -> Vec<String> + Send + 'static {
+        let lookup = self.prepare_local_clause(reading, Vec::new());
+        move || lookup().candidates
+    }
+
     fn resize_clause(&mut self, grow: bool) {
         let index = self.selected_clause;
         let Some(current) = self.clauses.get(index) else {
@@ -2226,12 +2853,26 @@ impl Session {
     /// Monotonic milliseconds, for hosts with an event clock and deterministic
     /// replay tests. Use one clock consistently for a session.
     pub fn key_at(&mut self, vk: i32, ch: i32, modifiers: i32, now_ms: u64) -> SessionResult {
+        // Upstream #630: normalize only full-width Latin letters, preserving
+        // punctuation, kana and non-Latin Unicode input.
+        let ch = if (0xff21..=0xff3a).contains(&ch) || (0xff41..=0xff5a).contains(&ch) {
+            ch - 0xfee0
+        } else {
+            ch
+        };
         let _probes = romaji::probes::Scope::new(self.probe_cache.clone());
         let _romaji = romaji::Scope::new(self.custom_romaji.clone());
         if ch < 0 || char::from_u32(ch as u32).is_none() {
             return self.result(false);
         }
         self.record_key_interval(vk, now_ms);
+        self.key_events.push(KeyEvent {
+            vk,
+            ch,
+            modifiers,
+            is_up: false,
+            now_ms,
+        });
         self.key_time_ms = now_ms;
         if self.direct && modifiers & 15 != 0 && !self.direct_pending.is_empty() {
             self.direct_pending.clear();
@@ -2240,6 +2881,58 @@ impl Session {
         }
         let timeout_edit = self.direct_timeout(now_ms);
         let c = char::from_u32(ch as u32).unwrap();
+        if self.settings.boolean("SkkMode") && !self.private && modifiers & 14 == 0 {
+            match self.skk.handle_key(ch, &self.skk_dictionary) {
+                crate::skk::Action::Pass => {}
+                crate::skk::Action::Consumed => return self.result(true),
+                crate::skk::Action::Commit(text) => return self.commit_skk_text(text),
+                crate::skk::Action::Register { reading, text } => {
+                    self.skk_register(&reading, &text);
+                    return self.commit_skk_text(text);
+                }
+            }
+        }
+        // SKY配列は、物理キーをローマ字の綴りへ読み替える。
+        if !self.uses_kana() && self.settings.text("RomajiLayout") == "Sky" {
+            if let Some(mapped) = crate::kana_layout::sky(vk) {
+                let shift = modifiers & 1 != 0;
+                for character in mapped.chars() {
+                    self.raw.push(character);
+                    self.typed_keys.push((0, character, shift));
+                }
+                return self.result(true);
+            }
+        }
+        // かな配列のキーは、通常のローマ字経路へ流さず、配列の表で処理する。
+        if self.uses_kana() {
+            let layout = crate::kana_layout::Layout::parse(self.settings.text("KanaLayout"));
+            let shift = modifiers & 1 != 0;
+            if layout != crate::kana_layout::Layout::Jis {
+                if self.kana_engine.is_none() || self.kana_engine_layout != layout {
+                    let mut engine = crate::kana_layout::Engine::new(layout);
+                    // replay prior events except current down to rebuild hold state
+                    let prior = self.key_events.len().saturating_sub(1);
+                    for ev in &self.key_events[..prior] {
+                        if ev.is_up {
+                            let _ = engine.up(ev.vk);
+                        } else {
+                            let _ = engine.down(ev.vk, ev.modifiers & 1 != 0, ev.now_ms);
+                        }
+                    }
+                    self.kana_engine = Some(engine);
+                    self.kana_engine_layout = layout;
+                }
+                let stroke = self.kana_engine.as_mut().unwrap().down(vk, shift, now_ms);
+                if let Some(stroke) = stroke {
+                    self.typed_keys.push((vk, c, shift));
+                    if !stroke.kana.is_empty() || stroke.remove_last > 0 {
+                        self.raw.push(c);
+                    }
+                    self.refresh_kana();
+                    return self.result(true);
+                }
+            }
+        }
         if self.private {
             self.sigil = Default::default();
         }
@@ -2251,11 +2944,21 @@ impl Session {
             && modifiers & 14 == 0
             && self.sigil.passes(c)
         {
-            self.correctable.clear();
-            self.last_commit = None;
-            self.forget_direct_input();
-            self.sigil.passed(vk, c, modifiers);
-            return self.result(false);
+            let passes_slash = self.code_input
+                && !self.code_japanese
+                && matches!(
+                    crate::context::classify(&self.before),
+                    crate::context::LineKind::Code | crate::context::LineKind::Prompt
+                );
+            if c == '/' && !self.direct && !passes_slash && !self.sigil.is_active() {
+                self.v130.slash_at_start = true;
+            } else {
+                self.correctable.clear();
+                self.last_commit = None;
+                self.forget_direct_input();
+                self.sigil.passed(vk, c, modifiers);
+                return self.result(false);
+            }
         }
         let mut result = self.key_inner(vk, ch, modifiers);
         if let Some(edit) = timeout_edit {
@@ -2266,6 +2969,74 @@ impl Session {
         }
         result
     }
+
+    /// Key-up event. Records the event for replay; composition logic is primarily key-down driven.
+    pub fn key_up(&mut self, vk: i32, ch: i32, modifiers: i32) -> SessionResult {
+        let now_ms = self.clock.elapsed().as_millis().min(u64::MAX as u128) as u64;
+        self.key_up_at(vk, ch, modifiers, now_ms)
+    }
+
+    /// Monotonic milliseconds, for hosts with an event clock and deterministic replay tests.
+    pub fn key_up_at(&mut self, vk: i32, ch: i32, modifiers: i32, now_ms: u64) -> SessionResult {
+        self.key_events.push(KeyEvent {
+            vk,
+            ch,
+            modifiers,
+            is_up: true,
+            now_ms,
+        });
+        self.key_time_ms = now_ms;
+        // NICOLA/かな配列: 親指キーのタップ(無変換/変換)を押下・解放順で判定
+        if self.uses_kana() {
+            let layout = crate::kana_layout::Layout::parse(self.settings.text("KanaLayout"));
+            if layout != crate::kana_layout::Layout::Jis {
+                if self.kana_engine.is_none() || self.kana_engine_layout != layout {
+                    let mut engine = crate::kana_layout::Engine::new(layout);
+                    for ev in &self.key_events[..self.key_events.len().saturating_sub(1)] {
+                        if ev.is_up {
+                            let _ = engine.up(ev.vk);
+                        } else {
+                            let _ = engine.down(ev.vk, ev.modifiers & 1 != 0, ev.now_ms);
+                        }
+                    }
+                    self.kana_engine = Some(engine);
+                    self.kana_engine_layout = layout;
+                }
+                if let Some(tap_vk) = self.kana_engine.as_mut().unwrap().up(vk) {
+                    // タップ -> 無変換/変換の通常キー動作として処理
+                    return self.key_inner(tap_vk, 0, modifiers);
+                }
+            }
+        }
+        self.result(false)
+    }
+
+    /// Recorded key events in order, for replay.
+    pub fn key_events(&self) -> &[KeyEvent] {
+        &self.key_events
+    }
+
+    /// Replay recorded key events into a fresh-equivalent session state.
+    pub fn replay_key_events(&mut self) -> Vec<SessionResult> {
+        let events = self.key_events.clone();
+        self.reset();
+        self.key_events.clear();
+        let mut results = Vec::with_capacity(events.len());
+        for event in events {
+            let result = if event.is_up {
+                self.key_up_at(event.vk, event.ch, event.modifiers, event.now_ms)
+            } else {
+                self.key_at(event.vk, event.ch, event.modifiers, event.now_ms)
+            };
+            // key_at/key_up_at record again; keep the single replayed event.
+            if self.key_events.last() != Some(&event) {
+                self.key_events.push(event);
+            }
+            results.push(result);
+        }
+        results
+    }
+
     fn key_inner(&mut self, vk: i32, ch: i32, modifiers: i32) -> SessionResult {
         if let Some(result) = self.detect_direct(vk, ch, modifiers) {
             return result;
@@ -2294,6 +3065,24 @@ impl Session {
                 return self.key(mapped, 0, modifiers & 1);
             }
         }
+        // Upstream PR #802: a send shortcut confirms preedit first. Passing
+        // Ctrl+Enter through can submit before the committed text reaches a chat.
+        if modifiers & 14 == 2
+            && vk == 0x0d
+            && !self.raw.is_empty()
+            && (!self.direct || reconverting)
+            && !self.private
+            && !code_direct
+            && self.settings.boolean("Enabled")
+        {
+            return self.commit();
+        }
+        // 上流1.5.1: 何も打っていないときのテンキーは変換ボックスに入れず、そのままアプリへ渡す。
+        // 入力中は今までどおり変換ボックスに入れる (3 + ji → 3時)。
+        if self.raw.is_empty() && modifiers & 14 == 0 && matches!(vk, 0x60..=0x6F) {
+            self.correctable.clear();
+            return self.result(false);
+        }
         if modifiers & 14 != 0
             || self.direct && !reconverting
             || self.private
@@ -2311,7 +3100,10 @@ impl Session {
         }
         if self.is_converting()
             && modifiers & 1 == 0
-            && (matches!(vk, 0x31..=0x39) && !self.uses_kana() || matches!(vk, 0x61..=0x69))
+            && (matches!(vk, 0x31..=0x39)
+                && !self.uses_kana()
+                && self.settings.boolean("NumberKeysSelectCandidates")
+                || matches!(vk, 0x61..=0x69))
         {
             let row = if vk >= 0x61 { vk - 0x61 } else { vk - 0x31 };
             if let Some(result) = self.select_number(row as usize) {
@@ -2370,6 +3162,10 @@ impl Session {
                 self.before.push('　');
                 result.consumed = true;
                 result
+            }
+            0x20 if self.markdown_marker() => {
+                self.explicit = Some(format!("{} ", self.raw));
+                self.commit()
             }
             0x20 if self.raw.is_empty() => {
                 self.correctable.clear();
@@ -2452,6 +3248,7 @@ impl Session {
                 let removed_keys = previous_keys - self.raw.chars().count();
                 if self.raw.is_empty() {
                     self.balanced_override = false;
+                    self.v130.slash_at_start = false;
                 }
                 self.typed_keys
                     .truncate(self.typed_keys.len().saturating_sub(removed_keys));
@@ -2537,6 +3334,25 @@ impl Session {
                 self.begin_conversion(vec![]);
                 self.result(true)
             }
+            0x1d if self.settings.boolean("MuhenkanKatakanaCycle")
+                && !self.raw.is_empty()
+                && !self.protects_tail() =>
+            {
+                let next = match self.function_key {
+                    _ if self.is_converting() => 0x75,
+                    0x75 => 0x76,
+                    0x76 => 0x77,
+                    0 if self
+                        .display(false)
+                        .chars()
+                        .any(|c| matches!(c, 'ぁ'..='ゖ' | 'ゝ' | 'ゞ' | 'ー')) =>
+                    {
+                        0x76
+                    }
+                    _ => 0x75,
+                };
+                self.key(next, 0, modifiers)
+            }
             0x1d if self.settings.boolean("SeparateKeyRoles") && !self.raw.is_empty() => {
                 self.key(0x79, 0, modifiers)
             }
@@ -2611,6 +3427,7 @@ impl Session {
                             Some(self.raw.clone())
                         },
                         changed: self.chosen_conversion,
+                        ai_candidates: Vec::new(),
                         translations: self.translation_candidates.clone(),
                         standalone: None,
                         expansion: None,
@@ -2625,6 +3442,20 @@ impl Session {
                         (self.selected_clause + 1).min(self.clauses.len() - 1)
                     };
                     self.sync_clause();
+                }
+                self.result(true)
+            }
+            0x21 | 0x22 if self.is_converting() => {
+                let pages = self.candidates.len().div_ceil(9);
+                if pages > 1 {
+                    let step = if vk == 0x21 { -1 } else { 1 };
+                    let page = (self.selected as i32 / 9 + step).rem_euclid(pages as i32);
+                    self.selected = page as usize * 9;
+                    self.chosen_conversion = true;
+                    if let Some(clause) = self.clauses.get_mut(self.selected_clause) {
+                        clause.selected = self.selected;
+                        clause.changed = true;
+                    }
                 }
                 self.result(true)
             }
@@ -2674,8 +3505,9 @@ impl Session {
                         self.case_cycle = 0;
                     }
                     let mut output = render(self.case_cycle);
-                    if !(self.settings.boolean("AlphanumericKeyStartsAsTyped") && !same_mode)
-                        && (same_mode || before.as_deref() == Some(output.as_str()))
+                    if same_mode
+                        || (!self.settings.boolean("AlphanumericKeyStartsAsTyped")
+                            && before.as_deref() == Some(output.as_str()))
                     {
                         // Try all three cases: one-letter/uppercase/numeric
                         // inputs can have identical visible representations.
@@ -2713,6 +3545,7 @@ impl Session {
                         // units by CompositionText, even in a kana mode.
                         self.raw.clone()
                     } else if (self.uses_kana()
+                        || self.v130.slash_at_start && self.raw.starts_with('/')
                         || self
                             .edited_units
                             .as_ref()
@@ -2745,31 +3578,43 @@ impl Session {
             _ if ch >= 0x20 && ch != 0x7f => {
                 self.tab_started_conversion = false;
                 // Retain the old commit when a new character starts after conversion.
-                let commits =
-                    if self.is_converting() && !self.settings.boolean("ContinueAfterConversion") {
-                        // A non-deleting host cannot later recover the typed
-                        // separator when an uppercase English word follows
-                        // a Japanese conversion (site Space PR).
-                        if !self.can_delete
-                            && self.space_started_conversion
-                            && char::from_u32(ch as u32).is_some_and(|c| c.is_ascii_uppercase())
-                            && ![
-                                "は", "が", "を", "に", "で", "と", "も", "へ", "の", "や", "か",
-                                "から", "まで", "より",
-                            ]
-                            .contains(&self.reading().as_str())
-                            && self.display(true).chars().any(crate::linguistics::kana)
-                        {
-                            self.explicit = Some(self.display(true) + " ");
-                        }
-                        self.commit().commits
-                    } else {
-                        self.candidates.clear();
-                        self.clauses.clear();
-                        self.live_clauses.clear();
-                        self.selected_clause = 0;
-                        vec![]
-                    };
+                let commits = if self.selected_prediction >= 0
+                    && !self.is_converting()
+                    && self.function_key == 0
+                {
+                    // Typing after Tab-selecting a prediction commits it and
+                    // starts a new composition (#974), instead of dropping
+                    // the selection and keeping the typed reading.
+                    self.commit().commits
+                } else if self.function_key != 0 && !self.is_converting() {
+                    // #490/#585: an explicit F6-F10 choice applies to the
+                    // current text; the next character starts fresh input.
+                    self.commit().commits
+                } else if self.is_converting() && !self.settings.boolean("ContinueAfterConversion")
+                {
+                    // A non-deleting host cannot later recover the typed
+                    // separator when an uppercase English word follows
+                    // a Japanese conversion (site Space PR).
+                    if !self.can_delete
+                        && self.space_started_conversion
+                        && char::from_u32(ch as u32).is_some_and(|c| c.is_ascii_uppercase())
+                        && ![
+                            "は", "が", "を", "に", "で", "と", "も", "へ", "の", "や", "か",
+                            "から", "まで", "より",
+                        ]
+                        .contains(&self.reading().as_str())
+                        && self.display(true).chars().any(crate::linguistics::kana)
+                    {
+                        self.explicit = Some(self.display(true) + " ");
+                    }
+                    self.commit().commits
+                } else {
+                    self.candidates.clear();
+                    self.clauses.clear();
+                    self.live_clauses.clear();
+                    self.selected_clause = 0;
+                    vec![]
+                };
                 self.explicit = None;
                 self.selected_prediction = -1;
                 self.function_key = 0;
@@ -2779,12 +3624,30 @@ impl Session {
                     return result;
                 }
                 let character = char::from_u32(ch as u32).unwrap();
+                if self.edited_units.is_none()
+                    && !self.uses_kana()
+                    && self.settings.boolean("ZSymbols")
+                    && !self.settings.boolean("DisableZShortcuts")
+                    && crate::protection::scan(&self.raw).is_empty()
+                    && romaji::z_symbol(character).is_some()
+                    && !self.raw.to_ascii_lowercase().ends_with("zz")
+                    && romaji::analyze(&self.raw.to_ascii_lowercase(), true).partial == "z"
+                {
+                    self.edited_units = Some(crate::composition_units::Units::capture(
+                        &self.raw,
+                        &self.display(false),
+                    ));
+                }
                 if self.raw.is_empty() && self.custom_romaji.is_some() && !self.uses_kana() {
                     self.edited_units = Some(Default::default());
                 }
                 if let Some(units) = self.edited_units.as_mut() {
                     if units.raw() == self.raw {
-                        units.push(&character.to_string());
+                        units.push_with_z_symbols(
+                            &character.to_string(),
+                            self.settings.boolean("ZSymbols")
+                                && !self.settings.boolean("DisableZShortcuts"),
+                        );
                     } else {
                         self.edited_units = None;
                     }
@@ -2817,7 +3680,7 @@ impl Session {
     }
 }
 
-fn space_english(text: &str, before: &str, after: &str) -> String {
+fn space_words(text: &str, before: &str, after: &str, english: bool, numbers: bool) -> String {
     let japanese = |c: char| matches!(c,'\u{3040}'..='\u{30ff}'|'\u{3400}'..='\u{4dbf}'|'\u{4e00}'..='\u{9fff}'|'\u{f900}'..='\u{faff}');
     let word_char = |c: char| c.is_ascii_alphanumeric() || "_-+#.'@".contains(c);
     let chars: Vec<_> = text.chars().collect();
@@ -2826,8 +3689,24 @@ fn space_english(text: &str, before: &str, after: &str) -> String {
     }
     let previous = before.chars().next_back().unwrap_or('\0');
     let next = after.chars().next().unwrap_or('\0');
+    let spaced_word = |word: &str| {
+        if word.chars().any(|c| c.is_ascii_alphabetic()) {
+            english
+        } else {
+            numbers && word.chars().any(|c| c.is_ascii_digit())
+        }
+    };
+    let previous_word: String = before
+        .chars()
+        .rev()
+        .take_while(|c| word_char(*c))
+        .collect::<String>()
+        .chars()
+        .rev()
+        .collect();
+    let next_word: String = after.chars().take_while(|c| word_char(*c)).collect();
     let mut output = String::new();
-    if japanese(chars[0]) && previous.is_ascii_alphabetic() {
+    if japanese(chars[0]) && previous.is_ascii_alphanumeric() && spaced_word(&previous_word) {
         output.push(' ');
     }
     let mut index = 0;
@@ -2852,19 +3731,525 @@ fn space_english(text: &str, before: &str, after: &str) -> String {
             previous
         };
         let right = chars.get(stop).copied().unwrap_or(next);
-        let english = word.iter().any(char::is_ascii_alphabetic);
-        if english && japanese(left) && !output.ends_with(' ') {
+        let spaced = spaced_word(&word.iter().collect::<String>());
+        if spaced && japanese(left) && !output.ends_with(' ') {
             output.push(' ');
         }
         output.extend(word);
-        if english && japanese(right) {
+        if spaced && japanese(right) {
             output.push(' ');
         }
         output.extend(&chars[stop..end]);
         index = end;
     }
-    if japanese(*chars.last().unwrap()) && next.is_ascii_alphabetic() {
+    if japanese(*chars.last().unwrap()) && next.is_ascii_alphanumeric() && spaced_word(&next_word) {
         output.push(' ');
     }
     output
+}
+
+// Pagefile-backed history shared by the tray and per-application TIP workers.
+// No input history is written to the filesystem or included in HTTP requests.
+#[cfg(all(windows, feature = "filesystem"))]
+pub mod report_corrections {
+    use serde::{Deserialize, Serialize};
+    use std::{
+        collections::HashMap,
+        ffi::c_void,
+        path::Path,
+        sync::{Mutex, OnceLock},
+    };
+    const SIZE: usize = 128 * 1024;
+    #[derive(Clone, Debug, PartialEq, Eq, Serialize, Deserialize)]
+    pub struct Entry {
+        pub typed: String,
+        pub shown: String,
+        pub expected: String,
+        pub before: String,
+    }
+    #[link(name = "kernel32")]
+    unsafe extern "system" {
+        fn CreateFileMappingW(
+            file: *mut c_void,
+            security: *const c_void,
+            protection: u32,
+            high: u32,
+            low: u32,
+            name: *const u16,
+        ) -> *mut c_void;
+        fn MapViewOfFile(
+            handle: *mut c_void,
+            access: u32,
+            high: u32,
+            low: u32,
+            length: usize,
+        ) -> *mut c_void;
+        fn UnmapViewOfFile(view: *const c_void) -> i32;
+        fn CreateMutexW(security: *const c_void, owned: i32, name: *const u16) -> *mut c_void;
+        fn WaitForSingleObject(handle: *mut c_void, timeout: u32) -> u32;
+        fn ReleaseMutex(handle: *mut c_void) -> i32;
+        fn CloseHandle(handle: *mut c_void) -> i32;
+    }
+    struct Memory {
+        map: *mut c_void,
+        gate: *mut c_void,
+        view: *mut u8,
+    }
+    // The process-local Mutex protects handles; the named mutex protects all
+    // mapped bytes between processes. No pointer or Rust layout crosses the ABI.
+    unsafe impl Send for Memory {}
+    impl Drop for Memory {
+        fn drop(&mut self) {
+            unsafe {
+                if !self.view.is_null() {
+                    UnmapViewOfFile(self.view.cast());
+                }
+                if !self.map.is_null() {
+                    CloseHandle(self.map);
+                }
+                if !self.gate.is_null() {
+                    CloseHandle(self.gate);
+                }
+            }
+        }
+    }
+    impl Memory {
+        fn open(name: &str) -> Option<Self> {
+            unsafe {
+                let wide = |s: String| s.encode_utf16().chain(Some(0)).collect::<Vec<_>>();
+                let mut result = Self {
+                    map: std::ptr::null_mut(),
+                    gate: std::ptr::null_mut(),
+                    view: std::ptr::null_mut(),
+                };
+                result.gate =
+                    CreateMutexW(std::ptr::null(), 0, wide(format!("{name}-lock")).as_ptr());
+                if result.gate.is_null() {
+                    return None;
+                }
+                result.map = CreateFileMappingW(
+                    (-1isize) as *mut c_void,
+                    std::ptr::null(),
+                    4,
+                    0,
+                    SIZE as u32,
+                    wide(name.to_owned()).as_ptr(),
+                );
+                if result.map.is_null() {
+                    return None;
+                }
+                result.view = MapViewOfFile(result.map, 6, 0, 0, SIZE).cast();
+                (!result.view.is_null()).then_some(result)
+            }
+        }
+        fn access(&self, update: impl FnOnce(&mut Vec<Entry>) -> bool) -> Vec<Entry> {
+            unsafe {
+                // Input must never wait for the report dialog or another worker.
+                let wait = WaitForSingleObject(self.gate, 0);
+                if wait != 0 && wait != 0x80 {
+                    return Vec::new();
+                }
+                struct Unlock(*mut c_void);
+                impl Drop for Unlock {
+                    fn drop(&mut self) {
+                        unsafe {
+                            ReleaseMutex(self.0);
+                        }
+                    }
+                }
+                let _unlock = Unlock(self.gate);
+                let len = u32::from_le_bytes(std::ptr::read_unaligned(self.view.cast())) as usize;
+                let mut entries: Vec<Entry> = if (1..=SIZE - 4).contains(&len) {
+                    serde_json::from_slice(std::slice::from_raw_parts(self.view.add(4), len))
+                        .unwrap_or_default()
+                } else {
+                    Vec::new()
+                };
+                if entries.len() > 20 {
+                    entries.clear();
+                }
+                if update(&mut entries) {
+                    if let Ok(bytes) = serde_json::to_vec(&entries) {
+                        if bytes.len() <= SIZE - 4 {
+                            // Clear removed content as well as its length.
+                            std::ptr::write_bytes(self.view, 0, SIZE);
+                            std::ptr::copy_nonoverlapping(
+                                bytes.as_ptr(),
+                                self.view.add(4),
+                                bytes.len(),
+                            );
+                            std::ptr::write_unaligned(
+                                self.view.cast::<[u8; 4]>(),
+                                (bytes.len() as u32).to_le_bytes(),
+                            );
+                        }
+                    }
+                }
+                entries
+            }
+        }
+    }
+    fn access(directory: &Path, update: impl FnOnce(&mut Vec<Entry>) -> bool) -> Vec<Entry> {
+        static ALL: OnceLock<Mutex<HashMap<String, Memory>>> = OnceLock::new();
+        let path = directory
+            .canonicalize()
+            .unwrap_or_else(|_| directory.to_path_buf());
+        let identity = path.to_string_lossy().to_lowercase();
+        let hash = identity
+            .as_bytes()
+            .iter()
+            .fold(0xcbf29ce484222325_u64, |h, b| {
+                (h ^ *b as u64).wrapping_mul(0x100000001b3)
+            });
+        let name = format!("Local\\Meltype-flash-corrections-v1-{hash:016x}");
+        let Ok(mut all) = ALL.get_or_init(Default::default).try_lock() else {
+            return Vec::new();
+        };
+        if !all.contains_key(&name) {
+            let Some(memory) = Memory::open(&name) else {
+                return Vec::new();
+            };
+            all.insert(name.clone(), memory);
+        }
+        all[&name].access(update)
+    }
+    pub fn recent(directory: &Path) -> Vec<Entry> {
+        access(directory, |_| false)
+    }
+    pub fn clear(directory: &Path) {
+        access(directory, |entries| {
+            entries.clear();
+            true
+        });
+    }
+    pub fn record(directory: &Path, mut entry: Entry) {
+        for value in [&mut entry.typed, &mut entry.shown, &mut entry.expected] {
+            *value = value.chars().take(256).collect();
+        }
+        entry.before = entry
+            .before
+            .chars()
+            .rev()
+            .take(20)
+            .collect::<String>()
+            .chars()
+            .rev()
+            .collect();
+        access(directory, |entries| {
+            if entries.last() == Some(&entry) {
+                return false;
+            }
+            entries.push(entry);
+            if entries.len() > 20 {
+                entries.remove(0);
+            }
+            true
+        });
+    }
+    #[cfg(test)]
+    mod tests {
+        use super::*;
+
+        // Both scenarios exercise the process-wide best-effort registry.
+        // Keep their full sequences uncontended; production deliberately drops
+        // a report when another report operation owns that registry.
+        static HISTORY_TEST: Mutex<()> = Mutex::new(());
+        #[test]
+        fn independent_handles_share_bounded_memory_without_files() {
+            let _test = HISTORY_TEST.lock().unwrap();
+            let directory = tempfile::tempdir().unwrap();
+            let name = format!(
+                "Local\\Meltype-flash-history-test-{}",
+                directory.path().file_name().unwrap().to_string_lossy()
+            );
+            let a = Memory::open(&name).unwrap();
+            let b = Memory::open(&name).unwrap();
+            let entry = Entry {
+                typed: "nihongo".into(),
+                shown: "にほんご".into(),
+                expected: "nihongo".into(),
+                before: String::new(),
+            };
+            a.access(|entries| {
+                entries.push(entry.clone());
+                true
+            });
+            assert_eq!(b.access(|_| false), vec![entry]);
+            b.access(|entries| {
+                entries.clear();
+                true
+            });
+            assert!(a.access(|_| false).is_empty());
+            a.access(|entries| {
+                entries.push(Entry {
+                    typed: "temporary".into(),
+                    shown: "仮".into(),
+                    expected: "temporary".into(),
+                    before: String::new(),
+                });
+                true
+            });
+            drop(a);
+            drop(b);
+            assert!(Memory::open(&name).unwrap().access(|_| false).is_empty());
+            for i in 0..25 {
+                record(
+                    directory.path(),
+                    Entry {
+                        typed: i.to_string(),
+                        shown: "日".repeat(300),
+                        expected: "a".into(),
+                        before: "前".repeat(50),
+                    },
+                );
+            }
+            let entries = recent(directory.path());
+            assert_eq!(entries.len(), 20);
+            assert_eq!(entries[0].typed, "5");
+            assert_eq!(entries[0].shown.chars().count(), 256);
+            assert_eq!(entries[0].before.chars().count(), 20);
+            assert_eq!(std::fs::read_dir(directory.path()).unwrap().count(), 0);
+            clear(directory.path());
+            assert!(recent(directory.path()).is_empty());
+        }
+        #[test]
+        fn only_explicit_nonprivate_corrections_are_reported() {
+            let _test = HISTORY_TEST.lock().unwrap();
+            let directory = tempfile::tempdir().unwrap();
+            let mut session =
+                super::super::Session::open(crate::storage::Store::new(directory.path())).unwrap();
+            session
+                .settings
+                .set("LiveConversion", serde_json::json!(false))
+                .unwrap();
+            session
+                .settings
+                .set("PredictiveCandidates", serde_json::json!(false))
+                .unwrap();
+            for suppressed in [false, true] {
+                for ch in "nihongo".chars() {
+                    session.key(ch.to_ascii_uppercase() as i32, ch as i32, 0);
+                }
+                session.key(0x79, 0, 0);
+                session.no_learning = suppressed;
+                session.commit();
+                if !suppressed {
+                    let history = recent(directory.path());
+                    assert_eq!(history.len(), 1);
+                    assert_eq!(history[0].shown, "にほんご");
+                    assert_eq!(history[0].expected, "nihongo");
+                    clear(directory.path());
+                } else {
+                    assert!(recent(directory.path()).is_empty());
+                }
+            }
+            session.no_learning = false;
+            for ch in "nihongo".chars() {
+                session.key(ch.to_ascii_uppercase() as i32, ch as i32, 0);
+            }
+            session.key(0x75, 0, 0);
+            session.private = true;
+            session.commit();
+            assert!(recent(directory.path()).is_empty());
+        }
+    }
+}
+#[cfg(all(windows, feature = "filesystem"))]
+impl Session {
+    fn record_report_correction(&mut self, text: &str) {
+        if self.private
+            || self.no_learning
+            || self.reconversion_origin.is_some()
+            || self.raw.is_empty()
+            || !self.raw.bytes().any(|c| c.is_ascii_alphabetic())
+            || self.v130.clipboard.is_some()
+            || self.selected_prediction >= 0
+            || self.store.is_none()
+        {
+            return;
+        }
+        let shown = if self.is_converting() {
+            let switched = self.clauses.iter().any(|clause| {
+                clause.changed
+                    && (clause.english && clause.text().chars().any(crate::linguistics::kana)
+                        || !clause.english && clause.raw.as_deref() == Some(clause.text()))
+            });
+            if !switched {
+                return;
+            }
+            self.clauses
+                .iter()
+                .filter_map(|clause| clause.candidates.first())
+                .cloned()
+                .collect::<String>()
+        } else {
+            if self.function_key == 0 {
+                return;
+            }
+            let explicit = self.explicit.take();
+            let key = std::mem::replace(&mut self.function_key, 0);
+            let shown = self.display(true);
+            self.function_key = key;
+            self.explicit = explicit;
+            shown
+        };
+        if shown == text || text.is_empty() {
+            return;
+        }
+        report_corrections::record(
+            &self.store.as_ref().unwrap().directory,
+            report_corrections::Entry {
+                typed: self.raw.clone(),
+                shown,
+                expected: text.to_owned(),
+                before: self.before.clone(),
+            },
+        );
+    }
+}
+
+/// Async conversion management (feature 3).
+impl Session {
+    pub fn begin_async_conversion(&mut self, reading: &str, context: &str) -> u64 {
+        let id = self.next_async_conversion_id;
+        self.next_async_conversion_id += 1;
+        self.async_conversion = Some(AsyncConversion {
+            id,
+            reading: reading.to_string(),
+            context: context.to_string(),
+            requested_ms: self.clock.elapsed().as_millis().min(u64::MAX as u128) as u64,
+            phase: AsyncConversionPhase::Pending,
+            candidates: Vec::new(),
+            error: None,
+        });
+        id
+    }
+
+    pub fn cancel_async_conversion(&mut self) {
+        if let Some(ac) = self.async_conversion.as_mut() {
+            ac.phase = AsyncConversionPhase::Cancelled;
+        }
+        self.async_conversion = None;
+    }
+
+    pub fn async_conversion(&self) -> Option<&AsyncConversion> {
+        self.async_conversion.as_ref()
+    }
+
+    /// Mark a pending request as complete. Returns false for an unknown or
+    /// already-finished request so stale replies cannot replace newer input.
+    pub fn complete_async_conversion(&mut self, id: u64, candidates: Vec<String>) -> bool {
+        if let Some(ac) = self.async_conversion.as_mut() {
+            if ac.id == id
+                && matches!(
+                    ac.phase,
+                    AsyncConversionPhase::Pending | AsyncConversionPhase::Ready
+                )
+            {
+                ac.candidates = vec![candidates];
+                ac.phase = AsyncConversionPhase::Ready;
+                return true;
+            }
+        }
+        false
+    }
+
+    /// Advance a pending request to TimedOut after `ImeTimeoutMs` (default
+    /// 300ms). Returns the current phase, if a request exists.
+    pub fn timeout_async_conversion(&mut self, now_ms: u64) -> Option<AsyncConversionPhase> {
+        let configured = self.settings.integer("ImeTimeoutMs");
+        let timeout = if configured > 0 {
+            configured as u64
+        } else {
+            300
+        };
+        if let Some(ac) = self.async_conversion.as_mut() {
+            if ac.phase == AsyncConversionPhase::Pending
+                && now_ms.saturating_sub(ac.requested_ms) >= timeout
+            {
+                ac.phase = AsyncConversionPhase::TimedOut;
+            }
+            return Some(ac.phase);
+        }
+        None
+    }
+
+    pub fn try_apply_async_conversion(&mut self, reading: &str, candidates: Vec<String>) -> bool {
+        let Some(ac) = self.async_conversion.as_ref() else {
+            return false;
+        };
+        if !matches!(
+            ac.phase,
+            AsyncConversionPhase::Pending | AsyncConversionPhase::Ready
+        ) || ac.reading != reading
+        {
+            return false;
+        }
+        self.async_conversion = None;
+        let clause = Clause::new(reading.to_string(), candidates);
+        self.begin_clauses(vec![clause])
+    }
+
+    /// Candidates for an SKK reading (with or without okurigana marker).
+    /// Candidates the bundled/user dictionary can produce for a reading.
+    /// Used by the async conversion prototype when no external engine is attached.
+    pub fn dictionary_candidates(&self, reading: &str) -> Vec<String> {
+        self.local_clause(reading.to_owned()).candidates
+    }
+
+    pub fn skk_lookup(&self, reading: &str) -> &[String] {
+        self.skk_dictionary.lookup(reading)
+    }
+
+    /// Register a word in the in-memory SKK dictionary and persist the user
+    /// dictionary when a filesystem store is available.
+    pub fn skk_register(&mut self, reading: &str, candidate: &str) -> bool {
+        if reading.is_empty() || candidate.is_empty() {
+            return false;
+        }
+        self.skk_dictionary.register(reading, candidate);
+        self.skk_user.register(reading, candidate);
+        #[cfg(feature = "filesystem")]
+        if let Some(store) = &self.store {
+            let path = store
+                .directory
+                .join("dictionaries")
+                .join("skk-user-jisyo.txt");
+            if self.skk_user.save(&path).is_err() {
+                return false;
+            }
+        }
+        true
+    }
+
+    /// SKK-related operations
+    pub fn skk_mode_toggle(&mut self) {
+        self.skk.mode = match self.skk.mode {
+            crate::skk::Mode::Direct => crate::skk::Mode::Preedit,
+            crate::skk::Mode::Preedit => crate::skk::Mode::Okurigana,
+            crate::skk::Mode::Okurigana => crate::skk::Mode::Convert,
+            crate::skk::Mode::Convert => crate::skk::Mode::Register,
+            crate::skk::Mode::Register => crate::skk::Mode::Direct,
+        };
+    }
+
+    pub fn skk_key_input(&mut self, _vk: i32, ch: i32) {
+        // Minimal SKK: space converts, uppercase continues reading
+        if self.skk.mode == crate::skk::Mode::Direct && (0x41..=0x5A).contains(&ch) {
+            // Uppercase romaji in direct mode starts SKK preedit
+            self.skk.mode = crate::skk::Mode::Preedit;
+            self.skk.reading = std::char::from_u32(ch as u32).unwrap_or('?').to_string();
+            self.skk.pending_romaji = std::char::from_u32(ch as u32).unwrap_or('?').to_string();
+        } else if self.skk.mode == crate::skk::Mode::Preedit && ch == 0x20 {
+            // Space converts
+            self.skk.mode = crate::skk::Mode::Convert;
+            self.skk.candidates = self.skk_dictionary.lookup(&self.skk.reading).to_vec();
+            self.skk.selected = 0;
+        } else if self.skk.mode == crate::skk::Mode::Okurigana && ch == 0x20 {
+            // Space finalizes okurigana
+            self.skk.mode = crate::skk::Mode::Convert;
+            self.skk.candidates = self.skk_dictionary.lookup(&self.skk.lookup_key()).to_vec();
+            self.skk.selected = 0;
+        }
+    }
 }

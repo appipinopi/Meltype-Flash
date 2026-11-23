@@ -110,3 +110,19 @@ fn following_japanese_repairs_only_known_readings_and_preserves_english_context(
         assert_eq!(text, expected, "{keys}");
     }
 }
+
+#[test]
+fn issue_834_shifted_english_after_japanese_survives_space() {
+    let mut session = Session::default();
+    session.can_delete = true;
+    session.set_context(Some("ああああ"), Some(""));
+    let mut document = String::from("ああああ");
+    type_text(&mut session, &mut document, "are");
+    apply(&mut document, session.key(13, 0, 0));
+    assert_eq!(document, "あああああれ");
+    for ch in "ON".chars() {
+        apply(&mut document, session.key(ch as i32, ch as i32, 1));
+    }
+    apply(&mut document, session.key(32, 32, 0));
+    assert_eq!(document, "あああああれON ");
+}

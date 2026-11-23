@@ -254,6 +254,8 @@ pub(crate) fn key_reply(input: &[u8]) -> Option<(u32, u32)> {
     if matches!(get("view"), None | Some(Value::Null)) {
         flags |= 64;
     }
+    // #881: kept separate from the existing key-reply bits for older clients.
+    flags |= u32::from(boolean("fullWidthSpace")) << 7;
     let mode = u32::from(boolean("active"))
         | (u32::from(boolean("code")) << 1)
         | (u32::from(boolean("english")) << 2);
@@ -595,6 +597,14 @@ mod tests {
     #[cfg(windows)]
     #[test]
     fn key_flags_keep_compatible_missing_duplicate_and_surrogate_values() {
+        assert_eq!(
+            key_reply(br#"{"active":true,"fullWidthSpace":true}"#),
+            Some((225, 1))
+        );
+        assert_eq!(
+            key_reply(br#"{"active":true,"fullWidthSpace":1}"#),
+            Some((97, 1))
+        );
         assert_eq!(key_reply(b"[]"), Some((96, 0)));
         assert_eq!(
             key_reply(br#"{"active":true,"active":false,"commits":["\ud800"]}"#),

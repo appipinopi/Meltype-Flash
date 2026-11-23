@@ -245,7 +245,10 @@ impl Work {
         let english = detection && reply & 4 != 0;
         self.update(
             SERVER,
-            u32::from(active) | if detection { 2 } else { 0 } | if english { 4 } else { 0 },
+            u32::from(active)
+                | if detection { 2 } else { 0 }
+                | if english { 4 } else { 0 }
+                | if active && reply & 128 != 0 { 8 } else { 0 },
         );
         outcome.switch_japanese = reply & 8 != 0;
         self.update(

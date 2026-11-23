@@ -62,6 +62,8 @@ struct Native {
     void (*setPreedit)(void *,int) = nullptr;
     int (*contextOffsets)(const uint8_t *,uint32_t,uint32_t,uint32_t,uint32_t *) = nullptr;
     int (*deleteCount)(const uint8_t *,uint32_t,uint32_t,const uint8_t *,uint32_t,int) = nullptr;
+    void (*setInputAttributes)(void *,uint32_t) = nullptr;
+    void (*setCanMoveCaret)(void *,int) = nullptr;
 #endif
     int (*initMozc)(const char *, const char *) = nullptr;
     void *(*create)() = nullptr;
@@ -73,6 +75,7 @@ struct Native {
     void (*setDirect)(void *, int) = nullptr;
     void (*setCanDelete)(void *, int) = nullptr; // 古い本体には無い
     void (*setCodeInput)(void *, int) = nullptr; // 古い本体には無い (コード入力: ターミナルの入力欄で既定にする、#715)
+    int (*setApplication)(void *, const char *) = nullptr;
     char *(*roleKey)(void *, int) = nullptr;     // 古い本体には無い (入力中のキーの役割: #199)
     void (*free)(void *) = nullptr;
 
@@ -95,6 +98,7 @@ struct Native {
         setDirect = reinterpret_cast<decltype(setDirect)>(sym("meltype_set_direct"));
         setCanDelete = reinterpret_cast<decltype(setCanDelete)>(sym("meltype_set_can_delete"));
         setCodeInput = reinterpret_cast<decltype(setCodeInput)>(sym("meltype_set_code_input"));
+        setApplication = reinterpret_cast<decltype(setApplication)>(sym("meltype_set_application"));
         roleKey = reinterpret_cast<decltype(roleKey)>(sym("meltype_role_key"));
         free = reinterpret_cast<decltype(free)>(sym("meltype_free"));
 #ifdef MELTYPE_RUST_CORE
@@ -107,7 +111,9 @@ struct Native {
         setPreedit = reinterpret_cast<decltype(setPreedit)>(sym("meltype_fcitx_set_preedit"));
         contextOffsets = reinterpret_cast<decltype(contextOffsets)>(sym("meltype_fcitx_context_offsets"));
         deleteCount = reinterpret_cast<decltype(deleteCount)>(sym("meltype_fcitx_delete_count"));
-        if (!keyEvent || !action || !frontendState || !setPreedit || !contextOffsets || !deleteCount) {
+        setInputAttributes = reinterpret_cast<decltype(setInputAttributes)>(sym("meltype_set_input_attributes"));
+        setCanMoveCaret = reinterpret_cast<decltype(setCanMoveCaret)>(sym("meltype_set_can_move_caret"));
+        if (!keyEvent || !action || !frontendState || !setPreedit || !contextOffsets || !deleteCount || !setInputAttributes || !setCanMoveCaret || !setApplication) {
             FCITX_ERROR() << "Meltype: Rust fcitx event/context ABI is missing";
             return false;
         }
@@ -178,6 +184,9 @@ public:
         preeditVisible_=value;
 #endif
     }
+#ifdef MELTYPE_RUST_CORE
+    uint32_t privacyAttributes = ~0u;
+#endif
 
 private:
     const Native &native_;
@@ -210,6 +219,8 @@ public:
 #ifdef MELTYPE_RUST_CORE
         if(!loaded_ || event.isRelease())return;
         auto *ic=event.inputContext();
+        syncContext(ic);
+        if (ic->propertyFor(&factory_)->privacyAttributes & 1u) return;
         ViewSink sink{this,ic,{},nullptr,{},{}};
         const auto key=event.key();
         if(native_.keyEvent(ic->propertyFor(&factory_)->session(),key.sym(),fcitx::Key::keySymToUnicode(key.sym()),
@@ -267,13 +278,37 @@ public:
 
     }
 
-    // 別の入力欄・アプリに移るとき、入力欄が変わったときは、未確定の内容をそのまま確定する。
-    void reset(const fcitx::InputMethodEntry &, fcitx::InputContextEvent &event) override { commitPending(event.inputContext()); }
-    void deactivate(const fcitx::InputMethodEntry &, fcitx::InputContextEvent &event) override { commitPending(event.inputContext()); }
+    void activate(const fcitx::InputMethodEntry &, fcitx::InputContextEvent &event) override {
+#ifdef MELTYPE_RUST_CORE
+        if (loaded_) syncContext(event.inputContext());
+#else
+        (void)event;
+#endif
+    }
+    void reset(const fcitx::InputMethodEntry &, fcitx::InputContextEvent &event) override {
+#ifdef MELTYPE_RUST_CORE
+        performAction(event.inputContext(),3);
+#else
+        commitPending(event.inputContext());
+#endif
+    }
+    void deactivate(const fcitx::InputMethodEntry &, fcitx::InputContextEvent &event) override {
+#ifdef MELTYPE_RUST_CORE
+        auto *ic=event.inputContext();
+        if(event.type()==fcitx::EventType::InputContextFocusOut) {
+            // fcitx (or the client) already committed clientPreedit. Server-only
+            // preedit still needs one commit, preserving the displayed text.
+            performAction(ic,ic->capabilityFlags().test(fcitx::CapabilityFlag::Preedit)?2:4);
+        } else { commitPending(ic); }
+#else
+        commitPending(event.inputContext());
+#endif
+    }
 
     void selectCandidate(fcitx::InputContext *ic, int index) {
 #ifdef MELTYPE_RUST_CORE
         if(!loaded_)return;
+        syncContext(ic);
         ViewSink sink{this,ic,{},nullptr,{},{}};
         native_.action(ic->propertyFor(&factory_)->session(),1,index,&sink,queryContext,viewEvent);
 #else
@@ -289,12 +324,37 @@ private:
     Native native_;
     bool loaded_ = false;
     fcitx::FactoryFor<MeltypeState> factory_;
+#ifdef MELTYPE_RUST_CORE
+    void syncContext(fcitx::InputContext *ic) {
+        auto *state=ic->propertyFor(&factory_);
+        const auto caps=ic->capabilityFlags();
+        // Plasma's Qt lock screen can mark a password as Sensitive without Password.
+        const bool password = caps.test(fcitx::CapabilityFlag::Password)
+            || (caps.test(fcitx::CapabilityFlag::Sensitive) && ic->program() == "kscreenlocker_greet");
+        const uint32_t flags=(password?1u:0u)
+            |(caps.test(fcitx::CapabilityFlag::Sensitive)?2u:0u)
+            |(caps.test(fcitx::CapabilityFlag::Terminal)?4u:0u);
+        if(state->privacyAttributes!=(flags&3u))hidePreedit(ic);
+        state->privacyAttributes=flags&3u;
+        native_.setApplication(state->session(),ic->program().c_str());
+        native_.setInputAttributes(state->session(),flags);
+#ifdef MELTYPE_CURSOR_COMMIT
+        native_.setCanMoveCaret(state->session(),caps.test(fcitx::CapabilityFlag::CommitStringWithCursor)?1:0);
+#else
+        native_.setCanMoveCaret(state->session(),0);
+#endif
+    }
+    void performAction(fcitx::InputContext *ic,uint32_t action) {
+        if(!loaded_)return;
+        syncContext(ic);
+        ViewSink sink{this,ic,{},nullptr,{},{}};
+        native_.action(ic->propertyFor(&factory_)->session(),action,0,&sink,queryContext,viewEvent);
+    }
+#endif
 
     void commitPending(fcitx::InputContext *ic) {
 #ifdef MELTYPE_RUST_CORE
-        if(!loaded_)return;
-        ViewSink sink{this,ic,{},nullptr,{},{}};
-        native_.action(ic->propertyFor(&factory_)->session(),0,0,&sink,queryContext,viewEvent);
+        performAction(ic,0);
 #else
         auto *state = ic->propertyFor(&factory_);
         if (!state->session()) return;
@@ -305,7 +365,9 @@ private:
 
     // 入力欄のキャレットの前後の文字列 (それぞれ 20 文字まで)。入力欄が対応していなければ false。
     bool readSurrounding(fcitx::InputContext *ic, std::string &before, std::string &after, size_t limit = 20) {
-        if (!ic->capabilityFlags().test(fcitx::CapabilityFlag::SurroundingText) || !ic->surroundingText().isValid()) return false;
+        if (!ic->capabilityFlags().test(fcitx::CapabilityFlag::SurroundingText) || !ic->surroundingText().isValid()
+            || ic->surroundingText().cursor()!=ic->surroundingText().anchor()
+            || ic->capabilityFlags().testAny(fcitx::CapabilityFlags{fcitx::CapabilityFlag::Password,fcitx::CapabilityFlag::Sensitive})) return false;
         const auto &text = ic->surroundingText().text();
         if (text.empty()) return false;
         size_t cursor = ic->surroundingText().cursor();
@@ -346,7 +408,8 @@ private:
         bool canDelete = ic->capabilityFlags().test(fcitx::CapabilityFlag::SurroundingText) && ic->surroundingText().isValid();
         native_.setCanDelete(session, canDelete ? 1 : 0);
         // 入力欄がターミナル (capability flag の Terminal) なら、コード入力を既定にする (j k やコマンド名がアプリに届くように)
-        if (native_.setCodeInput) native_.setCodeInput(session, ic->capabilityFlags().test(fcitx::CapabilityFlag::Terminal) ? 1 : 0);
+        const int applicationCode = native_.setApplication ? native_.setApplication(session, ic->program().c_str()) : 0;
+        if (native_.setCodeInput) native_.setCodeInput(session, applicationCode == 1 || ic->capabilityFlags().test(fcitx::CapabilityFlag::Terminal) ? 1 : 0);
     }
 
     void apply(fcitx::InputContext *ic, const std::string &text) {
@@ -428,12 +491,16 @@ private:
         fcitx::Text preedit;
         std::unique_ptr<fcitx::CommonCandidateList> candidates;
         std::string before,after;
+        std::string deleteExpected{};
+        int deleteUnits=0;
     };
     static int queryContext(void *opaque,uint32_t query,Native::Surrounding *output) noexcept {
         try {
             auto &sink=*static_cast<ViewSink *>(opaque);
             auto *ic=sink.ic;
-            if(query==0)return ic->capabilityFlags().test(fcitx::CapabilityFlag::SurroundingText)&&ic->surroundingText().isValid()?1:0;
+            if(query==0)return ic->capabilityFlags().test(fcitx::CapabilityFlag::SurroundingText)&&ic->surroundingText().isValid()
+                &&ic->surroundingText().cursor()==ic->surroundingText().anchor()
+                &&!ic->capabilityFlags().testAny(fcitx::CapabilityFlags{fcitx::CapabilityFlag::Password,fcitx::CapabilityFlag::Sensitive})?1:0;
             if(query!=1 || !sink.engine->readSurrounding(ic,sink.before,sink.after))return 0;
             if(sink.before.size()>std::numeric_limits<uint32_t>::max() || sink.after.size()>std::numeric_limits<uint32_t>::max())return 0;
             *output={reinterpret_cast<const uint8_t *>(sink.before.data()),static_cast<uint32_t>(sink.before.size()),
@@ -476,13 +543,35 @@ private:
             case 8: sink.engine->hidePreedit(ic); break;
             case 9: {
                 if(!ic->capabilityFlags().test(fcitx::CapabilityFlag::SurroundingText) || !ic->surroundingText().isValid())return 0;
+                if(ic->surroundingText().cursor()!=ic->surroundingText().anchor()
+                    || ic->capabilityFlags().testAny(fcitx::CapabilityFlags{fcitx::CapabilityFlag::Password,fcitx::CapabilityFlag::Sensitive}))return 0;
                 const auto &surrounding=ic->surroundingText().text();
                 if(surrounding.size()>std::numeric_limits<uint32_t>::max())return 0;
+                sink.deleteExpected=text;
+                sink.deleteUnits=argument;
                 return sink.engine->native_.deleteCount(reinterpret_cast<const uint8_t *>(surrounding.data()),static_cast<uint32_t>(surrounding.size()),
                     ic->surroundingText().cursor(),bytes,length,argument);
             }
-            case 10: ic->deleteSurroundingText(-argument,static_cast<unsigned int>(argument)); break;
+            case 10: {
+                // パネルを閉じる通知で入力欄が変わる場合も、削除直前に確認する。
+                if(argument<=0 || !ic->capabilityFlags().test(fcitx::CapabilityFlag::SurroundingText)
+                    || !ic->surroundingText().isValid() || ic->surroundingText().cursor()!=ic->surroundingText().anchor()
+                    || ic->capabilityFlags().testAny(fcitx::CapabilityFlags{fcitx::CapabilityFlag::Password,fcitx::CapabilityFlag::Sensitive}))return 0;
+                const auto &surrounding=ic->surroundingText().text();
+                if(surrounding.size()>std::numeric_limits<uint32_t>::max()
+                    || sink.engine->native_.deleteCount(reinterpret_cast<const uint8_t *>(surrounding.data()),static_cast<uint32_t>(surrounding.size()),
+                        ic->surroundingText().cursor(),reinterpret_cast<const uint8_t *>(sink.deleteExpected.data()),
+                        static_cast<uint32_t>(sink.deleteExpected.size()),sink.deleteUnits)!=argument)return 0;
+                ic->deleteSurroundingText(-argument,static_cast<unsigned int>(argument)); break;
+            }
             case 11: ic->commitString(text); break;
+            case 15:
+#ifdef MELTYPE_CURSOR_COMMIT
+                if(argument!=1 || !ic->capabilityFlags().test(fcitx::CapabilityFlag::CommitStringWithCursor))return 0;
+                ic->commitStringWithCursor(text,1); break;
+#else
+                return 0;
+#endif
             case 14:
                 panel.setAuxUp(fcitx::Text(text));
                 ic->updateUserInterface(fcitx::UserInterfaceComponent::InputPanel); break;

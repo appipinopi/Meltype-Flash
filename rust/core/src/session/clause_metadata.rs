@@ -33,6 +33,7 @@ impl Session {
                 && text != clause.reading
                 && text != crate::romaji::katakana(&clause.reading)
                 && clause.raw.as_deref() != Some(text)
+                && !Linguistics::is_version_text(text)
                 && !crate::time_candidates::is_dynamic_choice(&clause.reading, text)
         {
             Some(Change::Conversion {

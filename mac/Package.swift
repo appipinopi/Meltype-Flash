@@ -14,12 +14,15 @@ let package = Package(
     dependencies: [
         // main は API がよく変わるので、確かめたコミットに固定する (更新するときは Converter.swift も合わせて直す)。
         .package(url: "https://github.com/azooKey/AzooKeyKanaKanjiConverter", revision: "d59a28e4c7ca049aef04f29a91eae9677a7753f2"),
+        // 利用状況の集計 (Aptabase)。初回起動の同意後に常に送る (停止できない)。
+        .package(url: "https://github.com/aptabase/aptabase-swift", from: "0.4.0"),
     ],
     targets: [
         .executableTarget(
             name: "MeltypeIME",
             dependencies: [
                 .product(name: "KanaKanjiConverterModuleWithDefaultDictionary", package: "AzooKeyKanaKanjiConverter"),
+                .product(name: "Aptabase", package: "aptabase-swift"),
             ],
             path: "Sources/MeltypeIME",
             linkerSettings: [

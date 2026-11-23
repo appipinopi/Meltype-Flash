@@ -9,7 +9,7 @@ define
 defuse
 # ツール名・合成語。ローマ字としても読めるが日本語の語ではない (おぺんこで / tむx に割れないようにする)
 # discode は固有名詞でないので入れない (discoで が自然。issue #145)
-opencode tmux
+opencode openrouter tokenrouter tmux
 see seeyou seeyouagain seeyoulater seeyoutomorrow
 thankyou thankyouverymuch goodafternoon goodevening
 nicetomeetyou howareyou imfine iloveyou takecare
@@ -36,3 +36,32 @@ mobisode
 change
 # Issue #485
 open
+
+# 公開Issueの英語・コマンド・音楽用語 (#1125, #1123, #1122, #1121, #1117, #918, #915)
+dive into ost midi vocaloid nohup printenv image claudecode
+
+# Meltype v1.4.0 の追加語
+doomscroll garage dice die dies died
+# Issue #852
+image
+# Issue #876
+doomscroll
+# Issue #915
+printenv
+# Issue #1114
+garage
+# Issue #1117
+nohup
+# Issue #1121
+vocaloid
+# midi は入れない (みぢ は みぢか = 身近 の始まりになる。issue #1179)
+# Issue #1123
+ost
+# Issue #1125
+dive
+# Issue #1139
+dice die dies died
+# いっすえ と読めるが、日本語の語ではない
+issue issues
+# へれ・へろ は 減る の活用 (readings.txt) だが、日本語で打つことはまず無い
+here hero

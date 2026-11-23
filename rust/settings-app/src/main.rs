@@ -4,12 +4,23 @@
 use eframe::egui;
 use meltype_core::{control, settings::Settings, storage::Store, Session};
 use serde_json::{json, Value};
+mod ai_setup;
+#[cfg(any(windows, target_os = "linux"))]
+mod analytics;
 mod branding;
+mod consent;
 mod dialogs;
+#[cfg(any(windows, target_os = "linux", target_os = "macos"))]
+mod discord;
+mod i18n;
 mod lifecycle;
+mod markdown;
 mod metadata;
 #[cfg(windows)]
+mod now_playing;
+#[cfg(windows)]
 mod portable_keyboard;
+mod release_notes;
 mod rules;
 #[cfg(windows)]
 mod startup;
@@ -26,64 +37,44 @@ fn main() -> eframe::Result {
     if let Some(code) = startup::command_line(&std::env::args_os().skip(1).collect::<Vec<_>>()) {
         std::process::exit(code);
     }
+    // 同意が済んでいないときは、設定画面を出して同意を待つ。
+    // 起動の確認・導入などの引数は上の時点で終了している。
+    let needs_consent = !consent::accepted(&Store::default_directory());
+    // 打鍵数を Discord のステータスに出す (設定画面で入れた人だけ)。Discord が
+    // 起動していなければ何もしない。
+    #[cfg(any(windows, target_os = "linux", target_os = "macos"))]
+    let _presence = discord::Presence::start(
+        Store::default_directory(),
+        Store::new(Store::default_directory()),
+    );
+    // Windows の再生中メディアを「なう」候補用に書き出す。
+    #[cfg(windows)]
+    let _now_playing = now_playing::NowPlaying::start(Store::new(Store::default_directory()));
     let resident = cfg!(windows)
         && std::env::args().any(|a| matches!(a.as_str(), "--tray" | "--portable-keyboard"));
     let options = eframe::NativeOptions {
         viewport: egui::ViewportBuilder::default()
             .with_icon(branding::icon())
+            .with_app_id("meltype-flash")
             .with_inner_size([720., 700.])
             .with_min_inner_size([480., 400.]),
         ..Default::default()
     };
     let mut options = options;
-    options.viewport = options.viewport.with_visible(!resident);
+    options.viewport = options.viewport.with_visible(!resident || needs_consent);
+    let ui_language = Store::new(Store::default_directory())
+        .settings()
+        .map(|settings| settings.text("UiLanguage").to_owned())
+        .unwrap_or_else(|_| "Auto".into());
+    i18n::set(&ui_language);
     eframe::run_native(
-        "Meltype-flash 設定",
+        i18n::window_title(),
         options,
         Box::new(|cc| {
             widgets::configure_style(&cc.egui_ctx);
-            let mut fonts = egui::FontDefinitions::default();
-            let paths = std::env::var_os("MELTYPE_FONT")
-                .map(std::path::PathBuf::from)
-                .into_iter()
-                .chain(
-                    [
-                        "C:/Windows/Fonts/YuGothR.ttc",
-                        "C:/Windows/Fonts/YuGothM.ttc",
-                        "C:/Windows/Fonts/meiryo.ttc",
-                        "/System/Library/Fonts/ヒラギノ角ゴシック W3.ttc",
-                        "/usr/share/fonts/opentype/noto/NotoSansCJK-Regular.ttc",
-                    ]
-                    .into_iter()
-                    .map(std::path::PathBuf::from),
-                );
-            for path in paths {
-                if let Ok(bytes) = std::fs::read(&path) {
-                    let mut font = egui::FontData::from_owned(bytes);
-                    if path
-                        .file_name()
-                        .is_some_and(|name| name == "YuGothM.ttc" || name == "YuGothR.ttc")
-                    {
-                        font.index = 1;
-                    }
-                    fonts.font_data.insert("japanese".into(), font.into());
-                    fonts
-                        .families
-                        .entry(egui::FontFamily::Monospace)
-                        .or_default()
-                        .push("japanese".into());
-                    fonts
-                        .families
-                        .entry(egui::FontFamily::Proportional)
-                        .or_default()
-                        .insert(0, "japanese".into());
-                    cc.egui_ctx.set_fonts(fonts);
-                    break;
-                }
-            }
-            let app = App::new();
-            #[cfg(windows)]
-            let mut app = app;
+            let mut app = App::new();
+            app.settings_visible = !resident || needs_consent;
+            app.update_ui_fonts(&cc.egui_ctx);
             #[cfg(windows)]
             if app.resident {
                 match windows_services::HiddenRepaint::start(cc) {
@@ -95,14 +86,63 @@ fn main() -> eframe::Result {
         }),
     )
 }
+fn install_ui_fonts(ctx: &egui::Context) {
+    let mut fonts = egui::FontDefinitions::default();
+    let paths = std::env::var_os("MELTYPE_FONT")
+        .map(std::path::PathBuf::from)
+        .into_iter()
+        .chain(
+            [
+                "C:/Windows/Fonts/YuGothR.ttc",
+                "C:/Windows/Fonts/YuGothM.ttc",
+                "C:/Windows/Fonts/meiryo.ttc",
+                "/System/Library/Fonts/ヒラギノ角ゴシック W3.ttc",
+                "/usr/share/fonts/opentype/noto/NotoSansCJK-Regular.ttc",
+            ]
+            .into_iter()
+            .map(std::path::PathBuf::from),
+        );
+    for path in paths {
+        if let Ok(bytes) = std::fs::read(&path) {
+            let mut font = egui::FontData::from_owned(bytes);
+            if path
+                .file_name()
+                .is_some_and(|name| name == "YuGothM.ttc" || name == "YuGothR.ttc")
+            {
+                font.index = 1;
+            }
+            fonts.font_data.insert("japanese".into(), font.into());
+            fonts
+                .families
+                .entry(egui::FontFamily::Monospace)
+                .or_default()
+                .push("japanese".into());
+            fonts
+                .families
+                .entry(egui::FontFamily::Proportional)
+                .or_default()
+                .insert(0, "japanese".into());
+            ctx.set_fonts(fonts);
+            break;
+        }
+    }
+}
+
 struct App {
+    settings_visible: bool,
+    ui_fonts_active: bool,
     store: Store,
     lifecycle: lifecycle::Lifecycle,
+    ai_setup: ai_setup::AiSetup,
     dialogs: dialogs::Dialogs,
     settings: Settings,
     opened: Settings,
     discard: bool,
     closing: bool,
+    consent_pending: bool,
+    release_notes: bool,
+    release_notes_from_update: bool,
+    release_notes_english: bool,
     help: String,
     #[cfg(windows)]
     resident: bool,
@@ -113,6 +153,8 @@ struct App {
     #[cfg(windows)]
     tray: Option<tray::Tray>,
     page: usize,
+    settings_category: Option<String>,
+    title: String,
     status: String,
     filter: String,
     reading: String,
@@ -131,6 +173,8 @@ struct App {
     result: Value,
     complex: BTreeEditor,
     show_all: bool,
+    #[cfg(target_os = "linux")]
+    runtime_services: bool,
     #[cfg(feature = "visual-test")]
     capture_frames: usize,
 }
@@ -141,11 +185,20 @@ impl App {
         let store = Store::new(Store::default_directory());
         #[cfg(not(windows))]
         {
-            Self::with_store(store)
+            let app = Self::with_store(store);
+            #[cfg(target_os = "linux")]
+            let app = {
+                let mut app = app;
+                app.runtime_services = std::env::var_os("MELTYPE_FLASH_DATA_DIR").is_none()
+                    && std::env::var_os("MELTYPE_RUST_DATA_DIR").is_none();
+                app
+            };
+            app
         }
         #[cfg(windows)]
         {
             let mut app = Self::with_store(store.clone());
+            app.resident = true;
             if std::env::args().any(|a| a == "--portable-keyboard") {
                 if let Err(error) = store.change_settings(|s| s.set("Mode", json!("Keyboard"))) {
                     app.status = error.to_string();
@@ -157,9 +210,7 @@ impl App {
                     Ok(keyboard) => {
                         keyboard.activate();
                         app.keyboard = Some(keyboard);
-                        app.status =
-                        "ポータブル入力: Ctrl+Alt+J で ON/OFF。登録済みIMEは英数にしてください。"
-                            .into();
+                        app.status = "ポータブル入力を開始しました。切替キーは設定画面で変更できます。登録済みIMEは英数にしてください。".into();
                     }
                     Err(error) => app.status = error,
                 }
@@ -167,26 +218,83 @@ impl App {
             app
         }
     }
+    #[cfg(windows)]
+    fn show_settings(&mut self, ctx: &egui::Context) {
+        self.settings_visible = true;
+        ctx.send_viewport_cmd(egui::ViewportCommand::Visible(true));
+    }
+
+    fn update_ui_fonts(&mut self, ctx: &egui::Context) {
+        // The welcome dialog also makes the root viewport visible.
+        if self.lifecycle.welcome {
+            self.settings_visible = true;
+        }
+        let needed = self.settings_visible
+            || self.consent_pending
+            || self.release_notes
+            || self.lifecycle.about
+            || self.lifecycle.updates
+            || self.dialogs.log
+            || self.dialogs.report
+            || self.dialogs.corrections
+            || (cfg!(feature = "visual-test") && std::env::var_os("MELTYPE_UI_CAPTURE").is_some());
+        if needed != self.ui_fonts_active {
+            if needed {
+                install_ui_fonts(ctx);
+            } else {
+                ctx.set_fonts(egui::FontDefinitions::default());
+            }
+            self.ui_fonts_active = needed;
+            ctx.request_repaint();
+        }
+    }
+
     fn with_store(store: Store) -> Self {
+        let shortcut_warnings = std::fs::read_to_string(store.directory.join("config.json"))
+            .map(|text| Settings::shortcut_migration_warnings(&text).join("\n"))
+            .unwrap_or_default();
         let loaded = store.settings();
         let status = loaded
             .as_ref()
             .err()
             .map(ToString::to_string)
-            .unwrap_or_default();
+            .unwrap_or(shortcut_warnings);
         let settings = loaded.unwrap_or_default();
+        crate::i18n::set(settings.text("UiLanguage"));
         // The input test must not write learning or settings to disk.
         let mut test_session = Session::default();
         test_session.settings = settings.clone();
+        // 画面の採取試験は隔離したデータで行うため、同意画面とリリースノートでは止めない。
+        let visual_capture =
+            cfg!(feature = "visual-test") && std::env::var_os("MELTYPE_UI_CAPTURE").is_some();
+        let consent_pending = !consent::accepted(&store.directory) && !visual_capture;
+        #[cfg(any(windows, target_os = "linux"))]
+        if !consent_pending {
+            analytics::track("app_open");
+        }
+        // 新規導入では出さず、前の版から更新したときだけリリースノートを一度出す。
+        let first_run = !store.directory.join("config.json").is_file();
+        let release_notes_from_update = !consent_pending
+            && !visual_capture
+            && release_notes::take_update_notice(&store.directory, first_run);
+        let release_notes = release_notes_from_update;
+        let release_notes_english = crate::i18n::english();
         Self {
+            settings_visible: true,
+            ui_fonts_active: false,
             lifecycle: lifecycle::Lifecycle::new(&settings),
+            ai_setup: ai_setup::AiSetup::default(),
             dialogs: dialogs::Dialogs::default(),
             store,
             opened: settings.clone(),
             settings,
             discard: false,
             closing: false,
-            help: "Meltype-flash を有効にする".into(),
+            consent_pending,
+            release_notes,
+            release_notes_from_update,
+            release_notes_english,
+            help: "Meltype-FLASH を有効にする".into(),
             #[cfg(windows)]
             resident: std::env::args()
                 .any(|a| matches!(a.as_str(), "--tray" | "--portable-keyboard")),
@@ -197,6 +305,8 @@ impl App {
             #[cfg(windows)]
             tray: None,
             page: 0,
+            settings_category: None,
+            title: crate::i18n::window_title().to_owned(),
             status,
             filter: String::new(),
             reading: String::new(),
@@ -215,6 +325,8 @@ impl App {
             result: Value::Null,
             complex: BTreeEditor::default(),
             show_all: false,
+            #[cfg(target_os = "linux")]
+            runtime_services: false,
             #[cfg(feature = "visual-test")]
             capture_frames: 0,
         }
@@ -222,6 +334,7 @@ impl App {
     fn action(&mut self, request: Value) {
         let operation = request["op"].as_str().unwrap_or("");
         let name = request["name"].as_str().unwrap_or("");
+        let previous_shortcuts = self.settings.toggle_shortcuts();
         let draft = match operation {
             "settings_set" => Some(self.settings.set(name, request["value"].clone())),
             "profile_add" => Some(
@@ -242,6 +355,20 @@ impl App {
             match result {
                 Ok(()) => {
                     self.status = "変更は「OK」または閉じるボタンで保存します。".into();
+                    let shortcuts = self.settings.toggle_shortcuts();
+                    if name != "ToggleShortcuts" {
+                        for shortcut in previous_shortcuts
+                            .iter()
+                            .filter(|shortcut| !shortcuts.contains(shortcut))
+                        {
+                            if let Err(reason) = shortcut.validate(&self.settings, &[]) {
+                                self.status.push_str(&format!(
+                                    "\n切替キー「{}」を除外しました: {reason}",
+                                    shortcut.label()
+                                ));
+                            }
+                        }
+                    }
                     self.test_session.settings = self.settings.clone();
                 }
                 Err(error) => self.status = error,
@@ -268,8 +395,15 @@ impl App {
         }
     }
     fn save(&mut self) -> bool {
+        let shortcuts = self.settings.toggle_shortcuts();
+        for (index, shortcut) in shortcuts.iter().enumerate() {
+            if let Err(reason) = shortcut.validate(&self.settings, &shortcuts[..index]) {
+                self.status = format!("切替キー「{}」: {reason}", shortcut.label());
+                return false;
+            }
+        }
         if self.settings.0 == self.opened.0 {
-            return true;
+            return self.sync_platform_updates();
         }
         match control::execute(
             &self.store,
@@ -277,13 +411,60 @@ impl App {
         ) {
             Ok(_) => {
                 self.opened = self.settings.clone();
-                true
+                self.sync_platform_updates()
             }
             Err(error) => {
                 self.status = format!("保存できません: {error}");
                 false
             }
         }
+    }
+    fn sync_platform_updates(&mut self) -> bool {
+        #[cfg(target_os = "linux")]
+        if self.runtime_services {
+            let result = (|| -> Result<(), String> {
+                self.store
+                    .change_settings(|s| {
+                        s.set("AutoUpdate", json!(self.settings.boolean("AutoUpdate")))
+                    })
+                    .map_err(|e| e.to_string())?;
+                let root = &self.store.directory;
+                let service = root.join("background-updates.py");
+                meltype_core::storage::atomic_write(
+                    &service,
+                    include_bytes!("../../linux-background-updates.py"),
+                )
+                .map_err(|e| e.to_string())?;
+                meltype_core::storage::atomic_write(
+                    &root.join("update-linux.py"),
+                    include_bytes!("../../update-linux.py"),
+                )
+                .map_err(|e| e.to_string())?;
+                let exe = std::env::current_exe().map_err(|e| e.to_string())?;
+                let output = std::process::Command::new("python3")
+                    .arg(service)
+                    .arg(if self.settings.boolean("AutoUpdate") {
+                        "enable"
+                    } else {
+                        "disable"
+                    })
+                    .arg(root)
+                    .arg(exe.parent().ok_or("アプリの場所が不明です")?)
+                    .arg(env!("CARGO_PKG_VERSION"))
+                    .output()
+                    .map_err(|e| e.to_string())?;
+                if !output.status.success() {
+                    return Err(String::from_utf8_lossy(&output.stderr).trim().to_owned());
+                }
+                Ok(())
+            })();
+            if let Err(error) = result {
+                self.status =
+                    format!("設定は保存しましたが、自動更新の登録に失敗しました: {error}");
+                return false;
+            }
+        }
+        true
     }
     fn finish(&mut self, ctx: &egui::Context, discard: bool) {
         if !discard && !self.save() {
@@ -304,6 +485,7 @@ impl App {
         #[cfg(windows)]
         if self.resident {
             ctx.send_viewport_cmd(egui::ViewportCommand::CancelClose);
+            self.settings_visible = false;
             ctx.send_viewport_cmd(egui::ViewportCommand::Visible(false));
             self.discard = false;
             return;
@@ -316,11 +498,140 @@ impl App {
     fn maintenance_quit(&mut self, ctx: &egui::Context) {
         if self.settings.0 != self.opened.0 {
             self.status = "更新・削除のための終了要求があります。未保存の設定を保存または取り消してください。".into();
-            ctx.send_viewport_cmd(egui::ViewportCommand::Visible(true));
+            self.show_settings(ctx);
             return;
         }
         self.closing = true;
         ctx.send_viewport_cmd(egui::ViewportCommand::Close);
+    }
+    fn open_release_notes(&mut self) {
+        self.release_notes = true;
+        self.release_notes_from_update = false;
+        release_notes::mark_shown(&self.store.directory);
+    }
+    fn release_notes_window(&mut self, ctx: &egui::Context) -> bool {
+        let version = release_notes::VERSION;
+        let title = if self.release_notes_english {
+            "Meltype-FLASH release notes"
+        } else {
+            "Meltype-FLASH リリースノート"
+        };
+        crate::dialogs::window(ctx, "flash-release-notes", title, [720., 620.], |ui| {
+            let mut closed = false;
+            ui.horizontal(|ui| {
+                ui.heading(if self.release_notes_english {
+                    "Release notes"
+                } else {
+                    "リリースノート"
+                });
+                ui.with_layout(egui::Layout::right_to_left(egui::Align::Center), |ui| {
+                    if ui
+                        .selectable_label(self.release_notes_english, "English")
+                        .clicked()
+                    {
+                        self.release_notes_english = true;
+                    }
+                    if ui
+                        .selectable_label(!self.release_notes_english, "日本語")
+                        .clicked()
+                    {
+                        self.release_notes_english = false;
+                    }
+                });
+            });
+            if self.release_notes_from_update {
+                ui.label(if self.release_notes_english {
+                    format!("Updated to {version}.")
+                } else {
+                    format!("{version} に更新しました。")
+                });
+            }
+            ui.separator();
+            egui::ScrollArea::vertical()
+                .auto_shrink([false, false])
+                .show(ui, |ui| {
+                    match release_notes::notes(version, self.release_notes_english) {
+                        Some(notes) => markdown::show(ui, notes),
+                        None => {
+                            ui.label(if self.release_notes_english {
+                                "The release notes for this version are on GitHub."
+                            } else {
+                                "この版のリリースノートは GitHub のリリースページで見られます。"
+                            });
+                        }
+                    }
+                });
+            ui.separator();
+            ui.horizontal(|ui| {
+                if ui
+                    .button(if self.release_notes_english {
+                        "Close"
+                    } else {
+                        "閉じる"
+                    })
+                    .clicked()
+                {
+                    closed = true;
+                }
+                ui.hyperlink_to(
+                    if self.release_notes_english {
+                        "View on GitHub"
+                    } else {
+                        "GitHub で見る"
+                    },
+                    release_notes::release_url(version),
+                );
+                ui.hyperlink_to(
+                    if self.release_notes_english {
+                        "Past release notes"
+                    } else {
+                        "過去のリリースノート"
+                    },
+                    crate::lifecycle::RELEASES,
+                );
+            });
+            closed
+        })
+    }
+    fn consent(&mut self, ctx: &egui::Context) {
+        egui::CentralPanel::default().show(ctx, |ui| {
+            egui::ScrollArea::vertical().show(ui, |ui| {
+                ui.add_space(20.);
+                ui.heading("はじめる前に");
+                ui.add_space(10.);
+                ui.label(consent::text());
+                ui.add_space(18.);
+                ui.horizontal(|ui| {
+                    if ui
+                        .add_sized([200., 36.], egui::Button::new("同意してはじめる"))
+                        .clicked()
+                    {
+                        match consent::accept(&self.store.directory) {
+                            Ok(()) => {
+                                self.consent_pending = false;
+                                self.status = "同意を保存しました。".into();
+                                #[cfg(any(windows, target_os = "linux"))]
+                                analytics::track("app_open");
+                                // 新規導入の初回同意ではリリースノートを出さない。
+                                release_notes::take_update_notice(&self.store.directory, true);
+                            }
+                            Err(error) => self.status = format!("同意を保存できません: {error}"),
+                        }
+                    }
+                    if ui
+                        .add_sized([150., 36.], egui::Button::new("同意しない (終了)"))
+                        .clicked()
+                    {
+                        self.closing = true;
+                        ctx.send_viewport_cmd(egui::ViewportCommand::Close);
+                    }
+                });
+                if !self.status.is_empty() {
+                    ui.add_space(10.);
+                    ui.colored_label(egui::Color32::from_rgb(180, 40, 40), &self.status);
+                }
+            });
+        });
     }
     #[cfg(windows)]
     fn update_tray(&mut self, ctx: &egui::Context) {
@@ -350,7 +661,7 @@ impl App {
                 Err(error) => {
                     self.status = error;
                     self.resident = false;
-                    ctx.send_viewport_cmd(egui::ViewportCommand::Visible(true));
+                    self.show_settings(ctx);
                     return;
                 }
             }
@@ -373,7 +684,24 @@ impl App {
                     }
                     self.page = page;
                     self.discard = false;
-                    ctx.send_viewport_cmd(egui::ViewportCommand::Visible(true));
+                    self.show_settings(ctx);
+                    ctx.send_viewport_cmd(egui::ViewportCommand::Minimized(false));
+                    ctx.send_viewport_cmd(egui::ViewportCommand::Focus);
+                }
+                tray::Action::KeyCount => {
+                    // 本家と同じく、トレイから打鍵数の画面を開く。
+                    if ctx.input(|i| i.viewport().minimized.unwrap_or(false))
+                        || self.settings.0 == self.opened.0
+                    {
+                        self.settings = settings.clone();
+                        self.opened = settings.clone();
+                        self.test_session.settings = settings.clone();
+                    }
+                    self.page = 0;
+                    self.settings_category = Some("13. 打鍵数".into());
+                    self.filter.clear();
+                    self.discard = false;
+                    self.show_settings(ctx);
                     ctx.send_viewport_cmd(egui::ViewportCommand::Minimized(false));
                     ctx.send_viewport_cmd(egui::ViewportCommand::Focus);
                 }
@@ -383,7 +711,7 @@ impl App {
                     if restore {
                         self.open_backup_dialog();
                         if self.restore_prompt {
-                            ctx.send_viewport_cmd(egui::ViewportCommand::Visible(true));
+                            self.show_settings(ctx);
                             ctx.send_viewport_cmd(egui::ViewportCommand::Focus);
                         }
                     } else {
@@ -392,22 +720,27 @@ impl App {
                 }
                 tray::Action::Forget(scope) => {
                     self.forget_prompt = Some(scope);
-                    ctx.send_viewport_cmd(egui::ViewportCommand::Visible(true));
+                    self.show_settings(ctx);
                     ctx.send_viewport_cmd(egui::ViewportCommand::Focus);
                 }
                 tray::Action::Uninstall => {
                     self.uninstall_prompt = true;
-                    ctx.send_viewport_cmd(egui::ViewportCommand::Visible(true));
+                    self.show_settings(ctx);
                     ctx.send_viewport_cmd(egui::ViewportCommand::Focus);
                 }
                 tray::Action::CheckUpdates => {
                     self.lifecycle.updates = true;
                     self.lifecycle.check_updates();
                 }
+                tray::Action::ReleaseNotes => {
+                    self.open_release_notes();
+                    self.show_settings(ctx);
+                    ctx.send_viewport_cmd(egui::ViewportCommand::Focus);
+                }
                 tray::Action::About => self.lifecycle.about = true,
                 tray::Action::Help => {
                     self.lifecycle.welcome = true;
-                    ctx.send_viewport_cmd(egui::ViewportCommand::Visible(true));
+                    self.show_settings(ctx);
                     ctx.send_viewport_cmd(egui::ViewportCommand::Focus);
                 }
                 tray::Action::Folder => {
@@ -439,7 +772,7 @@ impl App {
                 tray::Action::Status(message) => self.status = message,
                 tray::Action::Error(message) => {
                     self.status = message;
-                    ctx.send_viewport_cmd(egui::ViewportCommand::Visible(true));
+                    self.show_settings(ctx);
                     ctx.send_viewport_cmd(egui::ViewportCommand::Focus);
                 }
                 action => {
@@ -463,6 +796,7 @@ impl App {
     }
     fn navigation(&mut self, ui: &mut egui::Ui) {
         ui.horizontal_wrapped(|ui| {
+            ui.spacing_mut().item_spacing.x = 14.;
             for (page, title) in [
                 "設定",
                 "ユーザー辞書",
@@ -470,12 +804,15 @@ impl App {
                 "学習した語",
                 "バックアップ",
                 "入力テスト",
-                "ログ / 判定理由",
+                "打鍵数",
             ]
             .iter()
             .enumerate()
             {
-                if ui.selectable_value(&mut self.page, page, *title).clicked() {
+                if ui
+                    .selectable_value(&mut self.page, page, i18n::t(title))
+                    .clicked()
+                {
                     ui.close_menu();
                 }
             }
@@ -486,7 +823,7 @@ impl App {
         ui.horizontal_wrapped(|ui| {
             ui.spacing_mut().item_spacing.x = 8.;
             ui.spacing_mut().interact_size.y = 25.;
-            ui.label("プロファイル:");
+            ui.label(i18n::t("プロファイル:"));
             let active = self.settings.text("ActiveProfile").to_owned();
             let mut selected = active.clone();
             egui::ComboBox::from_id_salt("active_profile")
@@ -505,14 +842,14 @@ impl App {
                 self.action(json!({"op":"profile_switch","name":selected}));
             }
             if ui
-                .add_sized([72., 25.], egui::Button::new("新規..."))
+                .add_sized([72., 25.], egui::Button::new(i18n::t("新規...")))
                 .clicked()
             {
                 self.profile.clear();
                 self.profile_prompt = Some(false);
             }
             if ui
-                .add_sized([88., 25.], egui::Button::new("名前を変更..."))
+                .add_sized([88., 25.], egui::Button::new(i18n::t("名前を変更...")))
                 .clicked()
             {
                 self.profile = active;
@@ -523,14 +860,14 @@ impl App {
                     self.settings.0["Profiles"]
                         .as_array()
                         .is_some_and(|p| p.len() > 1),
-                    egui::Button::new("削除").min_size(egui::vec2(72., 25.)),
+                    egui::Button::new(i18n::t("削除")).min_size(egui::vec2(72., 25.)),
                 )
                 .clicked()
             {
                 self.confirm_remove = true;
             }
             if ui
-                .add_sized([72., 25.], egui::Button::new("書き出す..."))
+                .add_sized([72., 25.], egui::Button::new(i18n::t("書き出す...")))
                 .clicked()
             {
                 if let Some(path) = rfd::FileDialog::new()
@@ -551,7 +888,7 @@ impl App {
                 }
             }
             if ui
-                .add_sized([72., 25.], egui::Button::new("読み込む..."))
+                .add_sized([72., 25.], egui::Button::new(i18n::t("読み込む...")))
                 .clicked()
             {
                 if let Some(path) = rfd::FileDialog::new()
@@ -575,20 +912,17 @@ impl App {
         });
         ui.add_space(8.);
         ui.horizontal_wrapped(|ui| {
-            for (key, label) in [
-                ("SettingsShowHelp", "下部に説明を表示"),
-                ("SettingsWheelChangesValue", "マウスホイールで値を変更"),
-            ] {
-                let mut enabled = self.settings.boolean(key);
-                ui.label(label);
-                if widgets::toggle(ui, &mut enabled, label).changed() {
-                    self.action(json!({"op":"settings_set","name":key,"value":enabled}));
-                }
+            let key = "SettingsWheelChangesValue";
+            let label = "マウスホイールで値を変更";
+            let mut enabled = self.settings.boolean(key);
+            ui.label(i18n::t(label));
+            if widgets::toggle(ui, &mut enabled, i18n::t(label)).changed() {
+                self.action(json!({"op":"settings_set","name":key,"value":enabled}));
             }
         });
         if self.show_all {
             ui.horizontal(|ui| {
-                ui.label("検索");
+                ui.label(i18n::t("検索"));
                 ui.text_edit_singleline(&mut self.filter);
             });
         }
@@ -597,6 +931,19 @@ impl App {
             .iter()
             .filter_map(|f| {
                 let key = f["key"].as_str()?;
+                if cfg!(any(windows, target_os = "linux", target_os = "macos"))
+                    && [
+                        "AiModel",
+                        "UseZenzai",
+                        "ZenzaiServerPath",
+                        "ZenzaiModelPath",
+                        "UseShunti",
+                        "ShuntiHelperPath",
+                    ]
+                    .contains(&key)
+                {
+                    return None;
+                }
                 let value = self.settings.0.get(key)?;
                 let filter = self.filter.to_lowercase();
                 ((self.show_all || visible_by_default(key))
@@ -607,22 +954,98 @@ impl App {
                     (
                         key.to_owned(),
                         value.clone(),
-                        f["category"].as_str().unwrap_or("").to_owned(),
+                        ui_category(key, f["category"].as_str().unwrap_or("")).to_owned(),
                     )
                 })
             })
             .collect();
-        fields.sort_by(|a, b| a.2.cmp(&b.2));
-        egui::ScrollArea::vertical()
-            .id_salt("settings_body")
-            .auto_shrink([false, false])
-            .show(ui, |ui| {
-                ui.set_width((ui.available_width() - 18.).max(220.));
+        #[cfg(any(windows, target_os = "linux", target_os = "macos"))]
+        if self.filter.is_empty()
+            || [
+                "ai",
+                "zenz",
+                "zenzai",
+                "shunti",
+                "パス",
+                "モデル",
+                "インストール",
+            ]
+            .iter()
+            .any(|word| self.filter.to_lowercase().contains(word))
+        {
+            fields.push(("ai-packages".into(), Value::Null, "4. 変換".into()));
+            fields.push(("keycount-discord".into(), Value::Null, "8. 表示".into()));
+            fields.push(("keycount".into(), Value::Null, "13. 打鍵数".into()));
+        }
+        // 本家と同じ数字の順に並べる。文字列の順だと 10. アプリ が 2. 入力モード より前になる。
+        fields.sort_by(|a, b| category_order(&a.2).cmp(&category_order(&b.2)));
+        let mut categories: Vec<String> = Vec::new();
+        for (_, _, group) in &fields {
+            if categories.last() != Some(group) {
+                categories.push(group.clone());
+            }
+        }
+        let available_width = ui.available_width();
+        let content_width = (available_width - 166.).max(320.);
+        ui.horizontal_top(|ui| {
+            egui::Frame::NONE
+                .fill(egui::Color32::from_gray(246))
+                .inner_margin(egui::Margin::symmetric(6, 8))
+                .show(ui, |ui| {
+                    ui.set_width(146.);
+                    egui::ScrollArea::vertical()
+                        .id_salt("settings_categories")
+                        .auto_shrink([false, false])
+                        .show(ui, |ui| {
+                            ui.vertical(|ui| {
+                                if ui
+                                    .selectable_label(
+                                        self.settings_category.is_none(),
+                                        i18n::t("すべて"),
+                                    )
+                                    .clicked()
+                                {
+                                    self.settings_category = None;
+                                }
+                                for category in &categories {
+                                    let label = category
+                                        .split_once(". ")
+                                        .map_or(category.as_str(), |(_, label)| label);
+                                    let selected = self.settings_category.as_deref()
+                                        == Some(category.as_str());
+                                    if ui
+                                        .selectable_label(selected, i18n::category(label))
+                                        .clicked()
+                                    {
+                                        self.settings_category = Some(category.clone());
+                                    }
+                                }
+                            });
+                        });
+                });
+            ui.separator();
+            ui.allocate_ui_with_layout(
+                egui::vec2(content_width, ui.available_height()),
+                egui::Layout::top_down(egui::Align::Min),
+                |ui| {
+                    egui::ScrollArea::vertical()
+                    .id_salt("settings_body")
+                    .auto_shrink([false, false])
+                    .show(ui, |ui| {
+                        ui.set_width((content_width - 18.).max(220.));
                 for group_fields in fields.chunk_by(|a, b| a.2 == b.2) {
+                    if self
+                        .settings_category
+                        .as_deref()
+                        .is_some_and(|selected| group_fields[0].2 != selected)
+                    {
+                        continue;
+                    }
                     let group = &group_fields[0].2;
                     let title = group
                         .split_once(". ")
                         .map_or(group.as_str(), |(_, label)| label);
+                    let title = i18n::category(title);
                     let frame = egui::Frame::NONE.inner_margin(egui::Margin {
                         left: 12,
                         right: 12,
@@ -632,6 +1055,38 @@ impl App {
                     let group_response = frame.show(ui, |ui| {
                         ui.set_min_width(ui.available_width());
                         for (key, value, _) in group_fields {
+                            if key == "keycount-discord" {
+                                let mut count = meltype_core::keycount::load(&self.store.directory);
+                                let mut changed = false;
+                                ui.horizontal(|ui| {
+                                    ui.label("Discord のステータスに表示する");
+                                    changed |= widgets::toggle(
+                                        ui,
+                                        &mut count.discord,
+                                        "Discord のステータスに表示する",
+                                    )
+                                    .on_hover_text("今日・合計・1 分あたりの回数だけを送ります。打った文字・候補・入力先のアプリ名は送りません。")
+                                    .changed();
+                                });
+                                if changed {
+                                    if let Err(error) = meltype_core::keycount::save_settings(
+                                        &self.store.directory,
+                                        &count,
+                                    ) {
+                                        self.status = error.to_string();
+                                    }
+                                }
+                                continue;
+                            }
+                            if key == "keycount" {
+                                self.keycount(ui);
+                                continue;
+                            }
+                            #[cfg(any(windows, target_os = "linux", target_os = "macos"))]
+                            if key == "ai-packages" {
+                                self.ai_settings(ui);
+                                continue;
+                            }
                             let mut value = value.clone();
                             ui.push_id(key, |ui| {
                                 if key == "AppRules" || key == "AppKinds" {
@@ -644,27 +1099,80 @@ impl App {
                                     if label.hovered() {
                                         self.help = metadata::description(key).into();
                                     }
-                                    if rules::editor(ui, key, &mut value, &self.settings) {
+                                    let changed = egui::ScrollArea::horizontal()
+                                        .id_salt(("rules-scroll", key))
+                                        .show(ui, |ui| {
+                                            rules::editor(ui, key, &mut value, &self.settings)
+                                        })
+                                        .inner;
+                                    if changed {
                                         self.action(
                                             json!({"op":"settings_set","name":key,"value":value}),
                                         );
                                     }
                                     return;
                                 }
-                                if key == "ToggleKeyboardShortcuts" {
-                                    ui.label(metadata::label(key))
-                                        .on_hover_text(metadata::description(key));
-                                    let mut shortcut = value.as_str().unwrap_or("").to_owned();
-                                    ui.add_enabled(
-                                        false,
-                                        egui::TextEdit::singleline(&mut shortcut),
-                                    );
-                                    ui.label("キーボード方式の接続が完了すると使用できます。");
-                                    ui.separator();
+                                if key == "ToggleShortcuts" {
+                                    ui.label(metadata::label(key)).on_hover_text(metadata::description(key));
+                                    if cfg!(target_os = "linux") { ui.weak("IBusが選択されている入力欄で有効です。システム全体の切替はデスクトップ設定を使います。"); } else if !cfg!(windows) { ui.weak("この切替キーはこのOSでは編集できません。"); }
+                                    let draft = self.complex.0.entry("toggle-shortcut-new".into()).or_default();
+                                    let edit = ui.add_enabled_ui(cfg!(any(windows, target_os = "linux")), |ui| {
+                                        toggle_shortcuts_editor(ui, &mut value, &self.settings, draft)
+                                    }).inner;
+                                    match edit {
+                                        Ok(true) => self.action(json!({"op":"settings_set","name":key,"value":value})),
+                                        Err(error) => self.status = error,
+                                        _ => {}
+                                    }
                                     return;
                                 }
+
+                                if key == "Mode" && cfg!(target_os = "linux") {
+                                    ui.label("入力方式: Linux IBus");
+                                    ui.weak("入力ソースはデスクトップの日本語入力設定で切り替えます。");
+                                    return;
+                                }
+                                if key == "AutoUpdate" {
+                                    let mut automatic = value.as_bool().unwrap_or(false);
+                                    let prior = automatic;
+                                    ui.horizontal_wrapped(|ui| {
+                                        ui.label(i18n::t("アップデート方法"));
+                                        egui::ComboBox::from_id_salt("update-method")
+                                            .selected_text(if automatic { i18n::t("自動") } else { i18n::t("手動") })
+                                            .show_ui(ui, |ui| {
+                                                ui.selectable_value(&mut automatic, false, i18n::t("手動"));
+                                                ui.selectable_value(&mut automatic, true, i18n::t("自動"));
+                                            });
+                                        if ui.button(i18n::t("今アップデートを確認")).clicked() {
+                                            self.lifecycle.updates = true;
+                                            self.lifecycle.check_updates();
+                                        }
+                                        if ui.button(i18n::t("リリースノートを見る")).clicked() {
+                                            self.open_release_notes();
+                                        }
+                                    });
+                                    ui.weak(metadata::description(key));
+                                    if automatic != prior {
+                                        self.action(json!({"op":"settings_set", "name":key, "value":automatic}));
+                                    }
+                                    return;
+                                }
+                                let limitation =
+                                    if !cfg!(any(windows, target_os = "linux")) && ["UseZenzai", "ZenzaiServerPath", "ZenzaiModelPath"].contains(&key.as_str()) {
+                                        Some("ZenzaiはWindowsのIME方式で使用できます。")
+                                    } else if cfg!(windows) && self.settings.text("Mode") == "Keyboard" {
+                                        keyboard_limitation(key)
+                                    } else {
+                                        None
+                                    };
+                                if let Some(reason) = limitation {
+                                    ui.weak(reason);
+                                    ui.disable();
+                                }
+                                let row_width = ui.available_width();
+                                let label_width = (row_width * 0.5 + 4.).min(320.);
+                                let control_width = (row_width - label_width - 8.).max(120.);
                                 let row = ui.horizontal(|ui| {
-                                    let label_width = (ui.available_width() * 0.55 + 4.).min(349.);
                                     let label = ui
                                         .allocate_ui_with_layout(
                                             egui::vec2(label_width, 29.),
@@ -710,7 +1218,7 @@ impl App {
                                             if let Some(choices) = choices(key) {
                                                 let old = text.clone();
                                                 let combo = egui::ComboBox::from_id_salt(key)
-                                                    .width(250.)
+                                                    .width(control_width)
                                                     .selected_text(metadata::choice(key, text))
                                                     .show_ui(ui, |ui| {
                                                         for choice in choices {
@@ -744,7 +1252,7 @@ impl App {
                                         );
                                                 }
                                             } else {
-                                                let response = ui.text_edit_singleline(text);
+                                                let response = ui.add(egui::TextEdit::singleline(text).desired_width(control_width));
                                                 if response.changed() {
                                                     self.settings
                                                         .0
@@ -761,7 +1269,7 @@ impl App {
                                                     },
                                                 );
                                             ui.text_edit_singleline(text);
-                                            if ui.button("保存 JSON").clicked() {
+                                            if ui.button(i18n::t("保存 JSON")).clicked() {
                                                 match serde_json::from_str::<Value>(text) {
                                         Ok(value) => self.action(
                                             json!({"op":"settings_set","name":key,"value":value}),
@@ -782,6 +1290,7 @@ impl App {
                                         )
                                     };
                                 }
+                                row.response.on_hover_text(&self.help);
                             });
                         }
                     });
@@ -790,10 +1299,126 @@ impl App {
                 }
                 // Retain the original form's trailing space below the last row.
                 ui.add_space(16.);
+                    });
+                },
+            );
+        });
+    }
+    #[cfg(any(windows, target_os = "linux", target_os = "macos"))]
+    fn ai_settings(&mut self, ui: &mut egui::Ui) {
+        use meltype_core::{ai_catalog, ai_model::AiModel};
+        let mut selected = AiModel::selected(&self.settings);
+        let previous = selected;
+        ui.add_enabled_ui(!self.ai_setup.locked(), |ui| {
+            ui.horizontal(|ui| {
+                ui.label(i18n::t("AIモデル"));
+                egui::ComboBox::from_id_salt("ai-model")
+                    .selected_text(selected.label())
+                    .show_ui(ui, |ui| {
+                        for model in AiModel::ALL {
+                            ui.selectable_value(&mut selected, model, model.label());
+                        }
+                    });
             });
+        });
+        if selected != previous {
+            self.ai_setup.reset_status();
+            selected.select(&mut self.settings, false);
+        }
+        let Some(spec) = ai_catalog::selected(&self.settings, selected) else {
+            ui.weak("AI変換を使用しません。導入済みのモデルは保持します。");
+            return;
+        };
+        let mut variant = spec.id.clone();
+        ui.add_enabled_ui(!self.ai_setup.locked(), |ui| {
+            ui.horizontal(|ui| {
+                ui.label("バージョン・モデルサイズ・量子化");
+                egui::ComboBox::from_id_salt("ai-variant")
+                    .selected_text(&spec.label)
+                    .show_ui(ui, |ui| {
+                        for m in ai_catalog::models()
+                            .iter()
+                            .filter(|m| m.family == selected.value())
+                        {
+                            ui.selectable_value(&mut variant, m.id.clone(), &m.label);
+                        }
+                    });
+            });
+        });
+        if variant != spec.id {
+            self.settings
+                .set(ai_catalog::key(selected), json!(variant))
+                .unwrap();
+            selected.select(&mut self.settings, false);
+        }
+        let spec = ai_catalog::selected(&self.settings, selected).unwrap();
+        let ready = self.ai_setup.status(&self.store.directory, spec);
+        ui.label(format!(
+            "モデルデータ {:.1} MB",
+            spec.files.iter().map(|f| f.size).sum::<u64>() as f64 / 1_000_000.
+        ));
+        ui.weak(&spec.license);
+        ui.hyperlink_to("モデルの説明・配布元", &spec.source);
+        if !spec.available {
+            ui.label("この配布版はライセンスを確認中のため、インストールできません。");
+        }
+        let checking = self.ai_setup.checking();
+        if ui
+            .add_enabled(
+                !self.ai_setup.locked() && !ready && !checking && spec.available,
+                egui::Button::new(if ready {
+                    "インストール済み"
+                } else if checking {
+                    "インストール状態を確認中…"
+                } else {
+                    "このモデルをインストール"
+                }),
+            )
+            .clicked()
+        {
+            self.ai_setup.request_model(spec);
+        }
+        if self.ai_setup.busy() {
+            ui.spinner();
+            ui.label("選択したAI環境を準備しています…");
+        } else if ready {
+            ui.weak("インストール済みです。「OK」で選択を保存します。");
+        } else {
+            ui.weak("専用の実行環境と選択したモデルを別ダウンロードします。パス入力は不要です。");
+        }
+        ui.collapsing("手動でパスを指定（任意）", |ui| {
+            let paths: &[(&str, &str)] = if selected == AiModel::Shunti {
+                &[("ShuntiHelperPath", "shuntiの実行ファイル")]
+            } else {
+                &[
+                    ("ZenzaiServerPath", "llama-serverの実行ファイル"),
+                    ("ZenzaiModelPath", "選択した版のGGUFモデル"),
+                ]
+            };
+            for (key, label) in paths {
+                ui.label(*label);
+                let mut text = self.settings.text(key).to_owned();
+                if ui.text_edit_singleline(&mut text).changed() {
+                    self.action(json!({"op":"settings_set","name":key,"value":text}));
+                }
+            }
+            if !self.ai_setup.locked() && ui.button("指定したパスを使う").clicked() {
+                if paths
+                    .iter()
+                    .all(|(key, _)| std::path::Path::new(self.settings.text(key)).is_file())
+                {
+                    selected.select(&mut self.settings, true);
+                } else {
+                    self.status =
+                        "指定したファイルが見つかりません。インストールボタンで自動設定できます。"
+                            .into();
+                }
+            }
+        });
+        self.test_session.settings = self.settings.clone();
     }
     fn dictionary(&mut self, ui: &mut egui::Ui) {
-        ui.heading("Meltype-flash ユーザー辞書");
+        ui.heading("Meltype-FLASH ユーザー辞書");
         let reading_finished = ui
             .horizontal_wrapped(|ui| {
                 ui.label("読み (ローマ字・ひらがな)");
@@ -805,7 +1430,8 @@ impl App {
             self.reading.trim(),
             true,
         ));
-        let mut candidates = meltype_core::dictionary::Dictionary::bundled().candidates(&reading);
+        let mut candidates = meltype_core::dictionary::Dictionary::bundled()
+            .candidates(&reading, self.settings.text("TimeZone"));
         let mut remove_reading = reading.clone();
         if let Ok(state) = self.store.load() {
             if state
@@ -907,7 +1533,7 @@ impl App {
         }
     }
     fn snippets(&mut self, ui: &mut egui::Ui) {
-        ui.heading("Meltype-flash 定型文");
+        ui.heading("Meltype-FLASH 定型文");
         ui.label(format!("行の先頭か空白の直後に {}名前 と打って Space / Tab を押すと、登録した文に置き換えます。", self.settings.text("SnippetMark")));
         ui.horizontal(|ui| {
             ui.label("名前");
@@ -980,7 +1606,7 @@ impl App {
         }
     }
     fn learning(&mut self, ui: &mut egui::Ui) {
-        ui.heading("Meltype-flash 学習した語");
+        ui.heading("Meltype-FLASH 学習した語");
         ui.horizontal(|ui| {
             if ui.button("更新").clicked() {
                 self.action(json!({"op":"learning_list"}));
@@ -1095,14 +1721,14 @@ impl App {
     fn create_backup_dialog(&mut self) {
         if let Some(path) = rfd::FileDialog::new()
             .set_title("バックアップを書き出す")
-            .add_filter("Meltype-flash バックアップ", &["meltype-backup", "json"])
+            .add_filter("Meltype-FLASH バックアップ", &["meltype-backup", "json"])
             .set_file_name("Meltype-flash.meltype-backup")
             .save_file()
         {
             self.action(json!({"op":"backup_create","path":path}));
             let saved = self.result["saved"] == true;
             rfd::MessageDialog::new()
-                .set_title("Meltype-flash バックアップ")
+                .set_title("Meltype-FLASH バックアップ")
                 .set_level(if saved {
                     rfd::MessageLevel::Info
                 } else {
@@ -1119,7 +1745,7 @@ impl App {
     fn open_backup_dialog(&mut self) {
         if let Some(path) = rfd::FileDialog::new()
             .set_title("バックアップから戻す")
-            .add_filter("Meltype-flash バックアップ", &["meltype-backup", "json"])
+            .add_filter("Meltype-FLASH バックアップ", &["meltype-backup", "json"])
             .pick_file()
         {
             self.action(json!({"op":"backup_inspect","path":path}));
@@ -1127,7 +1753,7 @@ impl App {
             self.restore_prompt = self.restore_path.is_some();
             if !self.restore_prompt {
                 rfd::MessageDialog::new()
-                    .set_title("Meltype-flash バックアップ")
+                    .set_title("Meltype-FLASH バックアップ")
                     .set_level(rfd::MessageLevel::Error)
                     .set_description(&self.status)
                     .show();
@@ -1135,7 +1761,7 @@ impl App {
         }
     }
     fn backup(&mut self, ui: &mut egui::Ui) {
-        ui.heading("Meltype-flash バックアップ");
+        ui.heading("Meltype-FLASH バックアップ");
         ui.horizontal(|ui| {
             if ui.button("バックアップを書き出す...").clicked() {
                 self.create_backup_dialog();
@@ -1259,35 +1885,203 @@ impl App {
                 ui.label(format!("もしかして: {suggestion}"));
             }
             egui::ScrollArea::vertical().show(ui, |ui| {
-                for (i, candidate) in view.candidates.iter().enumerate() {
-                    if ui.button(candidate).clicked() {
-                        let result = self.test_session.select(i);
-                        let expected = result
-                            .commits
-                            .iter()
-                            .map(|entry| entry.text.as_str())
-                            .collect::<String>();
-                        self.dialogs
-                            .record(&self.test_raw, &view.text, &expected, 0);
-                        self.test_raw.clear();
-                        self.status = result
-                            .commits
-                            .iter()
-                            .map(|e| e.text.as_str())
-                            .collect::<String>();
+                ui.horizontal_wrapped(|ui| {
+                    ui.spacing_mut().item_spacing.x = 6.0;
+                    ui.spacing_mut().item_spacing.y = 4.0;
+                    for (i, candidate) in view.candidates.iter().enumerate() {
+                        if ui.button(candidate).clicked() {
+                            let result = self.test_session.select(i);
+                            let expected = result
+                                .commits
+                                .iter()
+                                .map(|entry| entry.text.as_str())
+                                .collect::<String>();
+                            self.dialogs
+                                .record(&self.test_raw, &view.text, &expected, 0);
+                            self.test_raw.clear();
+                            self.status = result
+                                .commits
+                                .iter()
+                                .map(|e| e.text.as_str())
+                                .collect::<String>();
+                        }
                     }
-                }
+                });
             });
         }
     }
 }
+fn toggle_shortcuts_editor(
+    ui: &mut egui::Ui,
+    value: &mut Value,
+    settings: &Settings,
+    draft: &mut String,
+) -> Result<bool, String> {
+    use meltype_core::shortcuts::ToggleShortcut;
+    let mut shortcuts: Vec<ToggleShortcut> =
+        serde_json::from_value(value.clone()).map_err(|error| error.to_string())?;
+    let mut remove = None;
+    for (index, shortcut) in shortcuts.iter().enumerate() {
+        ui.horizontal(|ui| {
+            ui.label(shortcut.label());
+            if ui.small_button("削除").clicked() {
+                remove = Some(index);
+            }
+        });
+    }
+    let mut changed = false;
+    if let Some(index) = remove {
+        shortcuts.remove(index);
+        changed = true;
+    }
+    let mut add = false;
+    ui.horizontal(|ui| {
+        ui.text_edit_singleline(draft)
+            .on_hover_text("例: Ctrl+Alt+J、Ctrl+CapsLock、Alt+英数");
+        add = ui.button("追加").clicked();
+        if ui.button("初期値に戻す").clicked() {
+            shortcuts = ToggleShortcut::defaults();
+            changed = true;
+        }
+    });
+    ui.weak(if cfg!(target_os = "linux") {
+        "複数のキーを登録できます。Superはデスクトップ側で使われる場合があります。"
+    } else {
+        "複数のキーを登録できます。CapsLock・英数にはCtrl・Alt・Winを組み合わせます。"
+    });
+    if add {
+        let shortcut = ToggleShortcut::parse(draft)
+            .ok_or("切替キーを確認してください。例: Ctrl+Alt+J、Ctrl+CapsLock、Alt+英数")?;
+        shortcut
+            .validate(settings, &shortcuts)
+            .map_err(|reason| format!("{}: {reason}", shortcut.label()))?;
+        shortcuts.push(shortcut);
+        draft.clear();
+        changed = true;
+    }
+    if changed {
+        *value = serde_json::to_value(shortcuts).unwrap();
+    }
+    Ok(changed)
+}
+/// 本家1.5.0系の設定画面に近い、左側の分類へ振り分ける表示用の分類。
+/// 保存する設定の分類 (settings-ui.json) は変えない。
+fn ui_category(key: &str, original: &str) -> &'static str {
+    match key {
+        "ToggleShortcuts" | "ConvertKeysSwitchKeyboard" | "AltKeysSwitchKeyboard" | "SkkMode" => {
+            "2. 入力モード"
+        }
+        "DetectionLevel"
+        | "ScoredSegmentation"
+        | "JapaneseThreshold"
+        | "TypoEnabled"
+        | "DirectModeAutoDetect"
+        | "SigilWordsDirect"
+        | "EnglishFirstInput"
+        | "AutoCorrectAfterCommit"
+        | "LaughterAfterKana"
+        | "ReadingLattice" => "3. 判定",
+        "NumberKeysSelectCandidates"
+        | "AsyncConversion"
+        | "EnterCommitsAsShown"
+        | "ShowCandidatesWhileTyping"
+        | "LiveConversion"
+        | "ConversionEngine"
+        | "UseZenzai"
+        | "ZenzaiServerPath"
+        | "ZenzaiModelPath"
+        | "TabConversion"
+        | "ContinueAfterConversion"
+        | "CorrectTypos"
+        | "StartConversionAtLastClause" => "4. 変換",
+        "CurrencyRateMode" | "CurrencyDecimals" | "CurrencyManualRates" => "14. 通貨",
+        "SnippetMark"
+        | "CalculatorCandidates"
+        | "GitHubIssueCandidates"
+        | "GitHubRepository"
+        | "ClipboardCandidates"
+        | "TranslationCandidates"
+        | "PredictiveCandidates"
+        | "EnglishNamePredictions"
+        | "ConsonantAbbreviations"
+        | "ShowCandidateMeanings" => "5. 候補",
+        "SpaceAroundEnglish"
+        | "SpaceAroundNumbers"
+        | "FullWidthSpaceByDefault"
+        | "ShiftSpaceHalfWidth"
+        | "FullWidthParentheses"
+        | "SquareBrackets"
+        | "CursorIntoBrackets"
+        | "Punctuation"
+        | "JapanesePunctuationAfterEnglish"
+        | "FullWidthSlash"
+        | "SlashAsMiddleDot"
+        | "ZSymbols" => "6. 記号・スペース",
+        "AlphanumericKeyStartsAsTyped"
+        | "EscStepsBack"
+        | "EscRevertsSelectedClause"
+        | "FunctionKeysAffectSelectedClause"
+        | "CompatibleShortcuts"
+        | "PartialCommit"
+        | "ControlKeyBindings"
+        | "MacControlKeys"
+        | "SeparateKeyRoles" => "7. キー操作",
+        "ShowTypedKeys"
+        | "CompositionPlacement"
+        | "CompositionSize"
+        | "CompositionFont"
+        | "CompositionTheme"
+        | "CompositionOpacity"
+        | "ShowModeIndicator"
+        | "ShowModeIndicatorOnFocus"
+        | "ModeIndicatorJapaneseColor"
+        | "ModeIndicatorDirectColor"
+        | "ModeIndicatorTextColor" => "8. 表示",
+        "LearningEnabled" | "ContextualLearning" => "9. 学習",
+        "FileLog" | "LogTypedText" | "LogKeyIntervals" => "11. ログ",
+        "AutoUpdate" | "PrereleaseUpdate" => "12. 更新",
+        "keycount-discord" => "8. 表示",
+        "keycount" => "13. 打鍵数",
+        _ if original == "7. アプリ" => "10. アプリ",
+        _ if original == "8. ログ" => "11. ログ",
+        _ if original == "9. 更新" => "12. 更新",
+        _ => "1. 全般",
+    }
+}
+/// 設定の分類を本家と同じ順に並べるための並び順。
+fn category_order(category: &str) -> (u32, &str) {
+    let number = match category {
+        "1. 全般" => 1,
+        "2. 入力モード" => 2,
+        "3. 判定" => 3,
+        "5. 候補" => 4,
+        "6. 記号・スペース" => 5,
+        "4. 変換" => 6,
+        "7. キー操作" => 7,
+        "9. 学習" => 8,
+        "8. 表示" => 9,
+        "12. 更新" => 10,
+        "10. アプリ" => 11,
+        "11. ログ" => 12,
+        "13. 打鍵数" => 13,
+        "14. 通貨" => 14,
+        _ => {
+            let digits = category
+                .find(|c: char| !c.is_ascii_digit())
+                .unwrap_or(category.len());
+            category[..digits].parse().unwrap_or(u32::MAX - 1)
+        }
+    };
+    (number, category)
+}
 fn visible_by_default(key: &str) -> bool {
     supported(key)
-        || key == "ToggleKeyboardShortcuts"
+        || key == "ToggleShortcuts"
         || metadata::field(key).is_some_and(|f| f["category"] == "1. 全般")
 }
 fn supported(key: &str) -> bool {
     [
+        "AutoUpdate",
         "GitHubIssueCandidates",
         "GitHubRepository",
         "ClipboardCandidates",
@@ -1314,6 +2108,7 @@ fn supported(key: &str) -> bool {
         "ConsonantAbbreviations",
         "EnglishNamePredictions",
         "ShowCandidatesWhileTyping",
+        "StartConversionAtLastClause",
         "Enabled",
         "Mode",
         "LiveConversion",
@@ -1339,10 +2134,77 @@ fn supported(key: &str) -> bool {
         "ShowTypedKeys",
         "SnippetMark",
         "SpaceAroundEnglish",
+        "SpaceAroundNumbers",
+        "NumberKeysSelectCandidates",
+        "ZSymbols",
         "SlashAsMiddleDot",
+        "CurrencyRateMode",
+        "CurrencyDecimals",
+        "CurrencyManualRates",
     ]
     .contains(&key)
-        || cfg!(windows) && ["ShowNotifications", "CursorIntoBrackets"].contains(&key)
+        || cfg!(target_os = "linux")
+            && [
+                "ConversionEngine",
+                "UseZenzai",
+                "ZenzaiServerPath",
+                "ZenzaiModelPath",
+            ]
+            .contains(&key)
+        || cfg!(windows)
+            && [
+                "TextInputApps",
+                "ShowNotifications",
+                "CursorIntoBrackets",
+                "ToggleShortcuts",
+                "AllowInjectedInput",
+                "ConversionEngine",
+                "UseZenzai",
+                "ZenzaiServerPath",
+                "ZenzaiModelPath",
+            ]
+            .contains(&key)
+}
+fn keyboard_limitation(key: &str) -> Option<&'static str> {
+    match key {
+        "LiveConversion" => {
+            Some("キーボード方式ではライブ変換を使用できません。IME方式で使用できます。")
+        }
+        "LearningEnabled" | "ContextualLearning" => {
+            Some("キーボード方式では学習を保存しません。IME方式で使用できます。")
+        }
+        "AutoCorrectAfterCommit" | "DirectModeAutoDetect" => {
+            Some("キーボード方式では確定済みの文章を書き換えません。IME方式で使用できます。")
+        }
+        "ConversionEngine"
+        | "UseZenzai"
+        | "ZenzaiServerPath"
+        | "ZenzaiModelPath"
+        | "ClipboardCandidates"
+        | "GitHubIssueCandidates"
+        | "GitHubRepository" => {
+            Some("キーボード方式ではこの候補源を使用できません。IME方式で使用できます。")
+        }
+        "CompositionTheme"
+        | "CompositionSize"
+        | "CompositionPlacement"
+        | "CompositionOpacity"
+        | "ShowCandidateMeanings" => {
+            Some("キーボード方式の簡易候補表示では、この表示設定を使用できません。")
+        }
+        _ => None,
+    }
+}
+fn time_zones() -> &'static [&'static str] {
+    static ZONES: std::sync::OnceLock<Vec<&'static str>> = std::sync::OnceLock::new();
+    ZONES
+        .get_or_init(|| {
+            chrono_tz::TZ_VARIANTS
+                .iter()
+                .map(|zone| zone.name())
+                .collect()
+        })
+        .as_slice()
 }
 fn choices(key: &str) -> Option<&'static [&'static str]> {
     Some(match key {
@@ -1355,18 +2217,94 @@ fn choices(key: &str) -> Option<&'static [&'static str]> {
             "ToutenFullWidthPeriod",
         ],
         "Mode" => &["Keyboard", "Tsf"],
+        "ConversionEngine" if cfg!(target_os = "linux") => &["Mozc"],
         "ConversionEngine" => &["Hybrid", "Mozc", "System"],
         "CompositionPlacement" => &["Overlay", "BelowCaret", "AboveCaret"],
         "CompositionSize" => &["Auto", "Small", "Medium", "Large", "ExtraLarge", "Huge"],
         "CompositionTheme" => &["Dark", "Light", "System"],
         "CompositionOpacity" => &["Opaque", "Percent90", "Percent80", "Percent70"],
+        "UiLanguage" => &["Auto", "Japanese", "English"],
+        "TimeZone" => time_zones(),
+        "CurrencyRateMode" => &["Fixed", "Auto", "Manual"],
         _ => return None,
     })
 }
+impl App {
+    /// 打鍵数。数えるか・Discord に出すか・表示する文言を変える。
+    fn keycount(&mut self, ui: &mut egui::Ui) {
+        use meltype_core::keycount;
+        let mut count = keycount::load(&self.store.directory);
+        let mut changed = false;
+        ui.weak("打った文字は残さず、合計と日ごとの回数だけを数えます。Discord には今日と合計の回数・1 分あたりの回数だけを送ります。");
+        ui.add_space(8.);
+        let today = count.days.get(&keycount::today()).copied().unwrap_or(0);
+        ui.label(format!(
+            "合計 {} 打　　今日 {} 打",
+            keycount::group(count.total),
+            keycount::group(today)
+        ));
+        ui.add_space(12.);
+        changed |= ui
+            .horizontal(|ui| {
+                ui.label("打鍵を数える");
+                widgets::toggle(ui, &mut count.enabled, "打鍵を数える")
+                    .on_hover_text(
+                        "OFF の間は何も数えません。パスワード欄などプライベートな入力は数えません。",
+                    )
+                    .changed()
+            })
+            .inner;
+        changed |= ui
+            .horizontal(|ui| {
+                ui.label("打鍵数をトレイに表示する");
+                widgets::toggle(ui, &mut count.show, "打鍵数をトレイに表示する")
+                    .on_hover_text("トレイのツールチップに今日の打鍵数を表示します。")
+                    .changed()
+            })
+            .inner;
+        ui.weak("Discord に表示するかどうかは「表示」の設定で切り替えます。");
+        ui.add_space(12.);
+        ui.label("表示する文言 (Discord のステータス・変更できません):");
+        ui.indent("fixed-keycount-wording", |ui| {
+            ui.label(format!("詳細の行: {}", keycount::DEFAULT_DETAILS));
+            ui.label(format!("状態の行: {}", keycount::DEFAULT_STATE));
+            ui.label(format!("ボタンの文字: {}", keycount::DEFAULT_BUTTON));
+            ui.label(format!("ボタンのリンク先: {}", keycount::DEFAULT_URL));
+        });
+        ui.add_space(12.);
+        if ui.button("数えた分をリセット").clicked() {
+            match keycount::reset(&self.store.directory) {
+                Ok(()) => {
+                    self.status = "打鍵数をリセットしました。".into();
+                    count = keycount::load(&self.store.directory);
+                }
+                Err(error) => self.status = error.to_string(),
+            }
+        }
+        if changed {
+            match keycount::save_settings(&self.store.directory, &count) {
+                Ok(()) => self.status = "打鍵数の設定を保存しました。".into(),
+                Err(error) => self.status = error.to_string(),
+            }
+        }
+    }
+}
 impl eframe::App for App {
     fn update(&mut self, ctx: &egui::Context, _: &mut eframe::Frame) {
+        crate::i18n::set(self.settings.text("UiLanguage"));
+        let title = crate::i18n::window_title();
+        if title != self.title {
+            self.title = title.to_owned();
+            ctx.send_viewport_cmd(egui::ViewportCommand::Title(title.to_owned()));
+        }
+        // 同意待ちでもトレイは作る。設定画面だけを同意画面で止める。
         #[cfg(windows)]
         self.update_tray(ctx);
+        self.update_ui_fonts(ctx);
+        if self.consent_pending {
+            self.consent(ctx);
+            return;
+        }
         if ctx.input(|i| i.viewport().close_requested()) && !self.closing {
             self.finish(ctx, self.discard);
         }
@@ -1374,10 +2312,19 @@ impl eframe::App for App {
         if let Ok(path) = std::env::var("MELTYPE_UI_CAPTURE") {
             self.capture_frames += 1;
             if self.capture_frames == 1 {
+                if let Ok(filter) = std::env::var("MELTYPE_UI_FILTER") {
+                    self.show_all = true;
+                    self.filter = filter;
+                }
                 if let Ok(screen) = std::env::var("MELTYPE_UI_LIFECYCLE") {
                     self.lifecycle.welcome = screen == "welcome";
                     self.lifecycle.about = screen == "about";
                     self.lifecycle.updates = screen == "updates";
+                    if screen == "ai-setup" {
+                        self.ai_setup.request_model(
+                            meltype_core::ai_catalog::find("zenz-v3.1-small-q5_k_m").unwrap(),
+                        );
+                    }
                     self.dialogs.report = screen == "report";
                     self.dialogs.log = screen == "log";
                     self.dialogs.corrections = screen == "corrections";
@@ -1386,7 +2333,7 @@ impl eframe::App for App {
                     }
                 }
                 if let Ok(page) = std::env::var("MELTYPE_UI_PAGE") {
-                    self.page = page.parse::<usize>().unwrap_or(0).min(5);
+                    self.page = page.parse::<usize>().unwrap_or(0).min(6);
                 }
                 if let Ok(key) = std::env::var("MELTYPE_UI_HELP_KEY") {
                     self.help = metadata::description(&key).to_owned();
@@ -1403,6 +2350,7 @@ impl eframe::App for App {
             let ready = self.tray.as_ref().is_none_or(|t| !t.startup_status().1);
             #[cfg(not(windows))]
             let ready = true;
+            let ready = ready && !self.ai_setup.checking();
             if self.capture_frames >= 20 && ready {
                 ctx.send_viewport_cmd(egui::ViewportCommand::Screenshot(egui::UserData::default()));
             }
@@ -1422,6 +2370,46 @@ impl eframe::App for App {
                     self.closing = true;
                     ctx.send_viewport_cmd(egui::ViewportCommand::Close);
                 }
+            }
+        }
+        if let Some(result) = self.ai_setup.show(ctx, &self.store.directory) {
+            match result {
+                Ok(paths) => {
+                    use meltype_core::{ai_catalog, ai_model::AiModel};
+                    let family = paths["family"].as_str().and_then(AiModel::parse).unwrap_or(
+                        if paths["engine"] == "shunti" {
+                            AiModel::Shunti
+                        } else {
+                            AiModel::Zenz
+                        },
+                    );
+                    // A background verification must not undo a newer selection.
+                    let current = AiModel::selected(&self.settings);
+                    if current == family
+                        && paths["variant"].as_str().is_none_or(|id| {
+                            ai_catalog::selected(&self.settings, current)
+                                .is_some_and(|m| m.id == id)
+                        })
+                    {
+                        if family == AiModel::Shunti {
+                            self.settings
+                                .set("ShuntiHelperPath", paths["helper"].clone())
+                                .unwrap();
+                        } else {
+                            self.settings
+                                .set("ZenzaiServerPath", paths["server"].clone())
+                                .unwrap();
+                            self.settings
+                                .set("ZenzaiModelPath", paths["model"].clone())
+                                .unwrap();
+                        }
+                        family.select(&mut self.settings, true);
+                        self.status =
+                            "選択したモデルを使用できます。「OK」で保存すると入力へ反映します。"
+                                .into();
+                    }
+                }
+                Err(error) => self.status = format!("AI環境を作成できませんでした: {error}"),
             }
         }
         if self.lifecycle.show(ctx, &self.store) {
@@ -1446,6 +2434,17 @@ impl eframe::App for App {
                 Err(error) => self.status = error.to_string(),
             }
         }
+        if self.lifecycle.release_notes {
+            self.lifecycle.release_notes = false;
+            self.open_release_notes();
+        }
+        if self.release_notes {
+            let open = self.release_notes_window(ctx);
+            if !open {
+                self.release_notes_from_update = false;
+            }
+            self.release_notes = open;
+        }
         if self.page != 0 {
             egui::TopBottomPanel::top("navigation").show(ctx, |ui| self.navigation(ui));
         }
@@ -1456,9 +2455,31 @@ impl eframe::App for App {
                     .inner_margin(egui::Margin::symmetric(8, 10)),
             )
             .show(ctx, |ui| {
+                #[cfg(target_os = "linux")]
+                ui.horizontal_wrapped(|ui| {
+                    ui.label(format!(
+                        "Meltype-FLASH {}",
+                        meltype_core::version::display(env!("CARGO_PKG_VERSION"))
+                    ));
+                    if ui.button(i18n::t("アップデート")).clicked() {
+                        self.lifecycle.updates = true;
+                    }
+                    if ui.button(i18n::t("バージョン情報")).clicked() {
+                        self.lifecycle.about = true;
+                    }
+                    if ui
+                        .add_enabled(
+                            self.settings.0 != self.opened.0,
+                            egui::Button::new(i18n::t("適用")),
+                        )
+                        .clicked()
+                    {
+                        self.save();
+                    }
+                });
                 ui.with_layout(egui::Layout::right_to_left(egui::Align::Center), |ui| {
                     if ui
-                        .add_sized([92., 32.], egui::Button::new("キャンセル"))
+                        .add_sized([92., 32.], egui::Button::new(i18n::t("キャンセル")))
                         .clicked()
                     {
                         self.finish(ctx, true);
@@ -1477,7 +2498,7 @@ impl eframe::App for App {
                     }
                     if self.page == 0
                         && ui
-                            .add_sized([114., 32.], egui::Button::new("既定値に戻す"))
+                            .add_sized([114., 32.], egui::Button::new(i18n::t("既定値に戻す")))
                             .clicked()
                     {
                         let defaults = Settings::default();
@@ -1494,11 +2515,11 @@ impl eframe::App for App {
                 });
                 #[cfg(windows)]
                 if let Some(keyboard) = &self.keyboard {
-                    ui.label(if keyboard.enabled() {
-                        "ポータブル入力: ON（Ctrl+Alt+JでOFF）"
-                    } else {
-                        "ポータブル入力: OFF（Ctrl+Alt+JでON）"
-                    });
+                    let shortcut = self.opened.toggle_shortcuts_label();
+                    ui.label(format!(
+                        "ポータブル入力: {}（{shortcut}で切替）",
+                        if keyboard.enabled() { "ON" } else { "OFF" }
+                    ));
                     ui.small(
                     "編集可能な通常入力欄のみ対応。OS辞書・確定後訂正・学習保存は使用しません。",
                 );
@@ -1512,7 +2533,7 @@ impl eframe::App for App {
                 .exact_height(110.)
                 .resizable(false)
                 .show(ctx, |ui| {
-                    ui.label("判定テスト (ローマ字か英語かの判定。英字で入力):");
+                    ui.label(i18n::t("判定テスト (ローマ字か英語かの判定。英字で入力):"));
                     ui.add(
                         egui::TextEdit::singleline(&mut self.test_raw).desired_width(f32::INFINITY),
                     );
@@ -1535,9 +2556,9 @@ impl eframe::App for App {
                                     &self.settings,
                                 );
                                 let verdict = match result.verdict {
-                                    meltype_core::detection::Verdict::Japanese => "日本語",
-                                    meltype_core::detection::Verdict::English => "英語",
-                                    _ => "未確定",
+                                    meltype_core::detection::Verdict::Japanese => i18n::t("日本語"),
+                                    meltype_core::detection::Verdict::English => i18n::t("英語"),
+                                    _ => i18n::t("未確定"),
                                 };
                                 egui::ScrollArea::vertical()
                                     .id_salt("detection_reasons")
@@ -1553,65 +2574,61 @@ impl eframe::App for App {
                             }
                         });
                 });
-            // Bottom panels reserve space in insertion order: explanation,
-            // detection test, then action buttons, as in the original form.
-            if self.settings.boolean("SettingsShowHelp") {
-                let font = egui::TextStyle::Body.resolve(&ctx.style());
-                let height = 82.;
-                egui::TopBottomPanel::bottom("help")
-                    .exact_height(height)
-                    .resizable(false)
-                    .show(ctx, |ui| {
-                        let mut text = egui::text::LayoutJob::simple(
-                            self.help.clone(),
-                            font,
-                            ui.visuals().weak_text_color(),
-                            ui.available_width(),
-                        );
-                        text.wrap.max_rows = 4;
-                        ui.add(egui::Label::new(text)).on_hover_text(&self.help);
-                    });
-            }
         }
-        let body = egui::CentralPanel::default().show(ctx, |ui| match self.page {
-            0 => self.settings(ui),
-            1 => self.dictionary(ui),
-            2 => self.snippets(ui),
-            3 => self.learning(ui),
-            4 => self.backup(ui),
-            5 => self.test(ui),
-            _ => {
-                self.dialogs.log = true;
-                self.page = 0;
-                self.settings(ui);
-            }
-        });
-        body.response.context_menu(|ui| {
-            self.navigation(ui);
-            ui.separator();
-            ui.checkbox(&mut self.show_all, "すべての設定・検索を表示");
-            if !self.show_all {
-                self.filter.clear();
-            }
-            if ui.button("使い方...").clicked() {
-                self.lifecycle.welcome = true;
-                ui.close_menu();
-            }
-            if ui.button("不具合の報告・提案...").clicked() {
-                self.dialogs.open_report(&self.store);
-                ui.close_menu();
-            }
-            if ui.button("直した誤判定を報告...").clicked() {
-                self.dialogs.corrections = true;
-                ui.close_menu();
-            }
-            if ui.button("更新...").clicked() {
-                self.lifecycle.updates = true;
-                ui.close_menu();
-            }
-            if ui.button("Meltype-flash について...").clicked() {
-                self.lifecycle.about = true;
-                ui.close_menu();
+        egui::CentralPanel::default().show(ctx, |ui| {
+            // Register the background before its children. context_menu upgrades
+            // its response to Sense::click; registering it last covers every
+            // switch, button and editor with an invisible click target.
+            let background = ui.interact(
+                ui.max_rect(),
+                ui.id().with("page-menu"),
+                egui::Sense::click(),
+            );
+            background.context_menu(|ui| {
+                self.navigation(ui);
+                ui.separator();
+                ui.checkbox(&mut self.show_all, "すべての設定・検索を表示");
+                if !self.show_all {
+                    self.filter.clear();
+                }
+                if ui.button("使い方...").clicked() {
+                    self.lifecycle.welcome = true;
+                    ui.close_menu();
+                }
+                if ui.button("不具合の報告・提案...").clicked() {
+                    self.dialogs.open_report(&self.store);
+                    ui.close_menu();
+                }
+                if ui.button("直した誤判定を報告...").clicked() {
+                    self.dialogs.corrections = true;
+                    ui.close_menu();
+                }
+                if ui.button("更新...").clicked() {
+                    self.lifecycle.updates = true;
+                    ui.close_menu();
+                }
+                if ui.button("リリースノート...").clicked() {
+                    self.open_release_notes();
+                    ui.close_menu();
+                }
+                if ui.button("Meltype-FLASH について...").clicked() {
+                    self.lifecycle.about = true;
+                    ui.close_menu();
+                }
+            });
+            match self.page {
+                0 => self.settings(ui),
+                1 => self.dictionary(ui),
+                2 => self.snippets(ui),
+                3 => self.learning(ui),
+                4 => self.backup(ui),
+                5 => self.test(ui),
+                6 => self.keycount(ui),
+                _ => {
+                    self.dialogs.log = true;
+                    self.page = 0;
+                    self.settings(ui);
+                }
             }
         });
         if self.dialogs.log || self.dialogs.report || self.dialogs.corrections {
@@ -1750,6 +2767,175 @@ impl eframe::App for App {
 #[cfg(test)]
 mod tests {
     use super::*;
+    #[test]
+    fn ai_choice_keeps_both_installed_paths_and_only_uses_one_engine() {
+        let mut settings = Settings::default();
+        for (key, path) in [
+            ("ZenzaiServerPath", "server"),
+            ("ZenzaiModelPath", "model"),
+            ("ShuntiHelperPath", "shunti"),
+        ] {
+            settings.set(key, json!(path)).unwrap();
+        }
+        meltype_core::ai_model::AiModel::Shunti.select(&mut settings, true);
+        assert!(settings.boolean("UseShunti"));
+        assert!(!settings.boolean("UseZenzai"));
+        meltype_core::ai_model::AiModel::Zenz.select(&mut settings, true);
+        assert!(settings.boolean("UseZenzai"));
+        assert!(!settings.boolean("UseShunti"));
+        assert_eq!(settings.text("ShuntiHelperPath"), "shunti");
+        assert_eq!(settings.text("ZenzaiServerPath"), "server");
+        assert_eq!(settings.text("ZenzaiModelPath"), "model");
+        meltype_core::ai_model::AiModel::None.select(&mut settings, false);
+        assert!(!settings.boolean("UseZenzai") && !settings.boolean("UseShunti"));
+    }
+
+    #[cfg(windows)]
+    #[test]
+    fn keyboard_shortcut_validation_and_capabilities_preserve_saved_values() {
+        let dir = tempfile::tempdir().unwrap();
+        let store = Store::new(dir.path());
+        let mut app = App::with_store(store.clone());
+        assert!(app
+            .settings
+            .set("ToggleShortcuts", json!([{"Key":0x55,"Modifiers":2}]))
+            .is_err());
+        // A malformed draft cannot be saved even when it bypasses the editor.
+        app.settings.0.insert(
+            "ToggleShortcuts".into(),
+            json!([{"Key":0x55,"Modifiers":2}]),
+        );
+        assert!(!app.save());
+        assert_eq!(
+            store.settings().unwrap().toggle_shortcuts(),
+            meltype_core::shortcuts::ToggleShortcut::defaults()
+        );
+        app.settings
+            .set(
+                "ToggleShortcuts",
+                json!([{"Key":0x4b,"Modifiers":3},{"Key":0x78,"Modifiers":4}]),
+            )
+            .unwrap();
+        app.settings.set("Mode", json!("Keyboard")).unwrap();
+        assert!(app.save());
+        assert!(keyboard_limitation("LiveConversion").is_some());
+        assert!(keyboard_limitation("LearningEnabled").is_some());
+        assert!(keyboard_limitation("ConversionEngine").is_some());
+        for key in ["UseZenzai", "ZenzaiServerPath", "ZenzaiModelPath"] {
+            assert!(supported(key), "Windows IME setting {key}");
+            assert!(
+                keyboard_limitation(key).is_some(),
+                "portable limitation {key}"
+            );
+        }
+        for key in [
+            "SpaceAroundNumbers",
+            "NumberKeysSelectCandidates",
+            "ZSymbols",
+        ] {
+            assert!(supported(key), "shared input setting {key}");
+            assert!(keyboard_limitation(key).is_none());
+        }
+        assert!(keyboard_limitation("ControlKeyBindings").is_none());
+        // Capability presentation does not overwrite the user's TSF preferences.
+        assert_eq!(
+            store.settings().unwrap().boolean("LiveConversion"),
+            Settings::default().boolean("LiveConversion")
+        );
+    }
+    #[test]
+    fn mouse_click_can_change_settings_in_the_complete_window() {
+        use eframe::App as _;
+        let directory = tempfile::tempdir().unwrap();
+        consent::accept(directory.path()).unwrap();
+        let mut app = App::with_store(Store::new(directory.path()));
+        app.settings
+            .0
+            .insert("UiLanguage".into(), json!("Japanese"));
+        app.opened.0.insert("UiLanguage".into(), json!("Japanese"));
+        let mut lifecycle_settings = app.settings.clone();
+        lifecycle_settings.set("AutoUpdate", json!(false)).unwrap();
+        app.lifecycle = lifecycle::Lifecycle::new(&lifecycle_settings);
+        app.lifecycle.welcome = false;
+        let ctx = egui::Context::default();
+        widgets::configure_style(&ctx);
+        let mut frame = eframe::Frame::_new_kittest();
+        let mut draw = |events| {
+            let _ = ctx.run(
+                egui::RawInput {
+                    screen_rect: Some(egui::Rect::from_min_size(
+                        egui::Pos2::ZERO,
+                        egui::vec2(720., 700.),
+                    )),
+                    events,
+                    ..Default::default()
+                },
+                |ctx| app.update(ctx, &mut frame),
+            );
+        };
+        draw(vec![]);
+        draw(vec![]);
+        let point = ctx
+            .data(|data| {
+                data.get_temp::<egui::Rect>(egui::Id::new((
+                    "toggle_rect",
+                    "マウスホイールで値を変更",
+                )))
+            })
+            .unwrap()
+            .center();
+        draw(vec![
+            egui::Event::PointerMoved(point),
+            egui::Event::PointerButton {
+                pos: point,
+                button: egui::PointerButton::Primary,
+                pressed: true,
+                modifiers: egui::Modifiers::NONE,
+            },
+        ]);
+        draw(vec![egui::Event::PointerButton {
+            pos: point,
+            button: egui::PointerButton::Primary,
+            pressed: false,
+            modifiers: egui::Modifiers::NONE,
+        }]);
+        assert!(
+            !app.settings.boolean("SettingsWheelChangesValue"),
+            "mouse click did not change the switch"
+        );
+    }
+    #[cfg(windows)]
+    #[test]
+    fn resident_fonts_follow_settings_and_independent_dialogs() {
+        let directory = tempfile::tempdir().unwrap();
+        let mut app = App::with_store(Store::new(directory.path()));
+        app.lifecycle.welcome = false;
+        app.consent_pending = false;
+        app.release_notes = false;
+        app.settings_visible = false;
+        let ctx = egui::Context::default();
+
+        for (settings, log, needed) in [
+            (false, false, false),
+            (true, false, true),
+            (false, true, true),
+            (false, false, false),
+            (false, true, true),
+        ] {
+            app.settings_visible = settings;
+            app.dialogs.log = log;
+            app.update_ui_fonts(&ctx);
+            assert_eq!(app.ui_fonts_active, needed);
+            let _ = ctx.run(egui::RawInput::default(), |ctx| {
+                if std::path::Path::new("C:/Windows/Fonts/YuGothR.ttc").is_file() {
+                    ctx.fonts(|f| {
+                        assert_eq!(f.has_glyph(&egui::FontId::default(), '語'), needed);
+                    });
+                }
+            });
+        }
+    }
+
     #[cfg(windows)]
     #[test]
     fn maintenance_exit_preserves_unsaved_drafts_and_enabled_preference() {
@@ -1783,6 +2969,15 @@ mod tests {
                 continue;
             }
             let key = field["key"].as_str().unwrap();
+            if key == "ToggleKeyboardShortcuts" {
+                let metadata = metadata::field("ToggleShortcuts").expect("1.4 shortcut list");
+                assert!(!metadata["label"].as_str().unwrap().is_empty());
+                assert!(!metadata["description"].as_str().unwrap().is_empty());
+                assert!(Settings::default().0["ToggleShortcuts"].is_array());
+                assert!(visible_by_default("ToggleShortcuts"));
+                count += 1;
+                continue;
+            }
             let metadata = metadata::field(key).expect(key);
             assert!(!metadata["label"].as_str().unwrap().is_empty(), "{key}");
             assert!(
@@ -1798,8 +2993,7 @@ mod tests {
                 visible_by_default(key) || !cfg!(windows) && key == "CursorIntoBrackets",
                 "missing row {key}"
             );
-            // The last shortcut setting is explicitly shown as not connected.
-            if key != "ToggleKeyboardShortcuts" && (cfg!(windows) || key != "CursorIntoBrackets") {
+            if cfg!(windows) || !["CursorIntoBrackets"].contains(&key) {
                 assert!(supported(key), "hidden {key}");
             }
             count += 1;

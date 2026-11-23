@@ -241,7 +241,7 @@ mod native {
             let _: () = msg_send![&background,addSubview:&*row];
         }
         if !compact {
-            let caption = label("Meltype", 11.0, 0.0);
+            let caption = label("Meltype-FLASH", 11.0, 0.0);
             let color: Retained<AnyObject> = msg_send![class(c"NSColor"), secondaryLabelColor];
             let _: () = msg_send![&caption,setTextColor:&*color];
             let _: () = msg_send![&caption,setAlignment:1usize];

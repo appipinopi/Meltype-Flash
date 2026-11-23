@@ -201,3 +201,56 @@ fn direct_legacy_snippets_use_the_same_name_and_newline_rules_as_import() {
     assert_eq!(state.snippets.len(), 1);
     assert_eq!(state.snippets["sig"], "one\ntwo\nthree\nfour\nfive");
 }
+
+#[test]
+fn issue_151_json_round_trip_and_failed_reads_preserve_previous_data() {
+    let directory = tempfile::tempdir().unwrap();
+    let store = Store::new(directory.path());
+    store
+        .change_settings(|s| s.set("FileLog", json!(true)))
+        .unwrap();
+    store
+        .record(vec![
+            Change::Conversion {
+                reading: "ごかん".into(),
+                text: "互換".into(),
+                translation: false,
+            },
+            Change::Language {
+                raw: "emoji".into(),
+                english: true,
+                explicit: true,
+            },
+        ])
+        .unwrap();
+    let restarted = Store::new(directory.path());
+    assert!(restarted.settings().unwrap().boolean("FileLog"));
+    assert_eq!(
+        restarted.load().unwrap().preferences.selected["ごかん"],
+        "互換"
+    );
+    assert!(restarted.load().unwrap().language_counts["emoji"].english);
+    restarted
+        .record(vec![Change::Conversion {
+            reading: "はし".into(),
+            text: "橋".into(),
+            translation: false,
+        }])
+        .unwrap();
+    assert_eq!(store.load().unwrap().preferences.selected["ごかん"], "互換");
+    for (name, bytes) in [
+        ("config.json", b"{invalid".as_slice()),
+        ("state.json", b"{broken".as_slice()),
+    ] {
+        let path = directory.path().join(name);
+        fs::write(&path, bytes).unwrap();
+        if name == "config.json" {
+            assert!(store
+                .change_settings(|s| s.set("FileLog", json!(false)))
+                .is_err());
+        } else {
+            assert!(store.record(vec![]).is_err());
+        }
+        assert_eq!(fs::read(path).unwrap(), bytes);
+    }
+}
