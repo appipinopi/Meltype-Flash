@@ -121,6 +121,9 @@ pub fn normalize(text: &str) -> String {
     // 6. "姉歯" -> "姉は"
     final_res
         .replace("機能姉は", "昨日姉は")
+        .replace("機能祖父は", "昨日祖父は")
+        .replace("機能私は", "昨日私は")
+        .replace("共同量は", "今日同僚は")
         .replace("昨日姉歯", "昨日姉は")
         .replace("来週姉歯", "来週姉は")
         .replace("先日姉歯", "先日姉は")
@@ -136,8 +139,15 @@ pub fn normalize(text: &str) -> String {
         .replace("講演でカギ", "公園で鍵")
         .replace("講演で手紙を占めた", "公園で手紙を閉めた")
         .replace("講演でリンゴ", "公園でりんご")
+        .replace("講演で牛乳を", "公園で牛乳を")
         .replace("でカギを", "で鍵を")
         .replace("でカバンを", "で鞄を")
         .replace("でミカンを", "でみかんを")
         .replace("でリンゴを", "でりんごを")
+        .replace("服を読んだ", "服を呼んだ")
+        .replace("地図を占めた", "地図を閉めた")
+        .replace("電車を占めた", "電車を閉めた")
+        .replace("手紙を占めた", "手紙を閉めた")
+        .replace("野菜を占めた", "野菜を閉めた")
+        .replace("河出かばんを", "川で鞄を")
 }

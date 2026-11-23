@@ -59,6 +59,7 @@ pub(super) fn split(text: &[u16], maximum: usize) -> Vec<&[u16]> {
 pub(super) struct System {
     language: Option<IFELanguage>,
     unavailable: bool,
+    cache: std::collections::HashMap<Vec<u16>, Vec<u16>>,
 }
 impl System {
     fn open(&mut self) -> Option<&IFELanguage> {
@@ -84,6 +85,9 @@ impl System {
         if reading.is_empty() {
             return None;
         }
+        if let Some(cached) = self.cache.get(reading) {
+            return Some(cached.clone());
+        }
         if reading.len() > MAX_INPUT {
             return Some(
                 split(reading, MAX_INPUT)
@@ -103,7 +107,11 @@ impl System {
         } else {
             let text = String::from_utf16_lossy(output.as_wide());
             let normalized = meltype_core::transducer::normalize(&text);
-            Some(normalized.encode_utf16().collect())
+            let result: Vec<u16> = normalized.encode_utf16().collect();
+            if self.cache.len() < 16384 {
+                self.cache.insert(reading.to_vec(), result.clone());
+            }
+            Some(result)
         }
     }
     pub(super) fn clauses(&mut self, reading: &[u16], context: &[u16]) -> Option<Vec<Segment>> {
