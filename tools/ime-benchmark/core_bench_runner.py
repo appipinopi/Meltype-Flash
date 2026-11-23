@@ -287,7 +287,7 @@ def environment(session, home):
 
 # ---------------------------------------------------------------- ハーネス (C#)
 
-CSHARP_VARIANTS = {1: ["gen1"], 2: ["gen2"], 3: ["gen3", "gen3empty"], 0: ["gen3", "gen2", "gen1"]}
+CSHARP_VARIANTS = {1: ["gen1"], 2: ["gen2"], 3: ["gen3", "gen3empty", "gen3old"], 0: ["gen3", "gen3empty", "gen2", "gen1"]}
 
 
 def preflight(root, variant):
@@ -305,6 +305,12 @@ def preflight(root, variant):
             raise BenchError("preflight", "MeltypeRuntime.CreateSession(IKanjiConverter, …) がありません", "")
         if not (core / "Composition" / "CompositionServices.cs").is_file():
             raise BenchError("preflight", "CompositionServices.cs がありません", "")
+    elif variant == "gen3old":
+        text = read_text(core / "Composition" / "KanjiConversion.cs")
+        if "ConvertClauses" not in text:
+            raise BenchError("preflight", "旧世代の IKanjiConverter (ConvertClauses) がありません", "")
+        if "public ImeOutput Handle(ImeEvent" not in read_text(core / "Ime" / "ImeHost.cs"):
+            raise BenchError("preflight", "ImeHost.Handle(ImeEvent) がありません", "")
     else:
         host = read_text(core / "Ime" / "ImeHost.cs")
         if "public ImeOutput Handle(ImeEvent" not in host:
@@ -537,7 +543,7 @@ def measure(session, data, cases, helper, mozc_cache, work_root):
         generation = detect_generation(root) or target.get("generation") or 0
         session.step(f"世代 {generation}")
         errors = []
-        for candidate in CSHARP_VARIANTS.get(generation, CSHARP_VARIANTS[0]):
+        for candidate in target.get("harness") or CSHARP_VARIANTS.get(generation, CSHARP_VARIANTS[0]):
             try:
                 preflight(root, candidate)
                 layers = run_csharp(session, root, cases, data, helper, work, env, candidate)

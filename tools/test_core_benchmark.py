@@ -366,6 +366,36 @@ class MozcTest(unittest.TestCase):
         self.assertTrue(mozc["member"].endswith("meltype_mozc_helper"))
 
 
+class HarnessChoiceTest(unittest.TestCase):
+    def test_transitional_target_pins_the_old_converter_harness(self):
+        by_id = {target["id"]: target for target in TARGETS["targets"]}
+        self.assertEqual(by_id["koyashimano"]["harness"], ["gen3old"])
+
+    def test_gen3old_uses_the_old_converter_interface(self):
+        text = (BENCH_DIR / "harness/csharp/Program.gen3old.cs").read_text(encoding="utf-8")
+        self.assertIn("public string? Convert(string hiragana)", text)
+        self.assertIn("ConvertClauses", text)
+        self.assertNotIn("using Meltype.Engine;", text)
+        self.assertNotIn("using Meltype.Dictionary;", text)
+        self.assertIn("new ImeHost(", text)
+
+    def test_preflight_accepts_the_old_converter_layout(self):
+        with tempfile.TemporaryDirectory() as directory:
+            root = Path(directory)
+            (root / "src/Meltype.Core/Composition").mkdir(parents=True)
+            (root / "src/Meltype.Core/Ime").mkdir(parents=True)
+            (root / "src/Meltype.Core/Composition/KanjiConversion.cs").write_text(
+                "public interface IKanjiConverter { string? Convert(string h); IReadOnlyList<ConversionClause>? ConvertClauses(string h, string? c = null); }",
+                encoding="utf-8")
+            (root / "src/Meltype.Core/Ime/ImeHost.cs").write_text(
+                "public const int Version = 1;\npublic ImeOutput Handle(ImeEvent e) {}\npublic ImeHost(SessionParts p) {}",
+                encoding="utf-8")
+            self.assertTrue(core_bench_runner.preflight(root, "gen3old"))
+            (root / "src/Meltype.Core/Composition/KanjiConversion.cs").write_text("public interface IKanjiConverter { }", encoding="utf-8")
+            with self.assertRaises(core_bench_runner.BenchError):
+                core_bench_runner.preflight(root, "gen3old")
+
+
 class PreflightTest(unittest.TestCase):
     def _write(self, directory, files):
         root = Path(directory)

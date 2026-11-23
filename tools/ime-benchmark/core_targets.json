@@ -97,7 +97,10 @@
       "kind": "csharp",
       "generation": 3,
       "layer_b": true,
-      "notes": "v1.7 系の過渡期構成 (Ime 配下に ImeHost、Runtime は Composition 側)。gen3 の手組みハーネスで測る。"
+      "harness": [
+        "gen3old"
+      ],
+      "notes": "v1.7 系への移行途中の構成 (ImeHost + SessionParts は v1.7 と同じ、変換器だけ旧インターフェース)。gen3old ハーネスで測る。"
     },
     {
       "id": "hkrhd",

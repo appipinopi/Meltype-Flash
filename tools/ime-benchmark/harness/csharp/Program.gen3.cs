@@ -135,6 +135,7 @@ internal sealed class BenchEnvironment : IImeEnvironment
     public InputMode? InputMethod => null;
     public SnippetStore Snippets { get; } = new(null);
     public string? ClipboardText => null;
+    public string? OtherTipVersion => null;
 }
 
 /// <summary>変換器なしのコア (Layer A)。</summary>
