@@ -98,7 +98,13 @@ impl System {
         unsafe {
             language.GetConversion(&input, 1, -1, &mut output).ok()?;
         }
-        (!output.is_empty()).then(|| output.as_wide().to_vec())
+        if output.is_empty() {
+            None
+        } else {
+            let text = String::from_utf16_lossy(output.as_wide());
+            let normalized = meltype_core::transducer::normalize(&text);
+            Some(normalized.encode_utf16().collect())
+        }
     }
     pub(super) fn clauses(&mut self, reading: &[u16], context: &[u16]) -> Option<Vec<Segment>> {
         if reading.is_empty() {

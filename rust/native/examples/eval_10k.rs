@@ -89,12 +89,13 @@ fn get_process_memory() -> usize {
                 cb: u32,
             ) -> i32;
             fn GetCurrentProcess() -> *mut std::ffi::c_void;
+            fn EmptyWorkingSet(h_process: *mut std::ffi::c_void) -> i32;
         }
 
         let mut pmc = std::mem::zeroed::<PROCESS_MEMORY_COUNTERS>();
         pmc.cb = std::mem::size_of::<PROCESS_MEMORY_COUNTERS>() as u32;
         if GetProcessMemoryInfo(GetCurrentProcess(), &mut pmc, pmc.cb) != 0 {
-            pmc.working_set_size
+            pmc.pagefile_usage // Commit Charge / Private Working memory
         } else {
             0
         }

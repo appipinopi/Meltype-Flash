@@ -49,6 +49,7 @@ pub mod storage;
 pub mod storage;
 mod system_data;
 pub mod time_candidates;
+pub mod transducer;
 pub mod typo;
 pub mod user_dictionary;
 pub mod version;
