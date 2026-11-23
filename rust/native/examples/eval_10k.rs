@@ -1,12 +1,29 @@
 #![allow(dead_code)]
+
+#[cfg(windows)]
 #[path = "../src/windows_converter/system.rs"]
 mod system;
 
+#[cfg(windows)]
+fn main() {
+    run_benchmark();
+}
+
+#[cfg(not(windows))]
+fn main() {
+    println!("10k benchmark requires Windows IME / COM subsystem.");
+}
+
+#[cfg(windows)]
 use std::collections::HashMap;
+#[cfg(windows)]
 use std::fs::File;
+#[cfg(windows)]
 use std::io::{BufRead, BufReader};
+#[cfg(windows)]
 use std::time::Instant;
 
+#[cfg(windows)]
 fn parse_csv_line(line: &str) -> Option<(String, String, String, String, String)> {
     let mut fields = Vec::new();
     let mut cur = String::new();
@@ -46,6 +63,7 @@ fn parse_csv_line(line: &str) -> Option<(String, String, String, String, String)
     }
 }
 
+#[cfg(windows)]
 fn get_process_memory() -> usize {
     #[cfg(windows)]
     unsafe {
@@ -87,7 +105,8 @@ fn get_process_memory() -> usize {
     }
 }
 
-fn main() {
+#[cfg(windows)]
+fn run_benchmark() {
     let csv_path = r"c:\Users\藤島\Downloads\ime_benchmark_2026-12.csv";
     println!("Loading benchmark dataset from: {csv_path}");
 
