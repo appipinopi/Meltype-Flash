@@ -1,4 +1,4 @@
-#![allow(dead_code)]
+#![allow(dead_code, clippy::all)]
 
 #[cfg(windows)]
 #[path = "../src/windows_converter/system.rs"]
