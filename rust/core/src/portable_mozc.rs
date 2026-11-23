@@ -113,7 +113,7 @@ impl KanjiDictionary {
         };
         bound(false)..bound(true)
     }
-    fn convert(&self, reading: &str) -> Vec<String> {
+    pub fn convert(&self, reading: &str) -> Vec<String> {
         // Spaceで明示的に変換したときだけ、上限付きのビーム探索を行う。
         // 長すぎる入力は従来のCore候補を保つ。
         let boundaries: Vec<_> = reading
@@ -256,7 +256,7 @@ impl KanjiDictionary {
 }
 
 #[cfg(any(target_os = "android", target_os = "ios", feature = "bundled-mozc"))]
-pub(crate) fn bundled() -> &'static KanjiDictionary {
+pub fn bundled() -> &'static KanjiDictionary {
     static DICTIONARY: std::sync::OnceLock<KanjiDictionary> = std::sync::OnceLock::new();
     DICTIONARY.get_or_init(|| {
         // Built from the pinned Mozc data. Let the OS page in only the records used.

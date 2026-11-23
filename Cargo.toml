@@ -10,7 +10,7 @@ license = "GPL-3.0-or-later"
 repository = "https://github.com/appipinopi/Meltype-Flash"
 
 [workspace.dependencies]
-meltype-core = { path = "rust/core" }
+meltype-core = { path = "rust/core", features = ["bundled-mozc"] }
 serde = { version = "1", features = ["derive"] }
 serde_json = "1"
 
