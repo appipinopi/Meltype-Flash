@@ -1,0 +1,466 @@
+{
+  "version": 1,
+  "corpus": "tools/ime-benchmark/data",
+  "description": "第2弾: 1万文コア比較ベンチの対象一覧。スプレッドシート Meltype_ref.xlsx の全プロジェクトを調査した結果を反映する。",
+  "mozc": {
+    "repo": "yksr-melt/Meltype",
+    "release": "v1.7.1",
+    "asset": "Meltype-1.7.1-linux.zip",
+    "url": "https://github.com/yksr-melt/Meltype/releases/download/v1.7.1/Meltype-1.7.1-linux.zip",
+    "member": "Meltype-linux/mozc/meltype_mozc_helper",
+    "note": "本家 v1.7.1 の Linux x64 配布物に同梱された Mozc ヘルパー。全 C# 対象と MonakIME が同じ 1 本を使う (同一変換器での比較)。"
+  },
+  "targets": [
+    {
+      "id": "upstream_v130",
+      "name": "upstream-v1.3.0",
+      "label": "本家 v1.3.0",
+      "repo": "yksr-melt/Meltype",
+      "ref": "v1.3.0",
+      "kind": "csharp",
+      "generation": 1,
+      "layer_b": true,
+      "notes": "本家タグ。CompositionOptions 世代 (MeltypeSession.CreateDefault)。"
+    },
+    {
+      "id": "upstream_v160",
+      "name": "upstream-v1.6.0",
+      "label": "本家 v1.6.0",
+      "repo": "yksr-melt/Meltype",
+      "ref": "v1.6.0",
+      "kind": "csharp",
+      "generation": 2,
+      "layer_b": true,
+      "notes": "本家タグ。CompositionServices 世代 (MeltypeRuntime.CreateSession)。Zenzai は設定で OFF のまま (コア比較)。"
+    },
+    {
+      "id": "upstream_v171",
+      "name": "upstream-v1.7.1",
+      "label": "本家 v1.7.1",
+      "repo": "yksr-melt/Meltype",
+      "ref": "v1.7.1",
+      "kind": "csharp",
+      "generation": 3,
+      "layer_b": true,
+      "notes": "本家タグ。ImeHost/SessionParts 世代。Zenzai は使わない。"
+    },
+    {
+      "id": "flash_1127",
+      "name": "flash-1.1.27",
+      "label": "Meltype-Flash 1.1.27",
+      "repo": "appipinopi/Meltype-Flash",
+      "ref": "flash-v0001.0001.0027",
+      "kind": "rust",
+      "generation": 0,
+      "layer_b": true,
+      "notes": "Rust 版。Layer B は meltype-core の bundled-mozc 機能 (同梱の移植 Mozc 辞書) で変換する。"
+    },
+    {
+      "id": "flash_2pre",
+      "name": "flash-2.0.0-pre",
+      "label": "Meltype-Flash 2 (codex/2.0.0-pre)",
+      "repo": "appipinopi/Meltype-Flash",
+      "ref": "codex/2.0.0-pre",
+      "kind": "rust",
+      "generation": 0,
+      "layer_b": true,
+      "notes": "Rust 版の 2 系ブランチ。Layer B は bundled-mozc。"
+    },
+    {
+      "id": "roccho",
+      "name": "roccho",
+      "label": "roccho-dev/Meltype",
+      "repo": "roccho-dev/Meltype",
+      "ref": "main",
+      "kind": "csharp",
+      "generation": 2,
+      "layer_b": true,
+      "notes": "v1.6.0 相当。tty 版の先行開発。"
+    },
+    {
+      "id": "kohei",
+      "name": "kohei",
+      "label": "KoheiTakada/Meltype (Android)",
+      "repo": "KoheiTakada/Meltype",
+      "ref": "personal/android-development",
+      "kind": "csharp",
+      "generation": 2,
+      "layer_b": true,
+      "notes": "本家 Android 版の開発元。C# コアは Linux でビルドできる。"
+    },
+    {
+      "id": "koyashimano",
+      "name": "koyashimano",
+      "label": "koyashimano/Meltype",
+      "repo": "koyashimano/Meltype",
+      "ref": "main",
+      "kind": "csharp",
+      "generation": 3,
+      "layer_b": true,
+      "notes": "v1.7 系の過渡期構成 (Ime 配下に ImeHost、Runtime は Composition 側)。gen3 の手組みハーネスで測る。"
+    },
+    {
+      "id": "hkrhd",
+      "name": "hkrhd",
+      "label": "hkrhd/Meltype",
+      "repo": "hkrhd/Meltype",
+      "ref": "fork_by_hkrhd",
+      "kind": "csharp",
+      "generation": 3,
+      "layer_b": true,
+      "notes": "本家最新に自動追従。Mac 精度・記号調整。"
+    },
+    {
+      "id": "hisiragi_webengine",
+      "name": "hisiragi-webengine",
+      "label": "hisiragi/Meltype-WebEngine",
+      "repo": "hisiragi/Meltype-WebEngine",
+      "ref": "main",
+      "kind": "csharp",
+      "generation": 3,
+      "layer_b": true,
+      "notes": "スプレッドシートではプレースホルダー扱い。コアは本家 v1.7 系のまま入っているため測定対象にする。"
+    },
+    {
+      "id": "aone_native",
+      "name": "aone-native",
+      "label": "AoneSenbongi/Meltype (Meltype Native)",
+      "repo": "AoneSenbongi/Meltype",
+      "ref": "google-native-ime",
+      "kind": "csharp",
+      "generation": 1,
+      "layer_b": true,
+      "notes": "Windows 専用の Google 日本語入力経路は Linux では使えないため、コア判定 (Layer A) と共通 Mozc 変換 (Layer B) のみ測る。"
+    },
+    {
+      "id": "sakusdev",
+      "name": "sakusdev",
+      "label": "sakusdev/Meltype-android",
+      "repo": "sakusdev/Meltype-android",
+      "ref": "main",
+      "kind": "csharp",
+      "generation": 1,
+      "layer_b": true,
+      "notes": "C# コアを含む。Android 固有の変換は測らない。"
+    },
+    {
+      "id": "h4y4",
+      "name": "h4y4",
+      "label": "H4Y4/Meltype",
+      "repo": "H4Y4/Meltype",
+      "ref": "integration/mac-parity-v9",
+      "kind": "csharp",
+      "generation": 1,
+      "layer_b": true,
+      "notes": "Mac 同等化の統合ブランチ。"
+    },
+    {
+      "id": "serugu",
+      "name": "serugu",
+      "label": "Serugu/Meltype-Zenzai-Vulkan",
+      "repo": "Serugu/Meltype-Zenzai-Vulkan",
+      "ref": "zenzai",
+      "kind": "csharp",
+      "generation": 1,
+      "layer_b": true,
+      "notes": "Zenzai (Vulkan GPU) は使わずコアのみ。Zenzai 無効時は本家 v1.3.0 と同じ経路。"
+    },
+    {
+      "id": "kazuki",
+      "name": "kazuki",
+      "label": "kazuki-N5/Meltype-jev",
+      "repo": "kazuki-N5/Meltype-jev",
+      "ref": "main",
+      "kind": "csharp",
+      "generation": 1,
+      "layer_b": true,
+      "notes": "Jev (外部 API) は無効。コアのみ測る。"
+    },
+    {
+      "id": "ballban",
+      "name": "ballban",
+      "label": "ballban/Meltype",
+      "repo": "ballban/Meltype",
+      "ref": "main",
+      "kind": "csharp",
+      "generation": 1,
+      "layer_b": true,
+      "notes": "中国語・韓国語の追加は日本語測定では通らない。"
+    },
+    {
+      "id": "cwysms",
+      "name": "cwysms",
+      "label": "cwysms/Meltype",
+      "repo": "cwysms/Meltype",
+      "ref": "main",
+      "kind": "csharp",
+      "generation": 1,
+      "layer_b": true,
+      "notes": "韓国語 2 ボル式の追加あり。日本語のみ測る。"
+    },
+    {
+      "id": "hrmcngs",
+      "name": "hrmcngs",
+      "label": "hrmcngs/Meltype",
+      "repo": "hrmcngs/Meltype",
+      "ref": "mac-input-improvements",
+      "kind": "csharp",
+      "generation": 1,
+      "layer_b": true,
+      "notes": "Mac 助詞処理の修正ブランチ。"
+    },
+    {
+      "id": "ginji",
+      "name": "ginji",
+      "label": "Ginji001/Meltype",
+      "repo": "Ginji001/Meltype",
+      "ref": "main",
+      "kind": "csharp",
+      "generation": 1,
+      "layer_b": true,
+      "notes": "azooKey 経路は Linux で使えないためコアのみ。"
+    },
+    {
+      "id": "lnkiai",
+      "name": "lnkiai",
+      "label": "lnkiai/Meltype",
+      "repo": "lnkiai/Meltype",
+      "ref": "backup/fork-main-2026-10",
+      "kind": "csharp",
+      "generation": 1,
+      "layer_b": true,
+      "notes": "v1.0.1 ベース。exe インストーラー化のみの変更。"
+    },
+    {
+      "id": "xelaods",
+      "name": "xelaods",
+      "label": "xelaods/Meltype",
+      "repo": "xelaods/Meltype",
+      "ref": "main",
+      "kind": "csharp",
+      "generation": 1,
+      "layer_b": true,
+      "notes": "UI 再設計。コアは v1.0.0 系。"
+    },
+    {
+      "id": "galtype",
+      "name": "galtype",
+      "label": "oto-lab/Galtype",
+      "repo": "oto-lab/Galtype",
+      "ref": "main",
+      "kind": "csharp",
+      "generation": 1,
+      "layer_b": true,
+      "notes": "ギャル文字変換の追加。日本語の素の変換は本家系と同じ経路。リポジトリはアーカイブ済み。"
+    },
+    {
+      "id": "zerovoice",
+      "name": "zerovoice",
+      "label": "takumi-zer0/Meltype (ZeroVoice)",
+      "repo": "takumi-zer0/Meltype",
+      "ref": "main",
+      "kind": "csharp",
+      "generation": 1,
+      "layer_b": true,
+      "notes": "別プロダクト名義だが Meltype.Core を含むためコアを測る (音声入力部分は対象外)。"
+    },
+    {
+      "id": "masuidrive",
+      "name": "masuidrive",
+      "label": "masuidrive/Meltype",
+      "repo": "masuidrive/Meltype",
+      "ref": "main",
+      "kind": "csharp",
+      "generation": 1,
+      "layer_b": true,
+      "notes": "fcitx5 フロントの試作。C# コアを含むためコアを測る。"
+    },
+    {
+      "id": "kumapuni",
+      "name": "kumapuni",
+      "label": "kumapuni/Meltype-Intel-Mac",
+      "repo": "kumapuni/Meltype-Intel-Mac",
+      "ref": "main",
+      "kind": "csharp",
+      "generation": 1,
+      "layer_b": true,
+      "notes": "Intel Mac 向けビルド用。コアは本家のまま。アーカイブ済み。"
+    },
+    {
+      "id": "kurimochi",
+      "name": "kurimochi",
+      "label": "kurimochi/Meltype",
+      "repo": "kurimochi/Meltype",
+      "ref": "main",
+      "kind": "csharp",
+      "generation": 1,
+      "layer_b": true,
+      "notes": "AUR パッケージ用。コアは本家のまま。"
+    },
+    {
+      "id": "whitewater_mac",
+      "name": "whitewater-mac",
+      "label": "whitewater-png/Meltype-for-Mac",
+      "repo": "whitewater-png/Meltype-for-Mac",
+      "ref": "main",
+      "kind": "csharp",
+      "generation": 1,
+      "layer_b": true,
+      "notes": "Mac 版 (非フォーク派生)。azooKey/Zenzai は無効。C# コア＋共通 Mozc。"
+    },
+    {
+      "id": "aone_android",
+      "name": "aone-android",
+      "label": "AoneSenbongi/Meltype-Android",
+      "repo": "AoneSenbongi/Meltype-Android",
+      "ref": "main",
+      "kind": "csharp",
+      "generation": 1,
+      "layer_b": true,
+      "notes": "Android 派生。スプレッドシートではテストの参照不整合で未計測だったが、コア単体はビルドできる見込み。失敗したら理由を JSON に残す。"
+    },
+    {
+      "id": "meltia",
+      "name": "meltia",
+      "label": "Fugu0141/Meltia",
+      "repo": "Fugu0141/Meltia",
+      "ref": "main",
+      "kind": "csharp",
+      "generation": 1,
+      "layer_b": true,
+      "notes": "境界判定研究の派生。独自 TIP は測らずコアのみ。"
+    },
+    {
+      "id": "monakime",
+      "name": "monakime",
+      "label": "rirannda/MonakIME",
+      "repo": "rirannda/MonakIME",
+      "ref": "main",
+      "kind": "monakime",
+      "generation": 0,
+      "layer_b": true,
+      "notes": "独立実装 (Rust)。monakime-cli --stdin で 1 行 1 変換。Layer A は独自辞書、Layer B は同じ Mozc ヘルパー。"
+    },
+    {
+      "id": "kswime",
+      "name": "kswime",
+      "label": "k3-yamada/kswime",
+      "repo": "k3-yamada/kswime",
+      "ref": "main",
+      "kind": "kswime",
+      "generation": 0,
+      "layer_b": false,
+      "notes": "独立実装 (Rust、依存ゼロ)。漢字変換を持たないため Layer A (かな・日英判定) のみ。標準入力の行ごと変換を使う。"
+    }
+  ],
+  "excluded": [
+    {
+      "id": "mithril",
+      "label": "Mithril-3d/Meltype",
+      "repo": "Mithril-3d/Meltype",
+      "reason": "GitHub 上にリポジトリが存在しない (API 404)。削除または非公開化されたため測定不可。"
+    },
+    {
+      "id": "upstream_main",
+      "label": "本家 main (v1.7.1 以降)",
+      "repo": "yksr-melt/Meltype",
+      "reason": "main は v1.7.1 の後に公開 API を再編成 (StartConverter/CreateHost) しており、固定ハーネスでは測れない。ユーザー指定の 1.3.0/1.6.0/1.7.1 を本家の対象とし、latest 正式版は v1.7.1。"
+    },
+    {
+      "id": "345ml",
+      "label": "345ml/meltype-android",
+      "repo": "345ml/meltype-android",
+      "reason": "Android 専用 (Kotlin)。C# コアは git submodule でリポジトリ内に無く、Linux で単体測定できない。"
+    },
+    {
+      "id": "patproport_enhanced",
+      "label": "patproport/Meltype-Enhanced",
+      "repo": "patproport/Meltype-Enhanced",
+      "reason": "Android 専用 (Kotlin)。コアのソースを含まない。"
+    },
+    {
+      "id": "sp9r",
+      "label": "sp9r/meltype-android",
+      "repo": "sp9r/meltype-android",
+      "reason": "Android 専用 (Kotlin)。C# コアを含まず、Kotlin 側に再実装されているため同一コーパスの測定対象外。"
+    },
+    {
+      "id": "hogehonya",
+      "label": "hogehonya/fcitx5-meltype",
+      "repo": "hogehonya/fcitx5-meltype",
+      "reason": "fcitx5 の C++ フロントのみ (コアは別配布物のヘルパー経由)。Linux で fcitx5 を起動しないと入力経路が動かず、コア単体の測定ができない。"
+    },
+    {
+      "id": "ytani01",
+      "label": "ytani01/meltype-fcitx5",
+      "repo": "ytani01/meltype-fcitx5",
+      "reason": "C++ フロントのみ (10 ファイル、アーカイブ済み)。コアを含まない。"
+    },
+    {
+      "id": "araramaa",
+      "label": "araramaa/MeltypeMC",
+      "repo": "araramaa/MeltypeMC",
+      "reason": "Minecraft Fabric Mod (Kotlin)。ゲーム内入力専用で、コアの測定経路が無い。"
+    },
+    {
+      "id": "justtype",
+      "label": "YoshiaKefasu/JustType",
+      "repo": "YoshiaKefasu/JustType",
+      "reason": "Mozc 本体を土台にした Windows 用 IME (C++)。Meltype のコアを含まず、変換器が Mozc そのもので比較対象にならない。リポジトリも約 900MB。"
+    },
+    {
+      "id": "kaede",
+      "label": "mei28/kaede",
+      "repo": "mei28/kaede",
+      "reason": "Swift (macOS 専用)。Linux でビルドできない。"
+    },
+    {
+      "id": "meltflick",
+      "label": "Chiytako/meltflick",
+      "repo": "Chiytako/meltflick",
+      "reason": "Android のフリック入力の構想 (Kotlin)。変換エンジンを含まない。"
+    },
+    {
+      "id": "matchamisu",
+      "label": "patproport/Matchamisu",
+      "repo": "patproport/Matchamisu",
+      "reason": "Pastiera 派生 (Android/Kotlin) で Meltype 由来ではない。コアの比較対象外。"
+    },
+    {
+      "id": "nix",
+      "label": "aster-void/nix-meltype",
+      "repo": "aster-void/nix-meltype",
+      "reason": "Nix パッケージ定義のみ。エンジンを含まない。"
+    },
+    {
+      "id": "cachyos",
+      "label": "eeyone/meltype-4-cachyos-Fcitx5-",
+      "repo": "eeyone/meltype-4-cachyos-Fcitx5-",
+      "reason": "CachyOS 向け導入スクリプト (3 ファイル)。エンジンを含まない。"
+    },
+    {
+      "id": "vmeltype",
+      "label": "otnc/vMeltype",
+      "repo": "otnc/vMeltype",
+      "reason": "Windows のバージョン切替マネージャー (Go)。エンジンを含まない。"
+    },
+    {
+      "id": "settings_gui",
+      "label": "Valiant040/meltype-settings-gui-macos",
+      "repo": "Valiant040/meltype-settings-gui-macos",
+      "reason": "設定 GUI のみ (C#、28 ファイル)。Meltype.Core を含まない。"
+    },
+    {
+      "id": "ime_updater",
+      "label": "Blackphi6/ime-updater",
+      "repo": "Blackphi6/ime-updater",
+      "reason": "Swift の更新ツール (macOS)。エンジンを含まない。"
+    },
+    {
+      "id": "homebrew",
+      "label": "whitewater-png/homebrew-meltype-for-mac",
+      "repo": "whitewater-png/homebrew-meltype-for-mac",
+      "reason": "Homebrew tap の定義のみ。エンジンを含まない。"
+    }
+  ]
+}

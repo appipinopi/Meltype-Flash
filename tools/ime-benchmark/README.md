@@ -66,8 +66,34 @@ python tools/ime-benchmark/run_benchmark.py --version HEAD
 - `kana2romaji.py`: 読み→ローマ字変換。エンジン自身のローマ字表
   (`rust/core/src/romaji.tsv`) の逆引きに基づきます。
 
+## コア比較ベンチ (第2弾 / mode=core)
+
+Meltype 本家・フォーク・派生・独立実装の「コア」を、同じ 1 万文コーパスで比べる仕組みです。
+対象は `core_targets.json`(31 対象、対象外 18 件の理由つき)。
+
+- Layer A (変換器なし): ローマ字を打鍵し、Enter で確定した文字列が読み (かな) と一致するか。
+  ローマ字・かな・英日境界・保護の判定だけを見る。
+- Layer B (共通 Mozc): 本家 v1.7.1 の Linux 配布物に同梱の `meltype_mozc_helper` を
+  同じ条件でつなぎ、Space 変換の表示または Enter 確定が `expected` と一致するか。
+  C# の各版・フォークと MonakIME が同じヘルパーを共有します。
+  Meltype-Flash はコア同梱の `bundled-mozc` (移植 Mozc 辞書) で変換します。
+- Zenzai・Jev・azooKey・Google 日本語入力などの AI 層はすべて無効にします。
+
+```bash
+# 対象一覧 (人が読む形)
+python tools/ime-benchmark/core_bench_plan.py
+# 1 対象だけ測る (手元で配線を確認するとき)
+LIMIT=200 python tools/ime-benchmark/core_bench_runner.py --target upstream_v171 --out bench-out/upstream-v1.7.1.json
+```
+
+C# は版ごとにセッション API が違うため、`core_bench_runner.py` がソースを見て
+`harness/csharp/Program.gen{1,2,3}.cs` を選び、ビルドできなければ次の候補を試します。
+結果 JSON には `status`(ok/partial/error)・`failure`(段階とログ)・`harness`(実際に通ったもの) が入り、
+失敗してもジョブは落ちません。
+
 ## テスト
 
 ```bash
 python -m unittest discover -s tools -p test_ime_benchmark.py
+python -m unittest discover -s tools -p test_core_benchmark.py
 ```
