@@ -68,6 +68,13 @@ impl System {
                 CLSIDFromProgID(w!("MSIME.Japan")).and_then(|clsid| {
                     let language: IFELanguage = CoCreateInstance(&clsid, None, CLSCTX_ALL)?;
                     language.Open()?;
+                    // Pre-warm internal COM dictionary structures immediately upon initialization
+                    // to eliminate the 80ms~90ms cold-start latency penalty on the user's first keystroke.
+                    let warm_input = BSTR::from_wide(&[0x3042]).ok(); // 'あ'
+                    if let Some(warm_in) = warm_input {
+                        let mut warm_out = BSTR::new();
+                        let _ = language.GetConversion(&warm_in, 1, -1, &mut warm_out);
+                    }
                     Ok(language)
                 })
             };
