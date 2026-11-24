@@ -29,9 +29,7 @@ fn apply(text: &mut String, edit: TextEdit) -> Result<(), Box<dyn std::error::Er
 fn run_case(typed: &str) -> Result<String, Box<dyn std::error::Error>> {
     let mut session = Session::default();
     session.can_delete = true;
-    session
-        .settings
-        .set("PredictiveCandidates", json!(false))?;
+    session.settings.set("PredictiveCandidates", json!(false))?;
     session.set_context(Some(""), None);
     let mut actual = String::new();
     for c in typed.chars() {
@@ -52,8 +50,12 @@ fn run_case(typed: &str) -> Result<String, Box<dyn std::error::Error>> {
 
 fn main() -> Result<(), Box<dyn std::error::Error>> {
     let args: Vec<String> = std::env::args().collect();
-    let cases_path = args.get(1).ok_or("usage: ime_benchmark <cases.jsonl> <out.jsonl>")?;
-    let out_path = args.get(2).ok_or("usage: ime_benchmark <cases.jsonl> <out.jsonl>")?;
+    let cases_path = args
+        .get(1)
+        .ok_or("usage: ime_benchmark <cases.jsonl> <out.jsonl>")?;
+    let out_path = args
+        .get(2)
+        .ok_or("usage: ime_benchmark <cases.jsonl> <out.jsonl>")?;
     let text = std::fs::read_to_string(cases_path)?;
     let mut out = std::fs::File::create(out_path)?;
     for line in text.lines() {
