@@ -14,7 +14,7 @@
 |Zenz|v1 Q8_0、v2 Q5_K_M、v3 small Q5_K_M、v3.1/v3.2 small・xsmall Q5_K_M|Windows・macOS・Linux|
 |Jinen|v1 small・xsmall Q5_K_M/F16、v1.1 beta・v2 small・xsmall Q4_K_M/Q5_K_M/Q8_0/F16|Windows・macOS・Linux|
 |kanakanji-edge|33m Q8_0/F16|Windows・macOS・Linux|
-|shuntelligence|v5 S7/XS5、v6 S8P/XS5、v7 S8P/XS5|Windows・macOS・Linux・Android・ChromeOS・iOS|
+|shuntelligence|v5 S7/XS5、v6 S8P/XS5、v7 S8P/XS5、Open v1 M5/S9/XS6（クリーン辞書）|Windows・macOS・Linux・Android・ChromeOS・iOS|
 
 Jinen v1.1 betaは配布元のモデルカードにライセンス表記がないため、導入画面でもその旨と配布元リンクを示します。重みは他のモデルと同様、本体に同梱せず配布元から任意取得します。Zenz v2.5などGGUFを配布していないモデルの自動変換や、未確認の実行コードの導入は行いません。
 
@@ -32,7 +32,7 @@ Jinen v1.1 betaは配布元のモデルカードにライセンス表記がな�
 
 入力内容は外部へ送信しません。秘密入力・英字・数値の変換はAIへ渡さず、入力内容が変わった後の応答は適用しません。AIが準備中・未導入・停止中の場合や応答の待機期限を超えた場合は通常の変換を使います。
 
-shunti: https://github.com/shuntilettuce/Japanese-IME-for-HarmonyOS-next/tree/14801bffb90c9ea5f2dd0f594943a97ea35c8a1a 。エンジンのMIT表記は本体の第三者ライセンスに含みます。任意データの辞書・モデルには配布元の条件（CC BY-SA 4.0・CC BY 4.0など）が適用されます。詳細は `ai/vendor/shunti/THIRD_PARTY_NOTICES.md` と `DATA_SOURCES.md` に記録しています。
+shunti: https://github.com/shuntilettuce/Japanese-IME-for-HarmonyOS-next/tree/14801bffb90c9ea5f2dd0f594943a97ea35c8a1a 。エンジンのMIT表記は本体の第三者ライセンスに含みます。任意データの辞書・モデルには配布元の条件（CC BY-SA 4.0・CC BY 4.0など）が適用されます。Open v1のモデルはMIT、クリーン辞書はMIT（mozc由来の部分はBSD-3-Clause・IPAdicライセンス）です。詳細は `ai/vendor/shunti/THIRD_PARTY_NOTICES.md` と `DATA_SOURCES.md` に記録しています。
 
 ## 上流1.4.1系の取り込み
 
