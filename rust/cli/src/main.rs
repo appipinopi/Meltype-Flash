@@ -156,7 +156,7 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
         let raw = args.get(1).ok_or("--convert requires text")?;
         println!(
             "{}",
-            meltype_core::dictionary::Dictionary::bundled().mixed(raw, true)
+            meltype_core::dictionary::Dictionary::bundled().convert_smart(raw)
         );
         return Ok(());
     }
