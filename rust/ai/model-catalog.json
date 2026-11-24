@@ -451,6 +451,78 @@
       ]
     },
     {
+      "id": "shunti-open-v1-m5",
+      "family": "Shunti",
+      "label": "shuntelligence Open v1 / M5（クリーン辞書）",
+      "directory": "shunti-open-v1-m5",
+      "protocol": "shunti",
+      "license": "モデル MIT / 辞書 MIT（mozc 由来の部分は BSD-3-Clause・IPAdic ライセンス）",
+      "source": "https://github.com/shuntilettuce/Japanese-IME-for-HarmonyOS-next/releases/tag/shuntelligence-open-v1",
+      "available": true,
+      "files": [
+        {
+          "name": "kkc_lex.bin",
+          "url": "https://github.com/shuntilettuce/Japanese-IME-for-HarmonyOS-next/releases/download/shuntelligence-open-v1/kkc_lex_clean.bin",
+          "sha256": "d39c3ac8ed890d4fe81723d318cc26abd204eedd169de7fa11f3af8e7247dfb5",
+          "size": 67011850
+        },
+        {
+          "name": "kkc_model.bin",
+          "url": "https://github.com/shuntilettuce/Japanese-IME-for-HarmonyOS-next/releases/download/shuntelligence-open-v1/shuntelligence-open-M5.bin",
+          "sha256": "c23189d5c2da142efe53a293aa4c37f6c12c358e940b4ab052345180a1aa0915",
+          "size": 19745944
+        }
+      ]
+    },
+    {
+      "id": "shunti-open-v1-s9",
+      "family": "Shunti",
+      "label": "shuntelligence Open v1 / S9（クリーン辞書）",
+      "directory": "shunti-open-v1-s9",
+      "protocol": "shunti",
+      "license": "モデル MIT / 辞書 MIT（mozc 由来の部分は BSD-3-Clause・IPAdic ライセンス）",
+      "source": "https://github.com/shuntilettuce/Japanese-IME-for-HarmonyOS-next/releases/tag/shuntelligence-open-v1",
+      "available": true,
+      "files": [
+        {
+          "name": "kkc_lex.bin",
+          "url": "https://github.com/shuntilettuce/Japanese-IME-for-HarmonyOS-next/releases/download/shuntelligence-open-v1/kkc_lex_clean.bin",
+          "sha256": "d39c3ac8ed890d4fe81723d318cc26abd204eedd169de7fa11f3af8e7247dfb5",
+          "size": 67011850
+        },
+        {
+          "name": "kkc_model.bin",
+          "url": "https://github.com/shuntilettuce/Japanese-IME-for-HarmonyOS-next/releases/download/shuntelligence-open-v1/shuntelligence-open-S9.bin",
+          "sha256": "38bb28a57010e73b3f45db02c40fe0527c091139f89f083d01c78f19d5999dca",
+          "size": 8264088
+        }
+      ]
+    },
+    {
+      "id": "shunti-open-v1-xs6",
+      "family": "Shunti",
+      "label": "shuntelligence Open v1 / XS6（クリーン辞書）",
+      "directory": "shunti-open-v1-xs6",
+      "protocol": "shunti",
+      "license": "モデル MIT / 辞書 MIT（mozc 由来の部分は BSD-3-Clause・IPAdic ライセンス）",
+      "source": "https://github.com/shuntilettuce/Japanese-IME-for-HarmonyOS-next/releases/tag/shuntelligence-open-v1",
+      "available": true,
+      "files": [
+        {
+          "name": "kkc_lex.bin",
+          "url": "https://github.com/shuntilettuce/Japanese-IME-for-HarmonyOS-next/releases/download/shuntelligence-open-v1/kkc_lex_clean.bin",
+          "sha256": "d39c3ac8ed890d4fe81723d318cc26abd204eedd169de7fa11f3af8e7247dfb5",
+          "size": 67011850
+        },
+        {
+          "name": "kkc_model.bin",
+          "url": "https://github.com/shuntilettuce/Japanese-IME-for-HarmonyOS-next/releases/download/shuntelligence-open-v1/shuntelligence-open-XS6.bin",
+          "sha256": "65d97597b06372394bc33503a66506541f284db5c15bb523bd3933da1071ed4d",
+          "size": 2704024
+        }
+      ]
+    },
+    {
       "id": "shunti-v7-s8p",
       "family": "Shunti",
       "label": "shuntelligence v7 / S8P",
