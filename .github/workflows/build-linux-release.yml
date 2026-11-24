@@ -1,0 +1,33 @@
+name: Build Linux Release
+on:
+  workflow_dispatch:
+    inputs:
+      tag:
+        description: 'Release tag to attach'
+        required: true
+        default: 'v2.0.0-rc1'
+
+permissions:
+  contents: write
+
+jobs:
+  build-linux:
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@v5
+      - uses: dtolnay/rust-toolchain@stable
+      - name: Install dependencies
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y libibus-1.0-dev ibus
+      - name: Build and package Linux release
+        run: |
+          bash rust/build-linux.sh
+      - name: Rename archive to release naming
+        run: |
+          cp linux/build/Meltype-flash-linux.tar.gz Meltype-flash-${{ inputs.tag }}-Linux-x64.tar.gz
+      - name: Upload to GitHub Release
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          gh release upload "${{ inputs.tag }}" Meltype-flash-${{ inputs.tag }}-Linux-x64.tar.gz --clobber --repo "${{ github.repository }}"
