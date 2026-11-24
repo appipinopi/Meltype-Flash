@@ -1609,6 +1609,8 @@ impl Session {
         let selected_prediction = self.prediction_at(self.selected_prediction);
         if let Some(entry) = &selected_prediction {
             text = entry.display();
+        } else if self.explicit.is_none() {
+            text = crate::transducer::normalize(&text);
         }
         let reading = self.reading();
         let prediction = selected_prediction.is_some();
@@ -2052,8 +2054,14 @@ impl Session {
         // while an already-open composition is being edited.
         if external.is_empty() && !self.external_converter_only {
             #[cfg(any(target_os = "android", target_os = "ios", feature = "bundled-mozc"))]
-            if reading.chars().any(crate::linguistics::kana) {
-                let clauses = crate::portable_mozc::bundled().clauses(self, &reading);
+            if reading.chars().any(crate::linguistics::kana)
+                || reading.chars().any(crate::linguistics::kanji)
+            {
+                let smart = crate::dictionary::Dictionary::bundled().convert_smart(&reading);
+                let clauses = vec![Clause::new(
+                    reading.clone(),
+                    vec![smart.clone(), reading.clone()],
+                )];
                 if self.begin_clauses(clauses) {
                     return;
                 }
