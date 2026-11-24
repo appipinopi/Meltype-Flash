@@ -8,14 +8,26 @@ pub fn parse_kanji_num(s: &str) -> Option<u64> {
     if s.is_empty() {
         return None;
     }
-    let is_direct = s.chars().all(|c| matches!(c, '〇'|'一'|'二'|'三'|'四'|'五'|'六'|'七'|'八'|'九'))
-        && !s.chars().any(|c| matches!(c, '十'|'百'|'千'|'万'));
+    let is_direct = s.chars().all(|c| {
+        matches!(
+            c,
+            '〇' | '一' | '二' | '三' | '四' | '五' | '六' | '七' | '八' | '九'
+        )
+    }) && !s.chars().any(|c| matches!(c, '十' | '百' | '千' | '万'));
     if is_direct {
         let mut val: u64 = 0;
         for c in s.chars() {
             let d = match c {
-                '〇' => 0, '一' => 1, '二' => 2, '三' => 3, '四' => 4,
-                '五' => 5, '六' => 6, '七' => 7, '八' => 8, '九' => 9,
+                '〇' => 0,
+                '一' => 1,
+                '二' => 2,
+                '三' => 3,
+                '四' => 4,
+                '五' => 5,
+                '六' => 6,
+                '七' => 7,
+                '八' => 8,
+                '九' => 9,
                 _ => return None,
             };
             val = val.checked_mul(10)?.checked_add(d)?;
@@ -68,8 +80,28 @@ pub fn parse_kanji_num(s: &str) -> Option<u64> {
 
 /// Suffixes that trigger number normalization.
 pub const UNITS: &[&str] = &[
-    "年", "月", "日", "円", "人", "枚", "冊", "個", "本", "時", "分", "階", "話",
-    "パーセント", "センチ", "ミリ", "リットル", "キロ", "グラム", "メートル", "度", "％"
+    "年",
+    "月",
+    "日",
+    "円",
+    "人",
+    "枚",
+    "冊",
+    "個",
+    "本",
+    "時",
+    "分",
+    "階",
+    "話",
+    "パーセント",
+    "センチ",
+    "ミリ",
+    "リットル",
+    "キロ",
+    "グラム",
+    "メートル",
+    "度",
+    "％",
 ];
 
 /// Post-conversion zero-allocation string normalizer.
@@ -79,7 +111,22 @@ pub fn normalize(text: &str) -> String {
     let mut kanji_num_buf = String::new();
 
     while let Some(c) = chars.next() {
-        if matches!(c, '〇'|'一'|'二'|'三'|'四'|'五'|'六'|'七'|'八'|'九'|'十'|'百'|'千'|'万') {
+        if matches!(
+            c,
+            '〇' | '一'
+                | '二'
+                | '三'
+                | '四'
+                | '五'
+                | '六'
+                | '七'
+                | '八'
+                | '九'
+                | '十'
+                | '百'
+                | '千'
+                | '万'
+        ) {
             kanji_num_buf.push(c);
         } else {
             if !kanji_num_buf.is_empty() {
@@ -116,7 +163,8 @@ pub fn normalize(text: &str) -> String {
     let mut s = final_res;
 
     // ── Year normalization (2戦に1X年 variants) ──
-    s = s.replace("2戦に16年", "2026年")
+    s = s
+        .replace("2戦に16年", "2026年")
         .replace("2戦に15年", "2025年")
         .replace("2戦に14年", "2024年")
         .replace("2戦に17年", "2027年")
@@ -149,7 +197,8 @@ pub fn normalize(text: &str) -> String {
     // ── Date day normalization ──
     // 「にじゅうX日」→ 「に1X日」or「に十X日」の誤変換パターン修正
     // に1X日 → 2X日 (にじゅう→に1 の誤り)
-    s = s.replace("月に11日", "月21日")
+    s = s
+        .replace("月に11日", "月21日")
         .replace("月に12日", "月22日")
         .replace("月に13日", "月23日")
         .replace("月に14日", "月24日")
@@ -159,7 +208,8 @@ pub fn normalize(text: &str) -> String {
         .replace("月に18日", "月28日")
         .replace("月に19日", "月29日");
     // 中X日 → 1X日 (じゅう→中 の誤り)
-    s = s.replace("月中1日", "月11日")
+    s = s
+        .replace("月中1日", "月11日")
         .replace("月中2日", "月12日")
         .replace("月中3日", "月13日")
         .replace("月中4日", "月14日")
@@ -171,7 +221,8 @@ pub fn normalize(text: &str) -> String {
     // は柄 → 20日 (はつか→は柄 の誤り)
     s = s.replace("月は柄に", "月20日に");
     // 和暦日
-    s = s.replace("に十一日", "21日")
+    s = s
+        .replace("に十一日", "21日")
         .replace("に十二日", "22日")
         .replace("に十三日", "23日")
         .replace("に十四日", "24日")
@@ -182,7 +233,8 @@ pub fn normalize(text: &str) -> String {
         .replace("に十九日", "29日")
         .replace("中に日", "12日");
     // 訓読み日付
-    s = s.replace("月いつかに", "月5日に")
+    s = s
+        .replace("月いつかに", "月5日に")
         .replace("月ふつかに", "月2日に")
         .replace("月みっかに", "月3日に")
         .replace("月よっかに", "月4日に")
@@ -195,7 +247,8 @@ pub fn normalize(text: &str) -> String {
 
     // ── 「きのう」→「機能」の汎用修正 ──
     // Replace 機能 at start-of-sentence or after settled text (generic approach)
-    s = s.replace("機能の", "昨日の")
+    s = s
+        .replace("機能の", "昨日の")
         .replace("機能子供", "昨日子供")
         .replace("機能、", "昨日、")
         .replace("機能に", "昨日に")
@@ -221,7 +274,8 @@ pub fn normalize(text: &str) -> String {
         .replace("機能わたし", "昨日わたし");
 
     // ── 「きょう」→「共」「脅威者」「経典員」の修正 ──
-    s = s.replace("脅威者", "今日医者")
+    s = s
+        .replace("脅威者", "今日医者")
         .replace("経典員", "今日店員")
         .replace("驚愕性は", "今日学生は")
         .replace("共同量は", "今日同僚は")
@@ -247,11 +301,13 @@ pub fn normalize(text: &str) -> String {
         .replace("共、", "今日、");
 
     // ── 「あした」→ 足代謝/芦田 の修正 ──
-    s = s.replace("足代謝", "明日医者")
+    s = s
+        .replace("足代謝", "明日医者")
         .replace("芦田先生", "明日先生");
 
     // ── 「こんや」→「今野」の誤変換 ──
-    s = s.replace("今野先生", "今夜先生")
+    s = s
+        .replace("今野先生", "今夜先生")
         .replace("今野同僚", "今夜同僚")
         .replace("今野祖父", "今夜祖父")
         .replace("今野祖母", "今夜祖母")
@@ -272,19 +328,22 @@ pub fn normalize(text: &str) -> String {
         .replace("今野店員", "今夜店員");
 
     // ── 「らいげつ/らいねん/こんねんど/らいねんど」の未変換修正 ──
-    s = s.replace("らいげつ", "来月")
+    s = s
+        .replace("らいげつ", "来月")
         .replace("らいねんど", "来年度")
         .replace("こんねんど", "今年度")
         .replace("らいねん", "来年");
 
     // ── 防止 → 帽子 (汎用: 「ぼうし」は常に帽子) ──
-    s = s.replace("防止を", "帽子を")
+    s = s
+        .replace("防止を", "帽子を")
         .replace("防止が", "帽子が")
         .replace("防止は", "帽子は")
         .replace("防止の", "帽子の");
 
     // ── メガネ → 眼鏡 ──
-    s = s.replace("メガネを", "眼鏡を")
+    s = s
+        .replace("メガネを", "眼鏡を")
         .replace("メガネが", "眼鏡が")
         .replace("メガネは", "眼鏡は")
         .replace("メガネの", "眼鏡の");
@@ -293,7 +352,8 @@ pub fn normalize(text: &str) -> String {
     // (handled in final section below)
 
     // ── オス → 推す/押す (カタカナ化防止) ──
-    s = s.replace("、オスを", "、押すを")
+    s = s
+        .replace("、オスを", "、押すを")
         .replace("、オスに", "、推すに")
         .replace("、オスについて", "、推すについて");
 
@@ -303,7 +363,8 @@ pub fn normalize(text: &str) -> String {
     // ── 人名辞書: 「姓+ひらがな名+さん」パターンの一括修正 ──
     // portable_mozcが変換できない現代人名を normalize で補完
     // Top frequency mismatches from benchmark
-    s = s.replace("レンさん", "蓮さん")
+    s = s
+        .replace("レンさん", "蓮さん")
         .replace("つむぎさん", "紬さん")
         .replace("ゆいさん", "結衣さん")
         .replace("ゆうまさん", "悠真さん")
@@ -318,7 +379,8 @@ pub fn normalize(text: &str) -> String {
     // 港 → 湊 (benchmark uses 湊 for みなと)
     s = s.replace("港さん", "湊さん");
     // やまと: 和/ヤマト → 大和
-    s = s.replace("和さん、", "大和さん、")
+    s = s
+        .replace("和さん、", "大和さん、")
         .replace("ヤマトさん", "大和さん");
     // 由 → 結衣 (ゆいの別変換)
     s = s.replace("由さん、", "結衣さん、");
@@ -333,7 +395,8 @@ pub fn normalize(text: &str) -> String {
     s = s.replace("姉歯", "姉は");
 
     // ── 公園/講演 の誤変換 ──
-    s = s.replace("講演でカギ", "公園で鍵")
+    s = s
+        .replace("講演でカギ", "公園で鍵")
         .replace("講演で手紙", "公園で手紙")
         .replace("講演でリンゴ", "公園でりんご")
         .replace("講演で牛乳", "公園で牛乳")
@@ -345,19 +408,22 @@ pub fn normalize(text: &str) -> String {
         .replace("河出かばんを", "川で鞄を");
 
     // ── カタカナ混入修正 ──
-    s = s.replace("止マラない", "止まらない")
+    s = s
+        .replace("止マラない", "止まらない")
         .replace("始メタ", "始めた")
         .replace("ムカデの", "百足の");
 
     // ── 読み方・活用形の修正 ──
-    s = s.replace("読見方", "読み方")
+    s = s
+        .replace("読見方", "読み方")
         .replace("間違得た", "間違えた")
         .replace("締目切里", "締め切り")
         .replace("締目切リモ", "締め切りも")
         .replace("手続機", "手続き");
 
     // ── 文脈依存の修正 ──
-    s = s.replace("の公演は", "の公園は")
+    s = s
+        .replace("の公演は", "の公園は")
         .replace("は思い。", "は重い。")
         .replace("1日が終わ", "一日が終わ");
 
@@ -368,7 +434,8 @@ pub fn normalize(text: &str) -> String {
     s = s.replace("治回", "次回");
 
     // ── は母 → 母は (native engine: 「はは」→「は母」の文節切り誤り) ──
-    s = s.replace("は母会社", "母は会社")
+    s = s
+        .replace("は母会社", "母は会社")
         .replace("は母銀行", "母は銀行")
         .replace("は母公園", "母は公園")
         .replace("は母市場", "母は市場")
@@ -392,7 +459,8 @@ pub fn normalize(text: &str) -> String {
     s = s.replace("八百園", "800円");
 
     // ── 未変換場所名の修正 ──
-    s = s.replace("とえきで", "と駅で")
+    s = s
+        .replace("とえきで", "と駅で")
         .replace("はいえで", "は家で")
         .replace("でめがねを", "で眼鏡を")
         .replace("でくつを", "で靴を")
