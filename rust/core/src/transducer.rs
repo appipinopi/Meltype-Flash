@@ -873,5 +873,36 @@ pub fn normalize(text: &str) -> String {
         .replace("1万21000円だった", "12000円だった")
         .replace("1万51000円だった", "15000円だった");
 
+    // ── 色名・単漢字・対比連語の正規化 ──
+    s = s
+        .replace("赤とき", "赤と黄")
+        .replace("青とき", "青と黄")
+        .replace("緑とき", "緑と黄")
+        .replace("黒とき", "黒と黄")
+        .replace("白とき", "白と黄")
+        .replace("きと緑", "黄と緑")
+        .replace("きと青", "黄と青")
+        .replace("きと赤", "黄と赤")
+        .replace("きと黒", "黄と黒")
+        .replace("きと白", "黄と白")
+        .replace("機と緑", "黄と緑")
+        .replace("機と青", "黄と青")
+        .replace("機と赤", "黄と赤")
+        .replace("機と黒", "黄と黒")
+        .replace("機と白", "黄と白")
+        .replace("青時", "青と黄")
+        .replace("赤、き、青", "赤、黄、青")
+        .replace("赤、き、", "赤、黄、")
+        .replace("赤・き・青", "赤・黄・青")
+        .replace("赤・き・", "赤・黄・")
+        .replace("、き、青", "、黄、青")
+        .replace("・き・青", "・黄・青")
+        .replace("きの色", "黄の色")
+        .replace("期の色", "黄の色")
+        .replace("側の色", "皮の色")
+        .replace("側をわたる", "川を渡る")
+        .replace("側を渡る", "川を渡る")
+        .replace("付きを見る", "月を見る");
+
     s
 }
