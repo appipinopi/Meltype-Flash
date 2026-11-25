@@ -243,7 +243,7 @@ test("モデルの導入後はインストール済みへ変わり、別の版�
   const p=await page(t), get=id=>p.elements.get(id);
   chrome.permissions={request:async()=>true};
   p.fields.AiModel.value="Shunti"; await p.fields.AiModel.fire("change");
-  assert.equal(get("#ai-version").options.length,9);
+  assert.equal(get("#ai-version").options.length,14);
   assert.equal(get("#ai-install").disabled,false);
   chrome.permissions.request = async () => false;
   await get("#ai-install").fire("click");

@@ -14,7 +14,7 @@
 |Zenz|v1 Q8_0、v2 Q5_K_M、v3 small Q5_K_M、v3.1/v3.2 small・xsmall Q5_K_M|Windows・macOS・Linux|
 |Jinen|v1 small・xsmall Q5_K_M/F16、v1.1 beta・v2 small・xsmall Q4_K_M/Q5_K_M/Q8_0/F16|Windows・macOS・Linux|
 |kanakanji-edge|33m Q8_0/F16|Windows・macOS・Linux|
-|shuntelligence|v5 S7/XS5、v6 S8P/XS5、v7 S8P/XS5、Open v1 M5/S9/XS6（クリーン辞書）|Windows・macOS・Linux・Android・ChromeOS・iOS|
+|shuntelligence|Open v1 M5/S9/XS6/PureXS2（クリーン辞書）、v9 S9/XS6、v8 S9/XS5、v7 S8P/XS5、v6 S8P/XS5、v5 S7/XS5|Windows・macOS・Linux・Android・ChromeOS・iOS|
 
 Jinen v1.1 betaは配布元のモデルカードにライセンス表記がないため、導入画面でもその旨と配布元リンクを示します。重みは他のモデルと同様、本体に同梱せず配布元から任意取得します。Zenz v2.5などGGUFを配布していないモデルの自動変換や、未確認の実行コードの導入は行いません。
 

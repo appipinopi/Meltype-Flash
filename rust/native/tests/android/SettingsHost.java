@@ -24,7 +24,7 @@ public final class SettingsHost {
             page=Native.settingsPage(session,0);
             check(page.contains("shuntelligence v7 / S8P")&&page.contains("shuntelligence v5 / XS5"),"version catalog visible");
             check(page.contains("このモデルをインストール")&&!page.contains("インストール済み"),"missing model is not installed");
-            action(session,"{\"action\":\"ai_variant\",\"value\":1}","{}");
+            action(session,"{\"action\":\"ai_variant\",\"value\":9}","{}");
             String ai=Native.control(session,"{\"op\":\"settings_get\"}");
             check(ai.contains("\"ShuntiModelVariant\":\"shunti-v7-xs5\"")&&ai.contains("\"UseShunti\":false"),"version saved without download or activation");
             action(session,"{\"action\":\"ai_select\",\"value\":0}","{}");

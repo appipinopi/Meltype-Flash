@@ -46,7 +46,7 @@ final class AISettingsTests: XCTestCase {
         let directory = FileManager.default.temporaryDirectory.appendingPathComponent(UUID().uuidString)
         defer { try? FileManager.default.removeItem(at: directory) }
         let store = AISettingsStore(directory: directory)
-        XCTAssertEqual(AISettingsStore.variants.count, 9)
+        XCTAssertEqual(AISettingsStore.variants.count, 14)
         try store.select("Shunti")
         let original = try XCTUnwrap(store.dataDirectory)
         try FileManager.default.createDirectory(at: original, withIntermediateDirectories: true)
