@@ -497,9 +497,14 @@ mod tests {
             "shunti-v6-xs5",
             "shunti-v7-s8p",
             "shunti-v7-xs5",
+            "shunti-v8-s9",
+            "shunti-v8-xs5",
+            "shunti-v9-s9",
+            "shunti-v9-xs6",
             "shunti-open-v1-m5",
             "shunti-open-v1-s9",
             "shunti-open-v1-xs6",
+            "shunti-open-v1-purexs2",
         ] {
             let package = shunti_package_variant(id).unwrap();
             assert_eq!(package.files.len(), 2);
